@@ -1,0 +1,21 @@
+All messages include an int (4 byte) header for type, and an int (4 byte) for length.
+
+All messages use the MessageWriter serialiser.
+
+Shared format:
+HEARTBEAT: null - Just sends some data over the wire to keep the connection alive.
+CHAT_MESSAGE: string - name, string - message.
+
+Client only:
+HANDSHAKE_REQUEST: int - Protocol version, string - Player name, string - Guid (player token).
+HANDSHAKE_RESPONSE: bool - Successful connection
+
+Server only:
+HANDSHAKE_RESPONSE: int - Connection status
+0 - Success
+1 - Protocol mismatch
+2 - Player already connected
+3 - Token mismatch
+99 - Malformed message
+
+TODO: Actually write documentation on how my message writer works. The code is here anyway, this is how I built the MessageWriter.dll file: https://github.com/godarklight/BinarySerialiser
