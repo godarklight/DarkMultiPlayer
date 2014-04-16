@@ -36,6 +36,7 @@ namespace DarkMultiPlayer
             }
         }
 
+        //Called from main
         public void Update()
         {
             CheckDisconnection();
@@ -88,9 +89,10 @@ namespace DarkMultiPlayer
             }
             if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && ((UnityEngine.Time.realtimeSinceStartup - connectionTime) > 5f))
             {
-                //DarkLog.Debug("Connected for " + (UnityEngine.Time.realtimeSinceStartup - connectionTime) + " seconds");
                 state = ClientState.RUNNING;
                 parent.gameRunning = true;
+                parent.vesselWorker.enabled = true;
+                parent.timeSyncer.enabled = true;
             }
             /*
             if (state == ClientState.RUNNING)
@@ -101,6 +103,7 @@ namespace DarkMultiPlayer
             */
         }
         #region Connecting to server
+        //Called from main
         public void ConnectToServer(string address, string port)
         {
             if (state == ClientState.DISCONNECTED)
@@ -492,7 +495,6 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Failed to load vessel!");
                 }
             }
-
         }
 
         private void HandleVesselComplete()
@@ -551,7 +553,8 @@ namespace DarkMultiPlayer
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-        //WARNING: Also called directly from TimeSyncer!
+
+        //Called from timeSyncer
         public void SendTimeSync()
         {
             byte[] messageBytes;
@@ -580,40 +583,12 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
 
-        private void SendTimeLockRequest()
-        {
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.TIME_LOCK_REQUEST;
-            sendMessageQueueHigh.Enqueue(newMessage);
-        }
-
-        public void SendKerbalMessage(ProtoCrewMember kerbal)
+        //Called from vesselWorker
+        public void SendVesselProtoMessage(ProtoVessel vessel)
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_KERBAL;
-            kerbal.Save(currentNode);
-            string tempFile = Path.GetTempFileName();
-            currentNode.Save(tempFile);
-            using (StreamReader sr = new StreamReader(tempFile))
-            {
-                using (MessageWriter mw = new MessageWriter(0, false))
-                {
-                    mw.Write<string>(kerbal.name);
-                    mw.Write<string>(sr.ReadToEnd());
-                    newMessage.data = mw.GetMessageBytes();
-                }
-            }
-            File.Delete(tempFile);
-            DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
-            sendMessageQueueLow.Enqueue(newMessage);
-        }
-
-        public void SendVesselMessage(ProtoVessel vessel)
-        {
-            ConfigNode currentNode = new ConfigNode();
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_VESSEL;
+            newMessage.type = ClientMessageType.SEND_VESSEL_PROTO;
             vessel.Save(currentNode);
             string tempFile = Path.GetTempFileName();
             currentNode.Save(tempFile);
@@ -631,6 +606,67 @@ namespace DarkMultiPlayer
             sendMessageQueueLow.Enqueue(newMessage);
         }
 
+        /*
+        private void SendVesselUpdate(VesselUpdate update)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SEND_VESSEL_UPDATE;
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+        */
+
+        //Called from vesselWorker
+        public void SendActiveVessel(string activeVessel)
+        {
+            if (activeVessel != "")
+            {
+                DarkLog.Debug("Sending " + activeVessel + " as my active vessel");
+            }
+            else
+            {
+                DarkLog.Debug("Sending vessel release");
+            }
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SEND_ACTIVE_VESSEL;
+            using (MessageWriter mw = new MessageWriter(0, false)) {
+                mw.Write<string>(parent.playerName);
+                mw.Write<string>(activeVessel);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+
+        private void SendTimeLockRequest()
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.TIME_LOCK_REQUEST;
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+
+        //Called from vesselWorker
+        public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
+        {
+            ConfigNode currentNode = new ConfigNode();
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SEND_KERBAL_PROTO;
+            kerbal.Save(currentNode);
+            string tempFile = Path.GetTempFileName();
+            currentNode.Save(tempFile);
+            using (StreamReader sr = new StreamReader(tempFile))
+            {
+                using (MessageWriter mw = new MessageWriter(0, false))
+                {
+                    mw.Write<string>(kerbal.name);
+                    mw.Write<string>(sr.ReadToEnd());
+                    newMessage.data = mw.GetMessageBytes();
+                }
+            }
+            File.Delete(tempFile);
+            DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+
+        //Called from main
         public void SendDisconnect(string disconnectReason = "Unknown")
         {
             if (state != ClientState.DISCONNECTING && state >= ClientState.CONNECTED)

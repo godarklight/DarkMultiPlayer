@@ -33,7 +33,9 @@ namespace DarkMultiPlayer
 
             //Temporary testing stuff
             settings.playerGuid = new Guid();
-            settings.playerName = "godarklight";
+            System.Random r = new System.Random();
+            double randomNumber = r.NextDouble();
+            settings.playerName = "godarklight-" + randomNumber;
         }
 
         public void Start()

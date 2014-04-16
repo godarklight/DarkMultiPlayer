@@ -306,14 +306,14 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.KERBALS_REQUEST:
                     HandleKerbalsRequest(client);
                     break;
-                case ClientMessageType.SEND_KERBAL:
-                    HandleSendKerbal(client, message.data);
+                case ClientMessageType.SEND_KERBAL_PROTO:
+                    HandleSendKerbalProto(client, message.data);
                     break;
                 case ClientMessageType.VESSELS_REQUEST:
                     HandleVesselsRequest(client);
                     break;
-                case ClientMessageType.SEND_VESSEL:
-                    HandleSendVessel(client, message.data);
+                case ClientMessageType.SEND_VESSEL_PROTO:
+                    HandleSendVesselProto(client, message.data);
                     break;
                 case ClientMessageType.TIME_LOCK_REQUEST:
                     HandleTimeLockRequest(client);
@@ -409,7 +409,7 @@ namespace DarkMultiPlayerServer
             SendKerbalsComplete(client);
         }
 
-        private static void HandleSendKerbal(ClientObject client, byte[] messageData)
+        private static void HandleSendKerbalProto(ClientObject client, byte[] messageData)
         {
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -442,7 +442,7 @@ namespace DarkMultiPlayerServer
             SendVesselsComplete(client);
         }
 
-        private static void HandleSendVessel(ClientObject client, byte[] messageData)
+        private static void HandleSendVesselProto(ClientObject client, byte[] messageData)
         {
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))

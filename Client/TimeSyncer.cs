@@ -7,6 +7,10 @@ namespace DarkMultiPlayer
     {
         public bool synced;
         public bool locked;
+        public bool enabled;
+        private const float MAX_CLOCK_SKEW = 5f;
+        private const float MIN_CLOCK_RATE = 0.5f;
+        private const float MAX_CLOCK_RATE = 1.5f;
         private const float SYNC_TIME_INTERVAL = 30f;
         private const float CLOCK_SET_INTERVAL = .1f;
         private const int SYNC_TIME_VALID = 4;
@@ -43,7 +47,7 @@ namespace DarkMultiPlayer
                     parent.networkWorker.SendTimeSync();
                 }
             }
-            if (locked)
+            if (synced && locked && enabled)
             {
                 //Set the universe time here
                 SyncTime();
@@ -55,11 +59,63 @@ namespace DarkMultiPlayer
             if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
                 lastClockSkew = UnityEngine.Time.realtimeSinceStartup;
-                if (synced && locked && CanSyncTime())
+                if (CanSyncTime())
                 {
+                    double currentTime = Planetarium.GetUniversalTime();
+                    double targetTime = GetCurrentTime();
+                    if (Math.Abs(currentTime - targetTime) > MAX_CLOCK_SKEW)
+                    {
 
+                    }
                 }
             }
+        }
+
+        private void StepClock(double targetTick)
+        {
+            if (HighLogic.LoadedSceneIsFlight)
+            {
+                try
+                {
+                    OrbitPhysicsManager.HoldVesselUnpack(1);
+                }
+                catch
+                {
+                    DarkLog.Debug("Failed to hold vessel unpack");
+                    return;
+                }
+                foreach (Vessel v in FlightGlobals.fetch.vessels)
+                {
+                    if (v != FlightGlobals.fetch.activeVessel && v.packed)
+                    {
+                        v.GoOnRails();
+                    }
+                    if (v == FlightGlobals.fetch.activeVessel)
+                    {
+                        if (!SituationIsGrounded(v.situation))
+                        {
+                            v.GoOnRails();
+                        }
+                    }
+                }
+                Planetarium.SetUniversalTime(targetTick);
+            }
+            else
+            {
+                Planetarium.SetUniversalTime(targetTick);
+            }
+        }
+
+        private bool SituationIsGrounded(Vessel.Situations situation)
+        {
+            switch (situation)
+            {
+                case Vessel.Situations.LANDED:
+                case Vessel.Situations.PRELAUNCH:
+                case Vessel.Situations.SPLASHED:
+                    return true;
+            }
+            return false;
         }
 
         public void LockTime(long serverTimeLock, double planetariumTimeLock, float gameSpeedLock)
