@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -29,6 +30,7 @@ namespace DarkMultiPlayer
             networkWorker = new NetworkWorker(this);
             settings = new Settings();
             connectionWindow = new ConnectionWindow();
+            SetupDirectoriesIfNeeded();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
 
             //Temporary testing stuff
@@ -91,14 +93,14 @@ namespace DarkMultiPlayer
         {
             HighLogic.CurrentGame = new Game();
             HighLogic.CurrentGame.flightState = new FlightState();
+            HighLogic.CurrentGame.CrewRoster = new CrewRoster();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            DarkLog.Debug("Universe time is " + timeSyncer.GetCurrentTime());
             HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetCurrentTime();
             vesselWorker.LoadKerbalsIntoGame();
-            HighLogic.CurrentGame.Start();
             vesselWorker.LoadVesselsIntoGame();
+            HighLogic.CurrentGame.Start();
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
         }
 
@@ -108,6 +110,24 @@ namespace DarkMultiPlayer
             if (HighLogic.LoadedScene != GameScenes.MAINMENU)
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
+            }
+        }
+
+        public void SetupDirectoriesIfNeeded()
+        {
+            string darkMultiPlayerSavesDirectory = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("saves", "DarkMultiPlayer"));
+            CreateIfNeeded(darkMultiPlayerSavesDirectory);
+            CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Ships"));
+            CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
+            CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
+            CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
+        }
+
+        public void CreateIfNeeded(string path)
+        {
+            if (!Directory.Exists(path))
+            {
+                Directory.CreateDirectory(path);
             }
         }
     }

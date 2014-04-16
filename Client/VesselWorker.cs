@@ -7,25 +7,22 @@ namespace DarkMultiPlayer
     public class VesselWorker
     {
         private const float VESSEL_SEND_INTERVAL = 30f;
-
         public bool enabled;
         private Client parent;
         //Incoming queue
         private Queue<ConfigNode> newVessels;
         private Queue<ConfigNode> newKerbals;
-
+        private Queue<ActiveVesselEntry> newActiveVessels;
         //Vessel state tracking
         private string lastVessel;
-
         //Known kerbals
-        private List<string> serverKerbals;
+        private CrewRoster serverKerbals;
         //Known vessels and last send time
         private Dictionary<string, float> serverVessels;
         //Vessel id (key) owned by player (value)
         private Dictionary<string, string> inUse;
 
-
-        public VesselWorker (Client parent)
+        public VesselWorker(Client parent)
         {
             this.parent = parent;
             Reset();
@@ -34,12 +31,25 @@ namespace DarkMultiPlayer
                 //Shutup compiler
             }
         }
-
         //Called from main
         public void FixedUpdate()
         {
             if (enabled == true)
             {
+                while (newActiveVessels.Count > 0)
+                {
+                    ActiveVesselEntry ave = newActiveVessels.Dequeue();
+                    if (ave.vesselID != "")
+                    {
+                        DarkLog.Debug("Player " + ave.player + " is now flying " + ave.vesselID);
+                        SetInUse(ave.vesselID, ave.player);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Player " + ave.player + " has released their vessel");
+                        SetNotInUse(ave.player);
+                    }
+                }
                 while (newKerbals.Count > 0)
                 {
                     //Do something
@@ -52,9 +62,11 @@ namespace DarkMultiPlayer
                     ConfigNode newVessel = newVessels.Dequeue();
                     LoadVessel(newVessel);
                 }
-                if (FlightGlobals.ActiveVessel != null && HighLogic.LoadedSceneIsFlight)
+                bool isActiveVesselOk = FlightGlobals.ActiveVessel != null ? (FlightGlobals.ActiveVessel.loaded && !FlightGlobals.ActiveVessel.packed) : false;
+                if (isActiveVesselOk && HighLogic.LoadedScene == GameScenes.FLIGHT)
                 {
-                    if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString())) {
+                    if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
+                    {
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), parent.playerName);
                         parent.networkWorker.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
                     }
@@ -64,22 +76,69 @@ namespace DarkMultiPlayer
                     if (lastVessel != "")
                     {
                         lastVessel = "";
+                        parent.networkWorker.SendActiveVessel("");
                         SetNotInUse(parent.playerName);
-                        parent.networkWorker.SendActiveVessel(lastVessel);
                     }
                 }
                 foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
                 {
                     //Send updates for unpacked vessels that aren't being flown by other players
                     bool notInUseOrOurs = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.playerName) : true;
-                    if (!checkVessel.packed && notInUseOrOurs)
+                    if (checkVessel.loaded && !checkVessel.packed && notInUseOrOurs)
                     {
                         //Check that is hasn't been recently sent
                         bool notRecentlySent = serverVessels.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVessels[checkVessel.id.ToString()]) > VESSEL_SEND_INTERVAL) : true;
                         if (notRecentlySent)
                         {
                             serverVessels[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                            parent.networkWorker.SendVesselProtoMessage(checkVessel.protoVessel);
+                            if (checkVessel.protoVessel != null)
+                            {
+                                //Also check for kerbal state changes
+                                foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
+                                {
+                                    foreach (ProtoCrewMember pcm in part.protoModuleCrew)
+                                    {
+                                        if (!serverKerbals.ExistsInRoster(pcm.name))
+                                        {
+                                            //New kerbal
+                                            parent.networkWorker.SendKerbalProtoMessage(pcm);
+                                        }
+                                        else
+                                        {
+
+                                            foreach (ProtoCrewMember serverPcm in serverKerbals)
+                                            {
+                                                if (pcm.name == serverPcm.name)
+                                                {
+                                                    bool kerbalDifferent = false;
+                                                    kerbalDifferent = (pcm.courage != serverPcm.courage) || kerbalDifferent;
+                                                    kerbalDifferent = (pcm.isBadass != serverPcm.isBadass) || kerbalDifferent;
+                                                    kerbalDifferent = (pcm.rosterStatus != serverPcm.rosterStatus) || kerbalDifferent;
+                                                    kerbalDifferent = (pcm.seatIdx != serverPcm.seatIdx) || kerbalDifferent;
+                                                    kerbalDifferent = (pcm.stupidity != serverPcm.stupidity) || kerbalDifferent;
+                                                    kerbalDifferent = (pcm.UTaR != serverPcm.UTaR) || kerbalDifferent;
+                                                    if (kerbalDifferent)
+                                                    {
+                                                        DarkLog.Debug("Found changed kerbal, sending...");
+                                                        parent.networkWorker.SendKerbalProtoMessage(pcm);
+                                                        serverPcm.courage = pcm.courage;
+                                                        serverPcm.isBadass = pcm.isBadass;
+                                                        serverPcm.rosterStatus = pcm.rosterStatus;
+                                                        serverPcm.seatIdx = pcm.seatIdx;
+                                                        serverPcm.stupidity = pcm.stupidity;
+                                                        serverPcm.UTaR = pcm.UTaR;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                parent.networkWorker.SendVesselProtoMessage(checkVessel.protoVessel);
+                            }
+                            else
+                            {
+                                DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);
+                            }
                         }
                     }
                 }
@@ -107,7 +166,6 @@ namespace DarkMultiPlayer
             SetNotInUse(player);
             inUse[vesselID] = player;
         }
-
         //Called from main
         public void LoadKerbalsIntoGame()
         {
@@ -117,18 +175,26 @@ namespace DarkMultiPlayer
                 ConfigNode currentNode = newKerbals.Dequeue();
                 LoadKerbal(currentNode);
             }
-            if (serverKerbals.Count <= 50)
+            int serverKerbalsCount = 0;
+            int generateKerbals = 0;
+            foreach (ProtoCrewMember pcm in serverKerbals)
             {
-                DarkLog.Debug("Generating " + (50 - newKerbals.Count) + " new kerbals");
+                serverKerbalsCount++;
             }
-            while (serverKerbals.Count <= 50)
+            if (serverKerbalsCount <= 50)
+            {
+                generateKerbals = 50 - serverKerbalsCount;
+                DarkLog.Debug("Generating " + generateKerbals + " new kerbals");
+            }
+            while (generateKerbals > 0)
             {
                 ProtoCrewMember protoKerbal = CrewGenerator.RandomCrewMemberPrototype();
                 if (!HighLogic.CurrentGame.CrewRoster.ExistsInRoster(protoKerbal.name))
                 {
                     parent.networkWorker.SendKerbalProtoMessage(protoKerbal);
                     HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoKerbal);
-                    serverKerbals.Add(protoKerbal.name);
+                    serverKerbals.AddCrewMember(new ProtoCrewMember(protoKerbal));
+                    generateKerbals--;
                 }
             }
         }
@@ -144,7 +210,7 @@ namespace DarkMultiPlayer
                     {
                         //DarkLog.Debug("Loading " + protoCrew.name);
                         HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoCrew);
-                        serverKerbals.Add(protoCrew.name);
+                        serverKerbals.AddCrewMember(new ProtoCrewMember(protoCrew));
                     }
                     else
                     {
@@ -161,7 +227,6 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("crewNode is null!");
             }
         }
-
         //Called from main
         public void LoadVesselsIntoGame()
         {
@@ -183,12 +248,13 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
                     bool wasActive = false;
                     bool wasTarget = false;
-                    if (FlightGlobals.activeTarget != null ? FlightGlobals.activeTarget.vessel.id == currentProto.vesselID : false) {
-                        wasTarget = true;
-                    }
-                    if (FlightGlobals.ActiveVessel != null ? FlightGlobals.ActiveVessel.id == currentProto.vesselID : false)
+                    if (HighLogic.LoadedSceneIsFlight)
                     {
-                        wasActive = true;
+                        if (FlightGlobals.activeTarget != null)
+                        {
+                            wasTarget = (FlightGlobals.activeTarget.vessel != null) ? (FlightGlobals.activeTarget.vessel.id == currentProto.vesselID) : false;
+                        }
+                        wasActive = (FlightGlobals.ActiveVessel != null) ? (FlightGlobals.ActiveVessel.id == currentProto.vesselID) : false;
                     }
                     foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
                     {
@@ -229,29 +295,42 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("vesselNode is null!");
             }
         }
-
         //Called from networkWorker
         public void QueueKerbal(ConfigNode kerbalNode)
         {
             newKerbals.Enqueue(kerbalNode);
         }
-
         //Called from networkWorker
         public void QueueVessel(ConfigNode vesselNode)
         {
             newVessels.Enqueue(vesselNode);
         }
 
+        public void QueueActiveVessel(string player, string vesselID)
+        {
+            ActiveVesselEntry ave = new ActiveVesselEntry();
+            ave.player = player;
+            ave.vesselID = vesselID;
+            newActiveVessels.Enqueue(ave);
+        }
         //Called from main
         public void Reset()
         {
             enabled = false;
+            newActiveVessels = new Queue<ActiveVesselEntry>();
             newKerbals = new Queue<ConfigNode>();
             newVessels = new Queue<ConfigNode>();
-            serverKerbals = new List<string>();
+            serverKerbals = new CrewRoster();
             serverVessels = new Dictionary<string, float>();
             inUse = new Dictionary<string, string>();
+            lastVessel = "";
         }
+    }
+
+    class ActiveVesselEntry
+    {
+        public string player;
+        public string vesselID;
     }
 }
 

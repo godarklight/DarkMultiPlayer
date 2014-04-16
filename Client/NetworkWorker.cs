@@ -366,34 +366,44 @@ namespace DarkMultiPlayer
         #region Message Handling
         private void HandleMessage(ServerMessage message)
         {
-            switch (message.type)
+            try
             {
-                case ServerMessageType.HEARTBEAT:
-                    break;
-                case ServerMessageType.HANDSHAKE_REPLY:
-                    HandleHanshakeReply(message.data);
-                    break;
-                case ServerMessageType.SYNC_TIME_REPLY:
-                    HandleSyncTimeReply(message.data);
-                    break;
-                case ServerMessageType.KERBAL_REPLY:
-                    HandleKerbalReply(message.data);
-                    break;
-                case ServerMessageType.KERBAL_COMPLETE:
-                    HandleKerbalComplete();
-                    break;
-                case ServerMessageType.VESSEL_REPLY:
-                    HandleVesselReply(message.data);
-                    break;
-                case ServerMessageType.VESSEL_COMPLETE:
-                    HandleVesselComplete();
-                    break;
-                case ServerMessageType.TIME_LOCK_REPLY:
-                    HandleTimeLockReply(message.data);
-                    break;
-                default:
-                    DarkLog.Debug("Unhandled message type " + message.type);
-                    break;
+                switch (message.type)
+                {
+                    case ServerMessageType.HEARTBEAT:
+                        break;
+                    case ServerMessageType.HANDSHAKE_REPLY:
+                        HandleHanshakeReply(message.data);
+                        break;
+                    case ServerMessageType.SYNC_TIME_REPLY:
+                        HandleSyncTimeReply(message.data);
+                        break;
+                    case ServerMessageType.KERBAL_REPLY:
+                        HandleKerbalReply(message.data);
+                        break;
+                    case ServerMessageType.KERBAL_COMPLETE:
+                        HandleKerbalComplete();
+                        break;
+                    case ServerMessageType.VESSEL_REPLY:
+                        HandleVesselReply(message.data);
+                        break;
+                    case ServerMessageType.SET_ACTIVE_VESSEL:
+                        HandleSetActiveVessel(message.data);
+                        break;
+                    case ServerMessageType.VESSEL_COMPLETE:
+                        HandleVesselComplete();
+                        break;
+                    case ServerMessageType.TIME_LOCK_REPLY:
+                        HandleTimeLockReply(message.data);
+                        break;
+                    default:
+                        DarkLog.Debug("Unhandled message type " + message.type);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling message type " + message.type + ", exception: " + e);
             }
         }
 
@@ -494,6 +504,16 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Failed to load vessel!");
                 }
+            }
+        }
+
+        private void HandleSetActiveVessel(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string player = mr.Read<string>();
+                string vesselID = mr.Read<string>();
+                parent.vesselWorker.QueueActiveVessel(player, vesselID);
             }
         }
 

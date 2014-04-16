@@ -35,6 +35,7 @@ namespace DarkMultiPlayerCommon
         KERBAL_REPLY,
         KERBAL_COMPLETE,
         VESSEL_REPLY,
+        SET_ACTIVE_VESSEL,
         VESSEL_COMPLETE,
         TIME_LOCK_REPLY,
         PLAYER_STATUS,

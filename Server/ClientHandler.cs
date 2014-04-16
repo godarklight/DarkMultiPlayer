@@ -315,6 +315,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.SEND_VESSEL_PROTO:
                     HandleSendVesselProto(client, message.data);
                     break;
+                case ClientMessageType.SEND_ACTIVE_VESSEL:
+                    HandleSendActiveVessel(client, message.data);
+                    break;
                 case ClientMessageType.TIME_LOCK_REQUEST:
                     HandleTimeLockRequest(client);
                     break;
@@ -421,7 +424,11 @@ namespace DarkMultiPlayerServer
                     sw.Write(kerbalData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.KERBAL_REPLY;
-                    newMessage.data = messageData;
+                    using (MessageWriter mw = new MessageWriter(0, false))
+                    {
+                        mw.Write<string>(kerbalData);
+                        newMessage.data = mw.GetMessageBytes();
+                    }
                     SendToAll(client, newMessage, false);
                 }
             }
@@ -454,10 +461,22 @@ namespace DarkMultiPlayerServer
                     sw.Write(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_REPLY;
-                    newMessage.data = messageData;
+                    using (MessageWriter mw = new MessageWriter(0, false))
+                    {
+                        mw.Write<string>(vesselData);
+                        newMessage.data = mw.GetMessageBytes();
+                    }
                     SendToAll(client, newMessage, false);
                 }
             }
+        }
+
+        private static void HandleSendActiveVessel(ClientObject client, byte[] messageData)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
+            newMessage.data = messageData;
+            SendToAll(client, newMessage, true);
         }
 
         private static void HandleTimeLockRequest(ClientObject client)
