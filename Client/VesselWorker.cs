@@ -17,7 +17,7 @@ namespace DarkMultiPlayer
         private string lastVessel;
         //Known kerbals
         private CrewRoster serverKerbals;
-        //Known vessels and last send time
+        //Known vessels and last send/receive time
         private Dictionary<string, float> serverVessels;
         //Vessel id (key) owned by player (value)
         private Dictionary<string, string> inUse;
@@ -264,7 +264,7 @@ namespace DarkMultiPlayer
                             checkVessel.Die();
                         }
                     }
-                    serverVessels.Add(currentProto.vesselID.ToString(), UnityEngine.Time.realtimeSinceStartup);
+                    serverVessels[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
                     if (currentProto.vesselRef != null)
                     {
