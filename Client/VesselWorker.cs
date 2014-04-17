@@ -91,50 +91,58 @@ namespace DarkMultiPlayer
                         if (notRecentlySent)
                         {
                             serverVessels[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                            if (checkVessel.protoVessel != null)
+                            ProtoVessel checkProto = new ProtoVessel(checkVessel);
+                            if (checkProto != null)
                             {
-                                //Also check for kerbal state changes
-                                foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
+                                if (checkProto.vesselID != Guid.Empty)
                                 {
-                                    foreach (ProtoCrewMember pcm in part.protoModuleCrew)
+                                    //Also check for kerbal state changes
+                                    foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
                                     {
-                                        if (!serverKerbals.ExistsInRoster(pcm.name))
+                                        foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                                         {
-                                            //New kerbal
-                                            parent.networkWorker.SendKerbalProtoMessage(pcm);
-                                        }
-                                        else
-                                        {
-
-                                            foreach (ProtoCrewMember serverPcm in serverKerbals)
+                                            if (!serverKerbals.ExistsInRoster(pcm.name))
                                             {
-                                                if (pcm.name == serverPcm.name)
+                                                //New kerbal
+                                                parent.networkWorker.SendKerbalProtoMessage(pcm);
+                                            }
+                                            else
+                                            {
+
+                                                foreach (ProtoCrewMember serverPcm in serverKerbals)
                                                 {
-                                                    bool kerbalDifferent = false;
-                                                    kerbalDifferent = (pcm.courage != serverPcm.courage) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.isBadass != serverPcm.isBadass) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.rosterStatus != serverPcm.rosterStatus) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.seatIdx != serverPcm.seatIdx) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.stupidity != serverPcm.stupidity) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.UTaR != serverPcm.UTaR) || kerbalDifferent;
-                                                    if (kerbalDifferent)
+                                                    if (pcm.name == serverPcm.name)
                                                     {
-                                                        DarkLog.Debug("Found changed kerbal, sending...");
-                                                        parent.networkWorker.SendKerbalProtoMessage(pcm);
-                                                        serverPcm.courage = pcm.courage;
-                                                        serverPcm.isBadass = pcm.isBadass;
-                                                        serverPcm.rosterStatus = pcm.rosterStatus;
-                                                        serverPcm.seatIdx = pcm.seatIdx;
-                                                        serverPcm.stupidity = pcm.stupidity;
-                                                        serverPcm.UTaR = pcm.UTaR;
+                                                        bool kerbalDifferent = false;
+                                                        kerbalDifferent = (pcm.courage != serverPcm.courage) || kerbalDifferent;
+                                                        kerbalDifferent = (pcm.isBadass != serverPcm.isBadass) || kerbalDifferent;
+                                                        kerbalDifferent = (pcm.rosterStatus != serverPcm.rosterStatus) || kerbalDifferent;
+                                                        kerbalDifferent = (pcm.seatIdx != serverPcm.seatIdx) || kerbalDifferent;
+                                                        kerbalDifferent = (pcm.stupidity != serverPcm.stupidity) || kerbalDifferent;
+                                                        kerbalDifferent = (pcm.UTaR != serverPcm.UTaR) || kerbalDifferent;
+                                                        if (kerbalDifferent)
+                                                        {
+                                                            DarkLog.Debug("Found changed kerbal, sending...");
+                                                            parent.networkWorker.SendKerbalProtoMessage(pcm);
+                                                            serverPcm.courage = pcm.courage;
+                                                            serverPcm.isBadass = pcm.isBadass;
+                                                            serverPcm.rosterStatus = pcm.rosterStatus;
+                                                            serverPcm.seatIdx = pcm.seatIdx;
+                                                            serverPcm.stupidity = pcm.stupidity;
+                                                            serverPcm.UTaR = pcm.UTaR;
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
+                                    parent.networkWorker.SendVesselProtoMessage(checkProto);
                                 }
-                                parent.networkWorker.SendVesselProtoMessage(checkVessel.protoVessel);
-                            }
+                                else
+                                {
+                                    DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
+                                }
+                        }
                             else
                             {
                                 DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);
@@ -256,13 +264,18 @@ namespace DarkMultiPlayer
                         }
                         wasActive = (FlightGlobals.ActiveVessel != null) ? (FlightGlobals.ActiveVessel.id == currentProto.vesselID) : false;
                     }
+                    Vessel oldVessel = null;
                     foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
                     {
                         if (checkVessel.id == currentProto.vesselID)
                         {
-                            DarkLog.Debug("Replacing old vessel");
-                            checkVessel.Die();
+                            oldVessel = checkVessel;
                         }
+                    }
+                    if (oldVessel != null)
+                    {
+                        DarkLog.Debug("Replacing old vessel, packed: " + oldVessel.packed);
+                        oldVessel.Die();
                     }
                     serverVessels[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
