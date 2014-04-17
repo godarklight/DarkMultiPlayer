@@ -35,7 +35,6 @@ namespace DarkMultiPlayer
                 //Shutup compiler
             }
         }
-
         //Called from main
         public void Update()
         {
@@ -574,7 +573,6 @@ namespace DarkMultiPlayer
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from timeSyncer
         public void SendTimeSync()
         {
@@ -603,7 +601,6 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel)
         {
@@ -626,7 +623,6 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         /*
         private void SendVesselUpdate(VesselUpdate update)
         {
@@ -635,7 +631,6 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         */
-
         //Called from vesselWorker
         public void SendActiveVessel(string activeVessel)
         {
@@ -649,7 +644,8 @@ namespace DarkMultiPlayer
             }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SEND_ACTIVE_VESSEL;
-            using (MessageWriter mw = new MessageWriter(0, false)) {
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
                 mw.Write<string>(parent.playerName);
                 mw.Write<string>(activeVessel);
                 newMessage.data = mw.GetMessageBytes();
@@ -663,7 +659,6 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.TIME_LOCK_REQUEST;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
         {
@@ -686,7 +681,6 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         //Called from main
         public void SendDisconnect(string disconnectReason = "Unknown")
         {

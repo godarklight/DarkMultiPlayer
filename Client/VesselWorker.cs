@@ -142,7 +142,7 @@ namespace DarkMultiPlayer
                                 {
                                     DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
                                 }
-                        }
+                            }
                             else
                             {
                                 DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);

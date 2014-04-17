@@ -119,7 +119,8 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SendOutgoingMessages(ClientObject client) {
+        private static void SendOutgoingMessages(ClientObject client)
+        {
             if (!client.isSendingToClient)
             {
                 if (client.sendMessageQueueHigh.Count > 0)
@@ -148,10 +149,12 @@ namespace DarkMultiPlayerServer
             //Write the send times down in SYNC_TIME_REPLY packets
             if (message.type == ServerMessageType.SYNC_TIME_REPLY)
             {
-                try {
+                try
+                {
                     using (MessageWriter mw = new MessageWriter(0, false))
                     {
-                        using (MessageReader mr = new MessageReader(message.data, false)) {
+                        using (MessageReader mr = new MessageReader(message.data, false))
+                        {
                             //Client send time
                             mw.Write<long>(mr.Read<long>());
                             //Server receive time
@@ -162,7 +165,8 @@ namespace DarkMultiPlayerServer
                         }
                     }
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     DarkLog.Debug("Error rewriting SYNC_TIME packet, Exception " + e);
                 }
             }
@@ -187,6 +191,10 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
                 DisconnectClient(client);
             }
+            if (message.type == ServerMessageType.CONNECTION_END)
+            {
+                DisconnectClient(client);
+            }
         }
 
         private static void SendMessageCallback(IAsyncResult ar)
@@ -204,7 +212,8 @@ namespace DarkMultiPlayerServer
             client.isSendingToClient = false;
         }
 
-        private static void StartReceivingIncomingMessages(ClientObject client) {
+        private static void StartReceivingIncomingMessages(ClientObject client)
+        {
             client.lastReceiveTime = Server.serverClock.ElapsedMilliseconds;
             //Allocate byte for header
             client.receiveMessage = new ClientMessage();
@@ -286,7 +295,8 @@ namespace DarkMultiPlayerServer
             client.status = ConnectionStatus.DISCONNECTED;
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-            using (MessageWriter mw = new MessageWriter(0, false)) {
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
                 mw.Write<string>(client.playerName);
                 mw.Write<string>("");
                 newMessage.data = mw.GetMessageBytes();
@@ -294,8 +304,6 @@ namespace DarkMultiPlayerServer
             SendToAll(client, newMessage, true);
             deleteClients.Add(client);
         }
-
-
         #endregion
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
@@ -338,57 +346,82 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void HandleHandshakeRequest(ClientObject client, byte[] messageData) {
-            try {
+        private static void HandleHandshakeRequest(ClientObject client, byte[] messageData)
+        {
+            try
+            {
                 int protocolVersion;
                 string playerName = "";
                 string playerGuid = Guid.Empty.ToString();
+                string reason = "";
                 //0 - Success
                 int handshakeReponse = 0;
-                using (MessageReader mr = new MessageReader(messageData, false)) {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();
                     playerGuid = mr.Read<string>();
                 }
-                if (protocolVersion != Common.PROTOCOL_VERSION) {
+                if (protocolVersion != Common.PROTOCOL_VERSION)
+                {
                     //Protocol mismatch
                     handshakeReponse = 1;
+                    reason = "Protocol mismatch";
                 }
-                if (handshakeReponse == 0) {
+                if (handshakeReponse == 0)
+                {
                     //Check client isn't already connected
-                    foreach (ClientObject testClient in clients) {
-                        if (client != testClient && testClient.playerName == playerName) {
+                    foreach (ClientObject testClient in clients)
+                    {
+                        if (client != testClient && testClient.playerName == playerName)
+                        {
                             handshakeReponse = 2;
+                            reason = "Client already connected";
                         }
                     }
                 }
-                if (handshakeReponse == 0) {
+                if (handshakeReponse == 0)
+                {
                     //Check the client matches any database entry
-                    if (playerGuid == "") {
+                    if (playerGuid == "")
+                    {
                         handshakeReponse = 3;
+                        reason = "Invalid player token for user";
                     }
                 }
                 client.playerName = playerName;
-                if (handshakeReponse == 0) {
+                if (handshakeReponse == 0)
+                {
                     DarkLog.Debug("Client " + client.playerName + " handshook successfully!");
-                } else {
-                    DarkLog.Debug("Client " + client.playerName + " failed to handshake, reason " + handshakeReponse);
+                    SendHandshakeReply(client, handshakeReponse);
                 }
-                SendHandshakeReply(client, handshakeReponse);
+                else
+                {
+                    DarkLog.Debug("Client " + client.playerName + " failed to handshake, reason " + handshakeReponse);
+                    SendHandshakeReply(client, handshakeReponse);
+                    SendConnectionEnd(client, reason);
+                }
+
+
             }
-            catch (Exception e) {
-                DarkLog.Debug("Error in HANDSHAKE_REQUEST from "+client.playerName+": " + e);
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + client.playerName + ": " + e);
                 SendHandshakeReply(client, 99);
-                DisconnectClient(client);
+                SendConnectionEnd(client, "Malformed handshake");
             }
         }
 
-        private static void HandleSyncTimeRequest(ClientObject client, byte[] messageData) {
-            try {
+        private static void HandleSyncTimeRequest(ClientObject client, byte[] messageData)
+        {
+            try
+            {
                 ServerMessage newMessage = new ServerMessage();
                 newMessage.type = ServerMessageType.SYNC_TIME_REPLY;
-                using (MessageWriter mw = new MessageWriter(0, false)) {
-                    using (MessageReader mr = new MessageReader(messageData, false)) {
+                using (MessageWriter mw = new MessageWriter(0, false))
+                {
+                    using (MessageReader mr = new MessageReader(messageData, false))
+                    {
                         //Client send time
                         mw.Write<long>(mr.Read<long>());
                         //Server receive time
@@ -399,8 +432,9 @@ namespace DarkMultiPlayerServer
                 SendToClient(client, newMessage, true);
 
             }
-            catch (Exception e) {
-                DarkLog.Debug("Error in SYNC_TIME_REQUEST from "+client.playerName+": " + e);
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error in SYNC_TIME_REQUEST from " + client.playerName + ": " + e);
                 DisconnectClient(client);
             }
         }
@@ -496,8 +530,10 @@ namespace DarkMultiPlayerServer
         private static void HandleConnectionEnd(ClientObject client, byte[] messageData)
         {
             string reason = "Unknown";
-            try {
-                using (MessageReader mr = new MessageReader(messageData, false)) {
+            try
+            {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
                     reason = mr.Read<string>();
                 }
             }
@@ -564,7 +600,8 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
-            using (MessageWriter mw = new MessageWriter(0, false)) {
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
                 mw.Write<string>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -575,7 +612,8 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_REPLY;
-            using (MessageWriter mw = new MessageWriter(0, false)) {
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
                 mw.Write<string>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -598,6 +636,18 @@ namespace DarkMultiPlayerServer
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 mw.Write<double>(100d);
                 mw.Write<float>(1f);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
+        private static void SendConnectionEnd(ClientObject client, string reason)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CONNECTION_END;
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
+                mw.Write<string>(reason);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);

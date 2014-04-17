@@ -10,17 +10,14 @@ namespace DarkMultiPlayer
         //Global state vars
         public string playerName;
         public bool forceQuit;
-
         //Game running is directly set from networkWorker after a successful connection
         public bool gameRunning;
-
         //Singletons
         public TimeSyncer timeSyncer;
         public VesselWorker vesselWorker;
         public NetworkWorker networkWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
-
 
         public void Awake()
         {
@@ -87,7 +84,6 @@ namespace DarkMultiPlayer
         public void OnDestroy()
         {
         }
-
         //WARNING: Called from NetworkWorker.
         public void StartGame()
         {
