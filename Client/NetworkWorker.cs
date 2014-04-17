@@ -112,7 +112,7 @@ namespace DarkMultiPlayer
                 sendMessageQueueHigh = new Queue<ClientMessage>();
                 sendMessageQueueSplit = new Queue<ClientMessage>();
                 sendMessageQueueLow = new Queue<ClientMessage>();
-                parent.timeSyncer.Reset();
+                isSendingMessage = false;
                 int destinationPort;
                 if (!Int32.TryParse(port, out destinationPort))
                 {
@@ -223,6 +223,7 @@ namespace DarkMultiPlayer
         {
             lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
             //Allocate byte for header
+            isReceivingMessage = false;
             receiveMessage = new ServerMessage();
             receiveMessage.data = new byte[8];
             receiveMessageBytesLeft = receiveMessage.data.Length;

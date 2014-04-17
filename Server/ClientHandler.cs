@@ -284,6 +284,14 @@ namespace DarkMultiPlayerServer
         private static void DisconnectClient(ClientObject client)
         {
             client.status = ConnectionStatus.DISCONNECTED;
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
+            using (MessageWriter mw = new MessageWriter(0, false)) {
+                mw.Write<string>(client.playerName);
+                mw.Write<string>("");
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToAll(client, newMessage, true);
             deleteClients.Add(client);
         }
 
@@ -498,9 +506,11 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug("Error handling CONNECTION_END message from " + client.playerName + ":" + e);
             }
             DarkLog.Debug(client.playerName + " sent connection end message, reason: " + reason);
+            DisconnectClient(client);
         }
         #endregion
         #region Message sending
+        //Call with null client to send to all clients
         private static void SendToAll(ClientObject ourClient, ServerMessage message, bool highPriority)
         {
             foreach (ClientObject otherClient in clients)
