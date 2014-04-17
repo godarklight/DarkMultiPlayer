@@ -94,6 +94,7 @@ namespace DarkMultiPlayerServer
             ClientObject newClientObject = new ClientObject();
             newClientObject.status = ConnectionStatus.CONNECTED;
             newClientObject.playerName = "Unknown";
+            newClientObject.activeVessel = "";
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
@@ -394,6 +395,7 @@ namespace DarkMultiPlayerServer
                 {
                     DarkLog.Debug("Client " + client.playerName + " handshook successfully!");
                     SendHandshakeReply(client, handshakeReponse);
+                    SendActiveVessels(client);
                 }
                 else
                 {
@@ -517,6 +519,13 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                //We don't care about the player name, just need to advance message reader past it.
+                mr.Read<string>();
+                string activeVessel = mr.Read<string>();
+                client.activeVessel = activeVessel;
+            }
             newMessage.data = messageData;
             SendToAll(client, newMessage, true);
         }
@@ -596,6 +605,24 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, false);
         }
 
+        private static void SendActiveVessels(ClientObject client)
+        {
+            foreach (ClientObject otherClient in clients)
+            {
+                if (otherClient != client)
+                {
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
+                    using (MessageWriter mw = new MessageWriter(0, false))
+                    {
+                        mw.Write<string>(otherClient.playerName);
+                        mw.Write<string>(otherClient.activeVessel);
+                    }
+                    SendToClient(client, newMessage, false);
+                }
+            }
+        }
+
         private static void SendKerbal(ClientObject client, string kerbalData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -659,6 +686,7 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName;
+        public string activeVessel;
         public string endpoint;
         public TcpClient connection;
         public long lastSendTime;
