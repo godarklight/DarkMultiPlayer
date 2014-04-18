@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
                 {
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
-                        SetInUse(FlightGlobals.ActiveVessel.id.ToString(), parent.playerName);
+                        SetInUse(FlightGlobals.ActiveVessel.id.ToString(), parent.settings.playerName);
                         parent.networkWorker.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
                     }
                 }
@@ -130,7 +130,7 @@ namespace DarkMultiPlayer
                     {
                         lastVessel = "";
                         parent.networkWorker.SendActiveVessel("");
-                        SetNotInUse(parent.playerName);
+                        SetNotInUse(parent.settings.playerName);
                     }
                 }
                 //Send updates of needed vessels
@@ -166,7 +166,7 @@ namespace DarkMultiPlayer
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
                 //Send updates for unpacked vessels that aren't being flown by other players
-                bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.playerName) : true;
+                bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.settings.playerName) : true;
                 bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
                 bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > VESSEL_POSITION_UPDATE_INTERVAL) : true;
                 if (checkVessel.loaded && !checkVessel.packed && oursOrNotInUse)
@@ -245,7 +245,7 @@ namespace DarkMultiPlayer
                             foreach (KeyValuePair<string,string> entry in inUse)
                             {
                                 //The active vessel isn't another player that can be closer than the active vessel.
-                                if (entry.Value != parent.playerName)
+                                if (entry.Value != parent.settings.playerName)
                                 {
                                     Vessel playerVessel = FlightGlobals.fetch.vessels.Find(v => v.id.ToString() == entry.Key);
                                     if (playerVessel != null)
@@ -282,7 +282,7 @@ namespace DarkMultiPlayer
                 {
                     if (inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
-                        if (inUse[FlightGlobals.ActiveVessel.id.ToString()] != parent.playerName)
+                        if (inUse[FlightGlobals.ActiveVessel.id.ToString()] != parent.settings.playerName)
                         {
                             return true;
                         }

@@ -46,12 +46,14 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Sending handshake!");
                 state = ClientState.HANDSHAKING;
+                parent.status = "Handshaking";
                 SendHandshakeRequest();
             }
             if (state == ClientState.AUTHENTICATED)
             {
                 DarkLog.Debug("Sending time sync!");
                 state = ClientState.TIME_SYNCING;
+                parent.status = "Syncing server clock";
                 SendTimeSync();
             }
             if (parent.timeSyncer.synced && state == ClientState.TIME_SYNCING)
@@ -62,6 +64,7 @@ namespace DarkMultiPlayer
             if (state == ClientState.TIME_SYNCED)
             {
                 DarkLog.Debug("Requesting kerbals!");
+                parent.status = "Syncing kerbals";
                 state = ClientState.SYNCING_KERBALS;
                 SendKerbalsRequest();
             }
@@ -69,6 +72,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Kerbals Synced!");
                 DarkLog.Debug("Requesting vessels!");
+                parent.status = "Syncing vessels";
                 state = ClientState.SYNCING_VESSELS;
                 SendVesselsRequest();
             }
@@ -76,6 +80,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Vessels Synced!");
                 DarkLog.Debug("Requesting time lock!");
+                parent.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
                 SendTimeLockRequest();
             }
@@ -83,6 +88,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Time Locked!");
                 DarkLog.Debug("Starting Game!");
+                parent.status = "Starting game";
                 connectionTime = UnityEngine.Time.realtimeSinceStartup;
                 state = ClientState.STARTING;
                 parent.StartGame();
@@ -90,6 +96,7 @@ namespace DarkMultiPlayer
             if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && ((UnityEngine.Time.realtimeSinceStartup - connectionTime) > 5f))
             {
                 state = ClientState.RUNNING;
+                parent.status = "";
                 parent.gameRunning = true;
                 parent.vesselWorker.enabled = true;
                 parent.timeSyncer.enabled = true;
@@ -104,20 +111,16 @@ namespace DarkMultiPlayer
         }
         #region Connecting to server
         //Called from main
-        public void ConnectToServer(string address, string port)
+        public void ConnectToServer(string address, int port)
         {
             if (state == ClientState.DISCONNECTED)
             {
                 DarkLog.Debug("Trying to connect to " + address + ", port " + port);
+                parent.status = "Connecting to " + address + " port " + port;
                 sendMessageQueueHigh = new Queue<ClientMessage>();
                 sendMessageQueueSplit = new Queue<ClientMessage>();
                 sendMessageQueueLow = new Queue<ClientMessage>();
                 isSendingMessage = false;
-                int destinationPort;
-                if (!Int32.TryParse(port, out destinationPort))
-                {
-                    return;
-                }
                 IPAddress destinationAddress;
                 if (!IPAddress.TryParse(address, out destinationAddress))
                 {
@@ -129,16 +132,18 @@ namespace DarkMultiPlayer
                     else
                     {
                         DarkLog.Debug("Address is not a IP or DNS name");
+                        parent.status = "Address is not a IP or DNS name";
                         return;
                     }
 
                 }
-                IPEndPoint destination = new IPEndPoint(destinationAddress, destinationPort);
+                IPEndPoint destination = new IPEndPoint(destinationAddress, port);
                 clientConnection = new TcpClient(destination.AddressFamily);
                 clientConnection.NoDelay = true;
                 try
                 {
-                    DarkLog.Debug("Connecting to " + destinationAddress + " port " + destinationPort + "...");
+                    DarkLog.Debug("Connecting to " + destinationAddress + " port " + port + "...");
+                    parent.status = "Connecting to " + destinationAddress + " port " + port;
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
                     lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
                     state = ClientState.CONNECTING;
@@ -147,6 +152,7 @@ namespace DarkMultiPlayer
                 catch (Exception e)
                 {
                     DarkLog.Debug("Connection error: " + e);
+                    parent.status = "Connection error: " + e.Message;
                     Disconnect();
                 }
             }
@@ -161,6 +167,7 @@ namespace DarkMultiPlayer
                 {
                     //Timeout didn't expire.
                     DarkLog.Debug("Connected!");
+                    parent.status = "Connected";
                     state = ClientState.CONNECTED;
                     StartReceivingIncomingMessages();
                 }
@@ -175,6 +182,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e);
                 Disconnect();
+                parent.status = "Connection error: " + e.Message;
             }
         }
         #endregion
@@ -187,6 +195,7 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Failed to connect!");
                     Disconnect();
+                    parent.status = "Failed to connect - no reply";
                 }
             }
             if (state >= ClientState.CONNECTED)
@@ -204,6 +213,10 @@ namespace DarkMultiPlayer
             if (state != ClientState.DISCONNECTED)
             {
                 DarkLog.Debug("Disconnecting...");
+                if (parent.status == "")
+                {
+                    parent.status = "Disconnected";
+                }
                 state = ClientState.DISCONNECTED;
                 if (clientConnection != null)
                 {
@@ -361,6 +374,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
+                parent.status = "Connection error: " + e.Message;
             }
         }
         #endregion
@@ -709,7 +723,7 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.SEND_ACTIVE_VESSEL;
             using (MessageWriter mw = new MessageWriter(0, false))
             {
-                mw.Write<string>(parent.playerName);
+                mw.Write<string>(parent.settings.playerName);
                 mw.Write<string>(activeVessel);
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -750,6 +764,7 @@ namespace DarkMultiPlayer
             if (state != ClientState.DISCONNECTING && state >= ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending disconnect message, reason: " + disconnectReason);
+                parent.status = "Disconnected: " + disconnectReason;
                 state = ClientState.DISCONNECTING;
                 byte[] messageBytes;
                 using (MessageWriter mw = new MessageWriter(0, false))

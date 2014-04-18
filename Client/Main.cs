@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
     public class Client : MonoBehaviour
     {
         //Global state vars
-        public string playerName;
+        public string status;
         public bool forceQuit;
         //Game running is directly set from networkWorker after a successful connection
         public bool gameRunning;
@@ -26,15 +26,17 @@ namespace DarkMultiPlayer
             vesselWorker = new VesselWorker(this);
             networkWorker = new NetworkWorker(this);
             settings = new Settings();
-            connectionWindow = new ConnectionWindow();
+            connectionWindow = new ConnectionWindow(this);
             SetupDirectoriesIfNeeded();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
 
             //Temporary testing stuff
+            /*
             settings.playerGuid = new Guid();
             System.Random r = new System.Random();
             double randomNumber = r.NextDouble();
             settings.playerName = "godarklight-" + randomNumber;
+            */
         }
 
         public void Start()
@@ -43,13 +45,55 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            //Write new log entries
             DarkLog.Update();
-            if (!connectionWindow.eventHandled)
+
+            //Handle GUI events
+            if (!connectionWindow.renameEventHandled)
             {
-                connectionWindow.eventHandled = true;
-                networkWorker.ConnectToServer("127.0.0.1", "6702");
+                settings.SaveSettings();
+                connectionWindow.renameEventHandled = true;
             }
+            if (!connectionWindow.addEventHandled)
+            {
+                settings.servers.Add(connectionWindow.addEntry);
+                connectionWindow.addEntry = null;
+                settings.SaveSettings();
+                connectionWindow.addingServer = false;
+                connectionWindow.addEventHandled = true;
+            }
+            if (!connectionWindow.editEventHandled)
+            {
+                settings.servers[connectionWindow.selected].name = connectionWindow.editEntry.name;
+                settings.servers[connectionWindow.selected].address = connectionWindow.editEntry.address;
+                settings.servers[connectionWindow.selected].port = connectionWindow.editEntry.port;
+                connectionWindow.editEntry = null;
+                settings.SaveSettings();
+                connectionWindow.addingServer = false;
+                connectionWindow.editEventHandled = true;
+            }
+            if (!connectionWindow.removeEventHandled)
+            {
+                settings.servers.RemoveAt(connectionWindow.selected);
+                connectionWindow.selected = -1;
+                settings.SaveSettings();
+                connectionWindow.removeEventHandled = true;
+            }
+            if (!connectionWindow.connectEventHandled)
+            {
+                networkWorker.ConnectToServer(settings.servers[connectionWindow.selected].address, settings.servers[connectionWindow.selected].port);
+                connectionWindow.connectEventHandled = true;
+            }
+
+            //Stop GUI from freaking out
+            connectionWindow.status = status;
+            connectionWindow.selectedSafe = connectionWindow.selected;
+            connectionWindow.addingServerSafe = connectionWindow.addingServer;
+            connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
+
+            //Call network worker
             networkWorker.Update();
+
             //Force quit
             if (forceQuit)
             {
@@ -60,6 +104,7 @@ namespace DarkMultiPlayer
                 networkWorker.SendDisconnect("Force quit to main menu");
                 StopGame();
             }
+
             //Normal quit
             if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
@@ -100,7 +145,7 @@ namespace DarkMultiPlayer
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
         }
 
-        public void StopGame()
+        private void StopGame()
         {
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             if (HighLogic.LoadedScene != GameScenes.MAINMENU)
@@ -109,7 +154,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void SetupDirectoriesIfNeeded()
+        private void SetupDirectoriesIfNeeded()
         {
             string darkMultiPlayerSavesDirectory = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("saves", "DarkMultiPlayer"));
             CreateIfNeeded(darkMultiPlayerSavesDirectory);
@@ -119,7 +164,7 @@ namespace DarkMultiPlayer
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
         }
 
-        public void CreateIfNeeded(string path)
+        private void CreateIfNeeded(string path)
         {
             if (!Directory.Exists(path))
             {

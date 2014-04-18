@@ -13,7 +13,6 @@ namespace DarkMultiPlayerCommon
     {
         HEARTBEAT,
         HANDSHAKE_REQUEST,
-        SYNC_TIME_REQUEST,
         CHAT_MESSAGE,
         KERBALS_REQUEST,
         KERBAL_PROTO,
@@ -22,7 +21,9 @@ namespace DarkMultiPlayerCommon
         VESSEL_UPDATE,
         SEND_ACTIVE_VESSEL,
         TIME_LOCK_REQUEST,
+        SYNC_TIME_REQUEST,
         PING_REQUEST,
+        WARP_CONTROL,
         SPLIT_MESSAGE,
         CONNECTION_END
     }
@@ -42,6 +43,7 @@ namespace DarkMultiPlayerCommon
         PLAYER_STATUS,
         SYNC_TIME_REPLY,
         PING_REPLY,
+        WARP_CONTROL,
         SPLIT_MESSAGE,
         CONNECTION_END
     }
