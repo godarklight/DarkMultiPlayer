@@ -309,6 +309,7 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
+            //DarkLog.Debug("Got " + message.type + " from " + client.playerName);
             switch (message.type)
             {
                 case ClientMessageType.HEARTBEAT:
@@ -323,14 +324,17 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.KERBALS_REQUEST:
                     HandleKerbalsRequest(client);
                     break;
-                case ClientMessageType.SEND_KERBAL_PROTO:
-                    HandleSendKerbalProto(client, message.data);
+                case ClientMessageType.KERBAL_PROTO:
+                    HandleKerbalProto(client, message.data);
                     break;
                 case ClientMessageType.VESSELS_REQUEST:
                     HandleVesselsRequest(client);
                     break;
-                case ClientMessageType.SEND_VESSEL_PROTO:
-                    HandleSendVesselProto(client, message.data);
+                case ClientMessageType.VESSEL_PROTO:
+                    HandleVesselProto(client, message.data);
+                    break;
+                case ClientMessageType.VESSEL_UPDATE:
+                    HandleVesselUpdate(client, message.data);
                     break;
                 case ClientMessageType.SEND_ACTIVE_VESSEL:
                     HandleSendActiveVessel(client, message.data);
@@ -456,7 +460,7 @@ namespace DarkMultiPlayerServer
             SendKerbalsComplete(client);
         }
 
-        private static void HandleSendKerbalProto(ClientObject client, byte[] messageData)
+        private static void HandleKerbalProto(ClientObject client, byte[] messageData)
         {
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -493,7 +497,7 @@ namespace DarkMultiPlayerServer
             SendVesselsComplete(client);
         }
 
-        private static void HandleSendVesselProto(ClientObject client, byte[] messageData)
+        private static void HandleVesselProto(ClientObject client, byte[] messageData)
         {
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -504,7 +508,7 @@ namespace DarkMultiPlayerServer
                 {
                     sw.Write(vesselData);
                     ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.VESSEL_REPLY;
+                    newMessage.type = ServerMessageType.VESSEL_PROTO;
                     using (MessageWriter mw = new MessageWriter(0, false))
                     {
                         mw.Write<string>(vesselData);
@@ -513,6 +517,15 @@ namespace DarkMultiPlayerServer
                     SendToAll(client, newMessage, false);
                 }
             }
+        }
+
+        private static void HandleVesselUpdate(ClientObject client, byte[] messageData)
+        {
+            //We only relay this message.
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.VESSEL_UPDATE;
+            newMessage.data = messageData;
+            SendToAll(client, newMessage, false);
         }
 
         private static void HandleSendActiveVessel(ClientObject client, byte[] messageData)
@@ -617,6 +630,7 @@ namespace DarkMultiPlayerServer
                     {
                         mw.Write<string>(otherClient.playerName);
                         mw.Write<string>(otherClient.activeVessel);
+                        newMessage.data = mw.GetMessageBytes();
                     }
                     SendToClient(client, newMessage, false);
                 }
@@ -638,7 +652,7 @@ namespace DarkMultiPlayerServer
         private static void SendVessel(ClientObject client, string vesselData)
         {
             ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_REPLY;
+            newMessage.type = ServerMessageType.VESSEL_PROTO;
             using (MessageWriter mw = new MessageWriter(0, false))
             {
                 mw.Write<string>(vesselData);

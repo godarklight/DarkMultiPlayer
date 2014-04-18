@@ -384,8 +384,11 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
-                    case ServerMessageType.VESSEL_REPLY:
-                        HandleVesselReply(message.data);
+                    case ServerMessageType.VESSEL_PROTO:
+                        HandleVesselProto(message.data);
+                        break;
+                    case ServerMessageType.VESSEL_UPDATE:
+                        HandleVesselUpdate(message.data);
                         break;
                     case ServerMessageType.SET_ACTIVE_VESSEL:
                         HandleSetActiveVessel(message.data);
@@ -484,7 +487,7 @@ namespace DarkMultiPlayer
             state = ClientState.KERBALS_SYNCED;
         }
 
-        private void HandleVesselReply(byte[] messageData)
+        private void HandleVesselProto(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
@@ -498,13 +501,35 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
-                    parent.vesselWorker.QueueVessel(vesselNode);
+                    parent.vesselWorker.QueueVesselProto(vesselNode);
                 }
                 else
                 {
                     DarkLog.Debug("Failed to load vessel!");
                 }
             }
+        }
+
+        private void HandleVesselUpdate(byte[] messageData)
+        {
+            VesselUpdate update = new VesselUpdate();
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                update.vesselID = mr.Read<string>();
+                update.bodyName = mr.Read<string>();
+                update.rotation = mr.Read<float[]>();
+                update.isSurfaceUpdate = mr.Read<bool>();
+                if (update.isSurfaceUpdate)
+                {
+                    update.position = mr.Read<double[]>();
+                    update.velocity = mr.Read<double[]>();
+                }
+                else
+                {
+                    update.orbit = mr.Read<double[]>();
+                }
+            }
+            parent.vesselWorker.QueueVesselUpdate(update);
         }
 
         private void HandleSetActiveVessel(byte[] messageData)
@@ -573,6 +598,7 @@ namespace DarkMultiPlayer
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
+
         //Called from timeSyncer
         public void SendTimeSync()
         {
@@ -601,12 +627,13 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
+
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel)
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_VESSEL_PROTO;
+            newMessage.type = ClientMessageType.VESSEL_PROTO;
             vessel.Save(currentNode);
             string tempFile = Path.GetTempFileName();
             currentNode.Save(tempFile);
@@ -623,14 +650,32 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
             sendMessageQueueLow.Enqueue(newMessage);
         }
-        /*
-        private void SendVesselUpdate(VesselUpdate update)
+
+        //Called from vesselWorker
+        public void SendVesselUpdate(VesselUpdate update)
         {
             ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_VESSEL_UPDATE;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            newMessage.type = ClientMessageType.VESSEL_UPDATE;
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
+                mw.Write<string>(update.vesselID);
+                mw.Write<string>(update.bodyName);
+                mw.Write<float[]>(update.rotation);
+                mw.Write<bool>(update.isSurfaceUpdate);
+                if (update.isSurfaceUpdate)
+                {
+                    mw.Write<double[]>(update.position);
+                    mw.Write<double[]>(update.velocity);
+                }
+                else
+                {
+                    mw.Write<double[]>(update.orbit);
+                }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            sendMessageQueueLow.Enqueue(newMessage);
         }
-        */
+
         //Called from vesselWorker
         public void SendActiveVessel(string activeVessel)
         {
@@ -664,7 +709,7 @@ namespace DarkMultiPlayer
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_KERBAL_PROTO;
+            newMessage.type = ClientMessageType.KERBAL_PROTO;
             kerbal.Save(currentNode);
             string tempFile = Path.GetTempFileName();
             currentNode.Save(tempFile);
