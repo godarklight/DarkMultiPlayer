@@ -6,10 +6,18 @@ namespace DarkMultiPlayer
 {
     public class VesselWorker
     {
-        private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
-        private const float VESSEL_POSITION_UPDATE_INTERVAL = .2f;
+        //Parent/client
         public bool enabled;
         private Client parent;
+        //Update frequency
+        private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
+        private const float VESSEL_POSITION_UPDATE_INTERVAL = .2f;
+        //Spectate stuff
+        public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
+        private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
+        private const float SPECTATE_MESSAGE_INTERVAL = 1f;
+        private ScreenMessage spectateMessage;
+        private float lastSpectateMessageUpdate;
         //Incoming queue
         private Queue<ConfigNode> vesselProtoQueue;
         private Queue<VesselUpdate> vesselUpdateQueue;
@@ -24,6 +32,8 @@ namespace DarkMultiPlayer
         private Dictionary<string, float> serverVesselsPositionUpdate;
         //Vessel id (key) owned by player (value)
         private Dictionary<string, string> inUse;
+        //Track spectating state
+        private bool wasSpectating;
 
         public VesselWorker(Client parent)
         {
@@ -68,9 +78,45 @@ namespace DarkMultiPlayer
                     VesselUpdate vesselUpdate = vesselUpdateQueue.Dequeue();
                     ApplyVesselUpdate(vesselUpdate);
                 }
-                //Tell other players we have taken a vessel
                 bool isActiveVesselOk = FlightGlobals.ActiveVessel != null ? (FlightGlobals.ActiveVessel.loaded && !FlightGlobals.ActiveVessel.packed) : false;
-                if (isActiveVesselOk && HighLogic.LoadedScene == GameScenes.FLIGHT)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastSpectateMessageUpdate) > SPECTATE_MESSAGE_INTERVAL)
+                {
+                    lastSpectateMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                    if (isSpectating)
+                    {
+                        if (spectateMessage != null)
+                        {
+                            spectateMessage.duration = 0f;
+                        }
+                        spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player...", SPECTATE_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    else
+                    {
+                        if (spectateMessage != null)
+                        {
+                            spectateMessage.duration = 0f;
+                            spectateMessage = null;
+                        }
+                    }
+                }
+                //Lock and unlock spectate state
+                if (isSpectating != wasSpectating)
+                {
+                    wasSpectating = isSpectating;
+                    if (isSpectating)
+                    {
+                        DarkLog.Debug("Setting spectate lock");
+                        InputLockManager.SetControlLock(BLOCK_ALL_CONTROLS, DARK_SPECTATE_LOCK);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Releasing spectate lock");
+                        InputLockManager.RemoveControlLock(DARK_SPECTATE_LOCK);
+                    }
+
+                }
+                //Tell other players we have taken a vessel
+                if (!isSpectating && isActiveVesselOk && HighLogic.LoadedScene == GameScenes.FLIGHT)
                 {
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
@@ -88,7 +134,7 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Send updates of needed vessels
-                if (isActiveVesselOk)
+                if (isActiveVesselOk && !isSpectating)
                 {
                     SendVesselUpdates();
                 }
@@ -110,6 +156,11 @@ namespace DarkMultiPlayer
             if (!FlightGlobals.ActiveVessel.loaded || FlightGlobals.ActiveVessel.packed)
             {
                 //We haven't loaded into the game yet
+                return;
+            }
+            if (isSpectating)
+            {
+                //Don't send updates in spectate mode
                 return;
             }
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
@@ -220,6 +271,24 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
+            }
+        }
+
+        private bool isSpectating
+        {
+            get
+            {
+                if (FlightGlobals.ActiveVessel != null)
+                {
+                    if (inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
+                    {
+                        if (inUse[FlightGlobals.ActiveVessel.id.ToString()] != parent.playerName)
+                        {
+                            return true;
+                        }
+                    }
+                }
+                return false;
             }
         }
 
@@ -414,6 +483,11 @@ namespace DarkMultiPlayer
                             wasTarget = (FlightGlobals.activeTarget.vessel != null) ? (FlightGlobals.activeTarget.vessel.id == currentProto.vesselID) : false;
                         }
                         wasActive = (FlightGlobals.ActiveVessel != null) ? (FlightGlobals.ActiveVessel.id == currentProto.vesselID) : false;
+                        if (wasActive)
+                        {
+                            DarkLog.Debug("Temporarily disabling active vessel proto updates");
+                            return;
+                        }
                     }
                     Vessel oldVessel = null;
                     foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
@@ -426,6 +500,10 @@ namespace DarkMultiPlayer
                     if (oldVessel != null)
                     {
                         DarkLog.Debug("Replacing old vessel, packed: " + oldVessel.packed);
+                        if (wasActive)
+                        {
+                            oldVessel.MakeInactive();
+                        }
                         oldVessel.Die();
                     }
                     serverVesselsProtoUpdate[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
@@ -435,6 +513,11 @@ namespace DarkMultiPlayer
                         if (wasActive)
                         {
                             DarkLog.Debug("Set active vessel");
+                            currentProto.vesselRef.Load();
+                            if (currentProto.vesselRef.packed)
+                            {
+                                currentProto.vesselRef.GoOffRails();
+                            }
                             FlightGlobals.ForceSetActiveVessel(currentProto.vesselRef);
                         }
                         if (wasTarget)
@@ -465,7 +548,7 @@ namespace DarkMultiPlayer
             //Get updating player
             string updatePlayer = inUse.ContainsKey(update.vesselID) ? inUse[update.vesselID] : "Unknown";
             //Ignore updates to our own vessel
-            if (FlightGlobals.ActiveVessel != null ? FlightGlobals.ActiveVessel.id.ToString() == update.vesselID : false)
+            if (!isSpectating && (FlightGlobals.ActiveVessel != null ? FlightGlobals.ActiveVessel.id.ToString() == update.vesselID : false))
             {
                 DarkLog.Debug("ApplyVesselUpdate - Ignoring update for active vessel from " + updatePlayer);
                 return;
@@ -498,11 +581,18 @@ namespace DarkMultiPlayer
             Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
             updateVessel.SetRotation(updateRotation);
             updateVessel.angularVelocity = Vector3.zero;
-            updateVessel.ctrlState.CopyFrom(update.flightState);
+            if (!isSpectating)
+            {
+                updateVessel.ctrlState.CopyFrom(update.flightState);
+            }
+            else
+            {
+                FlightInputHandler.state.CopyFrom(update.flightState);
+            }
         }
-
         //Credit where credit is due, Thanks hyperedit.
-        private void CopyOrbit(Orbit sourceOrbit, Orbit destinationOrbit) {
+        private void CopyOrbit(Orbit sourceOrbit, Orbit destinationOrbit)
+        {
             destinationOrbit.inclination = sourceOrbit.inclination;
             destinationOrbit.eccentricity = sourceOrbit.eccentricity;
             destinationOrbit.semiMajorAxis = sourceOrbit.semiMajorAxis;
@@ -512,7 +602,6 @@ namespace DarkMultiPlayer
             destinationOrbit.epoch = sourceOrbit.epoch;
             destinationOrbit.referenceBody = sourceOrbit.referenceBody;
         }
-
         //Called from networkWorker
         public void QueueKerbal(ConfigNode kerbalNode)
         {
