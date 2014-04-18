@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 using MessageStream;
@@ -518,6 +519,15 @@ namespace DarkMultiPlayer
                 update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
                 update.rotation = mr.Read<float[]>();
+                update.flightState = new FlightCtrlState();
+                byte[] flightData = mr.Read<byte[]>();
+                using (MemoryStream ms = new MemoryStream(flightData))
+                {
+                    ConfigNode flightNode;
+                    BinaryFormatter bf = new BinaryFormatter();
+                    flightNode = (ConfigNode)bf.Deserialize(ms);
+                    update.flightState.Load(flightNode);
+                }
                 update.isSurfaceUpdate = mr.Read<bool>();
                 if (update.isSurfaceUpdate)
                 {
@@ -661,6 +671,14 @@ namespace DarkMultiPlayer
                 mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
                 mw.Write<float[]>(update.rotation);
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    ConfigNode flightNode = new ConfigNode();
+                    update.flightState.Save(flightNode);
+                    BinaryFormatter bf = new BinaryFormatter();
+                    bf.Serialize(ms, flightNode);
+                    mw.Write<byte[]>(ms.ToArray());
+                }
                 mw.Write<bool>(update.isSurfaceUpdate);
                 if (update.isSurfaceUpdate)
                 {

@@ -188,10 +188,12 @@ namespace DarkMultiPlayer
                         //Send a position update
                         serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                         bool anotherPlayerCloser = false;
+                        //Skip checking player vessels, they are filtered out above in "oursOrNotInUse"
                         if (!inUse.ContainsKey(checkVessel.id.ToString()))
                         {
                             foreach (KeyValuePair<string,string> entry in inUse)
                             {
+                                //The active vessel isn't another player that can be closer than the active vessel.
                                 if (entry.Value != parent.playerName)
                                 {
                                     Vessel playerVessel = FlightGlobals.fetch.vessels.Find(v => v.id.ToString() == entry.Key);
@@ -199,7 +201,7 @@ namespace DarkMultiPlayer
                                     {
                                         double ourDistance = Vector3d.Distance(FlightGlobals.ActiveVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
                                         double theirDistance = Vector3d.Distance(FlightGlobals.ActiveVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                                        if (theirDistance < ourDistance)
+                                        if (ourDistance > theirDistance)
                                         {
                                             DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + (float)theirDistance + ", ours: " + (float)ourDistance);
                                             anotherPlayerCloser = true;
@@ -233,6 +235,9 @@ namespace DarkMultiPlayer
                 returnUpdate.rotation[1] = updateVessel.transform.localRotation.y;
                 returnUpdate.rotation[2] = updateVessel.transform.localRotation.z;
                 returnUpdate.rotation[3] = updateVessel.transform.localRotation.w;
+                //Flight state
+                returnUpdate.flightState = new FlightCtrlState();
+                returnUpdate.flightState.CopyFrom(updateVessel.ctrlState);
                 if (updateVessel.altitude < 10000)
                 {
                     //Use surface position under 10k
@@ -493,6 +498,7 @@ namespace DarkMultiPlayer
             Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
             updateVessel.SetRotation(updateRotation);
             updateVessel.angularVelocity = Vector3.zero;
+            updateVessel.ctrlState.CopyFrom(update.flightState);
         }
 
         //Credit where credit is due, Thanks hyperedit.
@@ -557,6 +563,7 @@ namespace DarkMultiPlayer
         public string vesselID;
         public string bodyName;
         public float[] rotation;
+        public FlightCtrlState flightState;
         public bool isSurfaceUpdate;
         //Orbital parameters
         public double[] orbit;
