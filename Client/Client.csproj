@@ -53,6 +53,7 @@
     <Compile Include="NetworkWorker.cs" />
     <Compile Include="ConnectionWindow.cs" />
     <Compile Include="Settings.cs" />
+    <Compile Include="WarpWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

@@ -37,8 +37,8 @@ namespace DarkMultiPlayerCommon
         KERBAL_COMPLETE,
         VESSEL_PROTO,
         VESSEL_UPDATE,
-        SET_ACTIVE_VESSEL,
         VESSEL_COMPLETE,
+        SET_ACTIVE_VESSEL,
         TIME_LOCK_REPLY,
         PLAYER_STATUS,
         SYNC_TIME_REPLY,
@@ -73,6 +73,27 @@ namespace DarkMultiPlayerCommon
         STARTING,
         RUNNING,
         DISCONNECTING
+    }
+
+    public enum WarpMode
+    {
+        MCW_FORCE,
+        MCW_VOTE,
+        MCW_LOWEST,
+        SUBSPACE,
+        NONE
+    }
+
+    public enum WarpMessageType
+    {
+        REQUEST_VOTE,
+        REPLY_VOTE,
+        CHANGE_WARP,
+        CHANGE_RATE,
+        SET_CONTROLLER,
+        NEW_SUBSPACE,
+        CHANGE_SUBSPACE,
+
     }
 
     public class ClientMessage
