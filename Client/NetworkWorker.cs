@@ -542,6 +542,7 @@ namespace DarkMultiPlayer
                     flightNode = (ConfigNode)bf.Deserialize(ms);
                     update.flightState.Load(flightNode);
                 }
+                update.actiongroupControls = mr.Read<bool[]>();
                 update.isSurfaceUpdate = mr.Read<bool>();
                 if (update.isSurfaceUpdate)
                 {
@@ -693,6 +694,7 @@ namespace DarkMultiPlayer
                     bf.Serialize(ms, flightNode);
                     mw.Write<byte[]>(ms.ToArray());
                 }
+                mw.Write<bool[]>(update.actiongroupControls);
                 mw.Write<bool>(update.isSurfaceUpdate);
                 if (update.isSurfaceUpdate)
                 {

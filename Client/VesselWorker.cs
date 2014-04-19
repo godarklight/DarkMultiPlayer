@@ -307,6 +307,13 @@ namespace DarkMultiPlayer
                 //Flight state
                 returnUpdate.flightState = new FlightCtrlState();
                 returnUpdate.flightState.CopyFrom(updateVessel.ctrlState);
+                returnUpdate.actiongroupControls = new bool[5];
+                returnUpdate.actiongroupControls[0] = updateVessel.ActionGroups[KSPActionGroup.Gear];
+                returnUpdate.actiongroupControls[1] = updateVessel.ActionGroups[KSPActionGroup.Light];
+                returnUpdate.actiongroupControls[2] = updateVessel.ActionGroups[KSPActionGroup.Brakes];
+                returnUpdate.actiongroupControls[3] = updateVessel.ActionGroups[KSPActionGroup.SAS];
+                returnUpdate.actiongroupControls[4] = updateVessel.ActionGroups[KSPActionGroup.RCS];
+
                 if (updateVessel.altitude < 10000)
                 {
                     //Use surface position under 10k
@@ -589,6 +596,11 @@ namespace DarkMultiPlayer
             {
                 FlightInputHandler.state.CopyFrom(update.flightState);
             }
+            updateVessel.ActionGroups.SetGroup(KSPActionGroup.Gear, update.actiongroupControls[0]);
+            updateVessel.ActionGroups.SetGroup(KSPActionGroup.Light, update.actiongroupControls[1]);
+            updateVessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, update.actiongroupControls[2]);
+            updateVessel.ActionGroups.SetGroup(KSPActionGroup.SAS, update.actiongroupControls[3]);
+            updateVessel.ActionGroups.SetGroup(KSPActionGroup.RCS, update.actiongroupControls[4]);
         }
         //Credit where credit is due, Thanks hyperedit.
         private void CopyOrbit(Orbit sourceOrbit, Orbit destinationOrbit)
@@ -653,6 +665,7 @@ namespace DarkMultiPlayer
         public string bodyName;
         public float[] rotation;
         public FlightCtrlState flightState;
+        public bool[] actiongroupControls;
         public bool isSurfaceUpdate;
         //Orbital parameters
         public double[] orbit;
