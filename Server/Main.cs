@@ -9,6 +9,7 @@ namespace DarkMultiPlayerServer
     {
         public static bool serverRunning;
         public static bool serverStarting;
+        public static string universeDirectory;
         public static Stopwatch serverClock;
 
         public static void Main()
@@ -45,32 +46,35 @@ namespace DarkMultiPlayerServer
             DarkLog.Debug("Goodbye!");
         }
         //Create universe directories
-        private static void CheckUniverse() {
-            string appPath = AppDomain.CurrentDomain.BaseDirectory;
-            if (!Directory.Exists(Path.Combine(appPath, "Universe")))
+        private static void CheckUniverse()
+        {
+            universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
+            if (!Directory.Exists(universeDirectory))
             {
-                Directory.CreateDirectory(Path.Combine(appPath, "Universe"));
+                Directory.CreateDirectory(universeDirectory);
             }
-            if (!Directory.Exists(Path.Combine(appPath, "Universe", "Players")))
+            if (!Directory.Exists(Path.Combine(universeDirectory, "Players")))
             {
-                Directory.CreateDirectory(Path.Combine(appPath, "Universe", "Players"));
+                Directory.CreateDirectory(Path.Combine(universeDirectory, "Players"));
             }
-            if (!Directory.Exists(Path.Combine(appPath, "Universe", "Kerbals")))
+            if (!Directory.Exists(Path.Combine(universeDirectory, "Kerbals")))
             {
-                Directory.CreateDirectory(Path.Combine(appPath, "Universe", "Kerbals"));
+                Directory.CreateDirectory(Path.Combine(universeDirectory, "Kerbals"));
             }
-            if (!Directory.Exists(Path.Combine(appPath, "Universe", "Vessels")))
+            if (!Directory.Exists(Path.Combine(universeDirectory, "Vessels")))
             {
-                Directory.CreateDirectory(Path.Combine(appPath, "Universe", "Vessels"));
+                Directory.CreateDirectory(Path.Combine(universeDirectory, "Vessels"));
             }
         }
         //Shutdown
-        private static void ShutDown() {
+        private static void ShutDown()
+        {
             serverStarting = false;
             serverRunning = false;
         }
         //Gracefully shut down
-        private static void CatchExit(object sender, ConsoleCancelEventArgs args) {
+        private static void CatchExit(object sender, ConsoleCancelEventArgs args)
+        {
             args.Cancel = true;
             ShutDown();
         }

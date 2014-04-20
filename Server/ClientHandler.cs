@@ -16,7 +16,6 @@ namespace DarkMultiPlayerServer
         private static Queue<ClientObject> addClients;
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
-
         #region Main loop
         public static void ThreadMain()
         {
@@ -249,7 +248,8 @@ namespace DarkMultiPlayerServer
                         //We have the header
                         using (MessageReader mr = new MessageReader(client.receiveMessage.data, true))
                         {
-                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ClientMessageType)).Length - 1)) {
+                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+                            {
                                 //Malformed message, most likely from a non DMP-client.
                                 SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
                                 DarkLog.Debug("Invalid DMP message from " + client.endpoint);
@@ -269,11 +269,14 @@ namespace DarkMultiPlayerServer
                             }
                             else
                             {
-                                if (length < Common.MAX_MESSAGE_SIZE) {
+                                if (length < Common.MAX_MESSAGE_SIZE)
+                                {
                                     client.isReceivingMessage = true;
                                     client.receiveMessage.data = new byte[length];
                                     client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
-                                } else {
+                                }
+                                else
+                                {
                                     //Malformed message, most likely from a non DMP-client.
                                     SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
                                     DarkLog.Debug("Invalid DMP message from " + client.endpoint);
@@ -424,10 +427,26 @@ namespace DarkMultiPlayerServer
                 if (handshakeReponse == 0)
                 {
                     //Check the client matches any database entry
-                    if (playerGuid == "")
+                    string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
+                    string storedPlayerGuid = "";
+                    if (File.Exists(storedPlayerFile))
                     {
-                        handshakeReponse = 3;
-                        reason = "Invalid player token for user";
+                        using (StreamReader sr = new StreamReader(storedPlayerFile))
+                        {
+                            storedPlayerGuid = sr.ReadLine();
+                        }
+                        if (playerGuid != storedPlayerGuid)
+                        {
+                            handshakeReponse = 3;
+                            reason = "Invalid player token for user";
+                        }
+                    }
+                    else
+                    {
+                        using (StreamWriter sw = new StreamWriter(storedPlayerFile))
+                        {
+                            sw.WriteLine(playerGuid);
+                        }
                     }
                 }
                 client.playerName = playerName;
@@ -508,7 +527,7 @@ namespace DarkMultiPlayerServer
         {
             DarkLog.Debug("Sending " + client.playerName + " kerbals...");
             //Send vessels here
-            foreach (string file in Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Universe", "Kerbals")))
+            foreach (string file in Directory.GetFiles(Server.universeDirectory, "Kerbals"))
             {
                 using (StreamReader sr = new StreamReader(file))
                 {
@@ -526,7 +545,7 @@ namespace DarkMultiPlayerServer
             {
                 string kerbalName = mr.Read<string>();
                 string kerbalData = mr.Read<string>();
-                using (StreamWriter sw = new StreamWriter(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe", "Kerbals", kerbalName + ".txt")))
+                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt")))
                 {
                     sw.Write(kerbalData);
                     ServerMessage newMessage = new ServerMessage();
@@ -545,7 +564,7 @@ namespace DarkMultiPlayerServer
         {
             DarkLog.Debug("Sending " + client.playerName + " vessels...");
             //Send vessels here
-            foreach (string file in Directory.GetFiles(Path.Combine(AppDomain.CurrentDomain.BaseDirectory,"Universe", "Vessels")))
+            foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
             {
                 using (StreamReader sr = new StreamReader(file))
                 {
@@ -563,7 +582,7 @@ namespace DarkMultiPlayerServer
             {
                 string vesselGuid = mr.Read<string>();
                 string vesselData = mr.Read<string>();
-                using (StreamWriter sw = new StreamWriter(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe", "Vessels", vesselGuid + ".txt")))
+                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt")))
                 {
                     sw.Write(vesselData);
                     ServerMessage newMessage = new ServerMessage();

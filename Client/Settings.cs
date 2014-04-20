@@ -71,7 +71,7 @@ namespace DarkMultiPlayer
 
                     using (StreamWriter sw = new StreamWriter(tokenFile))
                     {
-                        playerGuid = new Guid();
+                        playerGuid = Guid.NewGuid();
                         sw.WriteLine(playerGuid.ToString());
                     }
                 }
