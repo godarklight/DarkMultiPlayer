@@ -34,6 +34,7 @@ namespace DarkMultiPlayerCommon
     {
         HEARTBEAT,
         HANDSHAKE_REPLY,
+        SERVER_SETTINGS,
         CHAT_MESSAGE,
         PLAYER_STATUS,
         PLAYER_DISCONNECT,

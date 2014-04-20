@@ -58,7 +58,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Error setting up server, Exception: " + e);
+                DarkLog.Normal("Error setting up server, Exception: " + e);
                 Server.serverRunning = false;
             }
             Server.serverStarting = false;
@@ -77,11 +77,11 @@ namespace DarkMultiPlayerServer
                 {
                     TcpClient newClient = TCPServer.EndAcceptTcpClient(ar);
                     SetupClient(newClient);
-                    DarkLog.Debug("New client connection from " + newClient.Client.RemoteEndPoint);
+                    DarkLog.Normal("New client connection from " + newClient.Client.RemoteEndPoint);
                 }
                 catch
                 {
-                    DarkLog.Debug("Error accepting client!");
+                    DarkLog.Normal("Error accepting client!");
                 }
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }
@@ -190,13 +190,13 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Debug("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
+                    DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
                     DisconnectClient(client);
                 }
             }
             if (message.type == ServerMessageType.CONNECTION_END)
             {
-                DarkLog.Debug("Client " + client.playerName + " disconnected, sent CONNECTION_END to endpoint " + client.endpoint);
+                DarkLog.Normal("Client " + client.playerName + " disconnected, sent CONNECTION_END to endpoint " + client.endpoint);
                 DisconnectClient(client);
             }
         }
@@ -210,7 +210,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + ", error: " + e.Message);
+                DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + ", error: " + e.Message);
                 DisconnectClient(client);
             }
             client.isSendingToClient = false;
@@ -229,7 +229,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
+                DarkLog.Normal("Connection error: " + e.Message);
                 DisconnectClient(client);
             }
         }
@@ -252,7 +252,7 @@ namespace DarkMultiPlayerServer
                             {
                                 //Malformed message, most likely from a non DMP-client.
                                 SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
-                                DarkLog.Debug("Invalid DMP message from " + client.endpoint);
+                                DarkLog.Normal("Invalid DMP message from " + client.endpoint);
                                 //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                 return;
                             }
@@ -279,7 +279,7 @@ namespace DarkMultiPlayerServer
                                 {
                                     //Malformed message, most likely from a non DMP-client.
                                     SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
-                                    DarkLog.Debug("Invalid DMP message from " + client.endpoint);
+                                    DarkLog.Normal("Invalid DMP message from " + client.endpoint);
                                     //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                     return;
                                 }
@@ -308,7 +308,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
+                DarkLog.Normal("Connection error: " + e.Message);
                 DisconnectClient(client);
             }
         }
@@ -443,6 +443,7 @@ namespace DarkMultiPlayerServer
                     }
                     else
                     {
+                        DarkLog.Debug("Client " + client.playerName + " registered!");
                         using (StreamWriter sw = new StreamWriter(storedPlayerFile))
                         {
                             sw.WriteLine(playerGuid);
@@ -453,14 +454,15 @@ namespace DarkMultiPlayerServer
                 if (handshakeReponse == 0)
                 {
                     client.authenticated = true;
-                    DarkLog.Debug("Client " + client.playerName + " handshook successfully!");
+                    DarkLog.Normal("Client " + playerName + " handshook successfully!");
                     SendHandshakeReply(client, handshakeReponse);
+                    SendServerSettings(client);
                     SendAllActiveVessels(client);
                     SendAllPlayerStatus(client);
                 }
                 else
                 {
-                    DarkLog.Debug("Client " + client.playerName + " failed to handshake, reason " + reason);
+                    DarkLog.Normal("Client " + playerName + " failed to handshake, reason " + reason);
                     SendHandshakeReply(client, handshakeReponse);
                     SendConnectionEnd(client, reason);
                 }
@@ -684,6 +686,18 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter(0, false))
             {
                 mw.Write<int>(response);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
+        private static void SendServerSettings(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SERVER_SETTINGS;
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
+                mw.Write<int>((int)Settings.warpMode);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);

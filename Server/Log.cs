@@ -8,13 +8,13 @@ namespace DarkMultiPlayerServer
         {
 #if DEBUG
             float currentTime = Server.serverClock.ElapsedMilliseconds / 1000f;
-            Console.WriteLine("[" + currentTime + "] DarkMultiPlayer Debug: " + message);
+            Console.WriteLine("[" + currentTime + "] Debug: " + message);
 #endif
         }
         public static void Normal(string message)
         {
             float currentTime = Server.serverClock.ElapsedMilliseconds / 1000f;
-            Console.WriteLine("[" + currentTime + "] " + message);
+            Console.WriteLine("[" + currentTime + "] Normal: " + message);
         }
     }
 }

@@ -20,11 +20,13 @@ namespace DarkMultiPlayerServer
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             //Load settings
-            DarkLog.Debug("Loading universe... ");
+            DarkLog.Normal("Loading universe... ");
             CheckUniverse();
-            DarkLog.Debug("Loading settings... ");
+            DarkLog.Normal("Done!");
+            DarkLog.Normal("Loading settings... ");
             Settings.Load();
-            DarkLog.Debug("Starting server on port " + Settings.port + "... ");
+            DarkLog.Normal("Done!");
+            DarkLog.Normal("Starting " + Settings.warpMode + " server on port " + Settings.port + "... ");
             serverStarting = true;
             serverRunning = true;
             Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
@@ -35,15 +37,15 @@ namespace DarkMultiPlayerServer
             {
                 Thread.Sleep(500);
             }
-            DarkLog.Debug("Done!");
+            DarkLog.Normal("Done!");
             while (serverRunning)
             {
                 Thread.Sleep(500);
             }
-            DarkLog.Debug("Shutting down... ");
+            DarkLog.Normal("Shutting down... ");
             commandThread.Join();
             clientThread.Join();
-            DarkLog.Debug("Goodbye!");
+            DarkLog.Normal("Goodbye!");
         }
         //Create universe directories
         private static void CheckUniverse()
