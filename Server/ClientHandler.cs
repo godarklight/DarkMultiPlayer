@@ -13,25 +13,24 @@ namespace DarkMultiPlayerServer
     {
         //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
-        private static List<ClientObject> addClients;
+        private static Queue<ClientObject> addClients;
         private static List<ClientObject> clients;
-        private static List<ClientObject> deleteClients;
+        private static Queue<ClientObject> deleteClients;
 
         #region Main loop
         public static void ThreadMain()
         {
-            addClients = new List<ClientObject>();
+            addClients = new Queue<ClientObject>();
             clients = new List<ClientObject>();
-            deleteClients = new List<ClientObject>();
+            deleteClients = new Queue<ClientObject>();
             SetupTCPServer();
             while (Server.serverRunning)
             {
                 //Add new clients
-                foreach (ClientObject client in addClients)
+                while (addClients.Count > 0)
                 {
-                    clients.Add(client);
+                    clients.Add(addClients.Dequeue());
                 }
-                addClients.Clear();
                 //Process current clients
                 foreach (ClientObject client in clients)
                 {
@@ -40,11 +39,10 @@ namespace DarkMultiPlayerServer
                     SendOutgoingMessages(client);
                 }
                 //Delete old clients
-                foreach (ClientObject client in deleteClients)
+                while (deleteClients.Count > 0)
                 {
-                    clients.Remove(client);
+                    clients.Remove(deleteClients.Dequeue());
                 }
-                deleteClients.Clear();
                 Thread.Sleep(10);
             }
             ShutdownTCPServer();
@@ -106,7 +104,7 @@ namespace DarkMultiPlayerServer
             newClientObject.sendMessageQueueLow = new Queue<ServerMessage>();
             newClientObject.receiveMessageQueue = new Queue<ClientMessage>();
             StartReceivingIncomingMessages(newClientObject);
-            clients.Add(newClientObject);
+            addClients.Enqueue(newClientObject);
         }
         #endregion
         #region Network related methods
@@ -325,7 +323,7 @@ namespace DarkMultiPlayerServer
                     newMessage.data = mw.GetMessageBytes();
                 }
                 SendToAll(client, newMessage, true);
-                deleteClients.Add(client);
+                deleteClients.Enqueue(client);
                 if (client.connection != null)
                 {
                     client.connection.Close();
