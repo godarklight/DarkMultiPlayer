@@ -30,8 +30,8 @@ namespace DarkMultiPlayer
         //Known vessels and last send/receive time
         private Dictionary<string, float> serverVesselsProtoUpdate;
         private Dictionary<string, float> serverVesselsPositionUpdate;
-        //Vessel id (key) owned by player (value)
-        private Dictionary<string, string> inUse;
+        //Vessel id (key) owned by player (value) - Also read from PlayerStatusWorker
+        public Dictionary<string, string> inUse;
         //Track spectating state
         private bool wasSpectating;
 
@@ -116,10 +116,11 @@ namespace DarkMultiPlayer
 
                 }
                 //Tell other players we have taken a vessel
-                if (!isSpectating && isActiveVesselOk && HighLogic.LoadedScene == GameScenes.FLIGHT)
+                if (!isSpectating && isActiveVesselOk && (HighLogic.LoadedScene == GameScenes.FLIGHT))
                 {
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
+                        parent.playerStatusWorker.myPlayerStatus.vesselText = "Controlling " + FlightGlobals.ActiveVessel.vesselName;
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), parent.settings.playerName);
                         parent.networkWorker.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
                     }
@@ -130,6 +131,7 @@ namespace DarkMultiPlayer
                     {
                         lastVessel = "";
                         parent.networkWorker.SendActiveVessel("");
+                        parent.playerStatusWorker.myPlayerStatus.vesselText = "";
                         SetNotInUse(parent.settings.playerName);
                     }
                 }
@@ -274,7 +276,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        private bool isSpectating
+        //Also called from PlayerStatusWorker
+        public bool isSpectating
         {
             get
             {

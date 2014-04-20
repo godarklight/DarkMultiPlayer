@@ -83,7 +83,7 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
-                GUILayout.Window(GUIUtility.GetControlID(6702, FocusType.Passive), windowRect, DrawContent, "", windowStyle, layoutOptions);
+                GUILayout.Window(GUIUtility.GetControlID(6702, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer", windowStyle, layoutOptions);
             }
         }
 
@@ -163,6 +163,12 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
+            }
+
+            GUILayout.Label("Servers:");
+            if (parent.settings.servers.Count == 0)
+            {
+                GUILayout.Label("(None - Add a server first)");
             }
 
             for (int serverPos = 0; serverPos < parent.settings.servers.Count; serverPos++)

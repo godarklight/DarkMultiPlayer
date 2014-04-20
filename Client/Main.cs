@@ -16,8 +16,10 @@ namespace DarkMultiPlayer
         public TimeSyncer timeSyncer;
         public VesselWorker vesselWorker;
         public NetworkWorker networkWorker;
+        public PlayerStatusWorker playerStatusWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
+        private PlayerStatusWindow playerStatusWindow;
 
         public void Awake()
         {
@@ -27,16 +29,10 @@ namespace DarkMultiPlayer
             networkWorker = new NetworkWorker(this);
             settings = new Settings();
             connectionWindow = new ConnectionWindow(this);
+            playerStatusWorker = new PlayerStatusWorker(this);
+            playerStatusWindow = new PlayerStatusWindow(this);
             SetupDirectoriesIfNeeded();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
-
-            //Temporary testing stuff
-            /*
-            settings.playerGuid = new Guid();
-            System.Random r = new System.Random();
-            double randomNumber = r.NextDouble();
-            settings.playerName = "godarklight-" + randomNumber;
-            */
         }
 
         public void Start()
@@ -49,8 +45,14 @@ namespace DarkMultiPlayer
             DarkLog.Update();
 
             //Handle GUI events
+            if (!playerStatusWindow.disconnectEventHandled)
+            {
+                playerStatusWindow.disconnectEventHandled = true;
+                networkWorker.SendDisconnect("Quit");
+            }
             if (!connectionWindow.renameEventHandled)
             {
+                playerStatusWorker.myPlayerStatus.playerName = settings.playerName;
                 settings.SaveSettings();
                 connectionWindow.renameEventHandled = true;
             }
@@ -90,9 +92,11 @@ namespace DarkMultiPlayer
             connectionWindow.selectedSafe = connectionWindow.selected;
             connectionWindow.addingServerSafe = connectionWindow.addingServer;
             connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
+            playerStatusWindow.display = gameRunning;
 
             //Call network worker
             networkWorker.Update();
+            playerStatusWorker.Update();
 
             //Force quit
             if (forceQuit)
@@ -124,6 +128,7 @@ namespace DarkMultiPlayer
         public void OnGUI()
         {
             connectionWindow.Draw();
+            playerStatusWindow.Draw();
         }
 
         public void OnDestroy()
@@ -162,6 +167,8 @@ namespace DarkMultiPlayer
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
+            string darkMultiPlayerDataDirectory = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", Path.Combine("DarkMultiPlayer", Path.Combine("Plugins", "Data"))));
+            CreateIfNeeded(darkMultiPlayerDataDirectory);
         }
 
         private void CreateIfNeeded(string path)

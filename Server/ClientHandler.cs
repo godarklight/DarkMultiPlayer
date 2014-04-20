@@ -16,6 +16,7 @@ namespace DarkMultiPlayerServer
         private static List<ClientObject> addClients;
         private static List<ClientObject> clients;
         private static List<ClientObject> deleteClients;
+
         #region Main loop
         public static void ThreadMain()
         {
@@ -92,7 +93,8 @@ namespace DarkMultiPlayerServer
         private static void SetupClient(TcpClient newClientConnection)
         {
             ClientObject newClientObject = new ClientObject();
-            newClientObject.status = ConnectionStatus.CONNECTED;
+            newClientObject.playerStatus = new PlayerStatus();
+            newClientObject.connectionStatus = ConnectionStatus.CONNECTED;
             newClientObject.playerName = "Unknown";
             newClientObject.activeVessel = "";
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
@@ -183,17 +185,21 @@ namespace DarkMultiPlayerServer
             }
             client.isSendingToClient = true;
             client.lastSendTime = Server.serverClock.ElapsedMilliseconds;
-            try
+            if (client.connectionStatus == ConnectionStatus.CONNECTED)
             {
-                client.connection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendMessageCallback), client);
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
-                DisconnectClient(client);
+                try
+                {
+                    client.connection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendMessageCallback), client);
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
+                    DisconnectClient(client);
+                }
             }
             if (message.type == ServerMessageType.CONNECTION_END)
             {
+                DarkLog.Debug("Client " + client.playerName + " disconnected, sent CONNECTION_END to endpoint " + client.endpoint);
                 DisconnectClient(client);
             }
         }
@@ -245,6 +251,13 @@ namespace DarkMultiPlayerServer
                         //We have the header
                         using (MessageReader mr = new MessageReader(client.receiveMessage.data, true))
                         {
+                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ClientMessageType)).Length - 1)) {
+                                //Malformed message, most likely from a non DMP-client.
+                                SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
+                                DarkLog.Debug("Invalid DMP message from " + client.endpoint);
+                                //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                                return;
+                            }
                             client.receiveMessage.type = (ClientMessageType)mr.GetMessageType();
                             int length = mr.GetMessageLength();
                             if (length == 0)
@@ -258,9 +271,17 @@ namespace DarkMultiPlayerServer
                             }
                             else
                             {
-                                client.isReceivingMessage = true;
-                                client.receiveMessage.data = new byte[length];
-                                client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
+                                if (length < Common.MAX_MESSAGE_SIZE) {
+                                    client.isReceivingMessage = true;
+                                    client.receiveMessage.data = new byte[length];
+                                    client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
+                                } else {
+                                    //Malformed message, most likely from a non DMP-client.
+                                    SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
+                                    DarkLog.Debug("Invalid DMP message from " + client.endpoint);
+                                    //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                                    return;
+                                }
                             }
                         }
                     }
@@ -278,7 +299,7 @@ namespace DarkMultiPlayerServer
                         client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
                     }
                 }
-                if (client.status == ConnectionStatus.CONNECTED)
+                if (client.connectionStatus == ConnectionStatus.CONNECTED)
                 {
                     client.lastReceiveTime = Server.serverClock.ElapsedMilliseconds;
                     client.connection.GetStream().BeginRead(client.receiveMessage.data, client.receiveMessage.data.Length - client.receiveMessageBytesLeft, client.receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), client);
@@ -293,23 +314,37 @@ namespace DarkMultiPlayerServer
 
         private static void DisconnectClient(ClientObject client)
         {
-            client.status = ConnectionStatus.DISCONNECTED;
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
             {
-                mw.Write<string>(client.playerName);
-                mw.Write<string>("");
-                newMessage.data = mw.GetMessageBytes();
+                client.connectionStatus = ConnectionStatus.DISCONNECTED;
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
+                using (MessageWriter mw = new MessageWriter(0, false))
+                {
+                    mw.Write<string>(client.playerName);
+                    newMessage.data = mw.GetMessageBytes();
+                }
+                SendToAll(client, newMessage, true);
+                deleteClients.Add(client);
+                if (client.connection != null)
+                {
+                    client.connection.Close();
+                }
             }
-            SendToAll(client, newMessage, true);
-            deleteClients.Add(client);
         }
         #endregion
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
             //DarkLog.Debug("Got " + message.type + " from " + client.playerName);
+
+            //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
+            if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))
+            {
+                SendConnectionEnd(client, "You must authenticate before attempting to send a " + message.type.ToString() + " message");
+                return;
+            }
+
             switch (message.type)
             {
                 case ClientMessageType.HEARTBEAT:
@@ -317,6 +352,9 @@ namespace DarkMultiPlayerServer
                     break;
                 case ClientMessageType.HANDSHAKE_REQUEST:
                     HandleHandshakeRequest(client, message.data);
+                    break;
+                case ClientMessageType.PLAYER_STATUS:
+                    HandlePlayerStatus(client, message.data);
                     break;
                 case ClientMessageType.SYNC_TIME_REQUEST:
                     HandleSyncTimeRequest(client, message.data);
@@ -397,13 +435,15 @@ namespace DarkMultiPlayerServer
                 client.playerName = playerName;
                 if (handshakeReponse == 0)
                 {
+                    client.authenticated = true;
                     DarkLog.Debug("Client " + client.playerName + " handshook successfully!");
                     SendHandshakeReply(client, handshakeReponse);
-                    SendActiveVessels(client);
+                    SendAllActiveVessels(client);
+                    SendAllPlayerStatus(client);
                 }
                 else
                 {
-                    DarkLog.Debug("Client " + client.playerName + " failed to handshake, reason " + handshakeReponse);
+                    DarkLog.Debug("Client " + client.playerName + " failed to handshake, reason " + reason);
                     SendHandshakeReply(client, handshakeReponse);
                     SendConnectionEnd(client, reason);
                 }
@@ -443,6 +483,27 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug("Error in SYNC_TIME_REQUEST from " + client.playerName + ": " + e);
                 DisconnectClient(client);
             }
+        }
+
+        private static void HandlePlayerStatus(ClientObject client, byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string playerName = mr.Read<string>();
+                if (playerName != client.playerName)
+                {
+                    DarkLog.Debug(client.playerName + " tried to send an update for " + playerName + ", kicking.");
+                    SendConnectionEnd(client, "Kicked for sending an update for another player");
+                    return;
+                }
+                client.playerStatus.vesselText = mr.Read<string>();
+                client.playerStatus.statusText = mr.Read<string>();
+            }
+            //Relay the message
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.PLAYER_STATUS;
+            newMessage.data = messageData;
+            SendToAll(client, newMessage, false);
         }
 
         private static void HandleKerbalsRequest(ClientObject client)
@@ -611,6 +672,29 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
+        private static void SendAllPlayerStatus(ClientObject client)
+        {
+            foreach (ClientObject otherClient in clients)
+            {
+                if (otherClient.authenticated)
+                {
+                    if (otherClient != client)
+                    {
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.PLAYER_STATUS;
+                        using (MessageWriter mw = new MessageWriter(0, false))
+                        {
+                            mw.Write<string>(otherClient.playerName);
+                            mw.Write<string>(otherClient.playerStatus.vesselText);
+                            mw.Write<string>(otherClient.playerStatus.statusText);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        SendToClient(client, newMessage, false);
+                    }
+                }
+            }
+        }
+
         private static void SendKerbalsComplete(ClientObject client)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -618,21 +702,24 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, false);
         }
 
-        private static void SendActiveVessels(ClientObject client)
+        private static void SendAllActiveVessels(ClientObject client)
         {
             foreach (ClientObject otherClient in clients)
             {
-                if (otherClient != client)
+                if (otherClient.authenticated && otherClient.activeVessel != "")
                 {
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    if (otherClient != client)
                     {
-                        mw.Write<string>(otherClient.playerName);
-                        mw.Write<string>(otherClient.activeVessel);
-                        newMessage.data = mw.GetMessageBytes();
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
+                        using (MessageWriter mw = new MessageWriter(0, false))
+                        {
+                            mw.Write<string>(otherClient.playerName);
+                            mw.Write<string>(otherClient.activeVessel);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        SendToClient(client, newMessage, false);
                     }
-                    SendToClient(client, newMessage, false);
                 }
             }
         }
@@ -713,7 +800,8 @@ namespace DarkMultiPlayerServer
         public bool isReceivingMessage;
         public int receiveMessageBytesLeft;
         public ClientMessage receiveMessage;
-        public ConnectionStatus status;
+        public ConnectionStatus connectionStatus;
+        public PlayerStatus playerStatus;
     }
 }
 

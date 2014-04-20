@@ -6,6 +6,7 @@ namespace DarkMultiPlayerCommon
     {
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long CONNECTION_TIMEOUT = 30000;
+        public const int MAX_MESSAGE_SIZE = 5242880; //5MB
         public const int PROTOCOL_VERSION = 1;
     }
 
@@ -14,6 +15,7 @@ namespace DarkMultiPlayerCommon
         HEARTBEAT,
         HANDSHAKE_REQUEST,
         CHAT_MESSAGE,
+        PLAYER_STATUS,
         KERBALS_REQUEST,
         KERBAL_PROTO,
         VESSELS_REQUEST,
@@ -33,6 +35,8 @@ namespace DarkMultiPlayerCommon
         HEARTBEAT,
         HANDSHAKE_REPLY,
         CHAT_MESSAGE,
+        PLAYER_STATUS,
+        PLAYER_DISCONNECT,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
         VESSEL_PROTO,
@@ -40,7 +44,6 @@ namespace DarkMultiPlayerCommon
         VESSEL_COMPLETE,
         SET_ACTIVE_VESSEL,
         TIME_LOCK_REPLY,
-        PLAYER_STATUS,
         SYNC_TIME_REPLY,
         PING_REPLY,
         WARP_CONTROL,
@@ -106,5 +109,13 @@ namespace DarkMultiPlayerCommon
     {
         public ServerMessageType type;
         public byte[] data;
+    }
+
+    
+    public class PlayerStatus
+    {
+        public string playerName;
+        public string vesselText;
+        public string statusText;
     }
 }

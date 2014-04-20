@@ -13,12 +13,11 @@ namespace DarkMultiPlayer
     public class NetworkWorker
     {
         private const float CONNECTION_TIMEOUT = 10;
-        private const float HEARTBEAT_INTERVAL = 1;
+        private const float HEARTBEAT_INTERVAL = 5;
         private ClientState state;
         private Client parent;
         private TcpClient clientConnection;
         private float lastSendTime;
-        private float connectionTime;
         private bool isSendingMessage;
         private Queue<ClientMessage> sendMessageQueueHigh;
         private Queue<ClientMessage> sendMessageQueueSplit;
@@ -89,14 +88,13 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Time Locked!");
                 DarkLog.Debug("Starting Game!");
                 parent.status = "Starting game";
-                connectionTime = UnityEngine.Time.realtimeSinceStartup;
                 state = ClientState.STARTING;
                 parent.StartGame();
             }
-            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && ((UnityEngine.Time.realtimeSinceStartup - connectionTime) > 5f))
+            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER))
             {
                 state = ClientState.RUNNING;
-                parent.status = "";
+                parent.status = "Running";
                 parent.gameRunning = true;
                 parent.vesselWorker.enabled = true;
                 parent.timeSyncer.enabled = true;
@@ -264,6 +262,13 @@ namespace DarkMultiPlayer
                         //We have the header
                         using (MessageReader mr = new MessageReader(receiveMessage.data, true))
                         {
+                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1)) {
+                                //Malformed message, most likely from a non DMP-server.
+                                Disconnect();
+                                parent.status = "Disconnected from non-DMP server";
+                                //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                                return;
+                            }
                             receiveMessage.type = (ServerMessageType)mr.GetMessageType();
                             int length = mr.GetMessageLength();
                             if (length == 0)
@@ -277,9 +282,17 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
-                                isReceivingMessage = true;
-                                receiveMessage.data = new byte[length];
-                                receiveMessageBytesLeft = receiveMessage.data.Length;
+                                if (length < Common.MAX_MESSAGE_SIZE) {
+                                    isReceivingMessage = true;
+                                    receiveMessage.data = new byte[length];
+                                    receiveMessageBytesLeft = receiveMessage.data.Length;
+                                } else {
+                                    //Malformed message, most likely from a non DMP-server.
+                                    Disconnect();
+                                    parent.status = "Disconnected from non-DMP server";
+                                    //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                                    return;
+                                }
                             }
                         }
                     }
@@ -390,6 +403,12 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HANDSHAKE_REPLY:
                         HandleHanshakeReply(message.data);
                         break;
+                    case ServerMessageType.PLAYER_STATUS:
+                        HandlePlayerStatus(message.data);
+                        break;
+                    case ServerMessageType.PLAYER_DISCONNECT:
+                        HandlePlayerDisconnect(message.data);
+                        break;
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
                         break;
@@ -453,6 +472,44 @@ namespace DarkMultiPlayer
                     break;
             }
 
+        }
+
+        private void HandlePlayerStatus(byte[] messageData)
+        {
+            try
+            {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
+                    string playerName = mr.Read<string>();
+                    string vesselText = mr.Read<string>();
+                    string statusText = mr.Read<string>();
+                    PlayerStatus newStatus = new PlayerStatus();
+                    newStatus.playerName = playerName;
+                    newStatus.vesselText = vesselText;
+                    newStatus.statusText = statusText;
+                    parent.playerStatusWorker.AddPlayerStatus(newStatus);
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling PLAYER_STATUS message, exception: " + e);
+            }
+        }
+
+        private void HandlePlayerDisconnect(byte[] messageData)
+        {
+            try
+            {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
+                    string playerName = mr.Read<string>();
+                    parent.playerStatusWorker.RemovePlayerStatus(playerName);
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling PLAYER_STATUS message, exception: " + e);
+            }
         }
 
         private void HandleSyncTimeReply(byte[] messageData)
@@ -620,6 +677,23 @@ namespace DarkMultiPlayer
             }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.HANDSHAKE_REQUEST;
+            newMessage.data = messageBytes;
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+
+        //Called from PlayerStatusWorker
+        public void SendPlayerStatus(PlayerStatus playerStatus)
+        {
+            byte[] messageBytes;
+            using (MessageWriter mw = new MessageWriter(0, false))
+            {
+                mw.Write<string>(playerStatus.playerName);
+                mw.Write<string>(playerStatus.vesselText);
+                mw.Write<string>(playerStatus.statusText);
+                messageBytes = mw.GetMessageBytes();
+            }
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PLAYER_STATUS;
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
