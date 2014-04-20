@@ -68,7 +68,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-
+                    DarkLog.Debug("Creating new token file.");
                     using (StreamWriter sw = new StreamWriter(tokenFile))
                     {
                         playerGuid = Guid.NewGuid();
@@ -78,8 +78,8 @@ namespace DarkMultiPlayer
             }
             catch
             {
-                DarkLog.Debug("Creating new token file");
-                playerGuid = new Guid();
+                DarkLog.Debug("Error processing token, creating new token file.");
+                playerGuid = Guid.NewGuid();
                 if (File.Exists(tokenFile))
                 {
                     File.Move(tokenFile, tokenFile + ".bak");
