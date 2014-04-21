@@ -13,8 +13,9 @@ namespace DarkMultiPlayer
         //Private parts
         private Client parent;
         //A list of lowest rates in MCW_LOWEST mode.
-        private Dictionary<string, PlayerWarpRate> ClientWarpList;
+        private Dictionary<string, PlayerWarpRate> clientWarpList;
         //The player that can control warp in MCW_VOTE mode.
+        private PlayerWarpRate lastSendRate;
         private string warpMaster;
         private string voteMaster;
         private Dictionary<string, bool> voteList;
@@ -22,14 +23,15 @@ namespace DarkMultiPlayer
         private int voteNoCount;
         private int voteNeededCount;
         private int voteFailedCount;
-        private bool canWarp;
         private bool voteSent;
         private bool registered;
         private double warpMasterOwnerTime;
         private double lastScreenMessageCheck;
+        private double lastWarpSet;
         private Queue<byte[]> newWarpMessages;
         private ScreenMessage warpMessage;
         private const float SCREEN_MESSAGE_UPDATE_INTERVAL = 0.2f;
+        private const float WARP_SET_THROTTLE = 1f;
         private const float MAX_WARP_TIME = 120f;
         private const float RELEASE_AFTER_WARP_TIME = 10f;
 
@@ -43,21 +45,121 @@ namespace DarkMultiPlayer
         {
             if (enabled)
             {
+                //Register time rate change hook.
                 if (!registered)
                 {
                     GameEvents.onTimeWarpRateChanged.Add(OnWarpChanged);
                 }
+                //Process new warp messages
                 while (newWarpMessages.Count > 0)
                 {
                     HandleWarpMessage(newWarpMessages.Dequeue());
                 }
+                //Write the screen message if needed
                 if ((UnityEngine.Time.realtimeSinceStartup - lastScreenMessageCheck) > SCREEN_MESSAGE_UPDATE_INTERVAL)
                 {
                     lastScreenMessageCheck = UnityEngine.Time.realtimeSinceStartup;
                     UpdateScreenMessage();
                 }
+                //Send a CHANGE_WARP message if needed
+                if (warpMaster == parent.settings.playerName && (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE || warpMode == WarpMode.SUBSPACE))
+                {
+                    if ((lastSendRate.rateIndex != TimeWarp.CurrentRateIndex) || (lastSendRate.isPhysWarp != (TimeWarp.WarpMode == TimeWarp.Modes.LOW)))
+                    {
+                        lastSendRate.isPhysWarp = (TimeWarp.WarpMode == TimeWarp.Modes.LOW);
+                        lastSendRate.rateIndex = TimeWarp.CurrentRateIndex;
+                        using (MessageWriter mw = new MessageWriter(0, false))
+                        {
+                            mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
+                            mw.Write<string>(parent.settings.playerName);
+                            mw.Write<bool>(lastSendRate.isPhysWarp);
+                            mw.Write<int>(lastSendRate.rateIndex);
+                            parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                        }
+                    }
+                }
+
+                if (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE)
+                {
+                    //Follow the warp master into warp if needed (MCW_FORCE/MCW_VOTE)
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastWarpSet) > WARP_SET_THROTTLE)
+                    {
+                        //The warp master isn't us
+                        if ((warpMaster != parent.settings.playerName) && (warpMaster != ""))
+                        {
+                            //We have a entry for the warp master
+                            if (clientWarpList.ContainsKey(warpMaster))
+                            {
+                                //Our warp rate is different
+                                if (TimeWarp.CurrentRateIndex != clientWarpList[warpMaster].rateIndex || (TimeWarp.WarpMode == TimeWarp.Modes.LOW) != clientWarpList[warpMaster].isPhysWarp)
+                                {
+                                    lastWarpSet = UnityEngine.Time.realtimeSinceStartup;
+                                    DarkLog.Debug("Changing our warp rate to match the warp master");
+                                    if (clientWarpList[warpMaster].isPhysWarp)
+                                    {
+                                        TimeWarp.fetch.Mode = TimeWarp.Modes.LOW;
+                                        TimeWarp.SetRate(clientWarpList[warpMaster].rateIndex, true);
+                                    }
+                                    else
+                                    {
+                                        TimeWarp.fetch.Mode = TimeWarp.Modes.HIGH;
+                                        TimeWarp.SetRate(clientWarpList[warpMaster].rateIndex, true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //Release the warp master if we have had it for too long
+                    HandleWarpMasterTimeouts();
+                }
+                //Set the warp rate to the lowest rate if needed (MCW_LOWEST)
+                if (warpMode == WarpMode.MCW_LOWEST)
+                {
+                    int lowestPhysRateIndex = -1;
+                    int lowestNormalRateIndex = -1;
+                    foreach (KeyValuePair<string, PlayerWarpRate> pwr in clientWarpList)
+                    {
+                        if (pwr.Value.isPhysWarp)
+                        {
+                            if (lowestPhysRateIndex == -1)
+                            {
+                                lowestPhysRateIndex = pwr.Value.rateIndex;
+                            }
+                            if (lowestPhysRateIndex > pwr.Value.rateIndex)
+                            {
+                                lowestPhysRateIndex = pwr.Value.rateIndex;
+                            }
+                        }
+                        else
+                        {
+                            if (lowestNormalRateIndex == -1)
+                            {
+                                lowestNormalRateIndex = pwr.Value.rateIndex;
+                            }
+                            if (lowestNormalRateIndex > pwr.Value.rateIndex)
+                            {
+                                lowestNormalRateIndex = pwr.Value.rateIndex;
+                            }
+                        }
+                    }
+                    if (lowestNormalRateIndex > 0 && lowestPhysRateIndex == -1)
+                    {
+                        TimeWarp.fetch.Mode = TimeWarp.Modes.HIGH;
+                        if (TimeWarp.CurrentRateIndex != lowestNormalRateIndex)
+                        {
+                            TimeWarp.SetRate(lowestNormalRateIndex, true);
+                        }
+                    }
+                    else if (lowestPhysRateIndex > 0 && lowestNormalRateIndex == -1)
+                    {
+                        TimeWarp.fetch.Mode = TimeWarp.Modes.LOW;
+                        if (TimeWarp.CurrentRateIndex != lowestPhysRateIndex)
+                        {
+                            TimeWarp.SetRate(lowestNormalRateIndex, true);
+                        }
+                    }
+                }
                 HandleInput();
-                HandleWarpMasterTimeouts();
             }
             else
             {
@@ -115,7 +217,26 @@ namespace DarkMultiPlayer
 
         public void OnWarpChanged()
         {
-            if (!canWarp && TimeWarp.CurrentRateIndex > 0)
+            bool resetWarp = true;
+            if (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE)
+            {
+                if (warpMaster != "")
+                {
+                    //It could be us or another player. If it's another player it will be controlled from Update() instead.
+                    resetWarp = false;
+                }
+            }
+            if (warpMode == WarpMode.SUBSPACE)
+            {
+                //Never reset warp in SUBSPACE mode.
+                resetWarp = false;
+            }
+            if (warpMode == WarpMode.MCW_LOWEST)
+            {
+                //Controlled from above in Update()
+                resetWarp = false;
+            }
+            if (TimeWarp.CurrentRateIndex > 0 && resetWarp)
             {
                 DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
@@ -150,7 +271,6 @@ namespace DarkMultiPlayer
                 {
                     warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                     warpMaster = parent.settings.playerName;
-                    canWarp = true;
                     using (MessageWriter mw = new MessageWriter(0, false))
                     {
                         mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
@@ -208,7 +328,6 @@ namespace DarkMultiPlayer
                             //Nobody else is online, Let's just take the warp master.
                             warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                             warpMaster = parent.settings.playerName;
-                            canWarp = true;
                             using (MessageWriter mw = new MessageWriter(0, false))
                             {
                                 mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
@@ -285,7 +404,6 @@ namespace DarkMultiPlayer
 
         private void ReleaseWarpMaster()
         {
-            canWarp = false;
             warpMaster = "";
             warpMasterOwnerTime = 0f;
             CancelVote();
@@ -296,7 +414,7 @@ namespace DarkMultiPlayer
                 mw.Write<string>("");
                 parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
             }
-            if (!canWarp && TimeWarp.CurrentRateIndex > 0)
+            if (TimeWarp.CurrentRateIndex > 0)
             {
                 DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
@@ -357,7 +475,6 @@ namespace DarkMultiPlayer
                                     //Vote has passed.
                                     warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                                     warpMaster = parent.settings.playerName;
-                                    canWarp = true;
                                     using (MessageWriter mw = new MessageWriter(0, false))
                                     {
                                         mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
@@ -383,7 +500,6 @@ namespace DarkMultiPlayer
                             warpMaster = newController;
                             if (warpMode == WarpMode.MCW_FORCE && newController == "")
                             {
-                                canWarp = false;
                                 warpMasterOwnerTime = 0f;
                             }
                             if (warpMode == WarpMode.MCW_VOTE && newController == "")
@@ -391,6 +507,29 @@ namespace DarkMultiPlayer
                                 CancelVote();
                             }
                         }
+                        break;
+                    case WarpMessageType.CHANGE_WARP:
+                        if (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE || warpMode == WarpMode.MCW_LOWEST || warpMode == WarpMode.SUBSPACE)
+                        {
+                            bool newPhysWarp = mr.Read<bool>();
+                            int newRateIndex = mr.Read<int>();
+                            if (clientWarpList.ContainsKey(fromPlayer))
+                            {
+                                clientWarpList[fromPlayer].isPhysWarp = newPhysWarp;
+                                clientWarpList[fromPlayer].rateIndex = newRateIndex;
+                            }
+                            else
+                            {
+                                PlayerWarpRate newPlayerWarpRate = new PlayerWarpRate();
+                                newPlayerWarpRate.isPhysWarp = newPhysWarp;
+                                newPlayerWarpRate.rateIndex = newRateIndex;
+                                clientWarpList.Add(fromPlayer, newPlayerWarpRate);
+                            }
+                            DarkLog.Debug(fromPlayer + " warp rate changed, Physwarp: " + newPhysWarp + ", Index: " + newRateIndex);
+                        }
+                        break;
+                    default:
+                        DarkLog.Debug("Unhandled WARP_MESSAGE type: " + messageType);
                         break;
                 }
             }
@@ -417,16 +556,12 @@ namespace DarkMultiPlayer
             voteYesCount = 0;
             voteNoCount = 0;
             warpMode = WarpMode.NONE;
-            canWarp = false;
             voteSent = false;
             lastScreenMessageCheck = 0f;
-            ClientWarpList = new Dictionary<string, PlayerWarpRate>();
+            lastSendRate = new PlayerWarpRate();
+            clientWarpList = new Dictionary<string, PlayerWarpRate>();
             voteList = new Dictionary<string, bool>();
             newWarpMessages = new Queue<byte[]>();
-            if (ClientWarpList != null)
-            {
-                //Shutup compiler
-            }
         }
     }
 
