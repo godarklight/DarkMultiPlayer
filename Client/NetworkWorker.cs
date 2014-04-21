@@ -98,6 +98,8 @@ namespace DarkMultiPlayer
                 parent.gameRunning = true;
                 parent.vesselWorker.enabled = true;
                 parent.timeSyncer.enabled = true;
+                parent.warpWorker.enabled = true;
+                parent.playerStatusWorker.enabled = true;
             }
             /*
             if (state == ClientState.RUNNING)
@@ -403,14 +405,14 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HANDSHAKE_REPLY:
                         HandleHanshakeReply(message.data);
                         break;
+                    case ServerMessageType.SERVER_SETTINGS:
+                        HandleServerSettings(message.data);
+                        break;
                     case ServerMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(message.data);
                         break;
                     case ServerMessageType.PLAYER_DISCONNECT:
                         HandlePlayerDisconnect(message.data);
-                        break;
-                    case ServerMessageType.SYNC_TIME_REPLY:
-                        HandleSyncTimeReply(message.data);
                         break;
                     case ServerMessageType.KERBAL_REPLY:
                         HandleKerbalReply(message.data);
@@ -424,14 +426,23 @@ namespace DarkMultiPlayer
                     case ServerMessageType.VESSEL_UPDATE:
                         HandleVesselUpdate(message.data);
                         break;
-                    case ServerMessageType.SET_ACTIVE_VESSEL:
-                        HandleSetActiveVessel(message.data);
-                        break;
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
                         break;
+                    case ServerMessageType.SET_ACTIVE_VESSEL:
+                        HandleSetActiveVessel(message.data);
+                        break;
                     case ServerMessageType.TIME_LOCK_REPLY:
                         HandleTimeLockReply(message.data);
+                        break;
+                    case ServerMessageType.SYNC_TIME_REPLY:
+                        HandleSyncTimeReply(message.data);
+                        break;
+                    case ServerMessageType.WARP_CONTROL:
+                        HandleWarpControl(message.data);
+                        break;
+                    case ServerMessageType.CONNECTION_END:
+                        HandleConnectionEnd(message.data);
                         break;
                     default:
                         DarkLog.Debug("Unhandled message type " + message.type);
@@ -471,7 +482,21 @@ namespace DarkMultiPlayer
                     SendDisconnect("Failed to handshake, reason " + reply);
                     break;
             }
+        }
 
+        private void HandleServerSettings(byte[] messageData)
+        {
+            try
+            {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
+                    parent.warpWorker.warpMode = (WarpMode)mr.Read<int>();
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling SERVER_SETTINGS message, exception: " + e);
+            }
         }
 
         private void HandlePlayerStatus(byte[] messageData)
@@ -648,6 +673,23 @@ namespace DarkMultiPlayer
                 SendDisconnect("Error handling time lock reply message");
             }
 
+        }
+
+        private void HandleWarpControl(byte[] messageData)
+        {
+            parent.warpWorker.QueueWarpMessage(messageData);
+        }
+
+        private void HandleConnectionEnd(byte[] messageData)
+        {
+            string reason = "";
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                reason = mr.Read<string>();
+            }
+            Disconnect();
+            ScreenMessages.PostScreenMessage("Server closed the connection: " + reason, 10f, ScreenMessageStyle.UPPER_CENTER);
+            parent.status = "Server closed connection: " + reason;
         }
         #endregion
         #region Message Sending
@@ -832,6 +874,14 @@ namespace DarkMultiPlayer
             }
             File.Delete(tempFile);
             DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+        //Called fro warpWorker
+        public void SendWarpMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.WARP_CONTROL;
+            newMessage.data = messageData;
             sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from main

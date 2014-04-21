@@ -93,11 +93,9 @@ namespace DarkMultiPlayerCommon
         REQUEST_VOTE,
         REPLY_VOTE,
         CHANGE_WARP,
-        CHANGE_RATE,
         SET_CONTROLLER,
         NEW_SUBSPACE,
         CHANGE_SUBSPACE,
-
     }
 
     public class ClientMessage

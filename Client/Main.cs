@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         public VesselWorker vesselWorker;
         public NetworkWorker networkWorker;
         public PlayerStatusWorker playerStatusWorker;
+        public WarpWorker warpWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
@@ -27,6 +28,7 @@ namespace DarkMultiPlayer
             timeSyncer = new TimeSyncer(this);
             vesselWorker = new VesselWorker(this);
             networkWorker = new NetworkWorker(this);
+            warpWorker = new WarpWorker(this);
             settings = new Settings();
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
@@ -97,14 +99,14 @@ namespace DarkMultiPlayer
             //Call network worker
             networkWorker.Update();
             playerStatusWorker.Update();
+            warpWorker.Update();
 
             //Force quit
             if (forceQuit)
             {
                 forceQuit = false;
                 gameRunning = false;
-                timeSyncer.Reset();
-                vesselWorker.Reset();
+                ResetWorkers();
                 networkWorker.SendDisconnect("Force quit to main menu");
                 StopGame();
             }
@@ -113,8 +115,7 @@ namespace DarkMultiPlayer
             if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
                 gameRunning = false;
-                timeSyncer.Reset();
-                vesselWorker.Reset();
+                ResetWorkers();
                 networkWorker.SendDisconnect("Quit to main menu");
             }
         }
@@ -157,6 +158,14 @@ namespace DarkMultiPlayer
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
             }
+        }
+
+        private void ResetWorkers()
+        {
+            timeSyncer.Reset();
+            vesselWorker.Reset();
+            playerStatusWorker.Reset();
+            warpWorker.Reset();
         }
 
         private void SetupDirectoriesIfNeeded()

@@ -381,6 +381,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.TIME_LOCK_REQUEST:
                     HandleTimeLockRequest(client);
                     break;
+                case ClientMessageType.WARP_CONTROL:
+                    HandleWarpControl(client, message.data);
+                    break;
                 case ClientMessageType.CONNECTION_END:
                     HandleConnectionEnd(client, message.data);
                     break;
@@ -627,6 +630,14 @@ namespace DarkMultiPlayerServer
         {
             DarkLog.Debug("Sending " + client.playerName + " time lock...");
             SendTimeLockReply(client);
+        }
+
+        private static void HandleWarpControl(ClientObject client, byte[] messageData)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.WARP_CONTROL;
+            newMessage.data = messageData;
+            SendToAll(client, newMessage, true);
         }
 
         private static void HandleConnectionEnd(ClientObject client, byte[] messageData)

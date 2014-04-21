@@ -27,153 +27,157 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            if ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusCheck) > PLAYER_STATUS_CHECK_INTERVAL)
+            if (enabled)
             {
-                lastPlayerStatusCheck = UnityEngine.Time.realtimeSinceStartup;
-                myPlayerStatus.vesselText = "";
-                myPlayerStatus.statusText = "";
-                if (HighLogic.LoadedSceneIsFlight)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusCheck) > PLAYER_STATUS_CHECK_INTERVAL)
                 {
-                    //Send vessel+status update
-                    if (FlightGlobals.ActiveVessel != null)
+                    lastPlayerStatusCheck = UnityEngine.Time.realtimeSinceStartup;
+                    myPlayerStatus.vesselText = "";
+                    myPlayerStatus.statusText = "";
+                    if (HighLogic.LoadedSceneIsFlight)
                     {
-                        if (!parent.vesselWorker.isSpectating)
+                        //Send vessel+status update
+                        if (FlightGlobals.ActiveVessel != null)
                         {
-                            myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
-                            string bodyName = FlightGlobals.ActiveVessel.mainBody.bodyName;
-                            switch (FlightGlobals.ActiveVessel.situation)
+                            if (!parent.vesselWorker.isSpectating)
                             {
-                                case (Vessel.Situations.DOCKED):
-                                    myPlayerStatus.statusText = "Docked above " + bodyName;
-                                    break;
-                                case (Vessel.Situations.ESCAPING):
-                                    if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
-                                    {
-                                        myPlayerStatus.statusText = "Escaping " + bodyName;
-                                    }
-                                    else
-                                    {
-                                        myPlayerStatus.statusText = "Encountering " + bodyName;
-                                    }
-                                    break;
-                                case (Vessel.Situations.FLYING):
-                                    myPlayerStatus.statusText = "Flying above " + bodyName;
-                                    break;
-                                case (Vessel.Situations.LANDED):
-                                    myPlayerStatus.statusText = "Landed on " + bodyName;
-                                    break;
-                                case (Vessel.Situations.ORBITING):
-                                    myPlayerStatus.statusText = "Orbiting " + bodyName;
-                                    break;
-                                case (Vessel.Situations.PRELAUNCH):
-                                    myPlayerStatus.statusText = "Launching from " + bodyName;
-                                    break;
-                                case (Vessel.Situations.SPLASHED):
-                                    myPlayerStatus.statusText = "Splashed on " + bodyName;
-                                    break;
-                                case (Vessel.Situations.SUB_ORBITAL):
-                                    if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
-                                    {
-                                        myPlayerStatus.statusText = "Ascending from " + bodyName;
-                                    }
-                                    else
-                                    {
-                                        myPlayerStatus.statusText = "Descending to " + bodyName;
-                                    }
-                                    break;
+                                myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
+                                string bodyName = FlightGlobals.ActiveVessel.mainBody.bodyName;
+                                switch (FlightGlobals.ActiveVessel.situation)
+                                {
+                                    case (Vessel.Situations.DOCKED):
+                                        myPlayerStatus.statusText = "Docked above " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.ESCAPING):
+                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
+                                        {
+                                            myPlayerStatus.statusText = "Escaping " + bodyName;
+                                        }
+                                        else
+                                        {
+                                            myPlayerStatus.statusText = "Encountering " + bodyName;
+                                        }
+                                        break;
+                                    case (Vessel.Situations.FLYING):
+                                        myPlayerStatus.statusText = "Flying above " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.LANDED):
+                                        myPlayerStatus.statusText = "Landed on " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.ORBITING):
+                                        myPlayerStatus.statusText = "Orbiting " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.PRELAUNCH):
+                                        myPlayerStatus.statusText = "Launching from " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.SPLASHED):
+                                        myPlayerStatus.statusText = "Splashed on " + bodyName;
+                                        break;
+                                    case (Vessel.Situations.SUB_ORBITAL):
+                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
+                                        {
+                                            myPlayerStatus.statusText = "Ascending from " + bodyName;
+                                        }
+                                        else
+                                        {
+                                            myPlayerStatus.statusText = "Descending to " + bodyName;
+                                        }
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                if (parent.vesselWorker.inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
+                                {
+                                    myPlayerStatus.statusText = "Spectating " + parent.vesselWorker.inUse[FlightGlobals.ActiveVessel.id.ToString()];
+                                }
+                                else
+                                {
+                                    myPlayerStatus.statusText = "Spectating Unknown";
+                                }
                             }
                         }
                         else
                         {
-                            if (parent.vesselWorker.inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString())) {
-                                myPlayerStatus.statusText = "Spectating " + parent.vesselWorker.inUse[FlightGlobals.ActiveVessel.id.ToString()];
-                            }
-                            else
-                            {
-                                myPlayerStatus.statusText = "Spectating Unknown";
-                            }
+                            myPlayerStatus.statusText = "Loading";
                         }
                     }
                     else
                     {
-                        myPlayerStatus.statusText = "Loading";
+                        //Send status update
+                        switch (HighLogic.LoadedScene)
+                        {
+                            case (GameScenes.EDITOR):
+                                myPlayerStatus.statusText = "Building in VAB";
+                                break;
+                            case (GameScenes.SPACECENTER):
+                                myPlayerStatus.statusText = "At Space Center";
+                                break;
+                            case (GameScenes.SPH):
+                                myPlayerStatus.statusText = "Building in SPH";
+                                break;
+                            case (GameScenes.TRACKSTATION):
+                                myPlayerStatus.statusText = "At Tracking Station";
+                                break;
+                            case (GameScenes.LOADING):
+                                myPlayerStatus.statusText = "Loading";
+                                break;
+
+                        }
                     }
                 }
-                else
+
+                bool statusDifferent = false;
+                statusDifferent = statusDifferent || (myPlayerStatus.vesselText != lastPlayerStatus.vesselText);
+                statusDifferent = statusDifferent || (myPlayerStatus.statusText != lastPlayerStatus.statusText);
+                if (statusDifferent && ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusSend) > PLAYER_STATUS_SEND_THROTTLE))
                 {
-                    //Send status update
-                    switch (HighLogic.LoadedScene)
+                    lastPlayerStatusSend = UnityEngine.Time.realtimeSinceStartup;
+                    lastPlayerStatus.vesselText = myPlayerStatus.vesselText;
+                    lastPlayerStatus.statusText = myPlayerStatus.statusText;
+                    parent.networkWorker.SendPlayerStatus(myPlayerStatus);
+                }
+
+                while (addStatusQueue.Count > 0)
+                {
+                    PlayerStatus newStatusEntry = addStatusQueue.Dequeue();
+                    bool found = false;
+                    foreach (PlayerStatus playerStatusEntry in playerStatusList)
                     {
-                        case (GameScenes.EDITOR):
-                            myPlayerStatus.statusText = "Building in VAB";
-                            break;
-                        case (GameScenes.SPACECENTER):
-                            myPlayerStatus.statusText = "At Space Center";
-                            break;
-                        case (GameScenes.SPH):
-                            myPlayerStatus.statusText = "Building in SPH";
-                            break;
-                        case (GameScenes.TRACKSTATION):
-                            myPlayerStatus.statusText = "At Tracking Station";
-                            break;
-                        case (GameScenes.LOADING):
-                            myPlayerStatus.statusText = "Loading";
-                            break;
-
+                        if (playerStatusEntry.playerName == newStatusEntry.playerName)
+                        {
+                            found = true;
+                            playerStatusEntry.vesselText = newStatusEntry.vesselText;
+                            playerStatusEntry.statusText = newStatusEntry.statusText;
+                        }
                     }
-                }
-            }
-
-            bool statusDifferent = false;
-            statusDifferent = statusDifferent || (myPlayerStatus.vesselText != lastPlayerStatus.vesselText);
-            statusDifferent = statusDifferent || (myPlayerStatus.statusText != lastPlayerStatus.statusText);
-            if (statusDifferent && ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusSend) > PLAYER_STATUS_SEND_THROTTLE))
-            {
-                lastPlayerStatusSend = UnityEngine.Time.realtimeSinceStartup;
-                lastPlayerStatus.vesselText = myPlayerStatus.vesselText;
-                lastPlayerStatus.statusText = myPlayerStatus.statusText;
-                parent.networkWorker.SendPlayerStatus(myPlayerStatus);
-            }
-
-            while (addStatusQueue.Count > 0)
-            {
-                PlayerStatus newStatusEntry = addStatusQueue.Dequeue();
-                bool found = false;
-                foreach (PlayerStatus playerStatusEntry in playerStatusList)
-                {
-                    if (playerStatusEntry.playerName == newStatusEntry.playerName)
+                    if (!found)
                     {
-                        found = true;
-                        playerStatusEntry.vesselText = newStatusEntry.vesselText;
-                        playerStatusEntry.statusText = newStatusEntry.statusText;
+                        playerStatusList.Add(newStatusEntry);
+                        DarkLog.Debug("Added " + newStatusEntry.playerName + " to status list");
                     }
                 }
-                if (!found)
-                {
-                    playerStatusList.Add(newStatusEntry);
-                    DarkLog.Debug("Added " + newStatusEntry.playerName + " to status list");
-                }
-            }
 
-            while (removeStatusQueue.Count > 0)
-            {
-                string removeStatusString = removeStatusQueue.Dequeue();
-                PlayerStatus removeStatus = null;
-                foreach (PlayerStatus currentStatus in playerStatusList)
+                while (removeStatusQueue.Count > 0)
                 {
-                    if (currentStatus.playerName == removeStatusString)
+                    string removeStatusString = removeStatusQueue.Dequeue();
+                    PlayerStatus removeStatus = null;
+                    foreach (PlayerStatus currentStatus in playerStatusList)
                     {
-                        removeStatus = currentStatus;
+                        if (currentStatus.playerName == removeStatusString)
+                        {
+                            removeStatus = currentStatus;
+                        }
                     }
-                }
-                if (removeStatus != null)
-                {
-                    playerStatusList.Remove(removeStatus);
-                    DarkLog.Debug("Removed " + removeStatusString + " from status list");
-                }
-                else
-                {
-                    DarkLog.Debug("Cannot remove non-existant player " + removeStatusString);
+                    if (removeStatus != null)
+                    {
+                        playerStatusList.Remove(removeStatus);
+                        DarkLog.Debug("Removed " + removeStatusString + " from status list");
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Cannot remove non-existant player " + removeStatusString);
+                    }
                 }
             }
         }

@@ -51,14 +51,16 @@ PING_REQUEST: long - Client send time
 (NOT IMPLEMENTED) WARP: This message has different formats, they all start with and int header of the WarpMessageType.
 int - Warp message type
 --REQUEST_VOTE type (using in MCW_VOTE)--
-null - Tells the server to start a vote.
+null - Asks the other clients for a vote.
 --REPLY_VOTE (used in MCW_VOTE)--
-bool - reply to a server vote.
+bool - reply to a vote.
+--SET_CONTROLLER--
+string - Sets the warp master
 --CHANGE_WARP (used in MCW_LOWEST and MCW_VOTE)--
 bool - physical warp (false if normal warp set).
 int - rate index.
---CHANGE_RATE (used in MCW_LOWEST and MCW_VOTE)--
-float - how fast we have to skew our clock to stay in sync. server can slow down the subspace if people are lagging.
+--REPORT_RATE (used in all types)--
+float - how fast we have to skew our clock to stay in sync. subspace master can slow down the subspace if people are lagging.
 --NEW_SUBSPACE (used in SUBSPACE)--
 long - subspace epoch (server clock)
 double - subspace epoch (planetarium time)
@@ -91,22 +93,25 @@ SYNC_TIME_REPLY: long - server client time, long - server receive time, long - s
 
 PING_REPLY: long - client send time, long server send time.
 
-(NOT IMPLEMENTED) WARP_CONTROL: This message has different formats, they all start with an int header of the WarpMessageType.
+WARP_CONTROL: This message has different formats, they all start with the same warp header:
 int - Warp message type
+string - Player name
 --REQUEST_VOTE (used in MCW_VOTE)--
 string - Player name. Asks the client if they can warp.
+--REPLY_VOTE (used in MCW_VOTE)--
+string - Player name. Asks the client if they can warp.
+bool - Give the player warp control.
+--SET_CONTROLLER--
+string - New warp master.
 --CHANGE_WARP (used in MCW_FORCE, MCW_VOTE, MCW_LOWEST)--
 bool - physical warp.
 int - rate index.
---NEW_SUBSPACE (used in SUBSPACE)--
+--LOCK_SUBSPACE (used in SUBSPACE)--
 int - subspace ID.
 long - subspace epoch (server clock).
 double - subspace epoch (planetarium time).
 float - subspace rate.
---CHANGE_SUBSPACE (used in SUBSPACE, relocks the subspace epoch)--
+--CHANGE_SUBSPACE (used in SUBSPACE)--
 int - subspace ID.
-long - subspace epoch (server clock).
-double - subspace epoch (planetarium time).
-float - subspace rate.
 
 TODO: Actually write documentation on how my message writer works. The code is here anyway, this is how I built the MessageWriter.dll file: https://github.com/godarklight/BinarySerialiser
