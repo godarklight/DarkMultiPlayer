@@ -7,7 +7,7 @@ namespace DarkMultiPlayerServer
     public class Settings
     {
         private const string SETTINGS_FILE_NAME = "DarkServerSettings.txt";
-        private static string serverPath = AppDomain.CurrentDomain.BaseDirectory;
+        public static string serverPath = AppDomain.CurrentDomain.BaseDirectory;
         private static string settingsFile = Path.Combine(serverPath, SETTINGS_FILE_NAME);
         //Port
         public static int port;

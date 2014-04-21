@@ -22,7 +22,6 @@ namespace DarkMultiPlayerCommon
         VESSEL_PROTO,
         VESSEL_UPDATE,
         SEND_ACTIVE_VESSEL,
-        TIME_LOCK_REQUEST,
         SYNC_TIME_REQUEST,
         PING_REQUEST,
         WARP_CONTROL,
@@ -44,7 +43,6 @@ namespace DarkMultiPlayerCommon
         VESSEL_UPDATE,
         VESSEL_COMPLETE,
         SET_ACTIVE_VESSEL,
-        TIME_LOCK_REPLY,
         SYNC_TIME_REPLY,
         PING_REPLY,
         WARP_CONTROL,
@@ -116,5 +114,13 @@ namespace DarkMultiPlayerCommon
         public string playerName;
         public string vesselText;
         public string statusText;
+    }
+
+    
+    public class Subspace
+    {
+        public long serverClock;
+        public double planetTime;
+        public float subspaceSpeed;
     }
 }

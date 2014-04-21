@@ -78,18 +78,21 @@ namespace DarkMultiPlayer
             if (state == ClientState.VESSELS_SYNCED)
             {
                 DarkLog.Debug("Vessels Synced!");
-                DarkLog.Debug("Requesting time lock!");
                 parent.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
-                SendTimeLockRequest();
+                parent.timeSyncer.enabled = true;
+                parent.warpWorker.enabled = true;
             }
-            if (state == ClientState.TIME_LOCKED)
+            if (state == ClientState.TIME_LOCKING)
             {
-                DarkLog.Debug("Time Locked!");
-                DarkLog.Debug("Starting Game!");
-                parent.status = "Starting game";
-                state = ClientState.STARTING;
-                parent.StartGame();
+                if (parent.timeSyncer.locked)
+                {
+                    DarkLog.Debug("Time Locked!");
+                    DarkLog.Debug("Starting Game!");
+                    parent.status = "Starting game";
+                    state = ClientState.STARTING;
+                    parent.StartGame();
+                }
             }
             if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER))
             {
@@ -97,17 +100,8 @@ namespace DarkMultiPlayer
                 parent.status = "Running";
                 parent.gameRunning = true;
                 parent.vesselWorker.enabled = true;
-                parent.timeSyncer.enabled = true;
-                parent.warpWorker.enabled = true;
                 parent.playerStatusWorker.enabled = true;
             }
-            /*
-            if (state == ClientState.RUNNING)
-            {
-                DarkLog.Debug("Game running, Disconnecting due to happyness!");
-                SendDisconnect("Everything worked, test disconnections");
-            }
-            */
         }
         #region Connecting to server
         //Called from main
@@ -431,9 +425,6 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.SET_ACTIVE_VESSEL:
                         HandleSetActiveVessel(message.data);
-                        break;
-                    case ServerMessageType.TIME_LOCK_REPLY:
-                        HandleTimeLockReply(message.data);
                         break;
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
@@ -845,12 +836,6 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
 
-        private void SendTimeLockRequest()
-        {
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.TIME_LOCK_REQUEST;
-            sendMessageQueueHigh.Enqueue(newMessage);
-        }
         //Called from vesselWorker
         public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
         {

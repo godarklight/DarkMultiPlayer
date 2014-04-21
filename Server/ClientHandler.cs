@@ -16,12 +16,15 @@ namespace DarkMultiPlayerServer
         private static Queue<ClientObject> addClients;
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
+        private static Dictionary<int, Subspace> subspaces;
         #region Main loop
         public static void ThreadMain()
         {
             addClients = new Queue<ClientObject>();
             clients = new List<ClientObject>();
             deleteClients = new Queue<ClientObject>();
+            subspaces = new Dictionary<int, Subspace>();
+            LoadSavedSubspace();
             SetupTCPServer();
             while (Server.serverRunning)
             {
@@ -48,6 +51,52 @@ namespace DarkMultiPlayerServer
         }
         #endregion
         #region Server setup
+        private static void LoadSavedSubspace()
+        {
+            string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
+
+            try
+            {
+                using (StreamReader sr = new StreamReader(subspaceFile))
+                {
+                    //Ignore the comment line.
+                    string firstLine = "";
+                    while (firstLine.StartsWith("#") || String.IsNullOrEmpty(firstLine)) {
+                        firstLine = sr.ReadLine().Trim();
+                    }
+                    Subspace savedSubspace = new Subspace();
+                    int subspaceID = Int32.Parse(firstLine);
+                    savedSubspace.serverClock = Int64.Parse(sr.ReadLine().Trim());
+                    savedSubspace.planetTime = Double.Parse(sr.ReadLine().Trim());
+                    savedSubspace.subspaceSpeed = Single.Parse(sr.ReadLine().Trim());
+                    subspaces.Add(subspaceID, savedSubspace);
+                }
+            }
+            catch
+            {
+                DarkLog.Debug("Creating new subspace lock file");
+                Subspace newSubspace = new Subspace();
+                newSubspace.serverClock = DateTime.UtcNow.Ticks;
+                newSubspace.planetTime = 100d;
+                newSubspace.subspaceSpeed = 1f;
+                SaveSubspace(0, newSubspace);
+            }
+        }
+
+        private static void SaveSubspace(int subspaceID, Subspace subspace) {
+            string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
+            using (StreamWriter sw = new StreamWriter(subspaceFile))
+            {
+                sw.WriteLine("#Incorrectly editing this file will cause weirdness. If there is any errors, the universe time will be reset.");
+                sw.WriteLine("#This file can only be edited if the server is stopped.");
+                sw.WriteLine("#Each variable is on a new line. They are subspaceID, server clock (from DateTime.UtcNow.Ticks), universe time, and subspace speed.");
+                sw.WriteLine(subspaceID);
+                sw.WriteLine(subspace.serverClock);
+                sw.WriteLine(subspace.planetTime);
+                sw.WriteLine(subspace.subspaceSpeed);
+            }
+        }
+
         private static void SetupTCPServer()
         {
             try
@@ -381,9 +430,6 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.SEND_ACTIVE_VESSEL:
                     HandleSendActiveVessel(client, message.data);
                     break;
-                case ClientMessageType.TIME_LOCK_REQUEST:
-                    HandleTimeLockRequest(client);
-                    break;
                 case ClientMessageType.WARP_CONTROL:
                     HandleWarpControl(client, message.data);
                     break;
@@ -464,6 +510,7 @@ namespace DarkMultiPlayerServer
                     SendHandshakeReply(client, handshakeReponse);
                     SendServerSettings(client);
                     SendAllActiveVessels(client);
+                    SendAllSubspaces(client);
                     SendAllPlayerStatus(client);
                 }
                 else
@@ -629,12 +676,6 @@ namespace DarkMultiPlayerServer
             SendToAll(client, newMessage, true);
         }
 
-        private static void HandleTimeLockRequest(ClientObject client)
-        {
-            DarkLog.Debug("Sending " + client.playerName + " time lock...");
-            SendTimeLockReply(client);
-        }
-
         private static void HandleWarpControl(ClientObject client, byte[] messageData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -734,9 +775,29 @@ namespace DarkMultiPlayerServer
                             mw.Write<string>(otherClient.playerStatus.statusText);
                             newMessage.data = mw.GetMessageBytes();
                         }
-                        SendToClient(client, newMessage, false);
+                        SendToClient(client, newMessage, true);
                     }
                 }
+            }
+        }
+
+        private static void SendAllSubspaces(ClientObject client)
+        {
+            foreach (KeyValuePair<int, Subspace> subspace in subspaces)
+            {
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.WARP_CONTROL;
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
+                    mw.Write<string>("");
+                    mw.Write<int>(subspace.Key);
+                    mw.Write<long>(subspace.Value.serverClock);
+                    mw.Write<double>(subspace.Value.planetTime);
+                    mw.Write<float>(subspace.Value.subspaceSpeed);
+                    newMessage.data = mw.GetMessageBytes();
+                }
+                SendToClient(client, newMessage, true);
             }
         }
 
@@ -763,7 +824,7 @@ namespace DarkMultiPlayerServer
                             mw.Write<string>(otherClient.activeVessel);
                             newMessage.data = mw.GetMessageBytes();
                         }
-                        SendToClient(client, newMessage, false);
+                        SendToClient(client, newMessage, true);
                     }
                 }
             }
@@ -798,20 +859,6 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_COMPLETE;
             SendToClient(client, newMessage, false);
-        }
-
-        private static void SendTimeLockReply(ClientObject client)
-        {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.TIME_LOCK_REPLY;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<long>(DateTime.UtcNow.Ticks);
-                mw.Write<double>(100d);
-                mw.Write<float>(1f);
-                newMessage.data = mw.GetMessageBytes();
-            }
-            SendToClient(client, newMessage, true);
         }
 
         private static void SendConnectionEnd(ClientObject client, string reason)

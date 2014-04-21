@@ -106,7 +106,7 @@ string - New warp master.
 --CHANGE_WARP (used in MCW_FORCE, MCW_VOTE, MCW_LOWEST)--
 bool - physical warp.
 int - rate index.
---LOCK_SUBSPACE (used in SUBSPACE)--
+--NEW_SUBSPACE (used in SUBSPACE)--
 int - subspace ID.
 long - subspace epoch (server clock).
 double - subspace epoch (planetarium time).

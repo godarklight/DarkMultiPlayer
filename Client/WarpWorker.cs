@@ -241,6 +241,28 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
             }
+            if (TimeWarp.CurrentRateIndex > 0 && !resetWarp)
+            {
+                parent.timeSyncer.UnlockSubspace();
+            }
+            if ((warpMode == WarpMode.MCW_FORCE) || (warpMode == WarpMode.MCW_VOTE) || (warpMode == WarpMode.SUBSPACE))
+            {
+                if (TimeWarp.CurrentRate == 1 && !parent.timeSyncer.locked)
+                {
+                    int newSubspaceID = parent.timeSyncer.LockNewSubspace(parent.timeSyncer.GetServerClock(), Planetarium.GetUniversalTime(), 1f);
+                    parent.timeSyncer.LockSubspace(newSubspaceID);
+                    Subspace newSubspace = parent.timeSyncer.GetSubspace(newSubspaceID);
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
+                        mw.Write<string>(parent.settings.playerName);
+                        mw.Write<int>(newSubspaceID);
+                        mw.Write<long>(newSubspace.serverClock);
+                        mw.Write<double>(newSubspace.planetTime);
+                        mw.Write<float>(newSubspace.subspaceSpeed);
+                    }
+                }
+            }
         }
 
         private void HandleInput()
@@ -550,6 +572,10 @@ namespace DarkMultiPlayer
                         double planetariumTime = mr.Read<double>();
                         float gameSpeed = mr.Read<float>();
                         parent.timeSyncer.LockNewSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
+                        if (fromPlayer == "")
+                        {
+                            parent.timeSyncer.LockSubspace(subspaceID);
+                        }
                         break;
                     default:
                         DarkLog.Debug("Unhandled WARP_MESSAGE type: " + messageType);

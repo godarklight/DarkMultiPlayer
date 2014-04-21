@@ -1,13 +1,24 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
     public class TimeSyncer
     {
-        public bool synced;
-        public bool locked;
+        public bool locked
+        {
+            get;
+            private set;
+        }
+        public bool synced
+        {
+            get;
+            private set;
+        }
         public bool enabled;
+        private int currentSubspace;
         private const float MAX_CLOCK_SKEW = 5f;
         private const float MIN_CLOCK_RATE = 0.5f;
         private const float MAX_CLOCK_RATE = 1.5f;
@@ -62,11 +73,15 @@ namespace DarkMultiPlayer
                 lastClockSkew = UnityEngine.Time.realtimeSinceStartup;
                 if (CanSyncTime())
                 {
-                    double currentTime = Planetarium.GetUniversalTime();
                     double targetTime = GetUniverseTime();
-                    if (Math.Abs(currentTime - targetTime) > MAX_CLOCK_SKEW)
+                    double currentError = GetCurrentError();
+                    if (Math.Abs(currentError) > MAX_CLOCK_SKEW)
                     {
-
+                        StepClock(targetTime);
+                    }
+                    else
+                    {
+                        SkewClock(currentError);
                     }
                 }
             }
@@ -99,12 +114,17 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
-                Planetarium.SetUniversalTime(targetTick);
             }
-            else
-            {
-                Planetarium.SetUniversalTime(targetTick);
-            }
+            Planetarium.SetUniversalTime(targetTick);
+        }
+
+        private void SkewClock(double currentError)
+        {
+            //Same code from KMP.
+            float timeWarpRate = (float) Math.Pow(2, -currentError);
+            if ( timeWarpRate > 1.5f ) timeWarpRate = 1.5f;
+            if ( timeWarpRate < 0.5f ) timeWarpRate = 0.5f;
+            Time.timeScale = timeWarpRate;
         }
 
         private bool SituationIsGrounded(Vessel.Situations situation)
@@ -143,17 +163,29 @@ namespace DarkMultiPlayer
                 newSubspace.subspaceSpeed = subspaceSpeed;
                 subspaces.Add(subspaceID, newSubspace);
             }
+            DarkLog.Debug("Subspace " + subspaceID + " locked to server, time: " + planetariumTime);
         }
 
         public void LockSubspace(int subspaceID)
         {
-            if (subspaces.ContainsKey(subspaceID))
+            if (subspaces.ContainsKey(subspaceID) && currentSubspace != subspaceID)
             {
-                this.serverTimeLock = subspaces[subspaceID].serverClock;
-                this.planetariumTimeLock = subspaces[subspaceID].planetTime;
-                this.gameSpeedLock = subspaces[subspaceID].subspaceSpeed;
+                serverTimeLock = subspaces[subspaceID].serverClock;
+                planetariumTimeLock = subspaces[subspaceID].planetTime;
+                gameSpeedLock = subspaces[subspaceID].subspaceSpeed;
+                currentSubspace = subspaceID;
                 locked = true;
+                DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
             }
+        }
+
+        public void UnlockSubspace()
+        {
+            serverTimeLock = 0;
+            planetariumTimeLock = 0;
+            gameSpeedLock = 1;
+            currentSubspace = -1;
+            locked = false;
         }
 
         public long GetServerClock()
@@ -178,6 +210,29 @@ namespace DarkMultiPlayer
             return 0;
         }
 
+        public double GetCurrentError()
+        {
+            if (synced && locked)
+            {   
+                double currentTime = Planetarium.GetUniversalTime();
+                double targetTime = GetUniverseTime();
+                return (currentTime - targetTime);
+            }
+            return 0;
+        }
+
+        public Subspace GetSubspace(int subspaceID)
+        {
+            Subspace ss = new Subspace();
+            if (subspaces.ContainsKey(subspaceID))
+            {
+                ss.serverClock = subspaces[subspaceID].serverClock;
+                ss.planetTime = subspaces[subspaceID].planetTime;
+                ss.subspaceSpeed = subspaces[subspaceID].subspaceSpeed;
+            }
+            return ss;
+        }
+
         private bool CanSyncTime()
         {
             bool canSync;
@@ -199,10 +254,20 @@ namespace DarkMultiPlayer
 
         public void Reset()
         {
-            clockOffset = new List<long>();
-            networkLatency = new List<long>();
+            currentSubspace = -1;
+            enabled = false;
             synced = false;
             locked = false;
+            lastSyncTime = 0f;
+            lastClockSkew = 0f;
+            clockOffset = new List<long>();
+            networkLatency = new List<long>();
+            subspaces = new Dictionary<int, Subspace>();
+            clockOffsetAverage = 0;
+            networkLatencyAverage = 0;
+            serverTimeLock = 0;
+            planetariumTimeLock = 0;
+            gameSpeedLock = 1;
         }
 
         public void HandleSyncTime(long clientSend, long serverReceive, long serverSend)
@@ -253,11 +318,5 @@ namespace DarkMultiPlayer
         }
     }
 
-    class Subspace
-    {
-        public long serverClock;
-        public double planetTime;
-        public float subspaceSpeed;
-    }
 }
 
