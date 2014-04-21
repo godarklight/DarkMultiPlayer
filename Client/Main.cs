@@ -144,7 +144,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetCurrentTime();
+            HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetUniverseTime();
             vesselWorker.LoadKerbalsIntoGame();
             vesselWorker.LoadVesselsIntoGame();
             HighLogic.CurrentGame.Start();

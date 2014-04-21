@@ -68,7 +68,7 @@ namespace DarkMultiPlayer
                     {
                         lastSendRate.isPhysWarp = (TimeWarp.WarpMode == TimeWarp.Modes.LOW);
                         lastSendRate.rateIndex = TimeWarp.CurrentRateIndex;
-                        using (MessageWriter mw = new MessageWriter(0, false))
+                        using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
                             mw.Write<string>(parent.settings.playerName);
@@ -110,7 +110,7 @@ namespace DarkMultiPlayer
                         }
                     }
                     //Release the warp master if we have had it for too long
-                    HandleWarpMasterTimeouts();
+                    HandleMCWWarpMasterTimeouts();
                 }
                 //Set the warp rate to the lowest rate if needed (MCW_LOWEST)
                 if (warpMode == WarpMode.MCW_LOWEST)
@@ -271,7 +271,7 @@ namespace DarkMultiPlayer
                 {
                     warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                     warpMaster = parent.settings.playerName;
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
                         mw.Write<string>(parent.settings.playerName);
@@ -300,7 +300,7 @@ namespace DarkMultiPlayer
                         if (parent.playerStatusWorker.playerStatusList.Count > 0)
                         {
                             //Start a warp vote
-                            using (MessageWriter mw = new MessageWriter(0, false))
+                            using (MessageWriter mw = new MessageWriter())
                             {
                                 mw.Write<int>((int)WarpMessageType.REQUEST_VOTE);
                                 mw.Write<string>(parent.settings.playerName);
@@ -328,7 +328,7 @@ namespace DarkMultiPlayer
                             //Nobody else is online, Let's just take the warp master.
                             warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                             warpMaster = parent.settings.playerName;
-                            using (MessageWriter mw = new MessageWriter(0, false))
+                            using (MessageWriter mw = new MessageWriter())
                             {
                                 mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
                                 mw.Write<string>(parent.settings.playerName);
@@ -345,7 +345,7 @@ namespace DarkMultiPlayer
                         //Send a vote if we haven't voted yet
                         if (!voteSent)
                         {
-                            using (MessageWriter mw = new MessageWriter(0, false))
+                            using (MessageWriter mw = new MessageWriter())
                             {
                                 mw.Write<int>((int)WarpMessageType.REPLY_VOTE);
                                 mw.Write<string>(parent.settings.playerName);
@@ -381,7 +381,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleWarpMasterTimeouts()
+        private void HandleMCWWarpMasterTimeouts()
         {
             if (warpMaster == parent.settings.playerName)
             {
@@ -404,10 +404,26 @@ namespace DarkMultiPlayer
 
         private void ReleaseWarpMaster()
         {
+            if (warpMaster == parent.settings.playerName)
+            {
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    long serverClock = parent.timeSyncer.GetServerClock();
+                    double planetClock = Planetarium.GetUniversalTime();
+                    int newSubspaceID = parent.timeSyncer.LockNewSubspace(serverClock, planetClock, 1f);
+                    mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
+                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<int>(newSubspaceID);
+                    mw.Write<long>(serverClock);
+                    mw.Write<double>(Planetarium.GetUniversalTime());
+                    mw.Write<float>(1f);
+                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                }
+            }
             warpMaster = "";
             warpMasterOwnerTime = 0f;
             CancelVote();
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
                 mw.Write<string>(parent.settings.playerName);
@@ -475,7 +491,7 @@ namespace DarkMultiPlayer
                                     //Vote has passed.
                                     warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
                                     warpMaster = parent.settings.playerName;
-                                    using (MessageWriter mw = new MessageWriter(0, false))
+                                    using (MessageWriter mw = new MessageWriter())
                                     {
                                         mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
                                         mw.Write<string>(parent.settings.playerName);
@@ -527,6 +543,13 @@ namespace DarkMultiPlayer
                             }
                             DarkLog.Debug(fromPlayer + " warp rate changed, Physwarp: " + newPhysWarp + ", Index: " + newRateIndex);
                         }
+                        break;
+                    case WarpMessageType.NEW_SUBSPACE:
+                        int subspaceID = mr.Read<int>();
+                        long serverTime = mr.Read<long>();
+                        double planetariumTime = mr.Read<double>();
+                        float gameSpeed = mr.Read<float>();
+                        parent.timeSyncer.LockNewSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
                         break;
                     default:
                         DarkLog.Debug("Unhandled WARP_MESSAGE type: " + messageType);

@@ -19,6 +19,7 @@ namespace DarkMultiPlayer
         private float lastClockSkew = 0f;
         private List<long> clockOffset;
         private List<long> networkLatency;
+        private Dictionary<int, Subspace> subspaces;
         private long clockOffsetAverage;
         private long networkLatencyAverage;
         private long serverTimeLock;
@@ -62,7 +63,7 @@ namespace DarkMultiPlayer
                 if (CanSyncTime())
                 {
                     double currentTime = Planetarium.GetUniversalTime();
-                    double targetTime = GetCurrentTime();
+                    double targetTime = GetUniverseTime();
                     if (Math.Abs(currentTime - targetTime) > MAX_CLOCK_SKEW)
                     {
 
@@ -118,19 +119,57 @@ namespace DarkMultiPlayer
             return false;
         }
 
-        public void LockTime(long serverTimeLock, double planetariumTimeLock, float gameSpeedLock)
+        public int LockNewSubspace(long serverTime, double planetariumTime, float subspaceSpeed)
         {
-            this.serverTimeLock = serverTimeLock;
-            this.planetariumTimeLock = planetariumTimeLock;
-            this.gameSpeedLock = gameSpeedLock;
-            locked = true;
+            int highestSubpaceID = 0;
+            foreach (int subspaceID in subspaces.Keys)
+            {
+                if (subspaceID > highestSubpaceID)
+                {
+                    highestSubpaceID = subspaceID;
+                }
+            }
+            LockNewSubspace((highestSubpaceID + 1), serverTime, planetariumTime, subspaceSpeed);
+            return (highestSubpaceID + 1);
         }
 
-        public double GetCurrentTime()
+        public void LockNewSubspace(int subspaceID, long serverTime, double planetariumTime, float subspaceSpeed)
+        {
+            if (!subspaces.ContainsKey(subspaceID))
+            {
+                Subspace newSubspace = new Subspace();
+                newSubspace.serverClock = serverTime;
+                newSubspace.planetTime = planetariumTime;
+                newSubspace.subspaceSpeed = subspaceSpeed;
+                subspaces.Add(subspaceID, newSubspace);
+            }
+        }
+
+        public void LockSubspace(int subspaceID)
+        {
+            if (subspaces.ContainsKey(subspaceID))
+            {
+                this.serverTimeLock = subspaces[subspaceID].serverClock;
+                this.planetariumTimeLock = subspaces[subspaceID].planetTime;
+                this.gameSpeedLock = subspaces[subspaceID].subspaceSpeed;
+                locked = true;
+            }
+        }
+
+        public long GetServerClock()
+        {
+            if (synced)
+            {
+                return DateTime.UtcNow.Ticks + clockOffsetAverage;
+            }
+            return 0;
+        }
+
+        public double GetUniverseTime()
         {
             if (synced && locked)
             {
-                long serverTime = DateTime.UtcNow.Ticks + clockOffsetAverage;
+                long serverTime = GetServerClock();
                 long realTimeSinceLock = serverTime - serverTimeLock;
                 double realTimeSinceLockSeconds = realTimeSinceLock / 10000000d;
                 double adjustedTimeSinceLockSeconds = realTimeSinceLockSeconds * gameSpeedLock;
@@ -212,6 +251,13 @@ namespace DarkMultiPlayer
                 parent.networkWorker.SendTimeSync();
             }
         }
+    }
+
+    class Subspace
+    {
+        public long serverClock;
+        public double planetTime;
+        public float subspaceSpeed;
     }
 }
 

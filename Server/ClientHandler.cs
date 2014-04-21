@@ -318,14 +318,17 @@ namespace DarkMultiPlayerServer
             if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
             {
                 client.connectionStatus = ConnectionStatus.DISCONNECTED;
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
-                using (MessageWriter mw = new MessageWriter(0, false))
+                if (client.authenticated)
                 {
-                    mw.Write<string>(client.playerName);
-                    newMessage.data = mw.GetMessageBytes();
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
+                    using (MessageWriter mw = new MessageWriter(0, false))
+                    {
+                        mw.Write<string>(client.playerName);
+                        newMessage.data = mw.GetMessageBytes();
+                    }
+                    SendToAll(client, newMessage, true);
                 }
-                SendToAll(client, newMessage, true);
                 deleteClients.Enqueue(client);
                 if (client.connection != null)
                 {

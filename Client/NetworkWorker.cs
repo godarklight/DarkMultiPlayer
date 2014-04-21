@@ -367,7 +367,7 @@ namespace DarkMultiPlayer
         private void SendNetworkMessage(ClientMessage message)
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter((int)message.type, true))
+            using (MessageWriter mw = new MessageWriter((int)message.type))
             {
                 if (message.data != null)
                 {
@@ -660,10 +660,8 @@ namespace DarkMultiPlayer
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
-                    long serverTimeLock = mr.Read<long>();
-                    double planetariumTimeLock = mr.Read<double>();
-                    float gameSpeedLock = mr.Read<float>();
-                    parent.timeSyncer.LockTime(serverTimeLock, planetariumTimeLock, gameSpeedLock);
+                    int subspaceID = mr.Read<int>();
+                    parent.timeSyncer.LockSubspace(subspaceID);
                     state = ClientState.TIME_LOCKED;
                 }
             }
@@ -672,7 +670,6 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Error handling TIME_LOCK_REPLY message, exception: " + e);
                 SendDisconnect("Error handling time lock reply message");
             }
-
         }
 
         private void HandleWarpControl(byte[] messageData)
@@ -710,7 +707,7 @@ namespace DarkMultiPlayer
         private void SendHandshakeRequest()
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(Common.PROTOCOL_VERSION);
                 mw.Write<string>(parent.settings.playerName);
@@ -727,7 +724,7 @@ namespace DarkMultiPlayer
         public void SendPlayerStatus(PlayerStatus playerStatus)
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(playerStatus.playerName);
                 mw.Write<string>(playerStatus.vesselText);
@@ -744,7 +741,7 @@ namespace DarkMultiPlayer
         public void SendTimeSync()
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 messageBytes = mw.GetMessageBytes();
@@ -780,7 +777,7 @@ namespace DarkMultiPlayer
             currentNode.Save(tempFile);
             using (StreamReader sr = new StreamReader(tempFile))
             {
-                using (MessageWriter mw = new MessageWriter(0, false))
+                using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<string>(sr.ReadToEnd());
@@ -797,7 +794,7 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
@@ -839,7 +836,7 @@ namespace DarkMultiPlayer
             }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SEND_ACTIVE_VESSEL;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(parent.settings.playerName);
                 mw.Write<string>(activeVessel);
@@ -865,7 +862,7 @@ namespace DarkMultiPlayer
             currentNode.Save(tempFile);
             using (StreamReader sr = new StreamReader(tempFile))
             {
-                using (MessageWriter mw = new MessageWriter(0, false))
+                using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<string>(kerbal.name);
                     mw.Write<string>(sr.ReadToEnd());
@@ -893,7 +890,7 @@ namespace DarkMultiPlayer
                 parent.status = "Disconnected: " + disconnectReason;
                 state = ClientState.DISCONNECTING;
                 byte[] messageBytes;
-                using (MessageWriter mw = new MessageWriter(0, false))
+                using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<string>(disconnectReason);
                     messageBytes = mw.GetMessageBytes();
