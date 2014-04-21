@@ -151,7 +151,7 @@ namespace DarkMultiPlayerServer
             {
                 try
                 {
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    using (MessageWriter mw = new MessageWriter())
                     {
                         using (MessageReader mr = new MessageReader(message.data, false))
                         {
@@ -172,7 +172,7 @@ namespace DarkMultiPlayerServer
             }
             //Continue sending
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter((int)message.type, true))
+            using (MessageWriter mw = new MessageWriter((int)message.type))
             {
                 if (message.data != null)
                 {
@@ -322,7 +322,7 @@ namespace DarkMultiPlayerServer
                 {
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<string>(client.playerName);
                         newMessage.data = mw.GetMessageBytes();
@@ -489,7 +489,7 @@ namespace DarkMultiPlayerServer
             {
                 ServerMessage newMessage = new ServerMessage();
                 newMessage.type = ServerMessageType.SYNC_TIME_REPLY;
-                using (MessageWriter mw = new MessageWriter(0, false))
+                using (MessageWriter mw = new MessageWriter())
                 {
                     using (MessageReader mr = new MessageReader(messageData, false))
                     {
@@ -558,7 +558,7 @@ namespace DarkMultiPlayerServer
                     sw.Write(kerbalData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.KERBAL_REPLY;
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<string>(kerbalData);
                         newMessage.data = mw.GetMessageBytes();
@@ -595,7 +595,7 @@ namespace DarkMultiPlayerServer
                     sw.Write(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
-                    using (MessageWriter mw = new MessageWriter(0, false))
+                    using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<string>(vesselData);
                         newMessage.data = mw.GetMessageBytes();
@@ -697,7 +697,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.HANDSHAKE_REPLY;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(response);
                 newMessage.data = mw.GetMessageBytes();
@@ -709,7 +709,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SERVER_SETTINGS;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)Settings.warpMode);
                 newMessage.data = mw.GetMessageBytes();
@@ -727,7 +727,7 @@ namespace DarkMultiPlayerServer
                     {
                         ServerMessage newMessage = new ServerMessage();
                         newMessage.type = ServerMessageType.PLAYER_STATUS;
-                        using (MessageWriter mw = new MessageWriter(0, false))
+                        using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<string>(otherClient.playerName);
                             mw.Write<string>(otherClient.playerStatus.vesselText);
@@ -757,7 +757,7 @@ namespace DarkMultiPlayerServer
                     {
                         ServerMessage newMessage = new ServerMessage();
                         newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-                        using (MessageWriter mw = new MessageWriter(0, false))
+                        using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<string>(otherClient.playerName);
                             mw.Write<string>(otherClient.activeVessel);
@@ -773,7 +773,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
@@ -785,7 +785,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_PROTO;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
@@ -804,7 +804,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.TIME_LOCK_REPLY;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 mw.Write<double>(100d);
@@ -818,7 +818,7 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.CONNECTION_END;
-            using (MessageWriter mw = new MessageWriter(0, false))
+            using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string>(reason);
                 newMessage.data = mw.GetMessageBytes();
