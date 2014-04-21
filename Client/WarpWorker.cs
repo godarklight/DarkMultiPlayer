@@ -133,14 +133,43 @@ namespace DarkMultiPlayer
                     case WarpMode.NONE:
                         DisplayMessage("Cannot warp, warping is disabled on this server", 5f);
                         break;
+                    case WarpMode.MCW_FORCE:
+                        HandleMCWForceInput(startWarpKey, stopWarpKey);
+                        break;
                     case WarpMode.MCW_VOTE:
-                        HandleVoteInput(startWarpKey, stopWarpKey);
+                        HandleMCWVoteInput(startWarpKey, stopWarpKey);
                         break;
                 }
             }
         }
 
-        private void HandleVoteInput(bool startWarpKey, bool stopWarpKey)
+        private void HandleMCWForceInput(bool startWarpKey, bool stopWarpKey) {
+            if (warpMaster == "")
+            {
+                if (startWarpKey)
+                {
+                    warpMasterOwnerTime = UnityEngine.Time.realtimeSinceStartup;
+                    warpMaster = parent.settings.playerName;
+                    canWarp = true;
+                    using (MessageWriter mw = new MessageWriter(0, false))
+                    {
+                        mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
+                        mw.Write<string>(parent.settings.playerName);
+                        mw.Write<string>(parent.settings.playerName);
+                        parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    }
+                }
+            }
+            else if (warpMaster == parent.settings.playerName)
+            {
+                if (stopWarpKey && (TimeWarp.CurrentRate == 1f))
+                {
+                    ReleaseWarpMaster();
+                }
+            }
+        }
+
+        private void HandleMCWVoteInput(bool startWarpKey, bool stopWarpKey)
         {
             if (warpMaster == "")
             {
@@ -352,6 +381,11 @@ namespace DarkMultiPlayer
                         {
                             string newController = mr.Read<string>();
                             warpMaster = newController;
+                            if (warpMode == WarpMode.MCW_FORCE && newController == "")
+                            {
+                                canWarp = false;
+                                warpMasterOwnerTime = 0f;
+                            }
                             if (warpMode == WarpMode.MCW_VOTE && newController == "")
                             {
                                 CancelVote();
