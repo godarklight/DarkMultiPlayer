@@ -18,7 +18,21 @@ namespace DarkMultiPlayer
             private set;
         }
         public bool enabled;
-        private int currentSubspace;
+        public int currentSubspace
+        {
+            get;
+            private set;
+        }
+        public long clockOffsetAverage
+        {
+            get;
+            private set;
+        }
+        public long networkLatencyAverage
+        {
+            get;
+            private set;
+        }
         private const float MAX_CLOCK_SKEW = 5f;
         private const float MIN_CLOCK_RATE = 0.5f;
         private const float MAX_CLOCK_RATE = 1.5f;
@@ -31,8 +45,6 @@ namespace DarkMultiPlayer
         private List<long> clockOffset;
         private List<long> networkLatency;
         private Dictionary<int, Subspace> subspaces;
-        private long clockOffsetAverage;
-        private long networkLatencyAverage;
         private long serverTimeLock;
         private double planetariumTimeLock;
         private float gameSpeedLock;
@@ -52,7 +64,6 @@ namespace DarkMultiPlayer
         {
             if (synced)
             {
-
                 if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
                 {
                     lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
@@ -168,15 +179,16 @@ namespace DarkMultiPlayer
 
         public void LockSubspace(int subspaceID)
         {
-            if (subspaces.ContainsKey(subspaceID) && currentSubspace != subspaceID)
+            DarkLog.Debug("Trying to lock to subspace " + subspaceID);
+            if (subspaces.ContainsKey(subspaceID))
             {
                 serverTimeLock = subspaces[subspaceID].serverClock;
                 planetariumTimeLock = subspaces[subspaceID].planetTime;
                 gameSpeedLock = subspaces[subspaceID].subspaceSpeed;
-                currentSubspace = subspaceID;
                 locked = true;
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
             }
+            currentSubspace = subspaceID;
         }
 
         public void UnlockSubspace()

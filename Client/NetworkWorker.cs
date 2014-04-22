@@ -423,6 +423,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
                         break;
+                    case ServerMessageType.SET_SUBSPACE:
+                        HandleSetSubspace(message.data);
+                        break;
                     case ServerMessageType.SET_ACTIVE_VESSEL:
                         HandleSetActiveVessel(message.data);
                         break;
@@ -645,7 +648,7 @@ namespace DarkMultiPlayer
             state = ClientState.VESSELS_SYNCED;
         }
 
-        private void HandleTimeLockReply(byte[] messageData)
+        private void HandleSetSubspace(byte[] messageData)
         {
             try
             {
@@ -653,7 +656,6 @@ namespace DarkMultiPlayer
                 {
                     int subspaceID = mr.Read<int>();
                     parent.timeSyncer.LockSubspace(subspaceID);
-                    state = ClientState.TIME_LOCKED;
                 }
             }
             catch (Exception e)

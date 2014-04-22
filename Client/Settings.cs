@@ -36,6 +36,7 @@ namespace DarkMultiPlayer
                 if (!File.Exists(settingsFile))
                 {
                     xmlDoc.LoadXml(newXMLString());
+                    playerName = DEFAULT_PLAYER_NAME;
                     xmlDoc.Save(settingsFile);
                 }
                 xmlDoc.Load(settingsFile);
@@ -118,7 +119,7 @@ namespace DarkMultiPlayer
 
         private string newXMLString()
         {
-            return String.Format("<?xml version=\"1.0\"?><settings><global name=\"{0}\"/><servers></servers></settings>", DEFAULT_PLAYER_NAME);
+            return String.Format("<?xml version=\"1.0\"?><settings><global username=\"{0}\"/><servers></servers></settings>", DEFAULT_PLAYER_NAME);
         }
     }
 

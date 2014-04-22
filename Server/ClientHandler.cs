@@ -509,6 +509,7 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Client " + playerName + " handshook successfully!");
                     SendHandshakeReply(client, handshakeReponse);
                     SendServerSettings(client);
+                    SendSetSubspace(client);
                     SendAllActiveVessels(client);
                     SendAllSubspaces(client);
                     SendAllPlayerStatus(client);
@@ -799,6 +800,30 @@ namespace DarkMultiPlayerServer
                 }
                 SendToClient(client, newMessage, true);
             }
+        }
+
+        private static void SendSetSubspace(ClientObject client)
+        {
+            int latestSubspace = -1;
+            double latestPlanetTime = 0;
+            foreach (KeyValuePair<int, Subspace> subspace in subspaces)
+            {
+                double subspaceTime = (((DateTime.UtcNow.Ticks - subspace.Value.serverClock) / 10000000d) * subspace.Value.subspaceSpeed) + subspace.Value.planetTime;
+                if (subspaceTime > latestPlanetTime)
+                {
+                    latestSubspace = subspace.Key;
+                    latestPlanetTime = subspaceTime;
+                }
+            }
+            DarkLog.Debug("Sending " + client.playerName + " to subspace " + latestSubspace + ", time: " + latestPlanetTime);
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SET_SUBSPACE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>(latestSubspace);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
         }
 
         private static void SendKerbalsComplete(ClientObject client)

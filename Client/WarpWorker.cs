@@ -241,13 +241,14 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
             }
-            if (TimeWarp.CurrentRateIndex > 0 && !resetWarp)
+            if (TimeWarp.CurrentRateIndex > 0 && !resetWarp && parent.timeSyncer.locked)
             {
+                DarkLog.Debug("Unlocking from subspace");
                 parent.timeSyncer.UnlockSubspace();
             }
             if ((warpMode == WarpMode.MCW_FORCE) || (warpMode == WarpMode.MCW_VOTE) || (warpMode == WarpMode.SUBSPACE))
             {
-                if (TimeWarp.CurrentRate == 1 && !parent.timeSyncer.locked)
+                if (TimeWarp.CurrentRateIndex == 0 && TimeWarp.CurrentRate == 1 && !parent.timeSyncer.locked)
                 {
                     int newSubspaceID = parent.timeSyncer.LockNewSubspace(parent.timeSyncer.GetServerClock(), Planetarium.GetUniversalTime(), 1f);
                     parent.timeSyncer.LockSubspace(newSubspaceID);
@@ -261,6 +262,7 @@ namespace DarkMultiPlayer
                         mw.Write<double>(newSubspace.planetTime);
                         mw.Write<float>(newSubspace.subspaceSpeed);
                     }
+                    parent.timeSyncer.LockSubspace(newSubspaceID);
                 }
             }
         }
@@ -572,7 +574,7 @@ namespace DarkMultiPlayer
                         double planetariumTime = mr.Read<double>();
                         float gameSpeed = mr.Read<float>();
                         parent.timeSyncer.LockNewSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
-                        if (fromPlayer == "")
+                        if (!parent.timeSyncer.locked && parent.timeSyncer.currentSubspace == subspaceID)
                         {
                             parent.timeSyncer.LockSubspace(subspaceID);
                         }

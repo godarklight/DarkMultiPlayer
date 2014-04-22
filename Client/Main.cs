@@ -25,6 +25,7 @@ namespace DarkMultiPlayer
         public void Awake()
         {
             GameObject.DontDestroyOnLoad(this);
+            SetupDirectoriesIfNeeded();
             timeSyncer = new TimeSyncer(this);
             vesselWorker = new VesselWorker(this);
             networkWorker = new NetworkWorker(this);
@@ -33,7 +34,6 @@ namespace DarkMultiPlayer
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
-            SetupDirectoriesIfNeeded();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
 

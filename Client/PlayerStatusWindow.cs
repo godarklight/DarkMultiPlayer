@@ -12,6 +12,7 @@ namespace DarkMultiPlayer
         private Client parent;
         private bool initialized;
         private Vector2 scrollPosition;
+        private bool displayNTP;
         //GUI Layout
         private Rect windowRect;
         private GUILayoutOption[] layoutOptions;
@@ -105,6 +106,15 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
+            displayNTP = GUILayout.Toggle(displayNTP, "Display subspace status", buttonStyle);
+            if (displayNTP)
+            {
+                string ntpText = "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
+                ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
+                ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
+                ntpText += "Server clock difference: " + Math.Round((parent.timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
+                GUILayout.Label(ntpText);
+            }
             if (GUILayout.Button("Disconnect", buttonStyle))
             {
                 disconnectEventHandled = false;

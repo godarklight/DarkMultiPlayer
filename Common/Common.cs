@@ -43,6 +43,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_UPDATE,
         VESSEL_COMPLETE,
         SET_ACTIVE_VESSEL,
+        SET_SUBSPACE,
         SYNC_TIME_REPLY,
         PING_REPLY,
         WARP_CONTROL,
