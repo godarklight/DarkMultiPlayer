@@ -427,6 +427,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.VESSEL_UPDATE:
                     HandleVesselUpdate(client, message.data);
                     break;
+                case ClientMessageType.VESSEL_REMOVE:
+                    HandleVesselRemoval(client, message.data);
+                    break;
                 case ClientMessageType.SEND_ACTIVE_VESSEL:
                     HandleSendActiveVessel(client, message.data);
                     break;
@@ -662,6 +665,23 @@ namespace DarkMultiPlayerServer
             newMessage.type = ServerMessageType.VESSEL_UPDATE;
             newMessage.data = messageData;
             SendToAll(client, newMessage, false);
+        }
+
+        private static void HandleVesselRemoval(ClientObject client, byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string vesselID = mr.Read<string>();
+                if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
+                {
+                    File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
+                    //Relay the message.
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.VESSEL_REMOVE;
+                    newMessage.data = messageData;
+                    SendToAll(client, newMessage, false);
+                }
+            }
         }
 
         private static void HandleSendActiveVessel(ClientObject client, byte[] messageData)

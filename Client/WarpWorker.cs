@@ -43,13 +43,21 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            //Hooks
+            if (!enabled && registered)
+            {
+                GameEvents.onTimeWarpRateChanged.Remove(OnWarpChanged);
+                registered = false;
+            }
+
+            if (enabled && !registered)
+            {
+                GameEvents.onTimeWarpRateChanged.Add(OnWarpChanged);
+                registered = true;
+            }
+
             if (enabled)
             {
-                //Register time rate change hook.
-                if (!registered)
-                {
-                    GameEvents.onTimeWarpRateChanged.Add(OnWarpChanged);
-                }
                 //Process new warp messages
                 while (newWarpMessages.Count > 0)
                 {
@@ -160,21 +168,6 @@ namespace DarkMultiPlayer
                     }
                 }
                 HandleInput();
-            }
-            else
-            {
-                if (registered)
-                {
-                    registered = false;
-                    try
-                    {
-                        GameEvents.onTimeWarpRateChanged.Remove(OnWarpChanged);
-                    }
-                    catch
-                    {
-                        DarkLog.Debug("Failed to unregister onTimeWarpRateChanged hook");
-                    }
-                }
             }
         }
 

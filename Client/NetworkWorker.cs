@@ -423,6 +423,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
                         break;
+                    case ServerMessageType.VESSEL_REMOVE:
+                        HandleVesselRemove(message.data);
+                        break;
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
                         break;
@@ -649,6 +652,15 @@ namespace DarkMultiPlayer
             state = ClientState.VESSELS_SYNCED;
         }
 
+        private void HandleVesselRemove(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string vesselID = mr.Read<string>();
+                parent.vesselWorker.QueueVesselRemove(vesselID);
+            }
+        }
+
         private void HandleSetSubspace(byte[] messageData)
         {
             try
@@ -812,6 +824,20 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<double[]>(update.orbit);
                 }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+
+        //Called from vesselWorker
+        public void SendVesselRemove(string vesselID)
+        {
+            DarkLog.Debug("Removing " + vesselID + " from the server");
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.VESSEL_REMOVE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string>(vesselID);
                 newMessage.data = mw.GetMessageBytes();
             }
             sendMessageQueueLow.Enqueue(newMessage);
