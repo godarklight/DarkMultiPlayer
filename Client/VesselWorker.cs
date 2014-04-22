@@ -562,6 +562,14 @@ namespace DarkMultiPlayer
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
                 if (currentProto != null)
                 {
+
+                    if (currentProto.protoPartSnapshots[0] != null)
+                    {
+                        //This line doesn't actually do anything useful, but if you get this reference, you're officially the most geeky person darklight knows.
+                        currentProto.protoPartSnapshots[0].temperature = ((currentProto.protoPartSnapshots[0].temperature + 273.15f) * 0.8f) - 273.15f;
+                    }
+
+
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
                     bool wasActive = false;
                     bool wasTarget = false;
