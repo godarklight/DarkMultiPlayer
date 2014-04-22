@@ -631,7 +631,7 @@ namespace DarkMultiPlayer
             {
                 if (numberOfKerbals != 0)
                 {
-                    parent.status = "Syncing kerbals " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
+                    parent.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
             }
         }
