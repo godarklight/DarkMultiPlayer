@@ -11,7 +11,10 @@ namespace DarkMultiPlayer
 
         public static void Debug(string message)
         {
-            messageQueue.Enqueue("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+            //Use messageQueue if looking for messages that don't normally show up in the log.
+
+            //messageQueue.Enqueue("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+            UnityEngine.Debug.Log("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
         }
 
         public static void Update() {

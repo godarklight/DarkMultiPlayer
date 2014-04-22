@@ -428,6 +428,7 @@ namespace DarkMultiPlayer
                         }
                         else
                         {
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].name = protoCrew.name;
                             HighLogic.CurrentGame.CrewRoster[kerbalID].courage = protoCrew.courage;
                             HighLogic.CurrentGame.CrewRoster[kerbalID].isBadass = protoCrew.isBadass;
                             HighLogic.CurrentGame.CrewRoster[kerbalID].rosterStatus = protoCrew.rosterStatus;
