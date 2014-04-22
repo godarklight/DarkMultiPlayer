@@ -26,6 +26,11 @@ namespace DarkMultiPlayer
         private bool isReceivingMessage;
         private int receiveMessageBytesLeft;
         private ServerMessage receiveMessage;
+        //Used for the initial sync
+        private int numberOfKerbals;
+        private int numberOfKerbalsReceived;
+        private int numberOfVessels;
+        private int numberOfVesselsReceived;
 
         public NetworkWorker(Client parent)
         {
@@ -115,6 +120,10 @@ namespace DarkMultiPlayer
                 sendMessageQueueSplit = new Queue<ClientMessage>();
                 sendMessageQueueLow = new Queue<ClientMessage>();
                 isSendingMessage = false;
+                numberOfKerbals = 0;
+                numberOfKerbalsReceived = 0;
+                numberOfVessels = 0;
+                numberOfVesselsReceived = 0;
                 IPAddress destinationAddress;
                 if (!IPAddress.TryParse(address, out destinationAddress))
                 {
@@ -258,7 +267,8 @@ namespace DarkMultiPlayer
                         //We have the header
                         using (MessageReader mr = new MessageReader(receiveMessage.data, true))
                         {
-                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1)) {
+                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
+                            {
                                 //Malformed message, most likely from a non DMP-server.
                                 Disconnect();
                                 parent.status = "Disconnected from non-DMP server";
@@ -278,11 +288,14 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
-                                if (length < Common.MAX_MESSAGE_SIZE) {
+                                if (length < Common.MAX_MESSAGE_SIZE)
+                                {
                                     isReceivingMessage = true;
                                     receiveMessage.data = new byte[length];
                                     receiveMessageBytesLeft = receiveMessage.data.Length;
-                                } else {
+                                }
+                                else
+                                {
                                     //Malformed message, most likely from a non DMP-server.
                                     Disconnect();
                                     parent.status = "Disconnected from non-DMP server";
@@ -488,6 +501,8 @@ namespace DarkMultiPlayer
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     parent.warpWorker.warpMode = (WarpMode)mr.Read<int>();
+                    numberOfKerbals = mr.Read<int>();
+                    numberOfVessels = mr.Read<int>();
                 }
             }
             catch (Exception e)
@@ -555,6 +570,7 @@ namespace DarkMultiPlayer
 
         private void HandleKerbalReply(byte[] messageData)
         {
+            numberOfKerbalsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 int kerbalID = mr.Read<int>();
@@ -575,6 +591,13 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Failed to load kerbal!");
                 }
             }
+            if (state == ClientState.SYNCING_KERBALS)
+            {
+                if (numberOfKerbals != 0)
+                {
+                    parent.status = "Syncing kerbals " + numberOfKerbalsReceived + "/" + numberOfKerbals + " (" + (int)((numberOfKerbalsReceived / (float)numberOfKerbals) * 100) + "%)";
+                }
+            }
         }
 
         private void HandleKerbalComplete()
@@ -584,6 +607,7 @@ namespace DarkMultiPlayer
 
         private void HandleVesselProto(byte[] messageData)
         {
+            numberOfVesselsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 string vesselData = mr.Read<string>();
@@ -601,6 +625,13 @@ namespace DarkMultiPlayer
                 else
                 {
                     DarkLog.Debug("Failed to load vessel!");
+                }
+            }
+            if (state == ClientState.SYNCING_VESSELS)
+            {
+                if (numberOfKerbals != 0)
+                {
+                    parent.status = "Syncing kerbals " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
             }
         }
@@ -725,7 +756,6 @@ namespace DarkMultiPlayer
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from PlayerStatusWorker
         public void SendPlayerStatus(PlayerStatus playerStatus)
         {
@@ -742,7 +772,6 @@ namespace DarkMultiPlayer
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from timeSyncer
         public void SendTimeSync()
         {
@@ -771,7 +800,6 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel)
         {
@@ -794,7 +822,6 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendVesselUpdate(VesselUpdate update)
         {
@@ -828,7 +855,6 @@ namespace DarkMultiPlayer
             }
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendVesselRemove(string vesselID)
         {
@@ -842,7 +868,6 @@ namespace DarkMultiPlayer
             }
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendActiveVessel(string activeVessel)
         {
@@ -864,7 +889,6 @@ namespace DarkMultiPlayer
             }
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {

@@ -771,11 +771,16 @@ namespace DarkMultiPlayerServer
 
         private static void SendServerSettings(ClientObject client)
         {
+            int numberOfKerbals = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals")).Length;
+            int numberOfVessels = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")).Length;
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SERVER_SETTINGS;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)Settings.warpMode);
+                //Tack the amount of kerbals and vessels onto this message
+                mw.Write<int>(numberOfKerbals);
+                mw.Write<int>(numberOfVessels);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
