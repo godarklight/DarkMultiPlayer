@@ -145,10 +145,12 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.SaveFolder = "DarkMultiPlayer";
             HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetUniverseTime();
-            HighLogic.CurrentGame.Start();
-            Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             vesselWorker.LoadKerbalsIntoGame();
             vesselWorker.LoadVesselsIntoGame();
+            DarkLog.Debug("Starting game...");
+            HighLogic.CurrentGame.Start();
+            DarkLog.Debug("Started!");
+            Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
         }
 

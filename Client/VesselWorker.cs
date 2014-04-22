@@ -456,7 +456,7 @@ namespace DarkMultiPlayer
         public void LoadVesselsIntoGame()
         {
             DarkLog.Debug("Loading " + vesselProtoQueue.Count + " vessels");
-            while (vesselUpdateQueue.Count > 0)
+            while (vesselProtoQueue.Count > 0)
             {
                 ConfigNode currentNode = vesselProtoQueue.Dequeue();
                 LoadVessel(currentNode);
