@@ -26,11 +26,11 @@ namespace DarkMultiPlayer
         {
             GameObject.DontDestroyOnLoad(this);
             SetupDirectoriesIfNeeded();
+            settings = new Settings();
             timeSyncer = new TimeSyncer(this);
             vesselWorker = new VesselWorker(this);
             networkWorker = new NetworkWorker(this);
             warpWorker = new WarpWorker(this);
-            settings = new Settings();
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);

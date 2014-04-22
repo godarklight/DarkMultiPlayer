@@ -495,7 +495,7 @@ namespace DarkMultiPlayerServer
                     }
                     else
                     {
-                        DarkLog.Debug("Client " + client.playerName + " registered!");
+                        DarkLog.Debug("Client " + playerName + " registered!");
                         using (StreamWriter sw = new StreamWriter(storedPlayerFile))
                         {
                             sw.WriteLine(playerGuid);
@@ -581,16 +581,17 @@ namespace DarkMultiPlayerServer
 
         private static void HandleKerbalsRequest(ClientObject client)
         {
-            DarkLog.Debug("Sending " + client.playerName + " kerbals...");
-            //Send vessels here
-            foreach (string file in Directory.GetFiles(Server.universeDirectory, "Kerbals"))
+            int kerbalCount = 0;
+            while (File.Exists(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
             {
-                using (StreamReader sr = new StreamReader(file))
+                using (StreamReader sr = new StreamReader(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
                 {
                     string kerbalData = sr.ReadToEnd();
-                    SendKerbal(client, kerbalData);
+                    SendKerbal(client, kerbalCount, kerbalData);
+                    kerbalCount++;
                 }
             }
+            DarkLog.Debug("Sending " + client.playerName + " " + kerbalCount + " kerbals...");
             SendKerbalsComplete(client);
         }
 
@@ -599,9 +600,9 @@ namespace DarkMultiPlayerServer
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                string kerbalName = mr.Read<string>();
+                int kerbalID = mr.Read<int>();
                 string kerbalData = mr.Read<string>();
-                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt")))
+                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Kerbals", kerbalID + ".txt")))
                 {
                     sw.Write(kerbalData);
                     ServerMessage newMessage = new ServerMessage();
@@ -618,16 +619,17 @@ namespace DarkMultiPlayerServer
 
         private static void HandleVesselsRequest(ClientObject client)
         {
-            DarkLog.Debug("Sending " + client.playerName + " vessels...");
-            //Send vessels here
+            int vesselCount = 0;
             foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
             {
                 using (StreamReader sr = new StreamReader(file))
                 {
                     string vesselData = sr.ReadToEnd();
+                    vesselCount++;
                     SendVessel(client, vesselData);
                 }
             }
+            DarkLog.Debug("Sending " + client.playerName + " " + vesselCount + " vessels...");
             SendVesselsComplete(client);
         }
 
@@ -855,12 +857,13 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SendKerbal(ClientObject client, string kerbalData)
+        private static void SendKerbal(ClientObject client, int kerbalID, string kerbalData)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
             using (MessageWriter mw = new MessageWriter())
             {
+                mw.Write<int>(kerbalID);
                 mw.Write<string>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
             }

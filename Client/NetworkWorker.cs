@@ -554,6 +554,7 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int kerbalID = mr.Read<int>();
                 string kerbalData = mr.Read<string>();
                 string tempFile = Path.GetTempFileName();
                 using (StreamWriter sw = new StreamWriter(tempFile))
@@ -564,7 +565,7 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
-                    parent.vesselWorker.QueueKerbal(vesselNode);
+                    parent.vesselWorker.QueueKerbal(kerbalID, vesselNode);
                 }
                 else
                 {
@@ -839,7 +840,7 @@ namespace DarkMultiPlayer
         }
 
         //Called from vesselWorker
-        public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
+        public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
@@ -851,7 +852,7 @@ namespace DarkMultiPlayer
             {
                 using (MessageWriter mw = new MessageWriter())
                 {
-                    mw.Write<string>(kerbal.name);
+                    mw.Write<int>(kerbalID);
                     mw.Write<string>(sr.ReadToEnd());
                     newMessage.data = mw.GetMessageBytes();
                 }

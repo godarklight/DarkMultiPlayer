@@ -62,18 +62,22 @@ namespace DarkMultiPlayer
 
         public void FixedUpdate()
         {
-            if (synced)
+            if (enabled)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
+                if (synced)
                 {
-                    lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
-                    parent.networkWorker.SendTimeSync();
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
+                    {
+                        lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
+                        parent.networkWorker.SendTimeSync();
+                    }
+            
+                    if (locked)
+                    {
+                        //Set the universe time here
+                        SyncTime();
+                    }
                 }
-            }
-            if (synced && locked && enabled)
-            {
-                //Set the universe time here
-                SyncTime();
             }
         }
         //Skew or set the clock

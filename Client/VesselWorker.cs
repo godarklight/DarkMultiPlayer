@@ -21,12 +21,12 @@ namespace DarkMultiPlayer
         //Incoming queue
         private Queue<ConfigNode> vesselProtoQueue;
         private Queue<VesselUpdate> vesselUpdateQueue;
-        private Queue<ConfigNode> kerbalProtoQueue;
+        private Queue<KerbalEntry> kerbalProtoQueue;
         private Queue<ActiveVesselEntry> newActiveVessels;
         //Vessel state tracking
         private string lastVessel;
         //Known kerbals
-        private CrewRoster serverKerbals;
+        private Dictionary<int, ProtoCrewMember> serverKerbals;
         //Known vessels and last send/receive time
         private Dictionary<string, float> serverVesselsProtoUpdate;
         private Dictionary<string, float> serverVesselsPositionUpdate;
@@ -47,7 +47,7 @@ namespace DarkMultiPlayer
         //Called from main
         public void FixedUpdate()
         {
-            if (enabled == true)
+            if (enabled)
             {
                 while (newActiveVessels.Count > 0)
                 {
@@ -65,8 +65,8 @@ namespace DarkMultiPlayer
                 }
                 while (kerbalProtoQueue.Count > 0)
                 {
-                    ConfigNode kerbalNode = kerbalProtoQueue.Dequeue();
-                    LoadKerbal(kerbalNode);
+                    KerbalEntry kerbalEntry = kerbalProtoQueue.Dequeue();
+                    LoadKerbal(kerbalEntry.kerbalID, kerbalEntry.kerbalNode);
                 }
                 while (vesselProtoQueue.Count > 0)
                 {
@@ -190,36 +190,35 @@ namespace DarkMultiPlayer
                                 {
                                     foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                                     {
-                                        if (!serverKerbals.ExistsInRoster(pcm.name))
+                                        int kerbalID = HighLogic.CurrentGame.CrewRoster.IndexOf(pcm);
+                                        if (!serverKerbals.ContainsKey(kerbalID))
                                         {
                                             //New kerbal
-                                            parent.networkWorker.SendKerbalProtoMessage(pcm);
+                                            DarkLog.Debug("Found new kerbal, sending...");
+                                            serverKerbals[kerbalID] = new ProtoCrewMember(pcm);
+                                            parent.networkWorker.SendKerbalProtoMessage(HighLogic.CurrentGame.CrewRoster.IndexOf(pcm), pcm);
                                         }
                                         else
                                         {
-                                            foreach (ProtoCrewMember serverPcm in serverKerbals)
+                                            bool kerbalDifferent = false;
+                                            kerbalDifferent = (pcm.name != serverKerbals[kerbalID].name) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.courage != serverKerbals[kerbalID].courage) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.isBadass != serverKerbals[kerbalID].isBadass) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.rosterStatus != serverKerbals[kerbalID].rosterStatus) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.seatIdx != serverKerbals[kerbalID].seatIdx) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.stupidity != serverKerbals[kerbalID].stupidity) || kerbalDifferent;
+                                            kerbalDifferent = (pcm.UTaR != serverKerbals[kerbalID].UTaR) || kerbalDifferent;
+                                            if (kerbalDifferent)
                                             {
-                                                if (pcm.name == serverPcm.name)
-                                                {
-                                                    bool kerbalDifferent = false;
-                                                    kerbalDifferent = (pcm.courage != serverPcm.courage) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.isBadass != serverPcm.isBadass) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.rosterStatus != serverPcm.rosterStatus) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.seatIdx != serverPcm.seatIdx) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.stupidity != serverPcm.stupidity) || kerbalDifferent;
-                                                    kerbalDifferent = (pcm.UTaR != serverPcm.UTaR) || kerbalDifferent;
-                                                    if (kerbalDifferent)
-                                                    {
-                                                        DarkLog.Debug("Found changed kerbal, sending...");
-                                                        parent.networkWorker.SendKerbalProtoMessage(pcm);
-                                                        serverPcm.courage = pcm.courage;
-                                                        serverPcm.isBadass = pcm.isBadass;
-                                                        serverPcm.rosterStatus = pcm.rosterStatus;
-                                                        serverPcm.seatIdx = pcm.seatIdx;
-                                                        serverPcm.stupidity = pcm.stupidity;
-                                                        serverPcm.UTaR = pcm.UTaR;
-                                                    }
-                                                }
+                                                DarkLog.Debug("Found changed kerbal, sending...");
+                                                parent.networkWorker.SendKerbalProtoMessage(HighLogic.CurrentGame.CrewRoster.IndexOf(pcm), pcm);
+                                                serverKerbals[kerbalID].name = pcm.name;
+                                                serverKerbals[kerbalID].courage = pcm.courage;
+                                                serverKerbals[kerbalID].isBadass = pcm.isBadass;
+                                                serverKerbals[kerbalID].rosterStatus = pcm.rosterStatus;
+                                                serverKerbals[kerbalID].seatIdx = pcm.seatIdx;
+                                                serverKerbals[kerbalID].stupidity = pcm.stupidity;
+                                                serverKerbals[kerbalID].UTaR = pcm.UTaR;
                                             }
                                         }
                                     }
@@ -275,7 +274,6 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Also called from PlayerStatusWorker
         public bool isSpectating
         {
@@ -377,37 +375,36 @@ namespace DarkMultiPlayer
         //Called from main
         public void LoadKerbalsIntoGame()
         {
+
             DarkLog.Debug("Loading " + kerbalProtoQueue.Count + " received kerbals");
             while (kerbalProtoQueue.Count > 0)
             {
-                ConfigNode currentNode = kerbalProtoQueue.Dequeue();
-                LoadKerbal(currentNode);
+                KerbalEntry kerbalEntry = kerbalProtoQueue.Dequeue();
+                LoadKerbal(kerbalEntry.kerbalID, kerbalEntry.kerbalNode);
             }
-            int serverKerbalsCount = 0;
+
             int generateKerbals = 0;
-            foreach (ProtoCrewMember pcm in serverKerbals)
+            if (serverKerbals.Count < 50)
             {
-                serverKerbalsCount++;
-            }
-            if (serverKerbalsCount < 50)
-            {
-                generateKerbals = 50 - serverKerbalsCount;
+                generateKerbals = 50 - serverKerbals.Count;
                 DarkLog.Debug("Generating " + generateKerbals + " new kerbals");
             }
+
             while (generateKerbals > 0)
             {
                 ProtoCrewMember protoKerbal = CrewGenerator.RandomCrewMemberPrototype();
                 if (!HighLogic.CurrentGame.CrewRoster.ExistsInRoster(protoKerbal.name))
                 {
-                    parent.networkWorker.SendKerbalProtoMessage(protoKerbal);
                     HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoKerbal);
-                    serverKerbals.AddCrewMember(new ProtoCrewMember(protoKerbal));
+                    int kerbalID = HighLogic.CurrentGame.CrewRoster.IndexOf(protoKerbal); 
+                    serverKerbals[kerbalID] = new ProtoCrewMember(protoKerbal);
+                    parent.networkWorker.SendKerbalProtoMessage(kerbalID, protoKerbal);
                     generateKerbals--;
                 }
             }
         }
 
-        private void LoadKerbal(ConfigNode crewNode)
+        private void LoadKerbal(int kerbalID, ConfigNode crewNode)
         {
             if (crewNode != null)
             {
@@ -416,38 +413,27 @@ namespace DarkMultiPlayer
                 {
                     if (!String.IsNullOrEmpty(protoCrew.name))
                     {
-                        //DarkLog.Debug("Loading " + protoCrew.name);
-                        if (!HighLogic.CurrentGame.CrewRoster.ExistsInRoster(protoCrew.name))
+                        //Welcome to the world of kludges.
+                        bool existsInRoster = true;
+                        try {
+                            ProtoCrewMember testKerbal = HighLogic.CurrentGame.CrewRoster[kerbalID];
+                        }
+                        catch {
+                            existsInRoster = false;
+                        }
+                        if (!existsInRoster)
                         {
                             HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoCrew);
-                            serverKerbals.AddCrewMember(new ProtoCrewMember(protoCrew));
+                            serverKerbals[kerbalID] = (new ProtoCrewMember(protoCrew));
                         }
                         else
                         {
-                            foreach (ProtoCrewMember existingKerbal in HighLogic.CurrentGame.CrewRoster)
-                            {
-                                if (existingKerbal.name == protoCrew.name)
-                                {
-                                    existingKerbal.courage = protoCrew.courage;
-                                    existingKerbal.isBadass = protoCrew.isBadass;
-                                    existingKerbal.rosterStatus = protoCrew.rosterStatus;
-                                    existingKerbal.seatIdx = protoCrew.seatIdx;
-                                    existingKerbal.stupidity = protoCrew.stupidity;
-                                    existingKerbal.UTaR = protoCrew.UTaR;
-                                }
-                            }
-                            foreach (ProtoCrewMember existingKerbal in serverKerbals)
-                            {
-                                if (existingKerbal.name == protoCrew.name)
-                                {
-                                    existingKerbal.courage = protoCrew.courage;
-                                    existingKerbal.isBadass = protoCrew.isBadass;
-                                    existingKerbal.rosterStatus = protoCrew.rosterStatus;
-                                    existingKerbal.seatIdx = protoCrew.seatIdx;
-                                    existingKerbal.stupidity = protoCrew.stupidity;
-                                    existingKerbal.UTaR = protoCrew.UTaR;
-                                }
-                            }
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].courage = protoCrew.courage;
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].isBadass = protoCrew.isBadass;
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].rosterStatus = protoCrew.rosterStatus;
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].seatIdx = protoCrew.seatIdx;
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].stupidity = protoCrew.stupidity;
+                            HighLogic.CurrentGame.CrewRoster[kerbalID].UTaR = protoCrew.UTaR;
                         }
                     }
                     else
@@ -618,9 +604,12 @@ namespace DarkMultiPlayer
             destinationOrbit.referenceBody = sourceOrbit.referenceBody;
         }
         //Called from networkWorker
-        public void QueueKerbal(ConfigNode kerbalNode)
+        public void QueueKerbal(int kerbalID, ConfigNode kerbalNode)
         {
-            kerbalProtoQueue.Enqueue(kerbalNode);
+            KerbalEntry newEntry = new KerbalEntry();
+            newEntry.kerbalID = kerbalID;
+            newEntry.kerbalNode = kerbalNode;
+            kerbalProtoQueue.Enqueue(newEntry);
         }
         //Called from networkWorker
         public void QueueVesselProto(ConfigNode vesselNode)
@@ -645,10 +634,10 @@ namespace DarkMultiPlayer
         {
             enabled = false;
             newActiveVessels = new Queue<ActiveVesselEntry>();
-            kerbalProtoQueue = new Queue<ConfigNode>();
+            kerbalProtoQueue = new Queue<KerbalEntry>();
             vesselProtoQueue = new Queue<ConfigNode>();
             vesselUpdateQueue = new Queue<VesselUpdate>();
-            serverKerbals = new CrewRoster();
+            serverKerbals = new Dictionary<int, ProtoCrewMember>();
             serverVesselsProtoUpdate = new Dictionary<string, float>();
             serverVesselsPositionUpdate = new Dictionary<string, float>();
             inUse = new Dictionary<string, string>();
@@ -660,6 +649,12 @@ namespace DarkMultiPlayer
     {
         public string player;
         public string vesselID;
+    }
+
+    class KerbalEntry
+    {
+        public int kerbalID;
+        public ConfigNode kerbalNode;
     }
 
     public class VesselUpdate
