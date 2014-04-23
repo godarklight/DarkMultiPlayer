@@ -109,10 +109,12 @@ namespace DarkMultiPlayer
             displayNTP = GUILayout.Toggle(displayNTP, "Display subspace status", buttonStyle);
             if (displayNTP)
             {
-                string ntpText = "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
+                string ntpText = "Current subspace: " + parent.timeSyncer.currentSubspace +".\n";
+                ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
                 ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                 ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
                 ntpText += "Server clock difference: " + Math.Round((parent.timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
+                ntpText += "Server lag: " + Math.Round((parent.timeSyncer.serverLag / 10000f), 3) + " ms\n";
                 GUILayout.Label(ntpText);
             }
             if (GUILayout.Button("Disconnect", buttonStyle))

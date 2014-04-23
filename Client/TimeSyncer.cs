@@ -33,6 +33,11 @@ namespace DarkMultiPlayer
             get;
             private set;
         }
+        public long serverLag
+        {
+            get;
+            private set;
+        }
         private const float MAX_CLOCK_SKEW = 5f;
         private const float MIN_CLOCK_RATE = 0.5f;
         private const float MAX_CLOCK_RATE = 1.5f;
@@ -293,6 +298,7 @@ namespace DarkMultiPlayer
             long clientOffset = ((serverReceive - clientSend) + (serverSend - clientReceive)) / 2;
             clockOffset.Add(clientOffset);
             networkLatency.Add(clientLatency);
+            serverLag = serverSend - serverReceive;
             if (clockOffset.Count > SYNC_TIME_MAX)
             {
                 clockOffset.RemoveAt(0);

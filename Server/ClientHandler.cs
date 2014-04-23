@@ -17,6 +17,7 @@ namespace DarkMultiPlayerServer
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
+        private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         #region Main loop
         public static void ThreadMain()
         {
@@ -53,8 +54,6 @@ namespace DarkMultiPlayerServer
         #region Server setup
         private static void LoadSavedSubspace()
         {
-            string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
-
             try
             {
                 using (StreamReader sr = new StreamReader(subspaceFile))
@@ -79,8 +78,27 @@ namespace DarkMultiPlayerServer
                 newSubspace.serverClock = DateTime.UtcNow.Ticks;
                 newSubspace.planetTime = 100d;
                 newSubspace.subspaceSpeed = 1f;
+                subspaces.Add(0, newSubspace);
                 SaveSubspace(0, newSubspace);
             }
+        }
+
+        private static void SaveLatestSubspace()
+        {
+            int latestID = 0;
+            Subspace latestSubspace = subspaces[0];
+            double latestPlanetTime = 0;
+            long currentTime = DateTime.UtcNow.Ticks;
+            foreach (KeyValuePair<int,Subspace> subspace in subspaces)
+            {
+                double currentPlanetTime = subspace.Value.planetTime + (((currentTime - subspace.Value.serverClock) / 10000000) * subspace.Value.subspaceSpeed);
+                if (currentPlanetTime > latestPlanetTime)
+                {
+                    latestID = subspace.Key;
+                    latestSubspace = subspace.Value;
+                }
+            }
+            SaveSubspace(latestID, latestSubspace);
         }
 
         private static void SaveSubspace(int subspaceID, Subspace subspace) {
@@ -704,6 +722,39 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.WARP_CONTROL;
             newMessage.data = messageData;
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                WarpMessageType warpType = (WarpMessageType)mr.Read<int>();
+                string fromPlayer = mr.Read<string>();
+                if (fromPlayer == client.playerName)
+                {
+                    if (warpType == WarpMessageType.NEW_SUBSPACE)
+                    {
+                        int subspaceID = mr.Read<int>();
+                        if (subspaces.ContainsKey(subspaceID))
+                        {
+                            DarkLog.Debug("Kicked for trying to create an existing subspace");
+                            SendConnectionEnd(client, "Kicked for trying to create an existing subspace");
+                            return;
+                        }
+                        else
+                        {
+                            Subspace newSubspace = new Subspace();
+                            newSubspace.serverClock = mr.Read<long>();
+                            newSubspace.planetTime = mr.Read<double>();
+                            newSubspace.subspaceSpeed = mr.Read<float>();
+                            subspaces.Add(subspaceID, newSubspace);
+                            SaveLatestSubspace();
+                        }
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug(client.playerName + " tried to send an update for " + fromPlayer + ", kicking.");
+                    SendConnectionEnd(client, "Kicked for sending an update for another player");
+                    return;
+                }
+            }
             SendToAll(client, newMessage, true);
         }
 
