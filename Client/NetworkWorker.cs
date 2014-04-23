@@ -155,8 +155,8 @@ namespace DarkMultiPlayer
                 catch (Exception e)
                 {
                     DarkLog.Debug("Connection error: " + e);
-                    parent.status = "Connection error: " + e.Message;
                     Disconnect();
+                    parent.status = "Connection error: " + e.Message;
                 }
             }
         }
@@ -226,7 +226,6 @@ namespace DarkMultiPlayer
                 {
                     clientConnection.Close();
                 }
-                clientConnection = null;
                 DarkLog.Debug("Disconnected");
                 if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                 {
@@ -252,6 +251,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
+                parent.status = "Connection error: " + e.Message;
             }
         }
 
@@ -330,7 +330,10 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
-                parent.status = "Connection error: " + e.Message;
+                if (parent.status == "Running")
+                {
+                    parent.status = "Connection error: " + e.Message;
+                }
             }
         }
 
@@ -370,7 +373,10 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
-                parent.status = "Connection error: " + e.Message;
+                if (parent.status == "Running")
+                {
+                    parent.status = "Connection error: " + e.Message;
+                }
             }
         }
 
@@ -399,7 +405,10 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
-                parent.status = "Connection error: " + e.Message;
+                if (parent.status == "Running")
+                {
+                    parent.status = "Connection error: " + e.Message;
+                }
             }
         }
         #endregion
