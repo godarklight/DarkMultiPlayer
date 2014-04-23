@@ -12,6 +12,10 @@ namespace DarkMultiPlayer
         public bool forceQuit;
         //Game running is directly set from networkWorker after a successful connection
         public bool gameRunning;
+        //Disconnect message
+        public bool displayDisconnectMessage;
+        private ScreenMessage disconnectMessage;
+        private float lastDisconnectMessageCheck;
         //Singletons
         public TimeSyncer timeSyncer;
         public VesselWorker vesselWorker;
@@ -45,11 +49,30 @@ namespace DarkMultiPlayer
         {
             //Write new log entries
             DarkLog.Update();
-
+            if (displayDisconnectMessage)
+            {
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                {
+                    displayDisconnectMessage = false;
+                }
+                else
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                    {
+                        lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                        if (disconnectMessage != null)
+                        {
+                            disconnectMessage.duration = 0;
+                        }
+                        disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                }
+            }
             //Handle GUI events
             if (!playerStatusWindow.disconnectEventHandled)
             {
                 playerStatusWindow.disconnectEventHandled = true;
+                forceQuit = true;
                 networkWorker.SendDisconnect("Quit");
             }
             if (!connectionWindow.renameEventHandled)

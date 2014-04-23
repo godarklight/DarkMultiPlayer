@@ -216,10 +216,11 @@ namespace DarkMultiPlayer
             if (state != ClientState.DISCONNECTED)
             {
                 DarkLog.Debug("Disconnecting...");
-                if (parent.status == "")
+                if (parent.status == "Running")
                 {
                     parent.status = "Disconnected";
                 }
+                parent.displayDisconnectMessage = true;
                 state = ClientState.DISCONNECTED;
                 if (clientConnection != null)
                 {
@@ -329,6 +330,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
+                parent.status = "Connection error: " + e.Message;
             }
         }
 
@@ -368,6 +370,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Connection error: " + e.Message);
                 Disconnect();
+                parent.status = "Connection error: " + e.Message;
             }
         }
 
@@ -489,7 +492,7 @@ namespace DarkMultiPlayer
                     break;
                 default:
                     DarkLog.Debug("Handshake failed, reason " + reply);
-                    SendDisconnect("Failed to handshake, reason " + reply);
+                    //Server disconnects us.
                     break;
             }
         }
