@@ -474,6 +474,7 @@ namespace DarkMultiPlayer
             catch (Exception e)
             {
                 DarkLog.Debug("Error handling message type " + message.type + ", exception: " + e);
+                SendDisconnect("Error handling " + message.type + " message");
             }
         }
 
@@ -508,25 +509,16 @@ namespace DarkMultiPlayer
 
         private void HandleServerSettings(byte[] messageData)
         {
-            try
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    parent.warpWorker.warpMode = (WarpMode)mr.Read<int>();
-                    numberOfKerbals = mr.Read<int>();
-                    numberOfVessels = mr.Read<int>();
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling SERVER_SETTINGS message, exception: " + e);
+                parent.warpWorker.warpMode = (WarpMode)mr.Read<int>();
+                numberOfKerbals = mr.Read<int>();
+                numberOfVessels = mr.Read<int>();
             }
         }
 
         private void HandlePlayerStatus(byte[] messageData)
         {
-            try
-            {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     string playerName = mr.Read<string>();
@@ -538,45 +530,25 @@ namespace DarkMultiPlayer
                     newStatus.statusText = statusText;
                     parent.playerStatusWorker.AddPlayerStatus(newStatus);
                 }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling PLAYER_STATUS message, exception: " + e);
-            }
         }
 
         private void HandlePlayerDisconnect(byte[] messageData)
         {
-            try
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    string playerName = mr.Read<string>();
-                    parent.playerStatusWorker.RemovePlayerStatus(playerName);
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling PLAYER_STATUS message, exception: " + e);
+                string playerName = mr.Read<string>();
+                parent.playerStatusWorker.RemovePlayerStatus(playerName);
             }
         }
 
         private void HandleSyncTimeReply(byte[] messageData)
         {
-            try
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    long clientSend = mr.Read<long>();
-                    long serverReceive = mr.Read<long>();
-                    long serverSend = mr.Read<long>();
-                    parent.timeSyncer.HandleSyncTime(clientSend, serverReceive, serverSend);
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling SYNC_TIME_REPLY message, exception: " + e);
-                SendDisconnect("Error handling sync time reply message");
+                long clientSend = mr.Read<long>();
+                long serverReceive = mr.Read<long>();
+                long serverSend = mr.Read<long>();
+                parent.timeSyncer.HandleSyncTime(clientSend, serverReceive, serverSend);
             }
         }
 
@@ -715,18 +687,10 @@ namespace DarkMultiPlayer
 
         private void HandleSetSubspace(byte[] messageData)
         {
-            try
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    int subspaceID = mr.Read<int>();
-                    parent.timeSyncer.LockSubspace(subspaceID);
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling TIME_LOCK_REPLY message, exception: " + e);
-                SendDisconnect("Error handling time lock reply message");
+                int subspaceID = mr.Read<int>();
+                parent.timeSyncer.LockSubspace(subspaceID);
             }
         }
 
