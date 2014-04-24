@@ -14,6 +14,7 @@ namespace DarkMultiPlayer
         private Client parent;
         //A list of lowest rates in MCW_LOWEST mode.
         private Dictionary<string, PlayerWarpRate> clientWarpList;
+        private Dictionary<string, int> clientSubspaceList;
         //The player that can control warp in MCW_VOTE mode.
         private PlayerWarpRate lastSendRate;
         private string warpMaster;
@@ -254,7 +255,6 @@ namespace DarkMultiPlayer
                     mw.Write<float>(newSubspace.subspaceSpeed);
                     parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
                 }
-                parent.timeSyncer.LockSubspace(newSubspaceID);
             }
         }
 
@@ -562,19 +562,23 @@ namespace DarkMultiPlayer
                         }
                         break;
                     case WarpMessageType.NEW_SUBSPACE:
-                        int subspaceID = mr.Read<int>();
+                        int newSubspaceID = mr.Read<int>();
                         long serverTime = mr.Read<long>();
                         double planetariumTime = mr.Read<double>();
                         float gameSpeed = mr.Read<float>();
-                        parent.timeSyncer.LockNewSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
+                        parent.timeSyncer.LockNewSubspace(newSubspaceID, serverTime, planetariumTime, gameSpeed);
                         if (((warpMode == WarpMode.MCW_VOTE) || (warpMode == WarpMode.MCW_FORCE)) && (warpMaster == fromPlayer))
                         {
-                            parent.timeSyncer.LockSubspace(subspaceID);
+                            parent.timeSyncer.LockSubspace(newSubspaceID);
                         }
-                        if (!parent.timeSyncer.locked && parent.timeSyncer.currentSubspace == subspaceID)
+                        if (!parent.timeSyncer.locked && parent.timeSyncer.currentSubspace == newSubspaceID)
                         {
-                            parent.timeSyncer.LockSubspace(subspaceID);
+                            parent.timeSyncer.LockSubspace(newSubspaceID);
                         }
+                        break;
+                    case WarpMessageType.CHANGE_SUBSPACE:
+                        int changeSubspaceID = mr.Read<int>();
+                        clientSubspaceList[fromPlayer] = changeSubspaceID;
                         break;
                     default:
                         DarkLog.Debug("Unhandled WARP_MESSAGE type: " + messageType);
@@ -597,6 +601,11 @@ namespace DarkMultiPlayer
             newWarpMessages.Enqueue(messageData);
         }
 
+        public int GetClientSubspace(string playerName)
+        {
+            return clientSubspaceList.ContainsKey(playerName) ? clientSubspaceList[playerName] : -1;
+        }
+
         public void Reset()
         {
             warpMaster = "";
@@ -608,6 +617,7 @@ namespace DarkMultiPlayer
             lastScreenMessageCheck = 0f;
             lastSendRate = new PlayerWarpRate();
             clientWarpList = new Dictionary<string, PlayerWarpRate>();
+            clientSubspaceList = new Dictionary<string, int>();
             voteList = new Dictionary<string, bool>();
             newWarpMessages = new Queue<byte[]>();
         }

@@ -23,6 +23,7 @@ namespace DarkMultiPlayer
         private GUILayoutOption[] minLayoutOptions;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
+        private GUIStyle warpButtonStyle;
         private GUIStyle scrollStyle;
         //Shamelessly stolen from KMP
         private GUIStyle playerNameStyle;
@@ -38,10 +39,6 @@ namespace DarkMultiPlayer
             display = false;
             disconnectEventHandled = true;
             this.parent = parent;
-            if (this.parent != null)
-            {
-                //Shut up compiler
-            }
         }
 
         private void InitGUI()
@@ -93,6 +90,9 @@ namespace DarkMultiPlayer
             stateTextStyle.stretchWidth = true;
             stateTextStyle.fontStyle = FontStyle.Normal;
             stateTextStyle.fontSize = 12;
+
+            warpButtonStyle = new GUIStyle(GUI.skin.button);
+            warpButtonStyle.fontSize = 10;
         }
 
         public void Draw()
@@ -135,13 +135,25 @@ namespace DarkMultiPlayer
             foreach (PlayerStatus playerStatus in parent.playerStatusWorker.playerStatusList)
             {
                 DrawPlayerEntry(playerStatus);
+                int clientSubspace = parent.warpWorker.GetClientSubspace(playerStatus.playerName);
+                if ((parent.warpWorker.warpMode == WarpMode.SUBSPACE) && (parent.timeSyncer.currentSubspace != -1) && (clientSubspace != -1) && (clientSubspace != parent.timeSyncer.currentSubspace))
+                {
+                    double timeDiff = parent.timeSyncer.GetUniverseTime(clientSubspace) - parent.timeSyncer.GetUniverseTime();
+                    if (timeDiff > 0)
+                    {
+                        if (GUILayout.Button("Sync to " + playerStatus.playerName + " (" + SecondsToString(timeDiff) + " in the future)", warpButtonStyle))
+                        {
+                            parent.timeSyncer.LockSubspace(clientSubspace);
+                        }
+                    }
+                }
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             displayNTP = GUILayout.Toggle(displayNTP, "Display subspace status", buttonStyle);
             if (displayNTP)
             {
-                string ntpText = "Current subspace: " + parent.timeSyncer.currentSubspace +".\n";
+                string ntpText = "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
                 ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
                 ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                 ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
@@ -154,6 +166,127 @@ namespace DarkMultiPlayer
                 disconnectEventHandled = false;
             }
             GUILayout.EndVertical();
+        }
+
+        private string SecondsToString(double time)
+        {
+            int years = (int)time / (60 * 60 * 24 * 7 * 4 * 52);
+            time -= years * (60 * 60 * 24 * 7 * 4 * 52);
+            //Every month is feburary ok?
+            int months = (int)time / (60 * 60 * 24 * 7 * 4);
+            time -= months * (60 * 60 * 24 * 7 * 4);
+            int weeks = (int)time / (60 * 60 * 24 * 7);
+            time -= weeks * (60 * 60 * 24 * 7);
+            int days = (int)time / (60 * 60 * 24);
+            time -= days * (60 * 60 * 24);
+            int hours = (int)time / (60 * 60);
+            time -= hours * (60 * 60);
+            int minutes = (int)time / 60;
+            time -= minutes * 60;
+            int seconds = (int)time;
+            string returnString = "";
+            if (years > 0)
+            {
+                if (years == 1)
+                {
+                    returnString += "1 year";
+                }
+                else
+                {
+                    returnString += years + " years";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (months > 0)
+            {
+                if (months == 1)
+                {
+                    returnString += "1 month";
+                }
+                else
+                {
+                    returnString += months + " month";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (weeks > 0)
+            {
+                if (weeks == 1)
+                {
+                    returnString += "1 week";
+                }
+                else
+                {
+                    returnString += weeks + " weeks";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (days > 0)
+            {
+                if (days == 1)
+                {
+                    returnString += "1 day";
+                }
+                else
+                {
+                    returnString += days + " days";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (hours > 0)
+            {
+                if (hours == 1)
+                {
+                    returnString += "1 hour";
+                }
+                else
+                {
+                    returnString += hours + " hours";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (minutes > 0)
+            {
+                if (minutes == 1)
+                {
+                    returnString += "1 minute";
+                }
+                else
+                {
+                    returnString += minutes + " minutes";
+                }
+            }
+            if (returnString != "")
+            {
+                returnString += ", ";
+            }
+            if (seconds > 0)
+            {
+                if (days == 1)
+                {
+                    returnString += "1 second";
+                }
+                else
+                {
+                    returnString += seconds + " seconds";
+                }
+            }
+            return returnString;
         }
 
         private void DrawMaximize(int windowID)

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DarkMultiPlayerCommon;
+using MessageStream;
 
 namespace DarkMultiPlayer
 {
@@ -185,11 +186,17 @@ namespace DarkMultiPlayer
 
         public void LockSubspace(int subspaceID)
         {
-            DarkLog.Debug("Trying to lock to subspace " + subspaceID);
             if (subspaces.ContainsKey(subspaceID))
             {
                 locked = true;
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
+                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<int>(subspaceID);
+                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                }
             }
             currentSubspace = subspaceID;
         }
@@ -198,6 +205,13 @@ namespace DarkMultiPlayer
         {
             currentSubspace = -1;
             locked = false;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
+                mw.Write<string>(parent.settings.playerName);
+                mw.Write<int>(currentSubspace);
+                parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+            }
         }
 
         public long GetServerClock()

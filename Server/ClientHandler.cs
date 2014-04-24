@@ -161,6 +161,7 @@ namespace DarkMultiPlayerServer
         private static void SetupClient(TcpClient newClientConnection)
         {
             ClientObject newClientObject = new ClientObject();
+            newClientObject.subspace = GetLatestSubspace();
             newClientObject.playerStatus = new PlayerStatus();
             newClientObject.connectionStatus = ConnectionStatus.CONNECTED;
             newClientObject.playerName = "Unknown";
@@ -752,8 +753,8 @@ namespace DarkMultiPlayerServer
                 {
                     if (warpType == WarpMessageType.NEW_SUBSPACE)
                     {
-                        int subspaceID = mr.Read<int>();
-                        if (subspaces.ContainsKey(subspaceID))
+                        int newSubspaceID = mr.Read<int>();
+                        if (subspaces.ContainsKey(newSubspaceID))
                         {
                             DarkLog.Debug("Kicked for trying to create an existing subspace");
                             SendConnectionEnd(client, "Kicked for trying to create an existing subspace");
@@ -765,9 +766,14 @@ namespace DarkMultiPlayerServer
                             newSubspace.serverClock = mr.Read<long>();
                             newSubspace.planetTime = mr.Read<double>();
                             newSubspace.subspaceSpeed = mr.Read<float>();
-                            subspaces.Add(subspaceID, newSubspace);
+                            subspaces.Add(newSubspaceID, newSubspace);
+                            client.subspace = newSubspaceID;
                             SaveLatestSubspace();
                         }
+                    }
+                    if (warpType == WarpMessageType.CHANGE_SUBSPACE)
+                    {
+                        client.subspace = mr.Read<int>();
                     }
                 }
                 else
@@ -1011,6 +1017,7 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName;
+        public int subspace;
         public string activeVessel;
         public string endpoint;
         public TcpClient connection;
