@@ -85,6 +85,7 @@ namespace DarkMultiPlayerCommon
         MCW_FORCE,
         MCW_VOTE,
         MCW_LOWEST,
+        SUBSPACE_SIMPLE,
         SUBSPACE,
         NONE
     }

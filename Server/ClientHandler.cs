@@ -83,10 +83,9 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SaveLatestSubspace()
+        private static int GetLatestSubspace()
         {
             int latestID = 0;
-            Subspace latestSubspace = subspaces[0];
             double latestPlanetTime = 0;
             long currentTime = DateTime.UtcNow.Ticks;
             foreach (KeyValuePair<int,Subspace> subspace in subspaces)
@@ -95,10 +94,15 @@ namespace DarkMultiPlayerServer
                 if (currentPlanetTime > latestPlanetTime)
                 {
                     latestID = subspace.Key;
-                    latestSubspace = subspace.Value;
                 }
             }
-            SaveSubspace(latestID, latestSubspace);
+            return latestID;
+        }
+
+        private static void SaveLatestSubspace()
+        {
+            int latestID = GetLatestSubspace();
+            SaveSubspace(latestID, subspaces[latestID]);
         }
 
         private static void SaveSubspace(int subspaceID, Subspace subspace) {
@@ -416,50 +420,60 @@ namespace DarkMultiPlayerServer
                 return;
             }
 
-            switch (message.type)
+            try
             {
-                case ClientMessageType.HEARTBEAT:
+
+                switch (message.type)
+                {
+                    case ClientMessageType.HEARTBEAT:
                     //Don't do anything for heartbeats, they just keep the connection alive
-                    break;
-                case ClientMessageType.HANDSHAKE_REQUEST:
-                    HandleHandshakeRequest(client, message.data);
-                    break;
-                case ClientMessageType.PLAYER_STATUS:
-                    HandlePlayerStatus(client, message.data);
-                    break;
-                case ClientMessageType.SYNC_TIME_REQUEST:
-                    HandleSyncTimeRequest(client, message.data);
-                    break;
-                case ClientMessageType.KERBALS_REQUEST:
-                    HandleKerbalsRequest(client);
-                    break;
-                case ClientMessageType.KERBAL_PROTO:
-                    HandleKerbalProto(client, message.data);
-                    break;
-                case ClientMessageType.VESSELS_REQUEST:
-                    HandleVesselsRequest(client);
-                    break;
-                case ClientMessageType.VESSEL_PROTO:
-                    HandleVesselProto(client, message.data);
-                    break;
-                case ClientMessageType.VESSEL_UPDATE:
-                    HandleVesselUpdate(client, message.data);
-                    break;
-                case ClientMessageType.VESSEL_REMOVE:
-                    HandleVesselRemoval(client, message.data);
-                    break;
-                case ClientMessageType.SEND_ACTIVE_VESSEL:
-                    HandleSendActiveVessel(client, message.data);
-                    break;
-                case ClientMessageType.WARP_CONTROL:
-                    HandleWarpControl(client, message.data);
-                    break;
-                case ClientMessageType.CONNECTION_END:
-                    HandleConnectionEnd(client, message.data);
-                    break;
-                default:
-                    DarkLog.Debug("Unhandled message type " + message.type);
-                    break;
+                        break;
+                    case ClientMessageType.HANDSHAKE_REQUEST:
+                        HandleHandshakeRequest(client, message.data);
+                        break;
+                    case ClientMessageType.PLAYER_STATUS:
+                        HandlePlayerStatus(client, message.data);
+                        break;
+                    case ClientMessageType.SYNC_TIME_REQUEST:
+                        HandleSyncTimeRequest(client, message.data);
+                        break;
+                    case ClientMessageType.KERBALS_REQUEST:
+                        HandleKerbalsRequest(client);
+                        break;
+                    case ClientMessageType.KERBAL_PROTO:
+                        HandleKerbalProto(client, message.data);
+                        break;
+                    case ClientMessageType.VESSELS_REQUEST:
+                        HandleVesselsRequest(client);
+                        break;
+                    case ClientMessageType.VESSEL_PROTO:
+                        HandleVesselProto(client, message.data);
+                        break;
+                    case ClientMessageType.VESSEL_UPDATE:
+                        HandleVesselUpdate(client, message.data);
+                        break;
+                    case ClientMessageType.VESSEL_REMOVE:
+                        HandleVesselRemoval(client, message.data);
+                        break;
+                    case ClientMessageType.SEND_ACTIVE_VESSEL:
+                        HandleSendActiveVessel(client, message.data);
+                        break;
+                    case ClientMessageType.WARP_CONTROL:
+                        HandleWarpControl(client, message.data);
+                        break;
+                    case ClientMessageType.CONNECTION_END:
+                        HandleConnectionEnd(client, message.data);
+                        break;
+                    default:
+                        DarkLog.Debug("Unhandled message type " + message.type);
+                        SendConnectionEnd(client, "Unhandled message type " + message.type);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling " + message.type + " from " + client.playerName + ", exception: " + e);
+                SendConnectionEnd(client, "Server failed to process " + message.type + " message");
             }
         }
 
@@ -621,20 +635,20 @@ namespace DarkMultiPlayerServer
             //Send kerbal
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                //Don't care about subspace / send time.
+                mr.Read<int>();
+                mr.Read<double>();
                 int kerbalID = mr.Read<int>();
+                DarkLog.Debug("Saving kerbal " + kerbalID + " from " + client.playerName);
                 string kerbalData = mr.Read<string>();
                 using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Kerbals", kerbalID + ".txt")))
                 {
                     sw.Write(kerbalData);
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.KERBAL_REPLY;
-                    using (MessageWriter mw = new MessageWriter())
-                    {
-                        mw.Write<string>(kerbalData);
-                        newMessage.data = mw.GetMessageBytes();
-                    }
-                    SendToAll(client, newMessage, false);
                 }
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.KERBAL_REPLY;
+                newMessage.data = messageData;
+                SendToAll(client, newMessage, false);
             }
         }
 
@@ -656,21 +670,26 @@ namespace DarkMultiPlayerServer
 
         private static void HandleVesselProto(ClientObject client, byte[] messageData)
         {
-            //Send kerbal
+            //Send vessel
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int subspaceID = mr.Read<int>();
+                double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
+                DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
                 string vesselData = mr.Read<string>();
                 using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt")))
                 {
                     sw.Write(vesselData);
+                }
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>(subspaceID);
+                    mw.Write<double>(planetTime);
+                    mw.Write<string>(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
-                    using (MessageWriter mw = new MessageWriter())
-                    {
-                        mw.Write<string>(vesselData);
-                        newMessage.data = mw.GetMessageBytes();
-                    }
+                    newMessage.data = mw.GetMessageBytes();
                     SendToAll(client, newMessage, false);
                 }
             }
@@ -689,16 +708,19 @@ namespace DarkMultiPlayerServer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                //Don't care about the subspace on the server.
+                mr.Read<int>();
+                mr.Read<double>();
                 string vesselID = mr.Read<string>();
                 if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
                 {
                     File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
                     //Relay the message.
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.VESSEL_REMOVE;
-                    newMessage.data = messageData;
-                    SendToAll(client, newMessage, false);
                 }
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.VESSEL_REMOVE;
+                newMessage.data = messageData;
+                SendToAll(client, newMessage, false);
             }
         }
 
@@ -939,6 +961,9 @@ namespace DarkMultiPlayerServer
             newMessage.type = ServerMessageType.KERBAL_REPLY;
             using (MessageWriter mw = new MessageWriter())
             {
+                mw.Write<int>(GetLatestSubspace());
+                //Send the vessel with a send time of 0 so it instantly loads on the client.
+                mw.Write<double>(0);
                 mw.Write<int>(kerbalID);
                 mw.Write<string>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
@@ -952,6 +977,9 @@ namespace DarkMultiPlayerServer
             newMessage.type = ServerMessageType.VESSEL_PROTO;
             using (MessageWriter mw = new MessageWriter())
             {
+                mw.Write<int>(GetLatestSubspace());
+                //Send the vessel with a send time of 0 so it instantly loads on the client.
+                mw.Write<double>(0);
                 mw.Write<string>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }

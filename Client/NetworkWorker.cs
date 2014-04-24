@@ -585,6 +585,8 @@ namespace DarkMultiPlayer
             numberOfKerbalsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int subspaceID = mr.Read<int>();
+                double planetTime = mr.Read<double>();
                 int kerbalID = mr.Read<int>();
                 string kerbalData = mr.Read<string>();
                 string tempFile = Path.GetTempFileName();
@@ -596,7 +598,7 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
-                    parent.vesselWorker.QueueKerbal(kerbalID, vesselNode);
+                    parent.vesselWorker.QueueKerbal(subspaceID, planetTime, kerbalID, vesselNode);
                 }
                 else
                 {
@@ -622,6 +624,8 @@ namespace DarkMultiPlayer
             numberOfVesselsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int subspaceID = mr.Read<int>();
+                double planetTime = mr.Read<double>();
                 string vesselData = mr.Read<string>();
                 string tempFile = Path.GetTempFileName();
                 using (StreamWriter sw = new StreamWriter(tempFile))
@@ -632,7 +636,7 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
-                    parent.vesselWorker.QueueVesselProto(vesselNode);
+                    parent.vesselWorker.QueueVesselProto(subspaceID, planetTime, vesselNode);
                 }
                 else
                 {
@@ -653,9 +657,12 @@ namespace DarkMultiPlayer
             VesselUpdate update = new VesselUpdate();
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int subspaceID = mr.Read<int>();
+                update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
                 update.rotation = mr.Read<float[]>();
+                update.angularVelocity = mr.Read<float[]>();
                 update.flightState = new FlightCtrlState();
                 byte[] flightData = mr.Read<byte[]>();
                 using (MemoryStream ms = new MemoryStream(flightData))
@@ -676,8 +683,8 @@ namespace DarkMultiPlayer
                 {
                     update.orbit = mr.Read<double[]>();
                 }
+                parent.vesselWorker.QueueVesselUpdate(subspaceID, update);
             }
-            parent.vesselWorker.QueueVesselUpdate(update);
         }
 
         private void HandleSetActiveVessel(byte[] messageData)
@@ -699,8 +706,10 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
+                int subspaceID = mr.Read<int>();
+                double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
-                parent.vesselWorker.QueueVesselRemove(vesselID);
+                parent.vesselWorker.QueueVesselRemove(subspaceID, planetTime, vesselID);
             }
         }
 
@@ -825,6 +834,8 @@ namespace DarkMultiPlayer
             {
                 using (MessageWriter mw = new MessageWriter())
                 {
+                    mw.Write<int>(parent.timeSyncer.currentSubspace);
+                    mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<string>(sr.ReadToEnd());
                     newMessage.data = mw.GetMessageBytes();
@@ -841,9 +852,12 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
             using (MessageWriter mw = new MessageWriter())
             {
+                mw.Write<int>(parent.timeSyncer.currentSubspace);
+                mw.Write<double>(update.planetTime);
                 mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
                 mw.Write<float[]>(update.rotation);
+                mw.Write<float[]>(update.angularVelocity);
                 using (MemoryStream ms = new MemoryStream())
                 {
                     ConfigNode flightNode = new ConfigNode();
@@ -875,6 +889,8 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_REMOVE;
             using (MessageWriter mw = new MessageWriter())
             {
+                mw.Write<int>(parent.timeSyncer.currentSubspace);
+                mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(vesselID);
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -914,6 +930,8 @@ namespace DarkMultiPlayer
             {
                 using (MessageWriter mw = new MessageWriter())
                 {
+                    mw.Write<int>(parent.timeSyncer.currentSubspace);
+                    mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<int>(kerbalID);
                     mw.Write<string>(sr.ReadToEnd());
                     newMessage.data = mw.GetMessageBytes();

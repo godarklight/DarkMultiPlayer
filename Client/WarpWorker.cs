@@ -252,6 +252,7 @@ namespace DarkMultiPlayer
                     mw.Write<long>(newSubspace.serverClock);
                     mw.Write<double>(newSubspace.planetTime);
                     mw.Write<float>(newSubspace.subspaceSpeed);
+                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
                 }
                 parent.timeSyncer.LockSubspace(newSubspaceID);
             }

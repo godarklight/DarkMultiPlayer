@@ -50,9 +50,6 @@ namespace DarkMultiPlayer
         private List<long> clockOffset;
         private List<long> networkLatency;
         private Dictionary<int, Subspace> subspaces;
-        private long serverTimeLock;
-        private double planetariumTimeLock;
-        private float gameSpeedLock;
         public Client parent;
 
         public TimeSyncer(Client parent)
@@ -191,9 +188,6 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Trying to lock to subspace " + subspaceID);
             if (subspaces.ContainsKey(subspaceID))
             {
-                serverTimeLock = subspaces[subspaceID].serverClock;
-                planetariumTimeLock = subspaces[subspaceID].planetTime;
-                gameSpeedLock = subspaces[subspaceID].subspaceSpeed;
                 locked = true;
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
             }
@@ -202,9 +196,6 @@ namespace DarkMultiPlayer
 
         public void UnlockSubspace()
         {
-            serverTimeLock = 0;
-            planetariumTimeLock = 0;
-            gameSpeedLock = 1;
             currentSubspace = -1;
             locked = false;
         }
@@ -220,15 +211,24 @@ namespace DarkMultiPlayer
 
         public double GetUniverseTime()
         {
-            if (synced && locked)
+            if (synced && locked && (currentSubspace != -1))
             {
-                long serverTime = GetServerClock();
-                long realTimeSinceLock = serverTime - serverTimeLock;
-                double realTimeSinceLockSeconds = realTimeSinceLock / 10000000d;
-                double adjustedTimeSinceLockSeconds = realTimeSinceLockSeconds * gameSpeedLock;
-                return planetariumTimeLock + adjustedTimeSinceLockSeconds;
+                return GetUniverseTime(currentSubspace);
             }
             return 0;
+        }
+
+        public double GetUniverseTime(int subspace)
+        {
+            if (subspaces.ContainsKey(subspace)) {
+                long realTimeSinceLock = GetServerClock() - subspaces[subspace].serverClock;
+                double realTimeSinceLockSeconds = realTimeSinceLock / 10000000d;
+                double adjustedTimeSinceLockSeconds = realTimeSinceLockSeconds * subspaces[subspace].subspaceSpeed;
+                return subspaces[subspace].planetTime + adjustedTimeSinceLockSeconds;
+            }
+            else {
+                return 0;
+            }
         }
 
         public double GetCurrentError()
@@ -286,9 +286,7 @@ namespace DarkMultiPlayer
             subspaces = new Dictionary<int, Subspace>();
             clockOffsetAverage = 0;
             networkLatencyAverage = 0;
-            serverTimeLock = 0;
-            planetariumTimeLock = 0;
-            gameSpeedLock = 1;
+            serverLag = 0;
         }
 
         public void HandleSyncTime(long clientSend, long serverReceive, long serverSend)
