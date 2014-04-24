@@ -13,9 +13,14 @@ namespace DarkMultiPlayer
         private bool initialized;
         private Vector2 scrollPosition;
         private bool displayNTP;
+        public bool minmized;
+        public bool safeMinimized;
         //GUI Layout
         private Rect windowRect;
+        private Rect minWindowRect;
+        private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
+        private GUILayoutOption[] minLayoutOptions;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         private GUIStyle scrollStyle;
@@ -43,6 +48,10 @@ namespace DarkMultiPlayer
         {
             //Setup GUI stuff
             windowRect = new Rect(Screen.width * 0.9f - WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
+            minWindowRect = new Rect(windowRect);
+            minWindowRect.xMax = minWindowRect.xMin + 40;
+            minWindowRect.yMax = minWindowRect.yMin + 20;
+            moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
@@ -53,6 +62,10 @@ namespace DarkMultiPlayer
             layoutOptions[1] = GUILayout.MaxWidth(WINDOW_WIDTH);
             layoutOptions[2] = GUILayout.MinHeight(WINDOW_HEIGHT);
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
+
+            minLayoutOptions = new GUILayoutOption[2];
+            minLayoutOptions[0] = GUILayout.MinWidth(40);
+            minLayoutOptions[1] = GUILayout.MinHeight(20);
 
             //"Borrowed" from KMP.
             playerNameStyle = new GUIStyle(GUI.skin.label);
@@ -91,13 +104,32 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
-                GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Status", windowStyle, layoutOptions);
+                if (!safeMinimized)
+                {
+                    windowRect = GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Status", windowStyle, layoutOptions);
+                }
+                else
+                {
+                    minWindowRect = GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), minWindowRect, DrawMaximize, "", windowStyle, minLayoutOptions);
+                }
             }
         }
 
         private void DrawContent(int windowID)
         {
             GUILayout.BeginVertical();
+            GUI.DragWindow(moveRect);
+            GUILayout.BeginHorizontal();
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("-", buttonStyle))
+            {
+                minWindowRect.xMax = windowRect.xMax;
+                minWindowRect.yMin = windowRect.yMin;
+                minWindowRect.xMin = minWindowRect.xMax - 40;
+                minWindowRect.yMax = minWindowRect.yMin + 20;
+                minmized = true;
+            }
+            GUILayout.EndHorizontal();
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollStyle);
             DrawPlayerEntry(parent.playerStatusWorker.myPlayerStatus);
             foreach (PlayerStatus playerStatus in parent.playerStatusWorker.playerStatusList)
@@ -120,6 +152,21 @@ namespace DarkMultiPlayer
             if (GUILayout.Button("Disconnect", buttonStyle))
             {
                 disconnectEventHandled = false;
+            }
+            GUILayout.EndVertical();
+        }
+
+        private void DrawMaximize(int windowID)
+        {
+            GUI.DragWindow(moveRect);
+            GUILayout.BeginVertical();
+            if (GUILayout.Button("+", buttonStyle))
+            {
+                windowRect.xMax = minWindowRect.xMax;
+                windowRect.yMin = minWindowRect.yMin;
+                windowRect.xMin = minWindowRect.xMax - WINDOW_WIDTH;
+                windowRect.yMax = minWindowRect.yMin + WINDOW_HEIGHT;
+                minmized = false;
             }
             GUILayout.EndVertical();
         }

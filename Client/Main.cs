@@ -118,6 +118,7 @@ namespace DarkMultiPlayer
             connectionWindow.addingServerSafe = connectionWindow.addingServer;
             connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
             playerStatusWindow.display = gameRunning;
+            playerStatusWindow.safeMinimized = playerStatusWindow.minmized;
 
             //Call network worker
             networkWorker.Update();
