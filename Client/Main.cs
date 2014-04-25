@@ -120,7 +120,8 @@ namespace DarkMultiPlayer
             playerStatusWindow.display = gameRunning;
             playerStatusWindow.safeMinimized = playerStatusWindow.minmized;
 
-            //Call network worker
+            //Call the update hooks
+            playerStatusWindow.Update();
             networkWorker.Update();
             playerStatusWorker.Update();
             warpWorker.Update();

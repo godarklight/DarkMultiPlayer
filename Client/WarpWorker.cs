@@ -14,6 +14,7 @@ namespace DarkMultiPlayer
         private Client parent;
         //A list of lowest rates in MCW_LOWEST mode.
         private Dictionary<string, PlayerWarpRate> clientWarpList;
+        //A list of the subspaces that all the clients belong to.
         private Dictionary<string, int> clientSubspaceList;
         //The player that can control warp in MCW_VOTE mode.
         private PlayerWarpRate lastSendRate;
@@ -604,6 +605,55 @@ namespace DarkMultiPlayer
         public int GetClientSubspace(string playerName)
         {
             return clientSubspaceList.ContainsKey(playerName) ? clientSubspaceList[playerName] : -1;
+        }
+
+        public List<int> GetActiveSubspaces()
+        {
+            SortedList<double, int> sortedList = new SortedList<double, int>();
+            sortedList.Add(parent.timeSyncer.GetUniverseTime(), parent.timeSyncer.currentSubspace);
+            foreach (KeyValuePair<string, int> clientSubspace in clientSubspaceList)
+            {
+                if (!sortedList.ContainsValue(clientSubspace.Value))
+                {
+                    //Normal subspace
+                    sortedList.Add(parent.timeSyncer.GetUniverseTime(clientSubspace.Value), clientSubspace.Value);
+                }
+            }
+            List<int> returnList = new List<int>();
+            foreach (KeyValuePair<double, int> subspaceID in sortedList)
+            {
+                returnList.Add(subspaceID.Value);
+            }
+            returnList.Reverse();
+            return returnList;
+        }
+
+        public List<string> GetClientsInSubspace(int subspace)
+        {
+            List<string> returnList = new List<string>();
+            //Add other players
+            foreach (KeyValuePair<string, int> clientSubspace in clientSubspaceList)
+            {
+                if (clientSubspace.Value == subspace)
+                {
+                    returnList.Add(clientSubspace.Key);
+                }
+            }
+            returnList.Sort();
+            //Add us if we are in the subspace
+            if (parent.timeSyncer.currentSubspace == subspace)
+            {
+                //We are on top!
+                returnList.Insert(0, parent.settings.playerName);
+            }
+            return returnList;
+        }
+
+        public void RemovePlayer (string playerName)
+        {
+            if (clientSubspaceList.ContainsKey(playerName)) {
+                clientSubspaceList.Remove(playerName);
+            }
         }
 
         public void Reset()

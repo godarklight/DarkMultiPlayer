@@ -890,6 +890,7 @@ namespace DarkMultiPlayerServer
 
         private static void SendAllSubspaces(ClientObject client)
         {
+            //Send all the locks.
             foreach (KeyValuePair<int, Subspace> subspace in subspaces)
             {
                 ServerMessage newMessage = new ServerMessage();
@@ -905,6 +906,23 @@ namespace DarkMultiPlayerServer
                     newMessage.data = mw.GetMessageBytes();
                 }
                 SendToClient(client, newMessage, true);
+            }
+            //Tell the player "when" everyone is.
+            foreach (ClientObject otherClient in clients)
+            {
+                if (otherClient.authenticated && (otherClient.playerName != client.playerName))
+                {
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.WARP_CONTROL;
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
+                        mw.Write<string>(otherClient.playerName);
+                        mw.Write<int>(otherClient.subspace);
+                        newMessage.data = mw.GetMessageBytes();
+                    }
+                    SendToClient(client, newMessage, true);
+                }
             }
         }
 

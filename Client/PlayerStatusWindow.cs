@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 
@@ -21,17 +22,22 @@ namespace DarkMultiPlayer
         private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
         private GUILayoutOption[] minLayoutOptions;
+        //Styles
         private GUIStyle windowStyle;
+        private GUIStyle subspaceStyle;
         private GUIStyle buttonStyle;
-        private GUIStyle warpButtonStyle;
         private GUIStyle scrollStyle;
-        //Shamelessly stolen from KMP
         private GUIStyle playerNameStyle;
         private GUIStyle vesselNameStyle;
         private GUIStyle stateTextStyle;
+        //Player status dictionaries
+        private List<int> activeSubspaces;
+        private Dictionary<int, List<string>> subspacePlayers;
+        private double lastStatusUpdate;
         //const
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 400;
+        private const float UPDATE_STATUS_INTERVAL = .2f;
 
         public PlayerStatusWindow(Client parent)
         {
@@ -53,6 +59,9 @@ namespace DarkMultiPlayer
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
+            subspaceStyle = new GUIStyle();
+            subspaceStyle.normal.background = new Texture2D(1, 1);
+            subspaceStyle.normal.background.SetPixel(0, 0, Color.black);
 
             layoutOptions = new GUILayoutOption[4];
             layoutOptions[0] = GUILayout.MinWidth(WINDOW_WIDTH);
@@ -64,35 +73,50 @@ namespace DarkMultiPlayer
             minLayoutOptions[0] = GUILayout.MinWidth(40);
             minLayoutOptions[1] = GUILayout.MinHeight(20);
 
-            //"Borrowed" from KMP.
+            //Adapted from KMP.
             playerNameStyle = new GUIStyle(GUI.skin.label);
             playerNameStyle.normal.textColor = Color.white;
             playerNameStyle.hover.textColor = Color.white;
             playerNameStyle.active.textColor = Color.white;
-            playerNameStyle.alignment = TextAnchor.MiddleLeft;
-            playerNameStyle.margin = new RectOffset(0, 0, 2, 0);
-            playerNameStyle.padding = new RectOffset(0, 0, 0, 0);
-            playerNameStyle.stretchWidth = true;
             playerNameStyle.fontStyle = FontStyle.Bold;
+            playerNameStyle.stretchWidth = true;
+            playerNameStyle.wordWrap = false;
 
             vesselNameStyle = new GUIStyle(GUI.skin.label);
             vesselNameStyle.normal.textColor = Color.white;
+            vesselNameStyle.hover.textColor = vesselNameStyle.normal.textColor;
+            vesselNameStyle.active.textColor = vesselNameStyle.normal.textColor;
+            vesselNameStyle.fontStyle = FontStyle.Normal;
+            vesselNameStyle.fontSize = 12;
             vesselNameStyle.stretchWidth = true;
-            vesselNameStyle.fontStyle = FontStyle.Bold;
-            vesselNameStyle.margin = new RectOffset(4, 0, 0, 0);
-            vesselNameStyle.alignment = TextAnchor.LowerLeft;
-            vesselNameStyle.padding = new RectOffset(0, 0, 0, 0);
 
             stateTextStyle = new GUIStyle(GUI.skin.label);
             stateTextStyle.normal.textColor = new Color(0.75f, 0.75f, 0.75f);
-            stateTextStyle.margin = new RectOffset(4, 0, 0, 0);
-            stateTextStyle.padding = new RectOffset(0, 0, 0, 0);
-            stateTextStyle.stretchWidth = true;
+            stateTextStyle.hover.textColor = stateTextStyle.normal.textColor;
+            stateTextStyle.active.textColor = stateTextStyle.normal.textColor;
             stateTextStyle.fontStyle = FontStyle.Normal;
             stateTextStyle.fontSize = 12;
+            stateTextStyle.stretchWidth = true;
 
-            warpButtonStyle = new GUIStyle(GUI.skin.button);
-            warpButtonStyle.fontSize = 10;
+            activeSubspaces = new List<int>();
+            subspacePlayers = new Dictionary<int, List<string>>();
+        }
+
+        public void Update()
+        {
+            if (display)
+            {
+                if ((UnityEngine.Time.realtimeSinceStartup - lastStatusUpdate) > UPDATE_STATUS_INTERVAL)
+                {
+                    lastStatusUpdate = UnityEngine.Time.realtimeSinceStartup;
+                    activeSubspaces = parent.warpWorker.GetActiveSubspaces();
+                    subspacePlayers.Clear();
+                    foreach (int subspace in activeSubspaces)
+                    {
+                        subspacePlayers.Add(subspace, parent.warpWorker.GetClientsInSubspace(subspace));
+                    }
+                }
+            }
         }
 
         public void Draw()
@@ -131,20 +155,45 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndHorizontal();
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollStyle);
-            DrawPlayerEntry(parent.playerStatusWorker.myPlayerStatus);
-            foreach (PlayerStatus playerStatus in parent.playerStatusWorker.playerStatusList)
+            foreach (int activeSubspace in activeSubspaces)
             {
-                DrawPlayerEntry(playerStatus);
-                int clientSubspace = parent.warpWorker.GetClientSubspace(playerStatus.playerName);
-                if ((parent.warpWorker.warpMode == WarpMode.SUBSPACE) && (parent.timeSyncer.currentSubspace != -1) && (clientSubspace != -1) && (clientSubspace != parent.timeSyncer.currentSubspace))
+                double ourtime = (parent.timeSyncer.currentSubspace != -1) ? parent.timeSyncer.GetUniverseTime() : Planetarium.GetUniversalTime();
+                double diffTime = parent.timeSyncer.GetUniverseTime(activeSubspace) - ourtime;
+                string diffState = "NOW";
+                if (activeSubspace != -1)
                 {
-                    double timeDiff = parent.timeSyncer.GetUniverseTime(clientSubspace) - parent.timeSyncer.GetUniverseTime();
-                    if (timeDiff > 0)
+                    if (activeSubspace != parent.timeSyncer.currentSubspace)
                     {
-                        if (GUILayout.Button("Sync to " + playerStatus.playerName + " (" + SecondsToString(timeDiff) + " in the future)", warpButtonStyle))
+                        diffState = (diffTime > 0) ? SecondsToVeryShortString((int)diffTime) + " in the future" : SecondsToVeryShortString(-(int)diffTime) + " in the past";
+                    }
+                }
+                else
+                {
+                    diffState = "Unknown";
+                }
+                GUILayout.BeginHorizontal(subspaceStyle);
+                GUILayout.Label("T+ " + SecondsToShortString((int)parent.timeSyncer.GetUniverseTime(activeSubspace)) + " - " + diffState);
+                if ((activeSubspace != parent.timeSyncer.currentSubspace) && (activeSubspace != -1))
+                {
+                    GUILayout.FlexibleSpace();
+                    if (parent.warpWorker.warpMode == WarpMode.SUBSPACE)
+                    {
+                        if (GUILayout.Button("Sync", buttonStyle))
                         {
-                            parent.timeSyncer.LockSubspace(clientSubspace);
+                            parent.timeSyncer.LockSubspace(activeSubspace);
                         }
+                    }
+                }
+                GUILayout.EndHorizontal();
+                foreach (string activeclient in subspacePlayers[activeSubspace])
+                {
+                    if (activeclient == parent.settings.playerName)
+                    {
+                        DrawPlayerEntry(parent.playerStatusWorker.myPlayerStatus);
+                    }
+                    else
+                    {
+                        DrawPlayerEntry(parent.playerStatusWorker.GetPlayerStatus(activeclient));
                     }
                 }
             }
@@ -153,7 +202,8 @@ namespace DarkMultiPlayer
             displayNTP = GUILayout.Toggle(displayNTP, "Display subspace status", buttonStyle);
             if (displayNTP)
             {
-                string ntpText = "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
+                string ntpText = "Warp rate: " + Math.Round(Time.timeScale , 3) + "x.\n";
+                ntpText += "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
                 ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
                 ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                 ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
@@ -168,22 +218,22 @@ namespace DarkMultiPlayer
             GUILayout.EndVertical();
         }
 
-        private string SecondsToString(double time)
+        private string SecondsToLongString(int time)
         {
-            int years = (int)time / (60 * 60 * 24 * 7 * 4 * 52);
-            time -= years * (60 * 60 * 24 * 7 * 4 * 52);
             //Every month is feburary ok?
-            int months = (int)time / (60 * 60 * 24 * 7 * 4);
+            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
+            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
+            int months = time / (60 * 60 * 24 * 7 * 4);
             time -= months * (60 * 60 * 24 * 7 * 4);
-            int weeks = (int)time / (60 * 60 * 24 * 7);
+            int weeks = time / (60 * 60 * 24 * 7);
             time -= weeks * (60 * 60 * 24 * 7);
-            int days = (int)time / (60 * 60 * 24);
+            int days = time / (60 * 60 * 24);
             time -= days * (60 * 60 * 24);
-            int hours = (int)time / (60 * 60);
+            int hours = time / (60 * 60);
             time -= hours * (60 * 60);
-            int minutes = (int)time / 60;
+            int minutes = time / 60;
             time -= minutes * 60;
-            int seconds = (int)time;
+            int seconds = time;
             string returnString = "";
             if (years > 0)
             {
@@ -275,18 +325,170 @@ namespace DarkMultiPlayer
             {
                 returnString += ", ";
             }
-            if (seconds > 0)
+            if (seconds == 1)
             {
-                if (days == 1)
+                returnString += "1 second";
+            }
+            else
+            {
+                returnString += seconds + " seconds";
+            }
+            return returnString;
+        }
+
+        private string SecondsToShortString(int time)
+        {
+            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
+            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
+            int months = time / (60 * 60 * 24 * 7 * 4);
+            time -= months * (60 * 60 * 24 * 7 * 4);
+            int weeks = time / (60 * 60 * 24 * 7);
+            time -= weeks * (60 * 60 * 24 * 7);
+            int days = time / (60 * 60 * 24);
+            time -= days * (60 * 60 * 24);
+            int hours = time / (60 * 60);
+            time -= hours * (60 * 60);
+            int minutes = time / 60;
+            time -= minutes * 60;
+            int seconds = time;
+            string returnString = "";
+            if (years > 0)
+            {
+                if (years == 1)
                 {
-                    returnString += "1 second";
+                    returnString += "1y, ";
                 }
                 else
                 {
-                    returnString += seconds + " seconds";
+                    returnString += years + "y, ";
                 }
             }
+            if (months > 0)
+            {
+                if (months == 1)
+                {
+                    returnString += "1m, ";
+                }
+                else
+                {
+                    returnString += months + "m, ";
+                }
+            }
+            if (weeks > 0)
+            {
+                if (weeks == 1)
+                {
+                    returnString += "1w, ";
+                }
+                else
+                {
+                    returnString += weeks + "w, ";
+                }
+            }
+            if (days > 0)
+            {
+                if (days == 1)
+                {
+                    returnString += "1d, ";
+                }
+                else
+                {
+                    returnString += days + "d, ";
+                }
+            }
+            returnString += hours.ToString("00") + ":" + minutes.ToString("00") + ":" + seconds.ToString("00");
             return returnString;
+        }
+
+        private string SecondsToVeryShortString(int time)
+        {
+            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
+            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
+            int months = time / (60 * 60 * 24 * 7 * 4);
+            time -= months * (60 * 60 * 24 * 7 * 4);
+            int weeks = time / (60 * 60 * 24 * 7);
+            time -= weeks * (60 * 60 * 24 * 7);
+            int days = time / (60 * 60 * 24);
+            time -= days * (60 * 60 * 24);
+            int hours = time / (60 * 60);
+            time -= hours * (60 * 60);
+            int minutes = time / 60;
+            time -= minutes * 60;
+            int seconds = time;
+            if (years > 0)
+            {
+                if (years == 1)
+                {
+                    return "1 year";
+                }
+                else
+                {
+                    return years + " years";
+                }
+            }
+            if (months > 0)
+            {
+                if (months == 1)
+                {
+                    return "1 month";
+                }
+                else
+                {
+                    return months + " months";
+                }
+            }
+            if (weeks > 0)
+            {
+                if (weeks == 1)
+                {
+                    return "1 week";
+                }
+                else
+                {
+                    return weeks + " weeks";
+                }
+            }
+            if (days > 0)
+            {
+                if (days == 1)
+                {
+                    return "1 day";
+                }
+                else
+                {
+                    return days + " days";
+                }
+            }
+            if (hours > 0)
+            {
+                if (hours == 1)
+                {
+                    return "1 hour";
+                }
+                else
+                {
+                    return hours + " hours";
+                }
+            }
+            if (minutes > 0)
+            {
+                if (minutes == 1)
+                {
+                    return "1 minute";
+                }
+                else
+                {
+                    return minutes + " minutes";
+                }
+            }
+            if (seconds == 1)
+            {
+                return "1 second";
+            }
+            else
+            {
+                return seconds + " seconds";
+            }
         }
 
         private void DrawMaximize(int windowID)
@@ -306,15 +508,19 @@ namespace DarkMultiPlayer
 
         private void DrawPlayerEntry(PlayerStatus playerStatus)
         {
+            if (playerStatus == null)
+            {
+                //Just connected or disconnected.
+                return;
+            }
+            GUILayout.BeginHorizontal();
             GUILayout.Label(playerStatus.playerName, playerNameStyle);
+            GUILayout.FlexibleSpace();
+            GUILayout.Label(playerStatus.statusText, stateTextStyle);
+            GUILayout.EndHorizontal();
             if (playerStatus.vesselText != "")
             {
-                GUILayout.Label(playerStatus.vesselText, vesselNameStyle);
-                GUILayout.Label(playerStatus.statusText, stateTextStyle);
-            }
-            else
-            {
-                GUILayout.Label(playerStatus.statusText, stateTextStyle);
+                GUILayout.Label("Pilot: " + playerStatus.vesselText, vesselNameStyle);
             }
         }
     }

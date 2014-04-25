@@ -537,7 +537,9 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 string playerName = mr.Read<string>();
+                parent.warpWorker.RemovePlayer(playerName);
                 parent.playerStatusWorker.RemovePlayerStatus(playerName);
+
             }
         }
 

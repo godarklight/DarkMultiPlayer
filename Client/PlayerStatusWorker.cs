@@ -10,9 +10,8 @@ namespace DarkMultiPlayer
         private Client parent;
         private Queue<PlayerStatus> addStatusQueue;
         private Queue<string> removeStatusQueue;
-        //Read from PlayerStatusWindow.
         public PlayerStatus myPlayerStatus;
-        public PlayerStatus lastPlayerStatus;
+        private PlayerStatus lastPlayerStatus;
         public List<PlayerStatus> playerStatusList;
         private const float PLAYER_STATUS_CHECK_INTERVAL = .2f;
         private const float PLAYER_STATUS_SEND_THROTTLE = 1f;
@@ -190,6 +189,20 @@ namespace DarkMultiPlayer
         public void RemovePlayerStatus(string playerName)
         {
             removeStatusQueue.Enqueue(playerName);
+        }
+
+        public PlayerStatus GetPlayerStatus(string playerName)
+        {
+            PlayerStatus returnStatus = null;
+            foreach (PlayerStatus ps in playerStatusList)
+            {
+                if (ps.playerName == playerName)
+                {
+                    returnStatus = ps;
+                    break;
+                }
+            }
+            return returnStatus;
         }
 
         public void Reset()
