@@ -145,6 +145,7 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
+            parent.chatWindow.display = GUILayout.Toggle(parent.chatWindow.display, "C", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minWindowRect.xMax = windowRect.xMax;

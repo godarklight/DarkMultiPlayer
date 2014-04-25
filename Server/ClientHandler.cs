@@ -38,7 +38,6 @@ namespace DarkMultiPlayerServer
                 foreach (ClientObject client in clients)
                 {
                     CheckHeartBeat(client);
-                    //HandleClientMessages(client);
                     SendOutgoingMessages(client);
                 }
                 //Delete old clients
@@ -432,6 +431,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.HANDSHAKE_REQUEST:
                         HandleHandshakeRequest(client, message.data);
                         break;
+                    case ClientMessageType.CHAT_MESSAGE:
+                        HandleChatMessage(client, message.data);
+                        break;
                     case ClientMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(client, message.data);
                         break;
@@ -514,6 +516,18 @@ namespace DarkMultiPlayerServer
                 }
                 if (handshakeReponse == 0)
                 {
+                    //Check client isn't already connected
+                    foreach (ClientObject testClient in clients)
+                    {
+                        if ("Server" == playerName)
+                        {
+                            handshakeReponse = 3;
+                            reason = "Kicked for using a reserved name";
+                        }
+                    }
+                }
+                if (handshakeReponse == 0)
+                {
                     //Check the client matches any database entry
                     string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
                     string storedPlayerGuid = "";
@@ -525,7 +539,7 @@ namespace DarkMultiPlayerServer
                         }
                         if (playerGuid != storedPlayerGuid)
                         {
-                            handshakeReponse = 3;
+                            handshakeReponse = 4;
                             reason = "Invalid player token for user";
                         }
                     }
@@ -565,6 +579,22 @@ namespace DarkMultiPlayerServer
                 SendHandshakeReply(client, 99);
                 SendConnectionEnd(client, "Malformed handshake");
             }
+        }
+
+        private static void HandleChatMessage(ClientObject client, byte[] messageData)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            newMessage.data = messageData;
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string playerName = mr.Read<string>();
+                string playerText = mr.Read<string>();
+                DarkLog.Normal(playerName + ": " + playerText);
+            }
+            //Relay it back and to the other clients.
+            SendToClient(client, newMessage, true);
+            SendToAll(client, newMessage, true);
         }
 
         private static void HandleSyncTimeRequest(ClientObject client, byte[] messageData)

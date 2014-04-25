@@ -56,6 +56,7 @@
     <Compile Include="WarpWorker.cs" />
     <Compile Include="PlayerStatusWindow.cs" />
     <Compile Include="PlayerStatusWorker.cs" />
+    <Compile Include="ChatWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

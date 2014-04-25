@@ -424,6 +424,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HANDSHAKE_REPLY:
                         HandleHanshakeReply(message.data);
                         break;
+                    case ServerMessageType.CHAT_MESSAGE:
+                        HandleChatMessage(message.data);
+                        break;
                     case ServerMessageType.SERVER_SETTINGS:
                         HandleServerSettings(message.data);
                         break;
@@ -504,6 +507,16 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Handshake failed, reason " + reply);
                     //Server disconnects us.
                     break;
+            }
+        }
+
+        private void HandleChatMessage(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string playerName = mr.Read<string>();
+                string chatText = mr.Read<string>();
+                parent.chatWindow.QueueChatEntry(playerName, chatText);
             }
         }
 
@@ -740,6 +753,21 @@ namespace DarkMultiPlayer
             }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.HANDSHAKE_REQUEST;
+            newMessage.data = messageBytes;
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+        //Called from ChatWindow
+        public void SendChatMessage(string chatMessage)
+        {
+            byte[] messageBytes;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string>(parent.settings.playerName);
+                mw.Write<string>(chatMessage);
+                messageBytes = mw.GetMessageBytes();
+            }
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.CHAT_MESSAGE;
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
         }

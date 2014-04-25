@@ -25,6 +25,7 @@ namespace DarkMultiPlayer
         public Settings settings;
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
+        public ChatWindow chatWindow;
 
         public void Awake()
         {
@@ -38,6 +39,7 @@ namespace DarkMultiPlayer
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
+            chatWindow = new ChatWindow(this);
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
 
@@ -121,10 +123,11 @@ namespace DarkMultiPlayer
             playerStatusWindow.safeMinimized = playerStatusWindow.minmized;
 
             //Call the update hooks
-            playerStatusWindow.Update();
             networkWorker.Update();
             playerStatusWorker.Update();
             warpWorker.Update();
+            playerStatusWindow.Update();
+            chatWindow.Update();
 
             //Force quit
             if (forceQuit)
@@ -155,6 +158,7 @@ namespace DarkMultiPlayer
         {
             connectionWindow.Draw();
             playerStatusWindow.Draw();
+            chatWindow.Draw();
         }
 
         public void OnDestroy()
@@ -177,6 +181,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Started!");
             Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            chatWindow.display = true;
         }
 
         private void StopGame()
@@ -194,6 +199,7 @@ namespace DarkMultiPlayer
             vesselWorker.Reset();
             playerStatusWorker.Reset();
             warpWorker.Reset();
+            chatWindow.Reset();
         }
 
         private void SetupDirectoriesIfNeeded()
