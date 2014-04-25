@@ -226,10 +226,11 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Vessel " + vessel.id + " reported as destroyed");
                 parent.networkWorker.SendVesselRemove(vessel.id.ToString());
-                foreach (int id in assignedKerbals.Keys)
+                for (int kerbalID = assignedKerbals.Count; kerbalID >= 0; kerbalID--)
                 {
-                    if (assignedKerbals[id] == vessel.id.ToString().Replace("-", "")) {
-                        DarkLog.Debug("Kerbal " + id + " unassigned from " + vessel.id + ", name: " + vessel.vesselName);
+                    if (assignedKerbals[kerbalID] == vessel.id.ToString().Replace("-", "")) {
+                        DarkLog.Debug("Kerbal " + kerbalID + " unassigned from " + vessel.id + ", name: " + vessel.vesselName);
+                        assignedKerbals.Remove(kerbalID);
                     }
                 }
             }
