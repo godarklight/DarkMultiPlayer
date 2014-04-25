@@ -56,7 +56,7 @@ namespace DarkMultiPlayer
             //Hooks
             if (enabled && !registered)
             {
-                //GameEvents.debugEvents = true;
+                GameEvents.debugEvents = true;
                 registered = true;
                 GameEvents.onVesselDestroy.Add(OnVesselDestroy);
                 GameEvents.onVesselRecovered.Add(OnVesselRecovered);
@@ -225,10 +225,13 @@ namespace DarkMultiPlayer
             if (HighLogic.LoadedScene == GameScenes.FLIGHT || HighLogic.LoadedScene == GameScenes.TRACKSTATION)
             {
                 DarkLog.Debug("Vessel " + vessel.id + " reported as destroyed");
-            }
-            else
-            {
-                DarkLog.Debug("Vessel " + vessel.id + " reported as destroyed (ignored)");
+                parent.networkWorker.SendVesselRemove(vessel.id.ToString());
+                foreach (int id in assignedKerbals.Keys)
+                {
+                    if (assignedKerbals[id] == vessel.id.ToString().Replace("-", "")) {
+                        DarkLog.Debug("Kerbal " + id + " unassigned from " + vessel.id + ", name: " + vessel.vesselName);
+                    }
+                }
             }
         }
 
