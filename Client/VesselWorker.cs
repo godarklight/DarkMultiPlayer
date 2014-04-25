@@ -32,6 +32,7 @@ namespace DarkMultiPlayer
         private string lastVessel;
         //Known kerbals
         private Dictionary<int, ProtoCrewMember> serverKerbals;
+        public Dictionary<int, string> assignedKerbals;
         //Known vessels and last send/receive time
         private Dictionary<string, float> serverVesselsProtoUpdate;
         private Dictionary<string, float> serverVesselsPositionUpdate;
@@ -581,10 +582,68 @@ namespace DarkMultiPlayer
             }
         }
 
+        //Thanks KMP :)
+        private void checkProtoNodeCrew(ConfigNode protoNode)
+        {
+            string protoVesselID = protoNode.GetValue("pid");
+            foreach (ConfigNode partNode in protoNode.GetNodes("PART"))
+            {
+                int currentCrewIndex = 0;
+                foreach (string crew in partNode.GetValues("crew"))
+                {
+                    int crewValue = Convert.ToInt32(crew);
+                    DarkLog.Debug("Protovessel: " + protoVesselID + " crew value " + crewValue);
+                    if (assignedKerbals.ContainsKey(crewValue) ? assignedKerbals[crewValue] != protoVesselID : false)
+                    {
+                        DarkLog.Debug("Kerbal taken!");
+                        if (assignedKerbals[crewValue] != protoVesselID)
+                        {
+                            //Assign a new kerbal, this one already belongs to another ship.
+                            int freeKerbal = 0;
+                            while (assignedKerbals.ContainsKey(freeKerbal))
+                            {
+                                freeKerbal++;
+                            }
+                            partNode.SetValue("crew", freeKerbal.ToString(), currentCrewIndex);
+                            CheckCrewMemberExists(freeKerbal);
+                            HighLogic.CurrentGame.CrewRoster[freeKerbal].rosterStatus = ProtoCrewMember.RosterStatus.ASSIGNED;
+                            HighLogic.CurrentGame.CrewRoster[freeKerbal].seatIdx = currentCrewIndex;
+                            DarkLog.Debug("Fixing duplicate kerbal reference, changing kerbal " + currentCrewIndex + " to " + freeKerbal);
+                            crewValue = freeKerbal;
+                            assignedKerbals[crewValue] = protoVesselID;
+                            currentCrewIndex++;
+                        }
+                    }
+                    else
+                    {
+                        assignedKerbals[crewValue] = protoVesselID;
+                        CheckCrewMemberExists(crewValue);
+                        HighLogic.CurrentGame.CrewRoster[crewValue].rosterStatus = ProtoCrewMember.RosterStatus.ASSIGNED;
+                        HighLogic.CurrentGame.CrewRoster[crewValue].seatIdx = currentCrewIndex;
+                    }
+                    crewValue++;
+                }
+            }   
+        }
+        //Again - KMP :)
+        private void CheckCrewMemberExists(int kerbalID)
+        {
+            IEnumerator<ProtoCrewMember> crewEnum = HighLogic.CurrentGame.CrewRoster.GetEnumerator();
+            int applicants = 0;
+            while (crewEnum.MoveNext())
+            {
+                if (crewEnum.Current.rosterStatus == ProtoCrewMember.RosterStatus.AVAILABLE)
+                    applicants++;
+            }
+        }
+
         private void LoadVessel(ConfigNode vesselNode)
         {
             if (vesselNode != null)
             {
+                //Fix the kerbals (Tracking station bug)
+                checkProtoNodeCrew(vesselNode);
+
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
                 if (currentProto != null)
                 {
@@ -852,6 +911,7 @@ namespace DarkMultiPlayer
             vesselProtoQueue = new Dictionary<int, Queue<VesselProtoUpdate>>();
             vesselUpdateQueue = new Dictionary<int, Queue<VesselUpdate>>();
             serverKerbals = new Dictionary<int, ProtoCrewMember>();
+            assignedKerbals = new Dictionary<int, string>();
             serverVesselsProtoUpdate = new Dictionary<string, float>();
             serverVesselsPositionUpdate = new Dictionary<string, float>();
             inUse = new Dictionary<string, string>();
