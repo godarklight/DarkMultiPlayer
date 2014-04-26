@@ -745,6 +745,7 @@ namespace DarkMultiPlayerServer
                 string vesselID = mr.Read<string>();
                 if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
                 {
+                    DarkLog.Debug("Removing vessel " + vesselID + " from " + client.playerName);
                     File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
                     //Relay the message.
                 }
