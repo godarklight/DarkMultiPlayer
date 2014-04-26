@@ -25,7 +25,7 @@ namespace DarkMultiPlayer
         private Vector2 scrollPos;
         //const
         private const float WINDOW_HEIGHT = 200;
-        private const float WINDOW_WIDTH = 400;
+        private const float WINDOW_WIDTH = 300;
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
@@ -40,7 +40,7 @@ namespace DarkMultiPlayer
         private void InitGUI()
         {
             //Setup GUI stuff
-            windowRect = new Rect(100 + WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
+            windowRect = new Rect(Screen.width / 10, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
             moveRect = new Rect(0, 0, 10000, 20);
 
             layoutOptions = new GUILayoutOption[4];

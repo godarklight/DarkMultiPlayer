@@ -36,7 +36,7 @@ namespace DarkMultiPlayer
         private double lastStatusUpdate;
         //const
         private const float WINDOW_HEIGHT = 400;
-        private const float WINDOW_WIDTH = 400;
+        private const float WINDOW_WIDTH = 300;
         private const float UPDATE_STATUS_INTERVAL = .2f;
 
         public PlayerStatusWindow(Client parent)

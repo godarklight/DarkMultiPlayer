@@ -49,116 +49,137 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            //Write new log entries
-            DarkLog.Update();
-            if (displayDisconnectMessage)
+            try
             {
-                if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                //Write new log entries
+                DarkLog.Update();
+                if (displayDisconnectMessage)
                 {
-                    displayDisconnectMessage = false;
-                }
-                else
-                {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                    if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                     {
-                        lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
-                        if (disconnectMessage != null)
+                        displayDisconnectMessage = false;
+                    }
+                    else
+                    {
+                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
                         {
-                            disconnectMessage.duration = 0;
+                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                            if (disconnectMessage != null)
+                            {
+                                disconnectMessage.duration = 0;
+                            }
+                            disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
                         }
-                        disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
                     }
                 }
-            }
-            //Handle GUI events
-            if (!playerStatusWindow.disconnectEventHandled)
-            {
-                playerStatusWindow.disconnectEventHandled = true;
-                forceQuit = true;
-                networkWorker.SendDisconnect("Quit");
-            }
-            if (!connectionWindow.renameEventHandled)
-            {
-                playerStatusWorker.myPlayerStatus.playerName = settings.playerName;
-                settings.SaveSettings();
-                connectionWindow.renameEventHandled = true;
-            }
-            if (!connectionWindow.addEventHandled)
-            {
-                settings.servers.Add(connectionWindow.addEntry);
-                connectionWindow.addEntry = null;
-                settings.SaveSettings();
-                connectionWindow.addingServer = false;
-                connectionWindow.addEventHandled = true;
-            }
-            if (!connectionWindow.editEventHandled)
-            {
-                settings.servers[connectionWindow.selected].name = connectionWindow.editEntry.name;
-                settings.servers[connectionWindow.selected].address = connectionWindow.editEntry.address;
-                settings.servers[connectionWindow.selected].port = connectionWindow.editEntry.port;
-                connectionWindow.editEntry = null;
-                settings.SaveSettings();
-                connectionWindow.addingServer = false;
-                connectionWindow.editEventHandled = true;
-            }
-            if (!connectionWindow.removeEventHandled)
-            {
-                settings.servers.RemoveAt(connectionWindow.selected);
-                connectionWindow.selected = -1;
-                settings.SaveSettings();
-                connectionWindow.removeEventHandled = true;
-            }
-            if (!connectionWindow.connectEventHandled)
-            {
-                networkWorker.ConnectToServer(settings.servers[connectionWindow.selected].address, settings.servers[connectionWindow.selected].port);
-                connectionWindow.connectEventHandled = true;
-            }
+                //Handle GUI events
+                if (!playerStatusWindow.disconnectEventHandled)
+                {
+                    playerStatusWindow.disconnectEventHandled = true;
+                    forceQuit = true;
+                    networkWorker.SendDisconnect("Quit");
+                }
+                if (!connectionWindow.renameEventHandled)
+                {
+                    playerStatusWorker.myPlayerStatus.playerName = settings.playerName;
+                    settings.SaveSettings();
+                    connectionWindow.renameEventHandled = true;
+                }
+                if (!connectionWindow.addEventHandled)
+                {
+                    settings.servers.Add(connectionWindow.addEntry);
+                    connectionWindow.addEntry = null;
+                    settings.SaveSettings();
+                    connectionWindow.addingServer = false;
+                    connectionWindow.addEventHandled = true;
+                }
+                if (!connectionWindow.editEventHandled)
+                {
+                    settings.servers[connectionWindow.selected].name = connectionWindow.editEntry.name;
+                    settings.servers[connectionWindow.selected].address = connectionWindow.editEntry.address;
+                    settings.servers[connectionWindow.selected].port = connectionWindow.editEntry.port;
+                    connectionWindow.editEntry = null;
+                    settings.SaveSettings();
+                    connectionWindow.addingServer = false;
+                    connectionWindow.editEventHandled = true;
+                }
+                if (!connectionWindow.removeEventHandled)
+                {
+                    settings.servers.RemoveAt(connectionWindow.selected);
+                    connectionWindow.selected = -1;
+                    settings.SaveSettings();
+                    connectionWindow.removeEventHandled = true;
+                }
+                if (!connectionWindow.connectEventHandled)
+                {
+                    networkWorker.ConnectToServer(settings.servers[connectionWindow.selected].address, settings.servers[connectionWindow.selected].port);
+                    connectionWindow.connectEventHandled = true;
+                }
 
-            //Stop GUI from freaking out
-            connectionWindow.status = status;
-            connectionWindow.selectedSafe = connectionWindow.selected;
-            connectionWindow.addingServerSafe = connectionWindow.addingServer;
-            connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
-            playerStatusWindow.display = gameRunning;
-            playerStatusWindow.safeMinimized = playerStatusWindow.minmized;
+                //Stop GUI from freaking out
+                connectionWindow.status = status;
+                connectionWindow.selectedSafe = connectionWindow.selected;
+                connectionWindow.addingServerSafe = connectionWindow.addingServer;
+                connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
+                playerStatusWindow.display = gameRunning;
+                playerStatusWindow.safeMinimized = playerStatusWindow.minmized;
 
-            //Call the update hooks
-            networkWorker.Update();
-            playerStatusWorker.Update();
-            warpWorker.Update();
-            playerStatusWindow.Update();
-            chatWindow.Update();
+                //Call the update hooks
+                networkWorker.Update();
+                playerStatusWorker.Update();
+                warpWorker.Update();
+                playerStatusWindow.Update();
+                chatWindow.Update();
 
-            //Force quit
-            if (forceQuit)
-            {
-                forceQuit = false;
-                gameRunning = false;
-                ResetWorkers();
-                networkWorker.SendDisconnect("Force quit to main menu");
-                StopGame();
+                //Force quit
+                if (forceQuit)
+                {
+                    forceQuit = false;
+                    gameRunning = false;
+                    ResetWorkers();
+                    networkWorker.SendDisconnect("Force quit to main menu");
+                    StopGame();
+                }
+
+                //Normal quit
+                if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
+                {
+                    gameRunning = false;
+                    ResetWorkers();
+                    networkWorker.SendDisconnect("Quit to main menu");
+                }
             }
-
-            //Normal quit
-            if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
+            catch (Exception e)
             {
-                gameRunning = false;
-                ResetWorkers();
-                networkWorker.SendDisconnect("Quit to main menu");
+                DarkLog.Debug("Threw in Update, exception" + e);
             }
         }
 
         public void FixedUpdate()
         {
-            timeSyncer.FixedUpdate();
-            vesselWorker.FixedUpdate();
+            try
+            {
+                timeSyncer.FixedUpdate();
+                vesselWorker.FixedUpdate();
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Threw in FixedUpdate, exception: " + e);
+            }
         }
 
         public void OnGUI()
         {
-            connectionWindow.Draw();
-            playerStatusWindow.Draw();
-            chatWindow.Draw();
+            try
+            {
+                connectionWindow.Draw();
+                playerStatusWindow.Draw();
+                chatWindow.Draw();
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Threw in OnGUI, exception: " + e);
+            }
         }
 
         public void OnDestroy()
