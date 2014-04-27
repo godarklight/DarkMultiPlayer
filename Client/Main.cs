@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
         public ChatWindow chatWindow;
+        private QuickSaveLoader quickSaveLoader;
 
         public void Awake()
         {
@@ -39,6 +40,7 @@ namespace DarkMultiPlayer
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
+            quickSaveLoader = new QuickSaveLoader(this);
             chatWindow = new ChatWindow(this);
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
@@ -130,6 +132,7 @@ namespace DarkMultiPlayer
                 warpWorker.Update();
                 playerStatusWindow.Update();
                 chatWindow.Update();
+                quickSaveLoader.Update();
 
                 //Force quit
                 if (forceQuit)
@@ -193,6 +196,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.CrewRoster = new CrewRoster();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
+            HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
             HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetUniverseTime();
             vesselWorker.LoadKerbalsIntoGame();

@@ -57,6 +57,7 @@
     <Compile Include="PlayerStatusWindow.cs" />
     <Compile Include="PlayerStatusWorker.cs" />
     <Compile Include="ChatWindow.cs" />
+    <Compile Include="QuickSaveLoader.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

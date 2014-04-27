@@ -699,7 +699,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void LoadVessel(ConfigNode vesselNode)
+        //Also called from QuickSaveLoader
+        public void LoadVessel(ConfigNode vesselNode)
         {
             if (vesselNode != null)
             {
