@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using System.IO;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
     public class VesselWorker
     {
         //Parent/client
-        public bool enabled;
+        public bool workerEnabled;
         //Hooks inserted into KSP
-        private bool registered;
+        private bool hooksRegistered;
         //Daddy?
         private Client parent;
         //Update frequency
@@ -30,6 +30,7 @@ namespace DarkMultiPlayer
         private Dictionary<int, Queue<VesselUpdate>> vesselUpdateQueue;
         private Dictionary<int, Queue<KerbalEntry>> kerbalProtoQueue;
         private Queue<ActiveVesselEntry> newActiveVessels;
+        private bool killDuplicateActiveVessels;
         //Vessel state tracking
         private string lastVessel;
         //Known kerbals
@@ -50,19 +51,15 @@ namespace DarkMultiPlayer
         {
             this.parent = parent;
             Reset();
-            if (this.parent != null)
-            {
-                //Shutup compiler
-            }
         }
         //Called from main
         public void FixedUpdate()
         {
             //Hooks
-            if (enabled && !registered)
+            if (workerEnabled && !hooksRegistered)
             {
                 //GameEvents.debugEvents = true;
-                registered = true;
+                hooksRegistered = true;
                 GameEvents.onVesselChange.Add(OnVesselChange);
                 GameEvents.onVesselDestroy.Add(OnVesselDestroy);
                 GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
@@ -75,9 +72,9 @@ namespace DarkMultiPlayer
                 GameEvents.onCrashSplashdown.Add(OnVesselCrashSplashdown);
                 */
             }
-            if (!enabled && registered)
+            if (!workerEnabled && hooksRegistered)
             {
-                registered = false;
+                hooksRegistered = false;
                 GameEvents.onVesselChange.Remove(OnVesselChange);
                 GameEvents.onVesselDestroy.Remove(OnVesselDestroy);
                 GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
@@ -91,8 +88,13 @@ namespace DarkMultiPlayer
                 GameEvents.onCrashSplashdown.Add(OnVesselCrashSplashdown);
                 */
             }
-            if (enabled)
+            if (workerEnabled)
             {
+                if (killDuplicateActiveVessels)
+                {
+                    KillDuplicateActiveVessels();
+                }
+
                 while (newActiveVessels.Count > 0)
                 {
                     ActiveVesselEntry ave = newActiveVessels.Dequeue();
@@ -715,12 +717,15 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
 
                     //Skip active vessel
+                    /*
                     if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == currentProto.vesselID.ToString() : false)
                     {
+
                         DarkLog.Debug("Updating the active vessel is currently not implmented, skipping!");
                         return;
-                    }
 
+                    }
+                    */
 
                     foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
                     {
@@ -730,8 +735,6 @@ namespace DarkMultiPlayer
 
                     bool wasActive = false;
                     bool wasTarget = false;
-                    Vector3d activeVesselPos = Vector3d.zero;
-                    Vector3d activeVesselVel = Vector3d.zero;
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT)
                     {
@@ -746,17 +749,6 @@ namespace DarkMultiPlayer
                         wasActive = (FlightGlobals.ActiveVessel != null) ? (FlightGlobals.ActiveVessel.id == currentProto.vesselID) : false;
                         if (wasActive)
                         {
-                            try
-                            {
-                                OrbitPhysicsManager.HoldVesselUnpack(100);
-                            }
-                            catch
-                            {
-                                //Throw out the update, HVU shouldn't throw if the game is running properly.
-                                return;
-                            }
-                            activeVesselPos = FlightGlobals.ActiveVessel.transform.position;
-                            activeVesselVel = FlightGlobals.ActiveVessel.srf_velocity;
                             DarkLog.Debug("ProtoVessel update for active vessel!");
                         }
                     }
@@ -770,12 +762,6 @@ namespace DarkMultiPlayer
                         if (wasActive)
                         {
                             DarkLog.Debug("Set active vessel");
-                            DarkLog.Debug("Vessel SRF: " + (Vector3)currentProto.vesselRef.srf_velocity);
-                            DarkLog.Debug("Vessel OBT: " + (Vector3)currentProto.vesselRef.orbit.vel);
-                            currentProto.vesselRef.transform.position = activeVesselPos;
-                            currentProto.vesselRef.ChangeWorldVelocity(activeVesselVel - currentProto.vesselRef.srf_velocity);
-                            DarkLog.Debug("Vessel SRF: " + (Vector3)currentProto.vesselRef.srf_velocity);
-                            DarkLog.Debug("Vessel OBT: " + (Vector3)currentProto.vesselRef.orbit.vel);
                             FlightGlobals.ForceSetActiveVessel(currentProto.vesselRef);
                         }
                         if (wasTarget)
@@ -787,17 +773,17 @@ namespace DarkMultiPlayer
 
                         for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
                         {
-                            DarkLog.Debug("Checking vessel " + vesselID);
                             Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
                             if (oldVessel.id == currentProto.vesselID && oldVessel != currentProto.vesselRef)
                             {
-                                DarkLog.Debug("Killing " + vesselID);
-                                if (!oldVessel.packed)
+                                if (!wasActive)
                                 {
-                                    oldVessel.GoOnRails();
+                                    KillVessel(oldVessel);
                                 }
-                                oldVessel.Unload();
-                                oldVessel.Die();
+                                else
+                                {
+                                    killDuplicateActiveVessels = true;
+                                }
                             }
                         }
 
@@ -815,6 +801,38 @@ namespace DarkMultiPlayer
             else
             {
                 DarkLog.Debug("vesselNode is null!");
+            }
+        }
+
+        private void KillDuplicateActiveVessels()
+        {
+            killDuplicateActiveVessels = false;
+            if (FlightGlobals.fetch.activeVessel != null)
+            {
+                string killID = FlightGlobals.fetch.activeVessel.id.ToString();
+                if (FlightGlobals.fetch.activeVessel != null)
+                {
+                    for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
+                    {
+                        Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
+                        if (oldVessel.id.ToString() == killID && oldVessel != FlightGlobals.fetch.activeVessel)
+                        {
+                            KillVessel(oldVessel);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void KillVessel(Vessel killVessel) {
+            if (killVessel != null)
+            {
+                if (!killVessel.packed)
+                {
+                    killVessel.GoOnRails();
+                }
+                killVessel.Unload();
+                killVessel.Die();
             }
         }
 
@@ -925,6 +943,7 @@ namespace DarkMultiPlayer
         //Called from networkWorker
         public void QueueKerbal(int subspace, double planetTime, int kerbalID, ConfigNode kerbalNode)
         {
+            DarkLog.Debug("QueueKerbal Called");
             KerbalEntry newEntry = new KerbalEntry();
             newEntry.kerbalID = kerbalID;
             newEntry.planetTime = planetTime;
@@ -990,7 +1009,7 @@ namespace DarkMultiPlayer
         //Called from main
         public void Reset()
         {
-            enabled = false;
+            workerEnabled = false;
             newActiveVessels = new Queue<ActiveVesselEntry>();
             kerbalProtoQueue = new Dictionary<int, Queue<KerbalEntry>>();
             vesselRemoveQueue = new Dictionary<int,Queue<VesselRemoveEntry>>();

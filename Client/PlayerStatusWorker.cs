@@ -6,7 +6,7 @@ namespace DarkMultiPlayer
 {
     public class PlayerStatusWorker
     {
-        public bool enabled;
+        public bool workerEnabled;
         private Client parent;
         private Queue<PlayerStatus> addStatusQueue;
         private Queue<string> removeStatusQueue;
@@ -26,7 +26,7 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            if (enabled)
+            if (workerEnabled)
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusCheck) > PLAYER_STATUS_CHECK_INTERVAL)
                 {

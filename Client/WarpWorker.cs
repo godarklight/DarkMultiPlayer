@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
 {
     public class WarpWorker
     {
-        public bool enabled;
+        public bool workerEnabled;
         public WarpMode warpMode;
         //Private parts
         private Client parent;
@@ -46,19 +46,19 @@ namespace DarkMultiPlayer
         public void Update()
         {
             //Hooks
-            if (!enabled && registered)
+            if (!workerEnabled && registered)
             {
                 GameEvents.onTimeWarpRateChanged.Remove(OnWarpChanged);
                 registered = false;
             }
 
-            if (enabled && !registered)
+            if (workerEnabled && !registered)
             {
                 GameEvents.onTimeWarpRateChanged.Add(OnWarpChanged);
                 registered = true;
             }
 
-            if (enabled)
+            if (workerEnabled)
             {
                 //Process new warp messages
                 while (newWarpMessages.Count > 0)

@@ -35,10 +35,6 @@ namespace DarkMultiPlayer
         public NetworkWorker(Client parent)
         {
             this.parent = parent;
-            if (this.parent != null)
-            {
-                //Shutup compiler
-            }
         }
         //Called from main
         public void Update()
@@ -85,8 +81,8 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessels Synced!");
                 parent.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
-                parent.timeSyncer.enabled = true;
-                parent.warpWorker.enabled = true;
+                parent.timeSyncer.workerEnabled = true;
+                parent.warpWorker.workerEnabled = true;
             }
             if (state == ClientState.TIME_LOCKING)
             {
@@ -104,8 +100,8 @@ namespace DarkMultiPlayer
                 state = ClientState.RUNNING;
                 parent.status = "Running";
                 parent.gameRunning = true;
-                parent.vesselWorker.enabled = true;
-                parent.playerStatusWorker.enabled = true;
+                parent.vesselWorker.workerEnabled = true;
+                parent.playerStatusWorker.workerEnabled = true;
             }
         }
         #region Connecting to server
@@ -585,7 +581,9 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
+                    DarkLog.Debug("Before Queue Kerbal");
                     parent.vesselWorker.QueueKerbal(subspaceID, planetTime, kerbalID, vesselNode);
+                    DarkLog.Debug("After Queue Kerbal");
                 }
                 else
                 {

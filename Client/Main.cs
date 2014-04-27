@@ -34,8 +34,8 @@ namespace DarkMultiPlayer
             SetupDirectoriesIfNeeded();
             settings = new Settings();
             timeSyncer = new TimeSyncer(this);
-            vesselWorker = new VesselWorker(this);
             networkWorker = new NetworkWorker(this);
+            vesselWorker = new VesselWorker(this);
             warpWorker = new WarpWorker(this);
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);

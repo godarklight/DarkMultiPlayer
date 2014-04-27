@@ -18,7 +18,7 @@ namespace DarkMultiPlayer
             get;
             private set;
         }
-        public bool enabled;
+        public bool workerEnabled;
         public int currentSubspace
         {
             get;
@@ -65,7 +65,7 @@ namespace DarkMultiPlayer
 
         public void FixedUpdate()
         {
-            if (enabled)
+            if (workerEnabled)
             {
                 if (synced)
                 {
@@ -290,7 +290,7 @@ namespace DarkMultiPlayer
         public void Reset()
         {
             currentSubspace = -1;
-            enabled = false;
+            workerEnabled = false;
             synced = false;
             locked = false;
             lastSyncTime = 0f;
