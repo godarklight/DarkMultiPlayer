@@ -16,7 +16,7 @@ namespace DarkMultiPlayer
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
         private const float VESSEL_POSITION_UPDATE_INTERVAL = .2f;
-        private const float IGNORE_TIME_AFTER_SCENE_CHANGE = 10f;
+        private const float DESTROY_IGNORE_TIME = 10f;
         //Spectate stuff
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
@@ -44,6 +44,7 @@ namespace DarkMultiPlayer
         private bool wasSpectating;
         //Ignore false destroys
         private double sceneChangeTime;
+        private Dictionary<string, double> lastVesselLoadTime;
 
         public VesselWorker(Client parent)
         {
@@ -232,7 +233,15 @@ namespace DarkMultiPlayer
             try
             {
                 DarkLog.Debug("Vessel " + vessel.id + " reported as destroyed, loaded: " + vessel.loaded + ", packed: " + vessel.packed);
-                if (!inUse.ContainsKey(vessel.id.ToString()) && ((UnityEngine.Time.realtimeSinceStartup - sceneChangeTime) > IGNORE_TIME_AFTER_SCENE_CHANGE))
+
+                bool vesselInUse = inUse.ContainsKey(vessel.id.ToString());
+                bool sceneRecentlyChanged = (UnityEngine.Time.realtimeSinceStartup - sceneChangeTime) < DESTROY_IGNORE_TIME;
+                bool vesselRecentlyUpdated = false;
+                if (lastVesselLoadTime.ContainsKey(vessel.id.ToString())) {
+                    vesselRecentlyUpdated = (UnityEngine.Time.realtimeSinceStartup - lastVesselLoadTime[vessel.id.ToString()]) < DESTROY_IGNORE_TIME;
+                }
+
+                if (!vesselInUse && !sceneRecentlyChanged && !vesselRecentlyUpdated)
                 {
                     parent.networkWorker.SendVesselRemove(vessel.id.ToString());
                     List<int> unassignKerbals = new List<int>();
@@ -251,7 +260,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    DarkLog.Debug("Ignored destroy event - In use or scene recently changed!");
+                    DarkLog.Debug("Ignored destroy event: InUse: " + vesselInUse + ", Scene Change: " + sceneRecentlyChanged + ", Recently Updated: " + vesselRecentlyUpdated);
                 }
             }
             catch (Exception e)
@@ -752,6 +761,7 @@ namespace DarkMultiPlayer
                     }
 
                     serverVesselsProtoUpdate[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                    lastVesselLoadTime[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
 
                     if (currentProto.vesselRef != null)
@@ -989,6 +999,7 @@ namespace DarkMultiPlayer
             assignedKerbals = new Dictionary<int, string>();
             serverVesselsProtoUpdate = new Dictionary<string, float>();
             serverVesselsPositionUpdate = new Dictionary<string, float>();
+            lastVesselLoadTime = new Dictionary<string, double>();
             inUse = new Dictionary<string, string>();
             lastVessel = "";
         }

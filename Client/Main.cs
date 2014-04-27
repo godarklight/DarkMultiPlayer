@@ -216,6 +216,7 @@ namespace DarkMultiPlayer
 
         private void ResetWorkers()
         {
+            chatWindow.display = false;
             timeSyncer.Reset();
             vesselWorker.Reset();
             playerStatusWorker.Reset();
