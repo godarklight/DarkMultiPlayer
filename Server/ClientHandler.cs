@@ -194,23 +194,22 @@ namespace DarkMultiPlayerServer
         {
             if (!client.isSendingToClient)
             {
-                if (client.sendMessageQueueHigh.Count > 0)
+                ServerMessage message = null;
+                if (message == null && client.sendMessageQueueHigh.Count > 0)
                 {
-                    ServerMessage message = client.sendMessageQueueHigh.Dequeue();
-                    SendNetworkMessage(client, message);
-                    return;
+                     message = client.sendMessageQueueHigh.Dequeue();
                 }
-                if (client.sendMessageQueueSplit.Count > 0)
+                if (message == null && client.sendMessageQueueSplit.Count > 0)
                 {
-                    ServerMessage message = client.sendMessageQueueSplit.Dequeue();
-                    SendNetworkMessage(client, message);
-                    return;
+                    message = client.sendMessageQueueSplit.Dequeue();
                 }
-                if (client.sendMessageQueueLow.Count > 0)
+                if (message == null && client.sendMessageQueueLow.Count > 0)
                 {
-                    ServerMessage message = client.sendMessageQueueLow.Dequeue();
+                    message = client.sendMessageQueueLow.Dequeue();
+                }
+                if (message != null)
+                {
                     SendNetworkMessage(client, message);
-                    return;
                 }
             }
         }
@@ -218,11 +217,6 @@ namespace DarkMultiPlayerServer
         private static void SendNetworkMessage(ClientObject client, ServerMessage message)
         {
             //Write the send times down in SYNC_TIME_REPLY packets
-            if (message == null)
-            {
-                DarkLog.Debug("Message is null?");
-                return;
-            }
             if (message.type == ServerMessageType.SYNC_TIME_REPLY)
             {
                 try
@@ -855,13 +849,21 @@ namespace DarkMultiPlayerServer
 
         private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
-            if (highPriority)
+            if (message == null)
             {
-                client.sendMessageQueueHigh.Enqueue(message);
+                Exception up = new Exception("Cannot send a null message to a client!");
+                throw up;
             }
             else
             {
-                client.sendMessageQueueLow.Enqueue(message);
+                if (highPriority)
+                {
+                    client.sendMessageQueueHigh.Enqueue(message);
+                }
+                else
+                {
+                    client.sendMessageQueueLow.Enqueue(message);
+                }
             }
         }
 
