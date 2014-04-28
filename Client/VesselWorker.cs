@@ -17,6 +17,11 @@ namespace DarkMultiPlayer
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
         private const float VESSEL_POSITION_UPDATE_INTERVAL = .2f;
         private const float DESTROY_IGNORE_TIME = 5f;
+        //Pack distances
+        private const float PLAYER_UNPACK_THRESHOLD = 9000;
+        private const float PLAYER_PACK_THRESHOLD = 10000;
+        private const float NORMAL_UNPACK_THRESHOLD = 300;
+        private const float NORMAL_PACK_THRESHOLD = 600;
         //Spectate stuff
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
@@ -34,6 +39,7 @@ namespace DarkMultiPlayer
         private bool killDuplicateActiveVessels;
         //Vessel state tracking
         private string lastVessel;
+        private int lastPartCount;
         //Known kerbals
         private Dictionary<int, ProtoCrewMember> serverKerbals;
         public Dictionary<int, string> assignedKerbals;
@@ -92,10 +98,12 @@ namespace DarkMultiPlayer
                 //Lock and unlock spectate state
                 UpdateSpectateLock();
 
-
-
                 //Tell other players we have taken a vessel
                 UpdateActiveVesselStatus();
+
+                //Check current vessel state
+                CheckVesselHasChanged();
+
 
                 //Send updates of needed vessels
                 SendVesselUpdates();
@@ -138,6 +146,8 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
+
 
         private void ProcessNewVesselMessages()
         {
@@ -262,6 +272,31 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void UpdatePackDistance(string vesselID)
+        {
+            foreach (Vessel v in FlightGlobals.fetch.vessels)
+            {
+                if (v.id.ToString() == vesselID)
+                {
+                    //Bump other players active vessels
+                    if (inUse.ContainsKey(vesselID) ? (inUse[vesselID] != parent.settings.playerName) : false)
+                    {
+                        v.distanceLandedUnpackThreshold = PLAYER_UNPACK_THRESHOLD;
+                        v.distanceLandedPackThreshold = PLAYER_PACK_THRESHOLD;
+                        v.distanceUnpackThreshold = PLAYER_UNPACK_THRESHOLD;
+                        v.distancePackThreshold = PLAYER_PACK_THRESHOLD;
+                    }
+                    else
+                    {
+                        v.distanceLandedUnpackThreshold = NORMAL_UNPACK_THRESHOLD;
+                        v.distanceLandedPackThreshold = NORMAL_PACK_THRESHOLD;
+                        v.distanceUnpackThreshold = NORMAL_UNPACK_THRESHOLD;
+                        v.distancePackThreshold = NORMAL_PACK_THRESHOLD;
+                    }
+                }
+            }
+        }
+
         //Game hooks
         public void OnVesselChange(Vessel vessel)
         {
@@ -367,6 +402,21 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void CheckVesselHasChanged()
+        {
+            if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
+            {
+                if (!isSpectating && FlightGlobals.fetch.activeVessel.loaded && !FlightGlobals.fetch.activeVessel.packed)
+                {
+                    if (FlightGlobals.fetch.activeVessel.parts.Count != lastPartCount)
+                    {
+                        lastPartCount = FlightGlobals.fetch.activeVessel.parts.Count;
+                        serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = 0;
+                    }
+                }
+            }
+        }
+
         private void SendVesselUpdates()
         {
             if (HighLogic.LoadedScene != GameScenes.FLIGHT)
@@ -405,7 +455,8 @@ namespace DarkMultiPlayer
                         //Also delay the position send
                         serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                         ProtoVessel checkProto = new ProtoVessel(checkVessel);
-                        if (checkProto != null)
+                        //TODO: Fix sending of flying vessels.
+                        if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING))
                         {
                             if (checkProto.vesselID != Guid.Empty)
                             {
@@ -809,6 +860,8 @@ namespace DarkMultiPlayer
 
                     if (currentProto.vesselRef != null)
                     {
+                        UpdatePackDistance(currentProto.vesselRef.id.ToString());
+
                         if (wasActive)
                         {
                             DarkLog.Debug("Set active vessel");
