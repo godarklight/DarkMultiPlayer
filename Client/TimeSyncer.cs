@@ -126,7 +126,7 @@ namespace DarkMultiPlayer
                     }
                     if (v == FlightGlobals.fetch.activeVessel)
                     {
-                        if (!SituationIsGrounded(v.situation))
+                        if (SafeToStepClock(v.situation))
                         {
                             v.GoOnRails();
                         }
@@ -134,6 +134,21 @@ namespace DarkMultiPlayer
                 }
             }
             Planetarium.SetUniversalTime(targetTick);
+        }
+
+        private bool SafeToStepClock(Vessel.Situations situation) {
+            switch (situation)
+            {
+                case Vessel.Situations.LANDED:
+                case Vessel.Situations.PRELAUNCH:
+                case Vessel.Situations.SPLASHED:
+                case Vessel.Situations.ORBITING:
+                case Vessel.Situations.ESCAPING:
+                case Vessel.Situations.SUB_ORBITAL:
+                    return true;
+                default :
+                    return false;
+            }
         }
 
         private void SkewClock(double currentError)

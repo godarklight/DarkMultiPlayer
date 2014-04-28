@@ -218,6 +218,11 @@ namespace DarkMultiPlayerServer
         private static void SendNetworkMessage(ClientObject client, ServerMessage message)
         {
             //Write the send times down in SYNC_TIME_REPLY packets
+            if (message == null)
+            {
+                DarkLog.Debug("Message is null?");
+                return;
+            }
             if (message.type == ServerMessageType.SYNC_TIME_REPLY)
             {
                 try

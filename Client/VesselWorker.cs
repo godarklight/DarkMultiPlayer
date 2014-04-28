@@ -717,15 +717,11 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
 
                     //Skip active vessel
-                    /*
                     if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == currentProto.vesselID.ToString() : false)
                     {
-
                         DarkLog.Debug("Updating the active vessel is currently not implmented, skipping!");
                         return;
-
                     }
-                    */
 
                     foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
                     {
