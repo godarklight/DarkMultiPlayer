@@ -102,7 +102,9 @@ namespace DarkMultiPlayer
                 parent.gameRunning = true;
                 parent.vesselWorker.workerEnabled = true;
                 parent.playerStatusWorker.workerEnabled = true;
+                parent.scenarioWorker.enabled = true;
             }
+
         }
         #region Connecting to server
         //Called from main
@@ -432,6 +434,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.PLAYER_DISCONNECT:
                         HandlePlayerDisconnect(message.data);
                         break;
+                    case ServerMessageType.SCENARIO_DATA:
+                        HandleScenarioModuleData(message.data);
+                        break;
                     case ServerMessageType.KERBAL_REPLY:
                         HandleKerbalReply(message.data);
                         break;
@@ -521,6 +526,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 parent.warpWorker.warpMode = (WarpMode)mr.Read<int>();
+                parent.gameMode = (GameMode)mr.Read<int>();
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
             }
@@ -563,6 +569,19 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandleScenarioModuleData(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string[] scenarioName = mr.Read<string[]>();
+                string[] scenarioData = mr.Read<string[]>();
+                for (int i = 0; i < scenarioName.Length; i++)
+                {
+                    parent.scenarioWorker.QueueScenarioData(scenarioName[i], scenarioData[i]);
+                }
+            }
+        }
+
         private void HandleKerbalReply(byte[] messageData)
         {
             numberOfKerbalsReceived++;
@@ -581,9 +600,7 @@ namespace DarkMultiPlayer
                 File.Delete(tempFile);
                 if (vesselNode != null)
                 {
-                    DarkLog.Debug("Before Queue Kerbal");
                     parent.vesselWorker.QueueKerbal(subspaceID, planetTime, kerbalID, vesselNode);
-                    DarkLog.Debug("After Queue Kerbal");
                 }
                 else
                 {
@@ -909,6 +926,22 @@ namespace DarkMultiPlayer
             }
             sendMessageQueueHigh.Enqueue(newMessage);
         }
+
+        //Called from vesselWorker
+        public void SendScenarioModuleData(string[] scenarioNames, string[] scenarioData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SCENARIO_DATA;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(scenarioNames);
+                mw.Write<string[]>(scenarioData);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+
         //Called from vesselWorker
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {

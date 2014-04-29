@@ -1047,7 +1047,6 @@ namespace DarkMultiPlayer
         //Called from networkWorker
         public void QueueKerbal(int subspace, double planetTime, int kerbalID, ConfigNode kerbalNode)
         {
-            DarkLog.Debug("QueueKerbal Called");
             KerbalEntry newEntry = new KerbalEntry();
             newEntry.kerbalID = kerbalID;
             newEntry.planetTime = planetTime;

@@ -12,11 +12,13 @@ namespace DarkMultiPlayerServer
         //Port
         public static int port;
         public static WarpMode warpMode;
+        public static GameMode gameMode;
 
         private static void UseDefaultSettings()
         {
             port = 6702;
             warpMode = WarpMode.SUBSPACE;
+            gameMode = GameMode.SANDBOX;
         }
 
         public static void Load()
@@ -58,6 +60,10 @@ namespace DarkMultiPlayerServer
                                         warpMode = (WarpMode)(Int32.Parse(currentValue));
                                         DarkLog.Debug("Warp mode: " + warpMode);
                                         break;
+                                    case "gamemode":
+                                        gameMode = (GameMode)(Int32.Parse(currentValue));
+                                        DarkLog.Debug("Game mode: " + warpMode);
+                                        break;
                                     default:
                                         Console.WriteLine("Unknown key: " + currentKey);
                                         break;
@@ -91,6 +97,13 @@ namespace DarkMultiPlayerServer
                         sw.WriteLine("#Mode " + warpModeType + " - " + (WarpMode)warpModeType);
                     }
                     sw.WriteLine("warpmode," + (int)warpMode);
+                    sw.WriteLine("");
+                    sw.WriteLine("#gamemode - Specify the game type");
+                    foreach (int gameModeType in Enum.GetValues(typeof(GameMode)))
+                    {
+                        sw.WriteLine("#Mode " + gameModeType + " - " + (GameMode)gameModeType);
+                    }
+                    sw.WriteLine("gamemode," + (int)gameMode);
                     sw.WriteLine("");
                 }
             }

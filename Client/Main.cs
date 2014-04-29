@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -12,6 +14,7 @@ namespace DarkMultiPlayer
         public bool forceQuit;
         //Game running is directly set from networkWorker after a successful connection
         public bool gameRunning;
+        public GameMode gameMode;
         //Disconnect message
         public bool displayDisconnectMessage;
         private ScreenMessage disconnectMessage;
@@ -22,6 +25,7 @@ namespace DarkMultiPlayer
         public NetworkWorker networkWorker;
         public PlayerStatusWorker playerStatusWorker;
         public WarpWorker warpWorker;
+        public ScenarioWorker scenarioWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
@@ -37,6 +41,7 @@ namespace DarkMultiPlayer
             networkWorker = new NetworkWorker(this);
             vesselWorker = new VesselWorker(this);
             warpWorker = new WarpWorker(this);
+            scenarioWorker = new ScenarioWorker(this);
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
@@ -133,6 +138,7 @@ namespace DarkMultiPlayer
                 playerStatusWindow.Update();
                 chatWindow.Update();
                 quickSaveLoader.Update();
+                scenarioWorker.Update();
 
                 //Force quit
                 if (forceQuit)
@@ -188,6 +194,7 @@ namespace DarkMultiPlayer
         public void OnDestroy()
         {
         }
+
         //WARNING: Called from NetworkWorker.
         public void StartGame()
         {
@@ -199,10 +206,20 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
             HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetUniverseTime();
+            SetGameMode();
+            scenarioWorker.LoadScenarioDataIntoGame();
             vesselWorker.LoadKerbalsIntoGame();
             vesselWorker.LoadVesselsIntoGame();
-            DarkLog.Debug("Starting game...");
+            DarkLog.Debug("Starting " + gameMode + " game...");
             HighLogic.CurrentGame.Start();
+            if (ResearchAndDevelopment.Instance != null)
+            {
+                DarkLog.Debug("Research and development is NOT null after game start!");
+            }
+            else
+            {
+                DarkLog.Debug("Research and development is null after game start!");
+            }
             DarkLog.Debug("Started!");
             Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
@@ -218,6 +235,19 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void SetGameMode()
+        {
+            switch (gameMode)
+            {
+                case GameMode.CAREER:
+                    HighLogic.CurrentGame.Mode = Game.Modes.CAREER;
+                    break;
+                case GameMode.SANDBOX:
+                    HighLogic.CurrentGame.Mode = Game.Modes.SANDBOX;
+                    break;
+            }
+        }
+
         private void ResetWorkers()
         {
             chatWindow.display = false;
@@ -226,6 +256,7 @@ namespace DarkMultiPlayer
             playerStatusWorker.Reset();
             warpWorker.Reset();
             chatWindow.Reset();
+            scenarioWorker.Reset();
         }
 
         private void SetupDirectoriesIfNeeded()

@@ -16,6 +16,7 @@ namespace DarkMultiPlayerCommon
         HANDSHAKE_REQUEST,
         CHAT_MESSAGE,
         PLAYER_STATUS,
+        SCENARIO_DATA,
         KERBALS_REQUEST,
         KERBAL_PROTO,
         VESSELS_REQUEST,
@@ -38,6 +39,7 @@ namespace DarkMultiPlayerCommon
         CHAT_MESSAGE,
         PLAYER_STATUS,
         PLAYER_DISCONNECT,
+        SCENARIO_DATA,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
         VESSEL_PROTO,
@@ -88,6 +90,12 @@ namespace DarkMultiPlayerCommon
         SUBSPACE_SIMPLE,
         SUBSPACE,
         NONE
+    }
+
+    public enum GameMode
+    {
+        SANDBOX,
+        CAREER
     }
 
     public enum WarpMessageType

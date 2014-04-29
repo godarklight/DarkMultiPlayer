@@ -59,7 +59,8 @@ namespace DarkMultiPlayerServer
                 {
                     //Ignore the comment line.
                     string firstLine = "";
-                    while (firstLine.StartsWith("#") || String.IsNullOrEmpty(firstLine)) {
+                    while (firstLine.StartsWith("#") || String.IsNullOrEmpty(firstLine))
+                    {
                         firstLine = sr.ReadLine().Trim();
                     }
                     Subspace savedSubspace = new Subspace();
@@ -104,7 +105,8 @@ namespace DarkMultiPlayerServer
             SaveSubspace(latestID, subspaces[latestID]);
         }
 
-        private static void SaveSubspace(int subspaceID, Subspace subspace) {
+        private static void SaveSubspace(int subspaceID, Subspace subspace)
+        {
             string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
             using (StreamWriter sw = new StreamWriter(subspaceFile))
             {
@@ -197,7 +199,7 @@ namespace DarkMultiPlayerServer
                 ServerMessage message = null;
                 if (message == null && client.sendMessageQueueHigh.Count > 0)
                 {
-                     message = client.sendMessageQueueHigh.Dequeue();
+                    message = client.sendMessageQueueHigh.Dequeue();
                 }
                 if (message == null && client.sendMessageQueueSplit.Count > 0)
                 {
@@ -436,6 +438,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(client, message.data);
                         break;
+                    case ClientMessageType.SCENARIO_DATA:
+                        HandleScenarioModuleData(client, message.data);
+                        break;
                     case ClientMessageType.SYNC_TIME_REQUEST:
                         HandleSyncTimeRequest(client, message.data);
                         break;
@@ -481,103 +486,115 @@ namespace DarkMultiPlayerServer
 
         private static void HandleHandshakeRequest(ClientObject client, byte[] messageData)
         {
+
+            int protocolVersion;
+            string playerName = "";
+            string playerGuid = Guid.Empty.ToString();
+            string reason = "";
+            //0 - Success
+            int handshakeReponse = 0;            
             try
             {
-                int protocolVersion;
-                string playerName = "";
-                string playerGuid = Guid.Empty.ToString();
-                string reason = "";
-                //0 - Success
-                int handshakeReponse = 0;
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();
                     playerGuid = mr.Read<string>();
                 }
-                if (protocolVersion != Common.PROTOCOL_VERSION)
-                {
-                    //Protocol mismatch
-                    handshakeReponse = 1;
-                    reason = "Protocol mismatch";
-                }
-                if (handshakeReponse == 0)
-                {
-                    //Check client isn't already connected
-                    foreach (ClientObject testClient in clients)
-                    {
-                        if (client != testClient && testClient.playerName == playerName)
-                        {
-                            handshakeReponse = 2;
-                            reason = "Client already connected";
-                        }
-                    }
-                }
-                if (handshakeReponse == 0)
-                {
-                    //Check client isn't already connected
-                    foreach (ClientObject testClient in clients)
-                    {
-                        if ("Server" == playerName)
-                        {
-                            handshakeReponse = 3;
-                            reason = "Kicked for using a reserved name";
-                        }
-                    }
-                }
-                if (handshakeReponse == 0)
-                {
-                    //Check the client matches any database entry
-                    string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
-                    string storedPlayerGuid = "";
-                    if (File.Exists(storedPlayerFile))
-                    {
-                        using (StreamReader sr = new StreamReader(storedPlayerFile))
-                        {
-                            storedPlayerGuid = sr.ReadLine();
-                        }
-                        if (playerGuid != storedPlayerGuid)
-                        {
-                            handshakeReponse = 4;
-                            reason = "Invalid player token for user";
-                        }
-                    }
-                    else
-                    {
-                        DarkLog.Debug("Client " + playerName + " registered!");
-                        using (StreamWriter sw = new StreamWriter(storedPlayerFile))
-                        {
-                            sw.WriteLine(playerGuid);
-                        }
-                    }
-                }
-                client.playerName = playerName;
-                if (handshakeReponse == 0)
-                {
-                    client.authenticated = true;
-                    DarkLog.Normal("Client " + playerName + " handshook successfully!");
-                    SendHandshakeReply(client, handshakeReponse);
-                    SendServerSettings(client);
-                    SendSetSubspace(client);
-                    SendAllActiveVessels(client);
-                    SendAllSubspaces(client);
-                    SendAllPlayerStatus(client);
-                }
-                else
-                {
-                    DarkLog.Normal("Client " + playerName + " failed to handshake, reason " + reason);
-                    SendHandshakeReply(client, handshakeReponse);
-                    SendConnectionEnd(client, reason);
-                }
-
-
             }
             catch (Exception e)
             {
                 DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + client.playerName + ": " + e);
                 SendHandshakeReply(client, 99);
                 SendConnectionEnd(client, "Malformed handshake");
+                return;
             }
+            if (protocolVersion != Common.PROTOCOL_VERSION)
+            {
+                //Protocol mismatch
+                handshakeReponse = 1;
+                reason = "Protocol mismatch";
+            }
+            if (handshakeReponse == 0)
+            {
+                //Check client isn't already connected
+                foreach (ClientObject testClient in clients)
+                {
+                    if (client != testClient && testClient.playerName == playerName)
+                    {
+                        handshakeReponse = 2;
+                        reason = "Client already connected";
+                    }
+                }
+            }
+            if (handshakeReponse == 0)
+            {
+                //Check client isn't already connected
+                foreach (ClientObject testClient in clients)
+                {
+                    if ("Server" == playerName)
+                    {
+                        handshakeReponse = 3;
+                        reason = "Kicked for using a reserved name";
+                    }
+                }
+            }
+            if (handshakeReponse == 0)
+            {
+                //Check the client matches any database entry
+                string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
+                string storedPlayerGuid = "";
+                if (File.Exists(storedPlayerFile))
+                {
+                    using (StreamReader sr = new StreamReader(storedPlayerFile))
+                    {
+                        storedPlayerGuid = sr.ReadLine();
+                    }
+                    if (playerGuid != storedPlayerGuid)
+                    {
+                        handshakeReponse = 4;
+                        reason = "Invalid player token for user";
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Client " + playerName + " registered!");
+                    using (StreamWriter sw = new StreamWriter(storedPlayerFile))
+                    {
+                        sw.WriteLine(playerGuid);
+                    }
+                }
+            }
+            client.playerName = playerName;
+            if (handshakeReponse == 0)
+            {
+                client.authenticated = true;
+                DarkLog.Normal("Client " + playerName + " handshook successfully!");
+                //SEND ALL THE THINGS!
+                if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios")))
+                {
+                    Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios"));
+                }
+                if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
+                {
+                    Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName));
+                }
+                SendHandshakeReply(client, handshakeReponse);
+                SendServerSettings(client);
+                SendSetSubspace(client);
+                SendAllActiveVessels(client);
+                SendAllSubspaces(client);
+                SendAllPlayerStatus(client);
+                SendScenarioModules(client);
+            }
+            else
+            {
+                DarkLog.Normal("Client " + playerName + " failed to handshake, reason " + reason);
+                SendHandshakeReply(client, handshakeReponse);
+                SendConnectionEnd(client, reason);
+            }
+
+
         }
 
         private static void HandleChatMessage(ClientObject client, byte[] messageData)
@@ -642,6 +659,25 @@ namespace DarkMultiPlayerServer
             newMessage.type = ServerMessageType.PLAYER_STATUS;
             newMessage.data = messageData;
             SendToAll(client, newMessage, false);
+        }
+
+        private static void HandleScenarioModuleData(ClientObject client, byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                //Don't care about subspace / send time.
+                string[] scenarioName = mr.Read<string[]>();
+                string[] scenarioData = mr.Read<string[]>();
+                DarkLog.Debug("Saving " + scenarioName.Length + " scenario modules from " + client.playerName);
+
+                for (int i = 0; i < scenarioName.Length; i++)
+                {
+                    using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName, scenarioName[i] + ".txt")))
+                    {
+                        sw.Write(scenarioData[i]);
+                    }
+                }
+            }
         }
 
         private static void HandleKerbalsRequest(ClientObject client)
@@ -890,14 +926,17 @@ namespace DarkMultiPlayerServer
         {
             int numberOfKerbals = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals")).Length;
             int numberOfVessels = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")).Length;
+            int numberOfScenarioModules = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)).Length;
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SERVER_SETTINGS;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)Settings.warpMode);
-                //Tack the amount of kerbals and vessels onto this message
+                mw.Write<int>((int)Settings.gameMode);
+                //Tack the amount of kerbals, vessels and scenario modules onto this message
                 mw.Write<int>(numberOfKerbals);
                 mw.Write<int>(numberOfVessels);
+                mw.Write<int>(numberOfScenarioModules);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -962,6 +1001,33 @@ namespace DarkMultiPlayerServer
                     SendToClient(client, newMessage, true);
                 }
             }
+        }
+
+        private static void SendScenarioModules(ClientObject client)
+        {
+            int numberOfScenarioModules = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)).Length;
+            int currentScenarioModule = 0;
+            string[] scenarioName = new string[numberOfScenarioModules];
+            string[] scenarioData = new string[numberOfScenarioModules];
+            foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
+            {
+                using (StreamReader sr = new StreamReader(file))
+                {
+                    //Remove the .txt part for the name
+                    scenarioName[currentScenarioModule] = Path.GetFileNameWithoutExtension(file);
+                    scenarioData[currentScenarioModule] = sr.ReadToEnd();
+                    currentScenarioModule++;
+                }
+            }
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SCENARIO_DATA;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(scenarioName);
+                mw.Write<string[]>(scenarioData);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
         }
 
         private static void SendSetSubspace(ClientObject client)
