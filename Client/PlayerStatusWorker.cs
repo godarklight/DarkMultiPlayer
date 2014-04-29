@@ -48,7 +48,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Docked above " + bodyName;
                                         break;
                                     case (Vessel.Situations.ESCAPING):
-                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
+                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe < 0)
                                         {
                                             myPlayerStatus.statusText = "Escaping " + bodyName;
                                         }
@@ -73,7 +73,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Splashed on " + bodyName;
                                         break;
                                     case (Vessel.Situations.SUB_ORBITAL):
-                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
+                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe < 0)
                                         {
                                             myPlayerStatus.statusText = "Ascending from " + bodyName;
                                         }
