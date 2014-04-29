@@ -184,6 +184,7 @@ namespace DarkMultiPlayer
         public void Reset()
         {
             enabled = false;
+            loadedScience = false;
             scenarioQueue = new Queue<ScenarioEntry>();
             blockScenarioDataSends = false;
             lastScenarioSendTime = 0f;
