@@ -1011,7 +1011,20 @@ namespace DarkMultiPlayer
             else
             {
                 Orbit updateOrbit = new Orbit(update.orbit[0], update.orbit[1], update.orbit[2], update.orbit[3], update.orbit[4], update.orbit[5], update.orbit[6], updateBody);
-                CopyOrbit(updateOrbit, updateVessel.orbitDriver.orbit);
+
+                if (updateVessel.packed)
+                {
+                    DarkLog.Debug("Old: " + updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()));
+                    CopyOrbit(updateOrbit, updateVessel.orbitDriver.orbit);
+                    DarkLog.Debug("New: " + updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()));
+                }
+                else
+                {
+                    updateVessel.SetPosition(updateOrbit.getPositionAtUT(Planetarium.GetUniversalTime()));
+                    Vector3d velocityOffset = updateOrbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy - updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy;
+                    updateVessel.ChangeWorldVelocity(velocityOffset);
+                }
+
             }
             Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
             updateVessel.SetRotation(updateRotation);
@@ -1045,6 +1058,8 @@ namespace DarkMultiPlayer
             destinationOrbit.meanAnomalyAtEpoch = sourceOrbit.meanAnomalyAtEpoch;
             destinationOrbit.epoch = sourceOrbit.epoch;
             destinationOrbit.referenceBody = sourceOrbit.referenceBody;
+            destinationOrbit.Init();
+            destinationOrbit.UpdateFromUT(Planetarium.GetUniversalTime());
         }
         //Called from networkWorker
         public void QueueKerbal(int subspace, double planetTime, int kerbalID, ConfigNode kerbalNode)
