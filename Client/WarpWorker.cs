@@ -104,7 +104,6 @@ namespace DarkMultiPlayer
                                 if (TimeWarp.CurrentRateIndex != clientWarpList[warpMaster].rateIndex || (TimeWarp.WarpMode == TimeWarp.Modes.LOW) != clientWarpList[warpMaster].isPhysWarp)
                                 {
                                     lastWarpSet = UnityEngine.Time.realtimeSinceStartup;
-                                    DarkLog.Debug("Changing our warp rate to match the warp master");
                                     if (clientWarpList[warpMaster].isPhysWarp)
                                     {
                                         TimeWarp.fetch.Mode = TimeWarp.Modes.LOW;
@@ -460,7 +459,6 @@ namespace DarkMultiPlayer
             {
                 WarpMessageType messageType = (WarpMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();
-                DarkLog.Debug("Handling " + messageType + " from " + fromPlayer);
                 switch (messageType)
                 {
                     case WarpMessageType.REQUEST_VOTE:

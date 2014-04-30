@@ -1014,9 +1014,7 @@ namespace DarkMultiPlayer
 
                 if (updateVessel.packed)
                 {
-                    DarkLog.Debug("Old: " + updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()));
                     CopyOrbit(updateOrbit, updateVessel.orbitDriver.orbit);
-                    DarkLog.Debug("New: " + updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()));
                 }
                 else
                 {
