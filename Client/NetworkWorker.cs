@@ -22,10 +22,15 @@ namespace DarkMultiPlayer
         private Queue<ClientMessage> sendMessageQueueHigh;
         private Queue<ClientMessage> sendMessageQueueSplit;
         private Queue<ClientMessage> sendMessageQueueLow;
+        //Receive buffer
         private float lastReceiveTime;
         private bool isReceivingMessage;
         private int receiveMessageBytesLeft;
         private ServerMessage receiveMessage;
+        //Receive split buffer
+        private bool isReceivingSplitMessage;
+        private int receiveSplitMessageBytesLeft;
+        private ServerMessage receiveSplitMessage;
         //Used for the initial sync
         private int numberOfKerbals;
         private int numberOfKerbalsReceived;
@@ -122,6 +127,9 @@ namespace DarkMultiPlayer
                 numberOfKerbalsReceived = 0;
                 numberOfVessels = 0;
                 numberOfVesselsReceived = 0;
+                receiveSplitMessage = null;
+                receiveSplitMessageBytesLeft = 0;
+                isReceivingSplitMessage = false;
                 IPAddress destinationAddress;
                 if (!IPAddress.TryParse(address, out destinationAddress))
                 {
@@ -354,9 +362,50 @@ namespace DarkMultiPlayer
                 if (sendMessageQueueLow.Count > 0)
                 {
                     ClientMessage message = sendMessageQueueLow.Dequeue();
+                    //Splits large messages to higher priority messages can get into the queue faster
+                    SplitAndRewriteMessage(ref message);
                     SendNetworkMessage(message);
                     return;
                 }
+            }
+        }
+
+        private void SplitAndRewriteMessage(ref ClientMessage message) {
+            if (message == null)
+            {
+                return;
+            }
+            if (message.data == null)
+            {
+                return;
+            }
+            if (message.data.Length > Common.SPLIT_MESSAGE_LENGTH)
+            {
+                ClientMessage newSplitMessage = new ClientMessage();
+                newSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
+                int splitBytesLeft = message.data.Length;
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)message.type);
+                    mw.Write<int>(message.data.Length);
+                    byte[] firstSplit = new byte[Common.SPLIT_MESSAGE_LENGTH];
+                    Array.Copy(message.data, 0, firstSplit, 0, Common.SPLIT_MESSAGE_LENGTH);
+                    mw.Write<byte[]>(firstSplit);
+                    splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
+                    newSplitMessage.data = mw.GetMessageBytes();
+                    sendMessageQueueSplit.Enqueue(newSplitMessage);
+                }
+
+                while (splitBytesLeft > 0)
+                {
+                    ClientMessage currentSplitMessage = new ClientMessage();
+                    currentSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
+                    currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
+                    Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
+                    splitBytesLeft -= currentSplitMessage.data.Length;
+                    sendMessageQueueSplit.Enqueue(currentSplitMessage);
+                }
+                message = sendMessageQueueSplit.Dequeue();
             }
         }
 
@@ -466,6 +515,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.WARP_CONTROL:
                         HandleWarpControl(message.data);
+                        break;
+                    case ServerMessageType.SPLIT_MESSAGE:
+                        HandleSplitMessage(message.data);
                         break;
                     case ServerMessageType.CONNECTION_END:
                         HandleConnectionEnd(message.data);
@@ -727,6 +779,36 @@ namespace DarkMultiPlayer
         private void HandleWarpControl(byte[] messageData)
         {
             parent.warpWorker.QueueWarpMessage(messageData);
+        }
+
+        private void HandleSplitMessage(byte[] messageData)
+        {
+            if (!isReceivingSplitMessage)
+            {
+                //New split message
+                using (MessageReader mr = new MessageReader(messageData, false)) {
+                    receiveSplitMessage = new ServerMessage();
+                    receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
+                    receiveSplitMessage.data = new byte[mr.Read<int>()];
+                    receiveSplitMessageBytesLeft = receiveSplitMessage.data.Length;
+                    byte[] firstSplitData = mr.Read<byte[]>();
+                    firstSplitData.CopyTo(receiveSplitMessage.data, 0);
+                    receiveSplitMessageBytesLeft -= firstSplitData.Length;
+                }
+                isReceivingSplitMessage = true;
+            }
+            else
+            {
+                //Continued split message
+                messageData.CopyTo(receiveSplitMessage.data, receiveSplitMessage.data.Length - receiveSplitMessageBytesLeft);
+                receiveSplitMessageBytesLeft -= messageData.Length;
+            }
+            if (receiveSplitMessageBytesLeft == 0)
+            {
+                HandleMessage(receiveSplitMessage);
+                receiveSplitMessage = null;
+                isReceivingSplitMessage = false;
+            }
         }
 
         private void HandleConnectionEnd(byte[] messageData)

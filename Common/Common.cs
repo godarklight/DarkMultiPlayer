@@ -7,6 +7,7 @@ namespace DarkMultiPlayerCommon
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long CONNECTION_TIMEOUT = 30000;
         public const int MAX_MESSAGE_SIZE = 5242880; //5MB
+        public const int SPLIT_MESSAGE_LENGTH = 8096; //8kb
         public const int PROTOCOL_VERSION = 1;
     }
 

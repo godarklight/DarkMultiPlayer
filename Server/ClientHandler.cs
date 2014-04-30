@@ -18,6 +18,7 @@ namespace DarkMultiPlayerServer
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
+
         #region Main loop
         public static void ThreadMain()
         {
@@ -208,11 +209,55 @@ namespace DarkMultiPlayerServer
                 if (message == null && client.sendMessageQueueLow.Count > 0)
                 {
                     message = client.sendMessageQueueLow.Dequeue();
+                    //Splits large messages to higher priority messages can get into the queue faster
+                    SplitAndRewriteMessage(client, ref message);
                 }
                 if (message != null)
                 {
                     SendNetworkMessage(client, message);
                 }
+            }
+        }
+
+        private static void SplitAndRewriteMessage(ClientObject client, ref ServerMessage message) {
+            if (message == null)
+            {
+                return;
+            }
+            if (message.data == null)
+            {
+                return;
+            }
+            if (message.data.Length > Common.SPLIT_MESSAGE_LENGTH)
+            {
+                ServerMessage newSplitMessage = new ServerMessage();
+                newSplitMessage.type = ServerMessageType.SPLIT_MESSAGE;
+                int splitBytesLeft = message.data.Length;
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)message.type);
+                    mw.Write<int>(message.data.Length);
+                    byte[] firstSplit = new byte[Common.SPLIT_MESSAGE_LENGTH];
+                    Array.Copy(message.data, 0, firstSplit, 0, Common.SPLIT_MESSAGE_LENGTH);
+                    mw.Write<byte[]>(firstSplit);
+                    splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
+                    newSplitMessage.data = mw.GetMessageBytes();
+                    client.sendMessageQueueSplit.Enqueue(newSplitMessage);
+                }
+
+                int currentSplits = 1;
+
+                while (splitBytesLeft > 0)
+                {
+                    ServerMessage currentSplitMessage = new ServerMessage();
+                    currentSplitMessage.type = ServerMessageType.SPLIT_MESSAGE;
+                    currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
+                    Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
+                    splitBytesLeft -= currentSplitMessage.data.Length;
+                    currentSplits++;
+                    client.sendMessageQueueSplit.Enqueue(currentSplitMessage);
+                }
+                message = client.sendMessageQueueSplit.Dequeue();
             }
         }
 
@@ -412,8 +457,6 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
-            //DarkLog.Debug("Got " + message.type + " from " + client.playerName);
-
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
             if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))
             {
@@ -467,6 +510,9 @@ namespace DarkMultiPlayerServer
                         break;
                     case ClientMessageType.WARP_CONTROL:
                         HandleWarpControl(client, message.data);
+                        break;
+                    case ClientMessageType.SPLIT_MESSAGE:
+                        HandleSplitMessage(client, message.data);
                         break;
                     case ClientMessageType.CONNECTION_END:
                         HandleConnectionEnd(client, message.data);
@@ -852,6 +898,36 @@ namespace DarkMultiPlayerServer
             SendToAll(client, newMessage, true);
         }
 
+        private static void HandleSplitMessage(ClientObject client, byte[] messageData)
+        {
+            if (!client.isReceivingSplitMessage)
+            {
+                //New split message
+                using (MessageReader mr = new MessageReader(messageData, false)) {
+                    client.receiveSplitMessage = new ClientMessage();
+                    client.receiveSplitMessage.type = (ClientMessageType)mr.Read<int>();
+                    client.receiveSplitMessage.data = new byte[mr.Read<int>()];
+                    client.receiveSplitMessageBytesLeft = client.receiveSplitMessage.data.Length;
+                    byte[] firstSplitData = mr.Read<byte[]>();
+                    firstSplitData.CopyTo(client.receiveSplitMessage.data, 0);
+                    client.receiveSplitMessageBytesLeft -= firstSplitData.Length;
+                }
+                client.isReceivingSplitMessage = true;
+            }
+            else
+            {
+                //Continued split message
+                messageData.CopyTo(client.receiveSplitMessage.data, client.receiveSplitMessage.data.Length - client.receiveSplitMessageBytesLeft);
+                client.receiveSplitMessageBytesLeft -= messageData.Length;
+            }
+            if (client.receiveSplitMessageBytesLeft == 0)
+            {
+                HandleMessage(client, client.receiveSplitMessage);
+                client.receiveSplitMessage = null;
+                client.isReceivingSplitMessage = false;
+            }
+        }
+
         private static void HandleConnectionEnd(ClientObject client, byte[] messageData)
         {
             string reason = "Unknown";
@@ -1143,6 +1219,7 @@ namespace DarkMultiPlayerServer
         public string activeVessel;
         public string endpoint;
         public TcpClient connection;
+        //Send buffer
         public long lastSendTime;
         public bool isSendingToClient;
         public Queue<ServerMessage> sendMessageQueueHigh;
@@ -1150,9 +1227,15 @@ namespace DarkMultiPlayerServer
         public Queue<ServerMessage> sendMessageQueueLow;
         public Queue<ClientMessage> receiveMessageQueue;
         public long lastReceiveTime;
+        //Receive buffer
         public bool isReceivingMessage;
         public int receiveMessageBytesLeft;
         public ClientMessage receiveMessage;
+        //Receive split buffer
+        public bool isReceivingSplitMessage;
+        public int receiveSplitMessageBytesLeft;
+        public ClientMessage receiveSplitMessage;
+        //State tracking
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
     }

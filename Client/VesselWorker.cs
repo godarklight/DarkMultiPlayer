@@ -813,6 +813,7 @@ namespace DarkMultiPlayer
                 //Fix the kerbals (Tracking station bug)
                 checkProtoNodeCrew(vesselNode);
 
+                //Can be used for debugging incoming vessel config nodes.
                 //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
 
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
@@ -867,6 +868,10 @@ namespace DarkMultiPlayer
                         {
                             DarkLog.Debug("Set active vessel");
                             FlightGlobals.ForceSetActiveVessel(currentProto.vesselRef);
+                            if (!currentProto.vesselRef.loaded)
+                            {
+                                currentProto.vesselRef.Load();
+                            }
                         }
                         if (wasTarget)
                         {
