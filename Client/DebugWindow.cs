@@ -91,9 +91,9 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            safeDisplay = display;
             if (display)
             {
-                safeDisplay = display;
                 if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
                     lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;

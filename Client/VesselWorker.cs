@@ -577,10 +577,11 @@ namespace DarkMultiPlayer
                 returnUpdate.planetTime = Planetarium.GetUniversalTime();
                 returnUpdate.bodyName = updateVessel.mainBody.bodyName;
                 returnUpdate.rotation = new float[4];
-                returnUpdate.rotation[0] = updateVessel.transform.localRotation.x;
-                returnUpdate.rotation[1] = updateVessel.transform.localRotation.y;
-                returnUpdate.rotation[2] = updateVessel.transform.localRotation.z;
-                returnUpdate.rotation[3] = updateVessel.transform.localRotation.w;
+                Quaternion transformRotation = updateVessel.transform.rotation;
+                returnUpdate.rotation[0] = transformRotation.x;
+                returnUpdate.rotation[1] = transformRotation.y;
+                returnUpdate.rotation[2] = transformRotation.z;
+                returnUpdate.rotation[3] = transformRotation.w;
                 returnUpdate.angularVelocity = new float[3];
                 returnUpdate.angularVelocity[0] = updateVessel.angularVelocity.x;
                 returnUpdate.angularVelocity[1] = updateVessel.angularVelocity.y;
@@ -1014,6 +1015,7 @@ namespace DarkMultiPlayer
             }
             Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
             updateVessel.SetRotation(updateRotation);
+
             if (!updateVessel.packed)
             {
                 updateVessel.angularVelocity = new Vector3(update.angularVelocity[0], update.angularVelocity[1], update.angularVelocity[2]);
