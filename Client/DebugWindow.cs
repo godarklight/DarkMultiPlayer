@@ -91,13 +91,12 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            safeDisplay = display;
-            if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
+            if (display)
             {
-                lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
-                //TODO: Fix up whatever is throwing later.
-                try
+                safeDisplay = display;
+                if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
+                    lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
                     ntpText += "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
@@ -116,11 +115,6 @@ namespace DarkMultiPlayer
                     connectionText += "Queued outgoing messages (Low): " + parent.networkWorker.GetStatistics("LowPriorityQueueLength") + "\n";
                     connectionText += "Stored future updates: " + parent.vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
                     connectionText += "Stored future proto updates: " + parent.vesselWorker.GetStatistics("StoredFutureProtoUpdates") + "\n";
-                }
-                catch
-                {
-                    ntpText = "";
-                    connectionText = "";
                 }
             }
         }
