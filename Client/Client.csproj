@@ -59,6 +59,7 @@
     <Compile Include="ChatWindow.cs" />
     <Compile Include="QuickSaveLoader.cs" />
     <Compile Include="ScenarioWorker.cs" />
+    <Compile Include="DebugWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

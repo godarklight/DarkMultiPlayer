@@ -30,6 +30,7 @@ namespace DarkMultiPlayer
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
         public ChatWindow chatWindow;
+        public DebugWindow debugWindow;
         private QuickSaveLoader quickSaveLoader;
 
         public void Awake()
@@ -47,6 +48,7 @@ namespace DarkMultiPlayer
             playerStatusWindow = new PlayerStatusWindow(this);
             quickSaveLoader = new QuickSaveLoader(this);
             chatWindow = new ChatWindow(this);
+            debugWindow = new DebugWindow(this);
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
 
@@ -137,6 +139,7 @@ namespace DarkMultiPlayer
                 warpWorker.Update();
                 playerStatusWindow.Update();
                 chatWindow.Update();
+                debugWindow.Update();
                 quickSaveLoader.Update();
                 scenarioWorker.Update();
 
@@ -184,6 +187,7 @@ namespace DarkMultiPlayer
                 connectionWindow.Draw();
                 playerStatusWindow.Draw();
                 chatWindow.Draw();
+                debugWindow.Draw();
             }
             catch (Exception e)
             {
@@ -251,6 +255,7 @@ namespace DarkMultiPlayer
         private void ResetWorkers()
         {
             chatWindow.display = false;
+            debugWindow.display = false;
             timeSyncer.Reset();
             vesselWorker.Reset();
             playerStatusWorker.Reset();

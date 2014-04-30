@@ -994,6 +994,23 @@ namespace DarkMultiPlayer
                 sendMessageQueueHigh.Enqueue(newMessage);
             }
         }
+
+        public int GetStatistics(string statType) {
+            switch (statType)
+            {
+                case "HighPriorityQueueLength":
+                    return sendMessageQueueHigh.Count;
+                case "SplitPriorityQueueLength":
+                    return sendMessageQueueSplit.Count;
+                case "LowPriorityQueueLength":
+                    return sendMessageQueueLow.Count;
+                case "LastReceiveTime":
+                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) * 1000);
+                case "LastSendTime":
+                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastSendTime) * 1000);
+            }
+            return 0;
+        }
         #endregion
     }
 }

@@ -13,7 +13,6 @@ namespace DarkMultiPlayer
         private Client parent;
         private bool initialized;
         private Vector2 scrollPosition;
-        private bool displayNTP;
         public bool minmized;
         public bool safeMinimized;
         //GUI Layout
@@ -69,9 +68,11 @@ namespace DarkMultiPlayer
             layoutOptions[2] = GUILayout.MinHeight(WINDOW_HEIGHT);
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
 
-            minLayoutOptions = new GUILayoutOption[2];
+            minLayoutOptions = new GUILayoutOption[4];
             minLayoutOptions[0] = GUILayout.MinWidth(40);
             minLayoutOptions[1] = GUILayout.MinHeight(20);
+            minLayoutOptions[2] = GUILayout.ExpandWidth(true);
+            minLayoutOptions[3] = GUILayout.ExpandHeight(true);
 
             //Adapted from KMP.
             playerNameStyle = new GUIStyle(GUI.skin.label);
@@ -134,7 +135,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    minWindowRect = GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), minWindowRect, DrawMaximize, "", windowStyle, minLayoutOptions);
+                    minWindowRect = GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), minWindowRect, DrawMaximize, "DMP", windowStyle, minLayoutOptions);
                 }
             }
         }
@@ -146,6 +147,7 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
             parent.chatWindow.display = GUILayout.Toggle(parent.chatWindow.display, "C", buttonStyle);
+            parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "D", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minWindowRect.xMax = windowRect.xMax;
@@ -200,18 +202,7 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
-            displayNTP = GUILayout.Toggle(displayNTP, "Display subspace status", buttonStyle);
-            if (displayNTP)
-            {
-                string ntpText = "Warp rate: " + Math.Round(Time.timeScale , 3) + "x.\n";
-                ntpText += "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
-                ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
-                ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
-                ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
-                ntpText += "Server clock difference: " + Math.Round((parent.timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
-                ntpText += "Server lag: " + Math.Round((parent.timeSyncer.serverLag / 10000f), 3) + " ms\n";
-                GUILayout.Label(ntpText);
-            }
+ 
             if (GUILayout.Button("Disconnect", buttonStyle))
             {
                 disconnectEventHandled = false;
@@ -496,6 +487,9 @@ namespace DarkMultiPlayer
         {
             GUI.DragWindow(moveRect);
             GUILayout.BeginVertical();
+            GUILayout.BeginHorizontal();
+            parent.chatWindow.display = GUILayout.Toggle(parent.chatWindow.display, "C", buttonStyle);
+            parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "D", buttonStyle);
             if (GUILayout.Button("+", buttonStyle))
             {
                 windowRect.xMax = minWindowRect.xMax;
@@ -504,6 +498,7 @@ namespace DarkMultiPlayer
                 windowRect.yMax = minWindowRect.yMin + WINDOW_HEIGHT;
                 minmized = false;
             }
+            GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
 

@@ -1127,6 +1127,27 @@ namespace DarkMultiPlayer
             inUse = new Dictionary<string, string>();
             lastVessel = "";
         }
+
+        public int GetStatistics(string statType) {
+            switch (statType)
+            {
+                case "GetStoredFutureUpdates":
+                    int futureUpdates = 0;
+                    foreach (KeyValuePair<int, Queue<VesselUpdate>> vUQ in vesselUpdateQueue)
+                    {
+                        futureUpdates += vUQ.Value.Count;
+                    }
+                    return futureUpdates;
+                case "GetStoredFutureProtoUpdates":
+                    int futureProtoUpdates = 0;
+                    foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vPQ in vesselProtoQueue)
+                    {
+                        futureProtoUpdates += vPQ.Value.Count;
+                    }
+                    return futureProtoUpdates;
+            }
+            return 0;
+        }
     }
 
     class ActiveVesselEntry
