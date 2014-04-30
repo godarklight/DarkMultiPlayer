@@ -868,10 +868,12 @@ namespace DarkMultiPlayer
                         {
                             DarkLog.Debug("Set active vessel");
                             FlightGlobals.ForceSetActiveVessel(currentProto.vesselRef);
+                            /*
                             if (!currentProto.vesselRef.loaded)
                             {
                                 currentProto.vesselRef.Load();
                             }
+                            */
                         }
                         if (wasTarget)
                         {
