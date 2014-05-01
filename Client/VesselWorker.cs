@@ -15,7 +15,6 @@ namespace DarkMultiPlayer
         private Client parent;
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
-        private const float VESSEL_POSITION_UPDATE_INTERVAL = .2f;
         private const float DESTROY_IGNORE_TIME = 5f;
         //Pack distances
         private const float PLAYER_UNPACK_THRESHOLD = 9000;
@@ -444,7 +443,7 @@ namespace DarkMultiPlayer
                 //Send updates for unpacked vessels that aren't being flown by other players
                 bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.settings.playerName) : true;
                 bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
-                bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > VESSEL_POSITION_UPDATE_INTERVAL) : true;
+                bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
                 if (checkVessel.loaded && !checkVessel.packed && oursOrNotInUse)
                 {
                     //Check that is hasn't been recently sent
@@ -1173,20 +1172,24 @@ namespace DarkMultiPlayer
         public int GetStatistics(string statType) {
             switch (statType)
             {
-                case "GetStoredFutureUpdates":
-                    int futureUpdates = 0;
-                    foreach (KeyValuePair<int, Queue<VesselUpdate>> vUQ in vesselUpdateQueue)
+                case "StoredFutureUpdates":
                     {
-                        futureUpdates += vUQ.Value.Count;
+                        int futureUpdates = 0;
+                        foreach (KeyValuePair<int, Queue<VesselUpdate>> vUQ in vesselUpdateQueue)
+                        {
+                            futureUpdates += vUQ.Value.Count;
+                        }
+                        return futureUpdates;
                     }
-                    return futureUpdates;
-                case "GetStoredFutureProtoUpdates":
-                    int futureProtoUpdates = 0;
-                    foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vPQ in vesselProtoQueue)
+                case "StoredFutureProtoUpdates":
                     {
-                        futureProtoUpdates += vPQ.Value.Count;
+                        int futureProtoUpdates = 0;
+                        foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vPQ in vesselProtoQueue)
+                        {
+                            futureProtoUpdates += vPQ.Value.Count;
+                        }
+                        return futureProtoUpdates;
                     }
-                    return futureProtoUpdates;
             }
             return 0;
         }

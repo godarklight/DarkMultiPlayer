@@ -60,6 +60,7 @@
     <Compile Include="QuickSaveLoader.cs" />
     <Compile Include="ScenarioWorker.cs" />
     <Compile Include="DebugWindow.cs" />
+    <Compile Include="DynamicTickWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

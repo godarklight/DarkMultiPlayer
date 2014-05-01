@@ -14,9 +14,11 @@ namespace DarkMultiPlayer
         private bool displayFast;
         private bool displayNTP;
         private bool displayConnectionQueue;
+        private bool displayDynamicTickStats;
         private bool displayRequestedRates;
         private string ntpText;
         private string connectionText;
+        private string dynamicTickText;
         private string requestedRateText;
         private float lastUpdateTime;
         //GUI Layout
@@ -37,6 +39,10 @@ namespace DarkMultiPlayer
             //Main setup
             display = false;
             this.parent = parent;
+            ntpText = "";
+            connectionText = "";
+            dynamicTickText = "";
+            requestedRateText = "";
         }
 
         private void InitGUI()
@@ -83,10 +89,15 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(ntpText, labelStyle);
             }
-            displayConnectionQueue = GUILayout.Toggle(displayConnectionQueue, "Display connection queue statistics", buttonStyle);
+            displayConnectionQueue = GUILayout.Toggle(displayConnectionQueue, "Display connection statistics", buttonStyle);
             if (displayConnectionQueue)
             {
                 GUILayout.Label(connectionText, labelStyle);
+            }
+            displayDynamicTickStats = GUILayout.Toggle(displayDynamicTickStats, "Display dynamic tick statistics", buttonStyle);
+            if (displayDynamicTickStats)
+            {
+                GUILayout.Label(dynamicTickText, labelStyle);
             }
             displayRequestedRates = GUILayout.Toggle(displayRequestedRates, "Display requested rates", buttonStyle);
             if (displayRequestedRates)
@@ -116,16 +127,19 @@ namespace DarkMultiPlayer
                     ntpText += "Server lag: " + Math.Round((parent.timeSyncer.serverLag / 10000f), 3) + " ms\n";
 
                     //Connection queue text
-                    connectionText = "";
-                    connectionText += "Last send time: " + parent.networkWorker.GetStatistics("LastSendTime") + "ms.\n";
+                    connectionText = "Last send time: " + parent.networkWorker.GetStatistics("LastSendTime") + "ms.\n";
                     connectionText += "Last receive time: " + parent.networkWorker.GetStatistics("LastReceiveTime") + "ms.\n";
-                    connectionText += "Queued outgoing messages (High): " + parent.networkWorker.GetStatistics("HighPriorityQueueLength") + "\n";
-                    connectionText += "Queued outgoing messages (Split): " + parent.networkWorker.GetStatistics("SplitPriorityQueueLength") + "\n";
-                    connectionText += "Queued outgoing messages (Low): " + parent.networkWorker.GetStatistics("LowPriorityQueueLength") + "\n";
+                    connectionText += "Queued outgoing messages (High): " + parent.networkWorker.GetStatistics("HighPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Split): " + parent.networkWorker.GetStatistics("SplitPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Low): " + parent.networkWorker.GetStatistics("LowPriorityQueueLength") + ".\n";
                     connectionText += "Stored future updates: " + parent.vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
-                    connectionText += "Stored future proto updates: " + parent.vesselWorker.GetStatistics("StoredFutureProtoUpdates") + "\n";
+                    connectionText += "Stored future proto updates: " + parent.vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
 
-                    //Requested rates
+                    //Dynamic tick text
+                    dynamicTickText = "Current tick rate: " + parent.dynamicTickWorker.sendTickRate + "hz.\n";
+                    dynamicTickText += "Current max secondry vessels: " + parent.dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
+
+                    //Requested rates text
                     requestedRateText = parent.settings.playerName + ": " + Math.Round(parent.timeSyncer.requestedRate, 3) + "x.\n";
                     foreach (KeyValuePair<string, float> playerEntry in parent.warpWorker.clientSkewList)
                     {

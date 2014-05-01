@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         public PlayerStatusWorker playerStatusWorker;
         public WarpWorker warpWorker;
         public ScenarioWorker scenarioWorker;
+        public DynamicTickWorker dynamicTickWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
@@ -43,6 +44,7 @@ namespace DarkMultiPlayer
             vesselWorker = new VesselWorker(this);
             warpWorker = new WarpWorker(this);
             scenarioWorker = new ScenarioWorker(this);
+            dynamicTickWorker = new DynamicTickWorker(this);
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
@@ -142,6 +144,7 @@ namespace DarkMultiPlayer
                 debugWindow.Update();
                 quickSaveLoader.Update();
                 scenarioWorker.Update();
+                dynamicTickWorker.Update();
 
                 //Force quit
                 if (forceQuit)
@@ -262,6 +265,7 @@ namespace DarkMultiPlayer
             warpWorker.Reset();
             chatWindow.Reset();
             scenarioWorker.Reset();
+            dynamicTickWorker.Reset();
         }
 
         private void SetupDirectoriesIfNeeded()

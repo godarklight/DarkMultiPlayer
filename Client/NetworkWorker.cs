@@ -108,6 +108,7 @@ namespace DarkMultiPlayer
                 parent.vesselWorker.workerEnabled = true;
                 parent.playerStatusWorker.workerEnabled = true;
                 parent.scenarioWorker.enabled = true;
+                parent.dynamicTickWorker.enabled = true;
             }
 
         }
