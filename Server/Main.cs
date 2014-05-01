@@ -67,6 +67,15 @@ namespace DarkMultiPlayerServer
             {
                 Directory.CreateDirectory(Path.Combine(universeDirectory, "Vessels"));
             }
+            if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios")))
+            {
+                Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios"));
+            }
+            if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", "Initial")))
+            {
+                Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios", "Initial"));
+            }
+
         }
         //Shutdown
         private static void ShutDown()

@@ -575,14 +575,14 @@ namespace DarkMultiPlayerServer
             }
             if (handshakeReponse == 0)
             {
-                //Check client isn't already connected
-                foreach (ClientObject testClient in clients)
+                //Check the client isn't using a reserved name
+                switch (playerName)
                 {
-                    if ("Server" == playerName)
-                    {
+                    case "Server":
+                    case "Initial":
                         handshakeReponse = 3;
                         reason = "Kicked for using a reserved name";
-                    }
+                        break;
                 }
             }
             if (handshakeReponse == 0)
@@ -617,13 +617,14 @@ namespace DarkMultiPlayerServer
                 client.authenticated = true;
                 DarkLog.Normal("Client " + playerName + " handshook successfully!");
                 //SEND ALL THE THINGS!
-                if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios")))
-                {
-                    Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios"));
-                }
+
                 if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
                 {
                     Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName));
+                    foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", "Initial")))
+                    {
+                        File.Copy(file, Path.Combine(Server.universeDirectory, "Scenarios", playerName, Path.GetFileName(file)));
+                    }
                 }
                 SendHandshakeReply(client, handshakeReponse);
                 SendServerSettings(client);
