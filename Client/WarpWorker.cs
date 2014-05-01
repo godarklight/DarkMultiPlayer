@@ -240,7 +240,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Unlocking from subspace");
                 parent.timeSyncer.UnlockSubspace();
             }
-            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate == 1) && !parent.timeSyncer.locked && (warpMode == WarpMode.SUBSPACE))
+            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !parent.timeSyncer.locked && (warpMode == WarpMode.SUBSPACE))
             {
                 int newSubspaceID = parent.timeSyncer.LockNewSubspace(parent.timeSyncer.GetServerClock(), Planetarium.GetUniversalTime(), 1f);
                 parent.timeSyncer.LockSubspace(newSubspaceID);
@@ -297,7 +297,7 @@ namespace DarkMultiPlayer
             }
             else if (warpMaster == parent.settings.playerName)
             {
-                if (stopWarpKey && (TimeWarp.CurrentRate == 1f))
+                if (stopWarpKey && (TimeWarp.CurrentRate < 1.1f))
                 {
                     ReleaseWarpMaster();
                 }
@@ -387,7 +387,7 @@ namespace DarkMultiPlayer
             {
                 if (warpMaster == parent.settings.playerName)
                 {
-                    if (stopWarpKey && (TimeWarp.CurrentRate == 1f))
+                    if (stopWarpKey && (TimeWarp.CurrentRate < 1.1f))
                     {
                         //Release control of the warp master instead of waiting for the timeout
                         ReleaseWarpMaster();
