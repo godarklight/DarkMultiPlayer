@@ -14,8 +14,10 @@ namespace DarkMultiPlayer
         private bool displayFast;
         private bool displayNTP;
         private bool displayConnectionQueue;
+        private bool displayRequestedRates;
         private string ntpText;
         private string connectionText;
+        private string requestedRateText;
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -86,6 +88,11 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(connectionText, labelStyle);
             }
+            displayRequestedRates = GUILayout.Toggle(displayRequestedRates, "Display requested rates", buttonStyle);
+            if (displayRequestedRates)
+            {
+                GUILayout.Label(requestedRateText, labelStyle);
+            }
             GUILayout.EndVertical();
         }
 
@@ -99,7 +106,9 @@ namespace DarkMultiPlayer
                     lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
+                    ntpText += "Average Warp rate: " + Math.Round(parent.timeSyncer.averageSkewRate, 3) + "x.\n";
                     ntpText += "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
+                    ntpText += "Current subspace rate: " + Math.Round(parent.timeSyncer.GetSubspace(parent.timeSyncer.currentSubspace).subspaceSpeed, 3) + "x.\n";
                     ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
                     ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                     ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
@@ -115,6 +124,13 @@ namespace DarkMultiPlayer
                     connectionText += "Queued outgoing messages (Low): " + parent.networkWorker.GetStatistics("LowPriorityQueueLength") + "\n";
                     connectionText += "Stored future updates: " + parent.vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
                     connectionText += "Stored future proto updates: " + parent.vesselWorker.GetStatistics("StoredFutureProtoUpdates") + "\n";
+
+                    //Requested rates
+                    requestedRateText = parent.settings.playerName + ": " + Math.Round(parent.timeSyncer.requestedRate, 3) + "x.\n";
+                    foreach (KeyValuePair<string, float> playerEntry in parent.warpWorker.clientSkewList)
+                    {
+                        requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
+                    }
                 }
             }
         }

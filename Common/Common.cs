@@ -107,6 +107,8 @@ namespace DarkMultiPlayerCommon
         SET_CONTROLLER,
         NEW_SUBSPACE,
         CHANGE_SUBSPACE,
+        RELOCK_SUBSPACE,
+        REPORT_RATE
     }
 
     public class ClientMessage

@@ -18,7 +18,6 @@ namespace DarkMultiPlayerServer
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
-
         #region Main loop
         public static void ThreadMain()
         {
@@ -168,6 +167,7 @@ namespace DarkMultiPlayerServer
             newClientObject.connectionStatus = ConnectionStatus.CONNECTED;
             newClientObject.playerName = "Unknown";
             newClientObject.activeVessel = "";
+            newClientObject.subspaceRate = 1f;
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
@@ -219,7 +219,8 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SplitAndRewriteMessage(ClientObject client, ref ServerMessage message) {
+        private static void SplitAndRewriteMessage(ClientObject client, ref ServerMessage message)
+        {
             if (message == null)
             {
                 return;
@@ -633,6 +634,7 @@ namespace DarkMultiPlayerServer
                 SendAllSubspaces(client);
                 SendAllPlayerStatus(client);
                 SendScenarioModules(client);
+                SendAllReportedSkewRates(client);
             }
             else
             {
@@ -888,6 +890,60 @@ namespace DarkMultiPlayerServer
                     {
                         client.subspace = mr.Read<int>();
                     }
+                    if (warpType == WarpMessageType.REPORT_RATE)
+                    {
+                        int reportedSubspace = mr.Read<int>();
+                        if (reportedSubspace == client.subspace)
+                        {
+                            float newSubspaceRateTotal = mr.Read<float>();
+                            int newSubspaceRateCount = 1;
+                            foreach (ClientObject otherClient in clients)
+                            {
+                                if (otherClient.authenticated && otherClient.subspace == reportedSubspace)
+                                {
+                                    newSubspaceRateTotal += otherClient.subspaceRate;
+                                    newSubspaceRateCount++;
+                                }
+                            }
+                            float newAverageRate = newSubspaceRateTotal / (float)newSubspaceRateCount;
+                            if (newAverageRate < 0.5f)
+                            {
+                                newAverageRate = 0.5f;
+                            }
+                            if (newAverageRate > 1f)
+                            {
+                                newAverageRate = 1f;
+                            }
+                            //Relock the subspace if the rate is more than 3% out of the average
+                            DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
+                            if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newAverageRate) > 0.03f)
+                            {
+                                //New time = Old time + (seconds since lock * subspace rate)
+                                long newServerClockTime = DateTime.UtcNow.Ticks;
+                                float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[client.subspace].serverClock) / 10000000f;
+                                double newPlanetariumTime = subspaces[client.subspace].planetTime + (timeSinceLock * subspaces[client.subspace].subspaceSpeed);
+                                subspaces[client.subspace].serverClock = newServerClockTime;
+                                subspaces[client.subspace].planetTime = newPlanetariumTime;
+                                subspaces[client.subspace].subspaceSpeed = newAverageRate;
+                                ServerMessage relockMessage = new ServerMessage();
+                                relockMessage.type = ServerMessageType.WARP_CONTROL;
+                                using (MessageWriter mw = new MessageWriter())
+                                {
+                                    mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
+                                    mw.Write<string>("Server");
+                                    mw.Write<int>(client.subspace);
+                                    mw.Write<long>(DateTime.UtcNow.Ticks);
+                                    mw.Write<double>(newPlanetariumTime);
+                                    mw.Write<float>(newAverageRate);
+                                    relockMessage.data = mw.GetMessageBytes();
+                                }
+                                SaveLatestSubspace();
+                                DarkLog.Debug("Subspace " + client.subspace + " locked to " + newAverageRate + "x speed.");
+                                SendToClient(client, relockMessage, true);
+                                SendToAll(client, relockMessage, true);
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -904,7 +960,8 @@ namespace DarkMultiPlayerServer
             if (!client.isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData, false)) {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
                     client.receiveSplitMessage = new ClientMessage();
                     client.receiveSplitMessage.type = (ClientMessageType)mr.Read<int>();
                     client.receiveSplitMessage.data = new byte[mr.Read<int>()];
@@ -1160,6 +1217,30 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void SendAllReportedSkewRates(ClientObject client)
+        {
+            foreach (ClientObject otherClient in clients)
+            {
+                if (otherClient.authenticated)
+                {
+                    if (otherClient != client)
+                    {
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.WARP_CONTROL;
+                        using (MessageWriter mw = new MessageWriter())
+                        {
+                            mw.Write<int>((int)WarpMessageType.REPORT_RATE);
+                            mw.Write<string>(otherClient.playerName);
+                            mw.Write<float>(otherClient.subspace);
+                            mw.Write<float>(otherClient.subspaceRate);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        SendToClient(client, newMessage, true);
+                    }
+                }
+            }
+        }
+
         private static void SendKerbal(ClientObject client, int kerbalID, string kerbalData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -1216,8 +1297,12 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName;
+        //subspace tracking
         public int subspace;
+        public float subspaceRate;
+        //vessel tracking
         public string activeVessel;
+        //connection
         public string endpoint;
         public TcpClient connection;
         //Send buffer

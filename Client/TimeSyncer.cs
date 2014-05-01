@@ -39,6 +39,32 @@ namespace DarkMultiPlayer
             get;
             private set;
         }
+        public float averageSkewRate
+        {
+            get;
+            private set;
+        }
+        public float requestedRate
+        {
+            get
+            {
+                if (locked)
+                {
+                    float tempRate = subspaces[currentSubspace].subspaceSpeed * (1 / averageSkewRate);
+                    //Request 0.5-1x speed.
+                    if (tempRate < 0.5)
+                    {
+                        tempRate = 0.5f;
+                    }
+                    if (tempRate > 1f)
+                    {
+                        tempRate = 1f;
+                    }
+                    return tempRate;
+                }
+                return 1f;
+            }
+        }
         private const float MAX_CLOCK_SKEW = 5f;
         private const float MIN_CLOCK_RATE = 0.5f;
         private const float MAX_CLOCK_RATE = 1.5f;
@@ -50,6 +76,7 @@ namespace DarkMultiPlayer
         private float lastClockSkew = 0f;
         private List<long> clockOffset;
         private List<long> networkLatency;
+        private List<float> skewList;
         private Dictionary<int, Subspace> subspaces;
         public Client parent;
 
@@ -166,6 +193,20 @@ namespace DarkMultiPlayer
             if ( timeWarpRate > 1.5f ) timeWarpRate = 1.5f;
             if ( timeWarpRate < 0.5f ) timeWarpRate = 0.5f;
             Time.timeScale = timeWarpRate;
+            skewList.Add(timeWarpRate);
+            while (skewList.Count > 300)
+            {
+                skewList.RemoveAt(0);
+            }
+            //Set the average
+            float totalSkew = 0f;
+            int totalCount = 0;
+            foreach (float currentSkew in skewList)
+            {
+                totalSkew += currentSkew;
+                totalCount++;
+            }
+            averageSkewRate = totalSkew / (float)totalCount;
         }
 
         private bool SituationIsGrounded(Vessel.Situations situation)
@@ -234,6 +275,20 @@ namespace DarkMultiPlayer
                 mw.Write<string>(parent.settings.playerName);
                 mw.Write<int>(currentSubspace);
                 parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+            }
+        }
+
+        public void RelockSubspace(int subspaceID, long serverClock, double planetTime, float subspaceSpeed)
+        {
+            if (subspaces.ContainsKey(subspaceID))
+            {
+                subspaces[subspaceID].serverClock = serverClock;
+                subspaces[subspaceID].planetTime = planetTime;
+                subspaces[subspaceID].subspaceSpeed = subspaceSpeed;
+            }
+            else
+            {
+                DarkLog.Debug("Failed to relock non-existant subspace!");
             }
         }
 
@@ -324,6 +379,8 @@ namespace DarkMultiPlayer
             clockOffsetAverage = 0;
             networkLatencyAverage = 0;
             serverLag = 0;
+            skewList = new List<float>();
+            averageSkewRate = 1f;
         }
 
         public void HandleSyncTime(long clientSend, long serverReceive, long serverSend)
