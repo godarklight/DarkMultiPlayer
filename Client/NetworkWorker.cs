@@ -715,7 +715,9 @@ namespace DarkMultiPlayer
                 update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
-                update.rotation = mr.Read<float[]>();
+                //update.rotation = mr.Read<float[]>();
+                update.vesselForward = mr.Read<float[]>();
+                update.vesselUp = mr.Read<float[]>();
                 update.angularVelocity = mr.Read<float[]>();
                 update.flightState = new FlightCtrlState();
                 byte[] flightData = mr.Read<byte[]>();
@@ -947,7 +949,9 @@ namespace DarkMultiPlayer
                 mw.Write<double>(update.planetTime);
                 mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
-                mw.Write<float[]>(update.rotation);
+                //mw.Write<float[]>(update.rotation);
+                mw.Write<float[]>(update.vesselForward);
+                mw.Write<float[]>(update.vesselUp);
                 mw.Write<float[]>(update.angularVelocity);
                 using (MemoryStream ms = new MemoryStream())
                 {

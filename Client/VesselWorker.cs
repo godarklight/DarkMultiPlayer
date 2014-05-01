@@ -576,12 +576,26 @@ namespace DarkMultiPlayer
                 returnUpdate.vesselID = updateVessel.id.ToString();
                 returnUpdate.planetTime = Planetarium.GetUniversalTime();
                 returnUpdate.bodyName = updateVessel.mainBody.bodyName;
+                /*
                 returnUpdate.rotation = new float[4];
                 Quaternion transformRotation = updateVessel.transform.rotation;
                 returnUpdate.rotation[0] = transformRotation.x;
                 returnUpdate.rotation[1] = transformRotation.y;
                 returnUpdate.rotation[2] = transformRotation.z;
                 returnUpdate.rotation[3] = transformRotation.w;
+                */
+                returnUpdate.vesselForward = new float[3];
+                Vector3 transformVesselForward = updateVessel.mainBody.transform.InverseTransformDirection(updateVessel.transform.forward);
+                returnUpdate.vesselForward[0] = transformVesselForward.x;
+                returnUpdate.vesselForward[1] = transformVesselForward.y;
+                returnUpdate.vesselForward[2] = transformVesselForward.z;
+
+                returnUpdate.vesselUp = new float[3];
+                Vector3 transformVesselUp = updateVessel.mainBody.transform.InverseTransformDirection(updateVessel.transform.up);
+                returnUpdate.vesselUp[0] = transformVesselUp.x;
+                returnUpdate.vesselUp[1] = transformVesselUp.y;
+                returnUpdate.vesselUp[2] = transformVesselUp.z;
+
                 returnUpdate.angularVelocity = new float[3];
                 returnUpdate.angularVelocity[0] = updateVessel.angularVelocity.x;
                 returnUpdate.angularVelocity[1] = updateVessel.angularVelocity.y;
@@ -1031,8 +1045,14 @@ namespace DarkMultiPlayer
                 }
 
             }
-            Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
-            updateVessel.SetRotation(updateRotation);
+            //Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
+            //updateVessel.SetRotation(updateRotation);
+
+            Vector3 vesselForward = new Vector3(update.vesselForward[0], update.vesselForward[1], update.vesselForward[2]);
+            Vector3 vesselUp = new Vector3(update.vesselUp[0], update.vesselUp[1], update.vesselUp[2]);
+
+            updateVessel.transform.LookAt(updateVessel.transform.position + updateVessel.mainBody.transform.TransformDirection(vesselForward).normalized, updateVessel.mainBody.transform.TransformDirection(vesselUp));
+            updateVessel.SetRotation(updateVessel.transform.rotation);
 
             if (!updateVessel.packed)
             {
@@ -1202,7 +1222,9 @@ namespace DarkMultiPlayer
         public string vesselID;
         public double planetTime;
         public string bodyName;
-        public float[] rotation;
+        //public float[] rotation;
+        public float[] vesselForward;
+        public float[] vesselUp;
         public float[] angularVelocity;
         public FlightCtrlState flightState;
         public bool[] actiongroupControls;
