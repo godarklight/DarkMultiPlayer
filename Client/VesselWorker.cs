@@ -547,7 +547,8 @@ namespace DarkMultiPlayer
             return returnUpdate;
         }
 
-        private void SetNotInUse(string player)
+        //Also called from network worker
+        public void SetNotInUse(string player)
         {
             string deleteKey = "";
             foreach (KeyValuePair<string, string> inUseEntry in inUse)

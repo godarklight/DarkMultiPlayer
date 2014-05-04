@@ -612,7 +612,7 @@ namespace DarkMultiPlayer
                 string playerName = mr.Read<string>();
                 parent.warpWorker.RemovePlayer(playerName);
                 parent.playerStatusWorker.RemovePlayerStatus(playerName);
-
+                parent.vesselWorker.SetNotInUse(playerName);
             }
         }
 
