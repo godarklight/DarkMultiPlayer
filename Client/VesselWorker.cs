@@ -355,10 +355,9 @@ namespace DarkMultiPlayer
                     {
                         double ourDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
                         double theirDistance = Vector3d.Distance(playerVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                        DarkLog.Debug("Player " + entry.Value + " may be closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
                         if (ourDistance > theirDistance)
                         {
-                            DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
+                            //DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
                             anotherPlayerCloser = true;
                         }
                     }
