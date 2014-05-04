@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
 {
     public class ScenarioWorker
     {
-        public bool enabled;
+        public bool workerEnabled;
         private Client parent;
         private Queue<ScenarioEntry> scenarioQueue;
         private bool blockScenarioDataSends;
@@ -24,7 +24,7 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            if (enabled && !blockScenarioDataSends)
+            if (workerEnabled && !blockScenarioDataSends)
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
                 {
@@ -36,31 +36,33 @@ namespace DarkMultiPlayer
 
         private void SendScenarioModules()
         {
-
-            if (HighLogic.CurrentGame.scenarios.Count > 0)
+            List<string> scenarioName = new List<string>();
+            List<string> scenarioData = new List<string>();
+            foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
             {
-                List<string> scenarioName = new List<string>();
-                List<string> scenarioData = new List<string>();
-                for (int i = 0; i < HighLogic.CurrentGame.scenarios.Count; i++)
+                //Skip sending science data in sandbox mode (If this can even happen?)
+                if (psm != null ? (psm.moduleName != null && psm.moduleRef != null) : false)
                 {
-                    //Skip sending science data in sandbox mode (If this can even happen?)
-                    if (!(HighLogic.CurrentGame.scenarios[i].moduleName == "ResearchAndDevelopment" && parent.gameMode == GameMode.SANDBOX))
+                    if (!(psm.moduleName == "ResearchAndDevelopment" && parent.gameMode == GameMode.SANDBOX))
                     {
                         ConfigNode scenarioNode = new ConfigNode();
-                        HighLogic.CurrentGame.scenarios[i].moduleRef.Save(scenarioNode);
+                        psm.moduleRef.Save(scenarioNode);
                         //Yucky.
                         string tempFile = Path.GetTempFileName();
                         scenarioNode.Save(tempFile);
                         using (StreamReader sr = new StreamReader(tempFile))
                         {
-                            scenarioName.Add(HighLogic.CurrentGame.scenarios[i].moduleName);
+                            scenarioName.Add(psm.moduleName);
                             scenarioData.Add(sr.ReadToEnd());
                         }
                         File.Delete(tempFile);
                     }
                 }
-                parent.networkWorker.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
+            }
+            if (scenarioName.Count > 0)
+            {
                 DarkLog.Debug("Sending " + scenarioName.Count + " scenario modules");
+                parent.networkWorker.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
             }
         }
 
@@ -183,7 +185,7 @@ namespace DarkMultiPlayer
 
         public void Reset()
         {
-            enabled = false;
+            workerEnabled = false;
             loadedScience = false;
             scenarioQueue = new Queue<ScenarioEntry>();
             blockScenarioDataSends = false;

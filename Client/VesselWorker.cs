@@ -7,13 +7,14 @@ namespace DarkMultiPlayer
 {
     public class VesselWorker
     {
-        //Parent/client
         public bool workerEnabled;
-        //Daddy?
+        //Set just before the worker is enabled to ignore fake vessel destructions during KSP's start.
+        public float gameSceneChangeTime;
+        //Hooks enabled
+        private bool registered;
         private Client parent;
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
-        private const float DESTROY_IGNORE_TIME = 5f;
         //Pack distances
         private const float PLAYER_UNPACK_THRESHOLD = 9000;
         private const float PLAYER_PACK_THRESHOLD = 10000;
@@ -23,6 +24,7 @@ namespace DarkMultiPlayer
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
         private const float SPECTATE_MESSAGE_INTERVAL = 1f;
+        private const float DESTROY_DELAY_AFTER_SCENE_CHANGE_TIME = 15f;
         private ScreenMessage spectateMessage;
         private float lastSpectateMessageUpdate;
         //Incoming queue
@@ -55,6 +57,16 @@ namespace DarkMultiPlayer
         //Called from main
         public void FixedUpdate()
         {
+            if (workerEnabled && !registered)
+            {
+                registered = true;
+                GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+            }
+            if (!workerEnabled && registered)
+            {
+                registered = false;
+                GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
+            }
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
             {
@@ -85,6 +97,11 @@ namespace DarkMultiPlayer
                 //Send updates of needed vessels
                 SendVesselUpdates();
             }
+        }
+
+        private void OnGameSceneLoadRequested(GameScenes scene)
+        {
+            gameSceneChangeTime = UnityEngine.Time.realtimeSinceStartup;
         }
 
         private void UpdateOtherPlayersActiveVesselStatus()
@@ -290,116 +307,150 @@ namespace DarkMultiPlayer
                 //Don't send updates in spectate mode
                 return;
             }
+
+            SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel);
+            SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
+
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
-                //Send updates for unpacked vessels that aren't being flown by other players
-                bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.settings.playerName) : true;
-                bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
-                bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
-                if (checkVessel.loaded && !checkVessel.packed && oursOrNotInUse)
+                if (checkVessel.loaded && !checkVessel.packed && checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString())
                 {
-                    //Check that is hasn't been recently sent
-                    if (notRecentlySentProtoUpdate)
+                    bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.settings.playerName) : true;
+                    bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
+                    bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
+                    if (oursOrNotInUse && (notRecentlySentProtoUpdate || notRecentlySentPositionUpdate))
                     {
-                        //Send a protovessel update
-                        serverVesselsProtoUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                        //Also delay the position send
-                        serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                        ProtoVessel checkProto = new ProtoVessel(checkVessel);
-                        //TODO: Fix sending of flying vessels.
-                        if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING))
+                        double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
+                        secondryVessels.Add(currentDistance, checkVessel);
+                    }
+                }
+            }
+
+            int currentSend = 0;
+            foreach (KeyValuePair<double, Vessel> secondryVessel in secondryVessels)
+            {
+                currentSend++;
+                if (currentSend > parent.dynamicTickWorker.maxSecondryVesselsPerTick)
+                {
+                    break;
+                }
+                SendVesselUpdateIfNeeded(secondryVessel.Value);
+            }
+        }
+
+        private void SendVesselUpdateIfNeeded(Vessel checkVessel)
+        {
+            //Send updates for unpacked vessels that aren't being flown by other players
+            bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
+            bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
+            bool anotherPlayerCloser = false;
+            //Skip checking player vessels, they are filtered out above in "oursOrNotInUse"
+            foreach (KeyValuePair<string,string> entry in inUse)
+            {
+                //The active vessel isn't another player that can be closer than the active vessel.
+                if (entry.Value != parent.settings.playerName && entry.Key != checkVessel.id.ToString())
+                {
+                    Vessel playerVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == entry.Key);
+                    if (playerVessel != null)
+                    {
+                        double ourDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
+                        double theirDistance = Vector3d.Distance(playerVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
+                        DarkLog.Debug("Player " + entry.Value + " may be closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
+                        if (ourDistance > theirDistance)
                         {
-                            if (checkProto.vesselID != Guid.Empty)
+                            DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
+                            anotherPlayerCloser = true;
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug(entry.Key + " owned by " + entry.Value + " is null!");
+                    }
+                }
+            }
+
+            if (checkVessel.loaded && !checkVessel.packed && !anotherPlayerCloser)
+            {
+                //Check that is hasn't been recently sent
+                if (notRecentlySentProtoUpdate)
+                {
+                    //Send a protovessel update
+                    serverVesselsProtoUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                    //Also delay the position send
+                    serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                    ProtoVessel checkProto = new ProtoVessel(checkVessel);
+                    //TODO: Fix sending of flying vessels.
+                    if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING))
+                    {
+                        if (checkProto.vesselID != Guid.Empty)
+                        {
+                            //Also check for kerbal state changes
+                            foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
                             {
-                                //Also check for kerbal state changes
-                                foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
+                                foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                                 {
-                                    foreach (ProtoCrewMember pcm in part.protoModuleCrew)
+                                    int kerbalID = HighLogic.CurrentGame.CrewRoster.IndexOf(pcm);
+                                    if (!serverKerbals.ContainsKey(kerbalID))
                                     {
-                                        int kerbalID = HighLogic.CurrentGame.CrewRoster.IndexOf(pcm);
-                                        if (!serverKerbals.ContainsKey(kerbalID))
+                                        //New kerbal
+                                        DarkLog.Debug("Found new kerbal, sending...");
+                                        serverKerbals[kerbalID] = new ProtoCrewMember(pcm);
+                                        parent.networkWorker.SendKerbalProtoMessage(HighLogic.CurrentGame.CrewRoster.IndexOf(pcm), pcm);
+                                    }
+                                    else
+                                    {
+                                        bool kerbalDifferent = false;
+                                        kerbalDifferent = (pcm.name != serverKerbals[kerbalID].name) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.courage != serverKerbals[kerbalID].courage) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.isBadass != serverKerbals[kerbalID].isBadass) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.rosterStatus != serverKerbals[kerbalID].rosterStatus) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.seatIdx != serverKerbals[kerbalID].seatIdx) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.stupidity != serverKerbals[kerbalID].stupidity) || kerbalDifferent;
+                                        kerbalDifferent = (pcm.UTaR != serverKerbals[kerbalID].UTaR) || kerbalDifferent;
+                                        if (kerbalDifferent)
                                         {
-                                            //New kerbal
-                                            DarkLog.Debug("Found new kerbal, sending...");
-                                            serverKerbals[kerbalID] = new ProtoCrewMember(pcm);
+                                            DarkLog.Debug("Found changed kerbal, sending...");
                                             parent.networkWorker.SendKerbalProtoMessage(HighLogic.CurrentGame.CrewRoster.IndexOf(pcm), pcm);
-                                        }
-                                        else
-                                        {
-                                            bool kerbalDifferent = false;
-                                            kerbalDifferent = (pcm.name != serverKerbals[kerbalID].name) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.courage != serverKerbals[kerbalID].courage) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.isBadass != serverKerbals[kerbalID].isBadass) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.rosterStatus != serverKerbals[kerbalID].rosterStatus) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.seatIdx != serverKerbals[kerbalID].seatIdx) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.stupidity != serverKerbals[kerbalID].stupidity) || kerbalDifferent;
-                                            kerbalDifferent = (pcm.UTaR != serverKerbals[kerbalID].UTaR) || kerbalDifferent;
-                                            if (kerbalDifferent)
-                                            {
-                                                DarkLog.Debug("Found changed kerbal, sending...");
-                                                parent.networkWorker.SendKerbalProtoMessage(HighLogic.CurrentGame.CrewRoster.IndexOf(pcm), pcm);
-                                                serverKerbals[kerbalID].name = pcm.name;
-                                                serverKerbals[kerbalID].courage = pcm.courage;
-                                                serverKerbals[kerbalID].isBadass = pcm.isBadass;
-                                                serverKerbals[kerbalID].rosterStatus = pcm.rosterStatus;
-                                                serverKerbals[kerbalID].seatIdx = pcm.seatIdx;
-                                                serverKerbals[kerbalID].stupidity = pcm.stupidity;
-                                                serverKerbals[kerbalID].UTaR = pcm.UTaR;
-                                            }
+                                            serverKerbals[kerbalID].name = pcm.name;
+                                            serverKerbals[kerbalID].courage = pcm.courage;
+                                            serverKerbals[kerbalID].isBadass = pcm.isBadass;
+                                            serverKerbals[kerbalID].rosterStatus = pcm.rosterStatus;
+                                            serverKerbals[kerbalID].seatIdx = pcm.seatIdx;
+                                            serverKerbals[kerbalID].stupidity = pcm.stupidity;
+                                            serverKerbals[kerbalID].UTaR = pcm.UTaR;
                                         }
                                     }
                                 }
-                                parent.networkWorker.SendVesselProtoMessage(checkProto);
                             }
-                            else
-                            {
-                                DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
-                            }
+                            parent.networkWorker.SendVesselProtoMessage(checkProto);
                         }
                         else
                         {
-                            DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);
+                            DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
                         }
                     }
-                    else if (notRecentlySentPositionUpdate)
+                    else
                     {
-                        //Send a position update
-                        serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                        bool anotherPlayerCloser = false;
-                        //Skip checking player vessels, they are filtered out above in "oursOrNotInUse"
-                        if (!inUse.ContainsKey(checkVessel.id.ToString()))
+                        DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);
+                    }
+                }
+                else if (notRecentlySentPositionUpdate)
+                {
+                    //Send a position update
+                    serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+
+                    if (!anotherPlayerCloser)
+                    {
+                        VesselUpdate update = GetVesselUpdate(checkVessel);
+                        if (update != null)
                         {
-                            foreach (KeyValuePair<string,string> entry in inUse)
-                            {
-                                //The active vessel isn't another player that can be closer than the active vessel.
-                                if (entry.Value != parent.settings.playerName)
-                                {
-                                    Vessel playerVessel = FlightGlobals.fetch.vessels.Find(v => v.id.ToString() == entry.Key);
-                                    if (playerVessel != null)
-                                    {
-                                        double ourDistance = Vector3d.Distance(FlightGlobals.ActiveVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                                        double theirDistance = Vector3d.Distance(FlightGlobals.ActiveVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                                        if (ourDistance > theirDistance)
-                                        {
-                                            DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + (float)theirDistance + ", ours: " + (float)ourDistance);
-                                            anotherPlayerCloser = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (!anotherPlayerCloser)
-                        {
-                            VesselUpdate update = GetVesselUpdate(checkVessel);
-                            if (update != null)
-                            {
-                                parent.networkWorker.SendVesselUpdate(update);
-                            }
+                            parent.networkWorker.SendVesselUpdate(update);
                         }
                     }
                 }
             }
         }
+
         //Also called from PlayerStatusWorker
         public bool isSpectating
         {
@@ -774,65 +825,76 @@ namespace DarkMultiPlayer
 
         private void CheckVessels()
         {
-            //Iterate through the lists backwards so we can modify them without changing the position. Also should keep the latest vessels if there's any duplicates.
-            List<string> knownVessels = new List<string>();
-
-            for (int i = FlightGlobals.fetch.vessels.Count - 1; i > 0; i--)
+            try
             {
-                Vessel currentVessel = FlightGlobals.fetch.vessels[i];
-                //Duplicate vessel detected
-                if (knownVessels.Contains(currentVessel.id.ToString()))
+                //For some unknown reason, Flightglobals.fetch.vessels goes to 0 during the load. No idea where the hell the actual vessels are kept...
+                if ((UnityEngine.Time.realtimeSinceStartup - gameSceneChangeTime) > DESTROY_DELAY_AFTER_SCENE_CHANGE_TIME)
                 {
-                    //If we have just spawned in a new vessel but haven't switched, our active vessel could be an older copy. Destroying the active vessel causes problems.
-                    if (FlightGlobals.fetch.activeVessel != currentVessel)
+                    //Iterate through the lists backwards so we can modify them without changing the position. Also should keep the latest vessels if there's any duplicates.
+                    List<string> knownVessels = new List<string>();
+
+                    for (int i = FlightGlobals.fetch.vessels.Count - 1; i > 0; i--)
                     {
-                        DarkLog.Debug("Duplicate vessel " + currentVessel.id.ToString() + " destroyed.");
-                        KillVessel(currentVessel);
+                        Vessel currentVessel = FlightGlobals.fetch.vessels[i];
+                        //Duplicate vessel detected
+                        if (knownVessels.Contains(currentVessel.id.ToString()))
+                        {
+                            //If we have just spawned in a new vessel but haven't switched, our active vessel could be an older copy. Destroying the active vessel causes problems.
+                            if (FlightGlobals.fetch.activeVessel != currentVessel)
+                            {
+                                DarkLog.Debug("Duplicate vessel " + currentVessel.id.ToString() + " destroyed.");
+                                KillVessel(currentVessel);
+                            }
+                        }
+                        else
+                        {
+                            //Not a duplicate vessel
+                            knownVessels.Add(currentVessel.id.ToString());
+                            if (!serverVessels.Contains(currentVessel.id.ToString()))
+                            {
+                                //Brand new vessel. Asteroid sharing code will go in here.
+                                serverVessels.Add(currentVessel.id.ToString());
+                                DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
+                                //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
+                            }
+                        }
                     }
-                }
-                else
-                {
-                    //Not a duplicate vessel
-                    knownVessels.Add(currentVessel.id.ToString());
-                    if (!serverVessels.Contains(currentVessel.id.ToString()))
+
+                    for (int i = serverVessels.Count - 1; i > 0; i--)
                     {
-                        //Brand new vessel. Asteroid sharing code will go in here.
-                        serverVessels.Add(currentVessel.id.ToString());
-                        DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
-                        //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
+                        string serverVessel = serverVessels[i];
+                        if (!knownVessels.Contains(serverVessel))
+                        {
+                            DarkLog.Debug("Vessel " + serverVessel + " destroyed!");
+                            if (!isSpectating)
+                            {
+                                parent.networkWorker.SendVesselRemove(serverVessel);
+                            }
+                            List<int> unassignKerbals = new List<int>();
+                            foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
+                            {
+                                if (kerbalAssignment.Value == serverVessel.Replace("-", ""))
+                                {
+                                    DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + serverVessel);
+                                    unassignKerbals.Add(kerbalAssignment.Key);
+                                }
+                            }
+                            foreach (int unassignKerbal in unassignKerbals)
+                            {
+                                assignedKerbals.Remove(unassignKerbal);
+                                if (!isSpectating)
+                                {
+                                    parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
+                                }
+                            }
+                            serverVessels.RemoveAt(i);
+                        }
                     }
                 }
             }
-
-            for (int i = serverVessels.Count - 1; i > 0; i--)
+            catch (Exception e)
             {
-                string serverVessel = serverVessels[i];
-                if (!knownVessels.Contains(serverVessel))
-                {
-                    DarkLog.Debug("Vessel " + serverVessel + " destroyed!");
-                    if (!isSpectating)
-                    {
-                        parent.networkWorker.SendVesselRemove(serverVessel);
-                    }
-                    List<int> unassignKerbals = new List<int>();
-                    foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
-                    {
-                        if (kerbalAssignment.Value == serverVessel.Replace("-", ""))
-                        {
-                            DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + serverVessel);
-                            unassignKerbals.Add(kerbalAssignment.Key);
-                        }
-                    }
-                    foreach (int unassignKerbal in unassignKerbals)
-                    {
-                        assignedKerbals.Remove(unassignKerbal);
-                        if (!isSpectating)
-                        {
-                            parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
-                        }
-                    }
-                    serverVessels.RemoveAt(i);
-                }
+                DarkLog.Debug("Threw in OnGameSceneLoadRequested, Exception " + e);
             }
         }
 
@@ -1054,6 +1116,7 @@ namespace DarkMultiPlayer
             serverVessels = new List<string>();
             inUse = new Dictionary<string, string>();
             lastVessel = "";
+            gameSceneChangeTime = 0f;
         }
 
         public int GetStatistics(string statType)

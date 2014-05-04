@@ -208,6 +208,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame = new Game();
             HighLogic.CurrentGame.flightState = new FlightState();
             HighLogic.CurrentGame.CrewRoster = new CrewRoster();
+            HighLogic.CurrentGame.scenarios = new List<ProtoScenarioModule>();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
@@ -219,14 +220,6 @@ namespace DarkMultiPlayer
             vesselWorker.LoadVesselsIntoGame();
             DarkLog.Debug("Starting " + gameMode + " game...");
             HighLogic.CurrentGame.Start();
-            if (ResearchAndDevelopment.Instance != null)
-            {
-                DarkLog.Debug("Research and development is NOT null after game start!");
-            }
-            else
-            {
-                DarkLog.Debug("Research and development is null after game start!");
-            }
             DarkLog.Debug("Started!");
             Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);

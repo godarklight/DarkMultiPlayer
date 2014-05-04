@@ -28,7 +28,6 @@ namespace DarkMultiPlayer
         private int voteNeededCount;
         private int voteFailedCount;
         private bool voteSent;
-        private bool registered;
         private double warpMasterOwnerTime;
         private double lastScreenMessageCheck;
         private double lastWarpSet;
@@ -49,26 +48,13 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
-            //Hooks
-            if (!workerEnabled && registered)
-            {
-                GameEvents.onTimeWarpRateChanged.Remove(OnWarpChanged);
-                registered = false;
-            }
-
-            if (workerEnabled && !registered)
-            {
-                GameEvents.onTimeWarpRateChanged.Add(OnWarpChanged);
-                registered = true;
-            }
-
             if (workerEnabled)
             {
+                CheckWarp();
+
                 //Process new warp messages
-                while (newWarpMessages.Count > 0)
-                {
-                    HandleWarpMessage(newWarpMessages.Dequeue());
-                }
+                ProcessWarpMessages();
+
                 //Write the screen message if needed
                 if ((UnityEngine.Time.realtimeSinceStartup - lastScreenMessageCheck) > SCREEN_MESSAGE_UPDATE_INTERVAL)
                 {
@@ -190,6 +176,14 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void ProcessWarpMessages()
+        {
+            while (newWarpMessages.Count > 0)
+            {
+                HandleWarpMessage(newWarpMessages.Dequeue());
+            }
+        }
+
         private void UpdateScreenMessage()
         {
             if (warpMaster != "")
@@ -227,7 +221,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void OnWarpChanged()
+        private void CheckWarp()
         {
             bool resetWarp = true;
             if ((warpMode == WarpMode.MCW_FORCE) || (warpMode == WarpMode.MCW_VOTE))
@@ -253,12 +247,12 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
             }
-            if ((TimeWarp.CurrentRateIndex > 0) && !resetWarp && parent.timeSyncer.locked)
+            if ((TimeWarp.CurrentRateIndex > 0) && (TimeWarp.CurrentRate > 1.1f) && !resetWarp && parent.timeSyncer.locked)
             {
                 DarkLog.Debug("Unlocking from subspace");
                 parent.timeSyncer.UnlockSubspace();
             }
-            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !parent.timeSyncer.locked && (warpMode == WarpMode.SUBSPACE))
+            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !parent.timeSyncer.locked && (warpMode == WarpMode.SUBSPACE) && (parent.timeSyncer.currentSubspace == -1))
             {
                 int newSubspaceID = parent.timeSyncer.LockNewSubspace(parent.timeSyncer.GetServerClock(), Planetarium.GetUniversalTime(), 1f);
                 parent.timeSyncer.LockSubspace(newSubspaceID);
@@ -583,7 +577,7 @@ namespace DarkMultiPlayer
                                     newPlayerWarpRate.rateIndex = newRateIndex;
                                     clientWarpList.Add(fromPlayer, newPlayerWarpRate);
                                 }
-                                DarkLog.Debug(fromPlayer + " warp rate changed, Physwarp: " + newPhysWarp + ", Index: " + newRateIndex);
+                                //DarkLog.Debug(fromPlayer + " warp rate changed, Physwarp: " + newPhysWarp + ", Index: " + newRateIndex);
                             }
                         }
                         break;
@@ -717,6 +711,7 @@ namespace DarkMultiPlayer
 
         public void Reset()
         {
+            workerEnabled = false;
             warpMaster = "";
             voteMaster = "";
             voteYesCount = 0;

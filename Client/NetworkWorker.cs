@@ -56,6 +56,7 @@ namespace DarkMultiPlayer
             }
             if (state == ClientState.AUTHENTICATED)
             {
+                parent.networkWorker.SendPlayerStatus(parent.playerStatusWorker.myPlayerStatus);
                 DarkLog.Debug("Sending time sync!");
                 state = ClientState.TIME_SYNCING;
                 parent.status = "Syncing server clock";
@@ -86,8 +87,10 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessels Synced!");
                 parent.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
+                //The subspaces are held in the wrap control messages, but the warp worker will create a new subspace if we aren't locked.
+                //Process the messages so we get the subspaces, but don't enable the worker until the game is started.
+                parent.warpWorker.ProcessWarpMessages();
                 parent.timeSyncer.workerEnabled = true;
-                parent.warpWorker.workerEnabled = true;
             }
             if (state == ClientState.TIME_LOCKING)
             {
@@ -105,10 +108,12 @@ namespace DarkMultiPlayer
                 state = ClientState.RUNNING;
                 parent.status = "Running";
                 parent.gameRunning = true;
+                parent.vesselWorker.gameSceneChangeTime = UnityEngine.Time.realtimeSinceStartup;
                 parent.vesselWorker.workerEnabled = true;
                 parent.playerStatusWorker.workerEnabled = true;
-                parent.scenarioWorker.enabled = true;
-                parent.dynamicTickWorker.enabled = true;
+                parent.scenarioWorker.workerEnabled = true;
+                parent.dynamicTickWorker.workerEnabled = true;
+                parent.warpWorker.workerEnabled = true;
             }
 
         }

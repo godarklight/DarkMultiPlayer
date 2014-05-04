@@ -101,6 +101,11 @@ namespace DarkMultiPlayer
                         lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
                         parent.networkWorker.SendTimeSync();
                     }
+
+                    if (!locked && currentSubspace != -1)
+                    {
+                        LockSubspace(currentSubspace);
+                    }
             
                     if (locked)
                     {
@@ -252,6 +257,7 @@ namespace DarkMultiPlayer
         {
             if (subspaces.ContainsKey(subspaceID))
             {
+                TimeWarp.SetRate(0, true);
                 locked = true;
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
                 using (MessageWriter mw = new MessageWriter())

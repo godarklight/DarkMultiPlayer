@@ -207,6 +207,7 @@ namespace DarkMultiPlayer
 
         public void Reset()
         {
+            workerEnabled = false;
             lastPlayerStatusSend = 0;
             addStatusQueue = new Queue<PlayerStatus>();
             removeStatusQueue = new Queue<string>();
@@ -214,6 +215,7 @@ namespace DarkMultiPlayer
             lastPlayerStatus = new PlayerStatus();
             playerStatusList = new List<PlayerStatus>();
             myPlayerStatus.playerName = parent.settings.playerName;
+            myPlayerStatus.statusText = "Syncing";
         }
     }
 }
