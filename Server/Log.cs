@@ -6,10 +6,8 @@ namespace DarkMultiPlayerServer
     {
         public static void Debug(string message)
         {
-#if DEBUG
             float currentTime = Server.serverClock.ElapsedMilliseconds / 1000f;
             Console.WriteLine("[" + currentTime + "] Debug: " + message);
-#endif
         }
         public static void Normal(string message)
         {
