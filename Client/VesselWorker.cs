@@ -308,17 +308,14 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel);
+            SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel, 0);
             SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
 
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
                 if (checkVessel.loaded && !checkVessel.packed && checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString())
                 {
-                    bool oursOrNotInUse = inUse.ContainsKey(checkVessel.id.ToString()) ? (inUse[checkVessel.id.ToString()] == parent.settings.playerName) : true;
-                    bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
-                    bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
-                    if (oursOrNotInUse && (notRecentlySentProtoUpdate || notRecentlySentPositionUpdate))
+                    if (!inUse.ContainsKey(checkVessel.id.ToString()))
                     {
                         double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
                         secondryVessels.Add(currentDistance, checkVessel);
@@ -334,41 +331,39 @@ namespace DarkMultiPlayer
                 {
                     break;
                 }
-                SendVesselUpdateIfNeeded(secondryVessel.Value);
+                SendVesselUpdateIfNeeded(secondryVessel.Value, secondryVessel.Key);
             }
         }
 
-        private void SendVesselUpdateIfNeeded(Vessel checkVessel)
+        private void SendVesselUpdateIfNeeded(Vessel checkVessel, double ourDistance)
         {
             //Send updates for unpacked vessels that aren't being flown by other players
             bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
             bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
             bool anotherPlayerCloser = false;
             //Skip checking player vessels, they are filtered out above in "oursOrNotInUse"
-            foreach (KeyValuePair<string,string> entry in inUse)
+            if (checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString())
             {
-                //The active vessel isn't another player that can be closer than the active vessel.
-                if (entry.Value != parent.settings.playerName && entry.Key != checkVessel.id.ToString())
+                foreach (KeyValuePair<string,string> entry in inUse)
                 {
-                    Vessel playerVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == entry.Key);
-                    if (playerVessel != null)
+                    //The active vessel isn't another player that can be closer than the active vessel.
+                    if (entry.Value != parent.settings.playerName)
                     {
-                        double ourDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                        double theirDistance = Vector3d.Distance(playerVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                        if (ourDistance > theirDistance)
+                        Vessel playerVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == entry.Key);
+                        if (playerVessel != null)
                         {
-                            //DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
-                            anotherPlayerCloser = true;
+                            double theirDistance = Vector3d.Distance(playerVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
+                            if (ourDistance > theirDistance)
+                            {
+                                //DarkLog.Debug("Player " + entry.Value + " is closer to " + entry.Key + ", theirs: " + theirDistance + ", ours: " + ourDistance);
+                                anotherPlayerCloser = true;
+                            }
                         }
-                    }
-                    else
-                    {
-                        DarkLog.Debug(entry.Key + " owned by " + entry.Value + " is null!");
                     }
                 }
             }
 
-            if (checkVessel.loaded && !checkVessel.packed && !anotherPlayerCloser)
+            if (!anotherPlayerCloser)
             {
                 //Check that is hasn't been recently sent
                 if (notRecentlySentProtoUpdate)
@@ -546,7 +541,6 @@ namespace DarkMultiPlayer
             }
             return returnUpdate;
         }
-
         //Also called from network worker
         public void SetNotInUse(string player)
         {
@@ -853,7 +847,9 @@ namespace DarkMultiPlayer
                             if (!serverVessels.Contains(currentVessel.id.ToString()))
                             {
                                 //Brand new vessel. Asteroid sharing code will go in here.
-                                serverVessels.Add(currentVessel.id.ToString());
+                                if (!serverVessels.Contains(currentVessel.id.ToString())) {
+                                    serverVessels.Add(currentVessel.id.ToString());
+                                }
                                 DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
                                 //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
                             }
@@ -913,8 +909,9 @@ namespace DarkMultiPlayer
 
         private void RemoveVessel(string vesselID)
         {
-            foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
+            for (int i = FlightGlobals.fetch.vessels.Count - 1; i >= 0; i--)
             {
+                Vessel checkVessel = FlightGlobals.fetch.vessels[i];
                 if (checkVessel.id.ToString() == vesselID)
                 {
                     if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == checkVessel.id.ToString() : false)
