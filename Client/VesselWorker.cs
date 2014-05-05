@@ -47,6 +47,7 @@ namespace DarkMultiPlayer
         public Dictionary<string, string> inUse;
         //Track spectating state
         private bool wasSpectating;
+        private bool destroyIsValid;
 
         public VesselWorker(Client parent)
         {
@@ -56,20 +57,28 @@ namespace DarkMultiPlayer
         //Called from main
         public void FixedUpdate()
         {
+            //GameEvents.debugEvents = true;
             if (workerEnabled && !registered)
             {
                 registered = true;
+                GameEvents.onVesselRecovered.Add(OnVesselRecovered);
+                GameEvents.onVesselTerminated.Add(OnVesselTerminated);
+                GameEvents.onVesselDestroy.Add(OnVesselDestroyed);
+                GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+                GameEvents.onFlightReady.Add(OnFlightReady);
             }
             if (!workerEnabled && registered)
             {
                 registered = false;
+                GameEvents.onVesselRecovered.Remove(OnVesselRecovered);
+                GameEvents.onVesselTerminated.Remove(OnVesselTerminated);
+                GameEvents.onVesselDestroy.Remove(OnVesselDestroyed);
+                GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
+                GameEvents.onFlightReady.Remove(OnFlightReady);
             }
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
             {
-                //Check for destroyed / new vessels
-                CheckVessels();
-
                 //State tracking the active players vessels.
                 UpdateOtherPlayersActiveVesselStatus();
 
@@ -408,6 +417,10 @@ namespace DarkMultiPlayer
                                     }
                                 }
                             }
+                            if (!serverVessels.Contains(checkProto.vesselID.ToString()))
+                            {
+                                serverVessels.Add(checkProto.vesselID.ToString());
+                            }
                             parent.networkWorker.SendVesselProtoMessage(checkProto);
                         }
                         else
@@ -653,7 +666,7 @@ namespace DarkMultiPlayer
             }
         }
         //Thanks KMP :)
-        private void checkProtoNodeCrew(ConfigNode protoNode)
+        private void checkProtoNodeCrew(ref ConfigNode protoNode)
         {
             string protoVesselID = protoNode.GetValue("pid");
             foreach (ConfigNode partNode in protoNode.GetNodes("PART"))
@@ -712,7 +725,7 @@ namespace DarkMultiPlayer
             if (vesselNode != null)
             {
                 //Fix the kerbals (Tracking station bug)
-                checkProtoNodeCrew(vesselNode);
+                checkProtoNodeCrew(ref vesselNode);
 
                 //Can be used for debugging incoming vessel config nodes.
                 //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
@@ -808,74 +821,94 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void CheckVessels()
+        public void OnVesselDestroyed(Vessel dyingVessel)
         {
-            //For some unknown reason, Flightglobals.fetch.vessels goes to 0 during the load. flightState.protoVessels only keeps the state from the last save, but it doesn't go to 0 during load.
-            //If both are bigger than 0, it's probably fine.
-            if (FlightGlobals.fetch.vessels.Count > 0 && HighLogic.CurrentGame.flightState.protoVessels.Count > 0)
+            if (destroyIsValid)
             {
-                //Iterate through the lists backwards so we can modify them without changing the position. Also should keep the latest vessels if there's any duplicates.
-                List<string> knownVessels = new List<string>();
-
-                for (int i = FlightGlobals.fetch.vessels.Count - 1; i > 0; i--)
+                //Remove the vessel from the server if it's not owned by another player.
+                if ((inUse.ContainsKey(dyingVessel.id.ToString()) ? inUse[dyingVessel.id.ToString()] == parent.settings.playerName : true))
                 {
-                    Vessel currentVessel = FlightGlobals.fetch.vessels[i];
-                    //Duplicate vessel detected
-                    if (knownVessels.Contains(currentVessel.id.ToString()))
+                    if (serverVessels.Contains(dyingVessel.id.ToString()))
                     {
-                        //If we have just spawned in a new vessel but haven't switched, our active vessel could be an older copy. Destroying the active vessel causes problems.
-                        if (FlightGlobals.fetch.activeVessel != currentVessel)
-                        {
-                            DarkLog.Debug("Duplicate vessel " + currentVessel.id.ToString() + " destroyed.");
-                            KillVessel(currentVessel);
-                        }
-                    }
-                    else
-                    {
-                        //Not a duplicate vessel
-                        knownVessels.Add(currentVessel.id.ToString());
-                        if (!serverVessels.Contains(currentVessel.id.ToString()))
-                        {
-                            //Brand new vessel. Asteroid sharing code will go in here.
-                            if (!serverVessels.Contains(currentVessel.id.ToString()))
-                            {
-                                serverVessels.Add(currentVessel.id.ToString());
-                            }
-                            DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
-                            //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
-                        }
+                        DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
+                        unassignKerbals(dyingVessel.id.ToString());
+                        serverVessels.Remove(dyingVessel.id.ToString());
                     }
                 }
-
-                for (int i = serverVessels.Count - 1; i > 0; i--)
+                else
                 {
-                    string serverVessel = serverVessels[i];
-                    if (!knownVessels.Contains(serverVessel))
-                    {
-                        DarkLog.Debug("Vessel " + serverVessel + " destroyed!");
-                        if (!isSpectating)
-                        {
-                            parent.networkWorker.SendVesselRemove(serverVessel);
-                        }
-                        List<int> unassignKerbals = new List<int>();
-                        foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
-                        {
-                            if (kerbalAssignment.Value == serverVessel.Replace("-", ""))
-                            {
-                                DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + serverVessel);
-                                unassignKerbals.Add(kerbalAssignment.Key);
-                            }
-                        }
-                        foreach (int unassignKerbal in unassignKerbals)
-                        {
-                            assignedKerbals.Remove(unassignKerbal);
-                            if (!isSpectating)
-                            {
-                                parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
-                            }
-                        }
-                        serverVessels.RemoveAt(i);
-                    }
+                    DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", owned by another player.");
+                }
+            }
+            else
+            {
+                DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", destructions are not valid.");
+            }
+        }
+
+        public void OnVesselRecovered(ProtoVessel recoveredVessel)
+        {
+            //Remove the vessel from the server if it's not owned by another player.
+            if (inUse.ContainsKey(recoveredVessel.vesselID.ToString()) ? inUse[recoveredVessel.vesselID.ToString()] == parent.settings.playerName : true)
+            {
+                if (serverVessels.Contains(recoveredVessel.vesselID.ToString()))
+                {
+                    DarkLog.Debug("Removing vessel " + recoveredVessel.vesselID.ToString() + ", name: " + recoveredVessel.vesselName + " from the server: Recovered");
+                    unassignKerbals(recoveredVessel.vesselID.ToString());
+                    serverVessels.Remove(recoveredVessel.vesselID.ToString());
+                }
+            }
+        }
+
+        public void OnVesselTerminated(ProtoVessel terminatedVessel)
+        {
+            //Remove the vessel from the server if it's not owned by another player.
+            if (inUse.ContainsKey(terminatedVessel.vesselID.ToString()) ? inUse[terminatedVessel.vesselID.ToString()] == parent.settings.playerName : true)
+            {
+                if (serverVessels.Contains(terminatedVessel.vesselID.ToString()))
+                {
+                    DarkLog.Debug("Removing vessel " + terminatedVessel.vesselID.ToString() + ", name: " + terminatedVessel.vesselName + " from the server: Terminated");
+                    unassignKerbals(terminatedVessel.vesselID.ToString());
+                    serverVessels.Remove(terminatedVessel.vesselID.ToString());
+                }
+            }
+        }
+
+        public void OnGameSceneLoadRequested(GameScenes scene)
+        {
+            if (destroyIsValid)
+            {
+                DarkLog.Debug("Vessel destructions are now invalid");
+                destroyIsValid = false;
+            }
+        }
+
+        public void OnFlightReady()
+        {
+            if (!destroyIsValid)
+            {
+                DarkLog.Debug("Vessel destructions are now valid");
+                destroyIsValid = true;
+            }
+        }
+
+        private void unassignKerbals (string vesselID)
+        {
+            List<int> unassignKerbals = new List<int>();
+            foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
+            {
+                if (kerbalAssignment.Value == vesselID.Replace("-", ""))
+                {
+                    DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + vesselID);
+                    unassignKerbals.Add(kerbalAssignment.Key);
+                }
+            }
+            foreach (int unassignKerbal in unassignKerbals)
+            {
+                assignedKerbals.Remove(unassignKerbal);
+                if (!isSpectating)
+                {
+                    parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
                 }
             }
         }
@@ -1100,6 +1133,7 @@ namespace DarkMultiPlayer
             inUse = new Dictionary<string, string>();
             lastVessel = "";
             gameSceneChangeTime = 0f;
+            destroyIsValid = false;
         }
 
         public int GetStatistics(string statType)
