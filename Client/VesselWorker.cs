@@ -24,7 +24,6 @@ namespace DarkMultiPlayer
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
         private const float SPECTATE_MESSAGE_INTERVAL = 1f;
-        private const float DESTROY_DELAY_AFTER_SCENE_CHANGE_TIME = 15f;
         private ScreenMessage spectateMessage;
         private float lastSpectateMessageUpdate;
         //Incoming queue
@@ -60,12 +59,10 @@ namespace DarkMultiPlayer
             if (workerEnabled && !registered)
             {
                 registered = true;
-                GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
             }
             if (!workerEnabled && registered)
             {
                 registered = false;
-                GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
             }
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
@@ -97,11 +94,6 @@ namespace DarkMultiPlayer
                 //Send updates of needed vessels
                 SendVesselUpdates();
             }
-        }
-
-        private void OnGameSceneLoadRequested(GameScenes scene)
-        {
-            gameSceneChangeTime = UnityEngine.Time.realtimeSinceStartup;
         }
 
         private void UpdateOtherPlayersActiveVesselStatus()
@@ -444,7 +436,6 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Also called from PlayerStatusWorker
         public bool isSpectating
         {
@@ -819,78 +810,73 @@ namespace DarkMultiPlayer
 
         private void CheckVessels()
         {
-            try
+            //For some unknown reason, Flightglobals.fetch.vessels goes to 0 during the load. flightState.protoVessels only keeps the state from the last save, but it doesn't go to 0 during load.
+            //If both are bigger than 0, it's probably fine.
+            if (FlightGlobals.fetch.vessels.Count > 0 && HighLogic.CurrentGame.flightState.protoVessels.Count > 0)
             {
-                //For some unknown reason, Flightglobals.fetch.vessels goes to 0 during the load. No idea where the hell the actual vessels are kept...
-                if ((UnityEngine.Time.realtimeSinceStartup - gameSceneChangeTime) > DESTROY_DELAY_AFTER_SCENE_CHANGE_TIME)
-                {
-                    //Iterate through the lists backwards so we can modify them without changing the position. Also should keep the latest vessels if there's any duplicates.
-                    List<string> knownVessels = new List<string>();
+                //Iterate through the lists backwards so we can modify them without changing the position. Also should keep the latest vessels if there's any duplicates.
+                List<string> knownVessels = new List<string>();
 
-                    for (int i = FlightGlobals.fetch.vessels.Count - 1; i > 0; i--)
+                for (int i = FlightGlobals.fetch.vessels.Count - 1; i > 0; i--)
+                {
+                    Vessel currentVessel = FlightGlobals.fetch.vessels[i];
+                    //Duplicate vessel detected
+                    if (knownVessels.Contains(currentVessel.id.ToString()))
                     {
-                        Vessel currentVessel = FlightGlobals.fetch.vessels[i];
-                        //Duplicate vessel detected
-                        if (knownVessels.Contains(currentVessel.id.ToString()))
+                        //If we have just spawned in a new vessel but haven't switched, our active vessel could be an older copy. Destroying the active vessel causes problems.
+                        if (FlightGlobals.fetch.activeVessel != currentVessel)
                         {
-                            //If we have just spawned in a new vessel but haven't switched, our active vessel could be an older copy. Destroying the active vessel causes problems.
-                            if (FlightGlobals.fetch.activeVessel != currentVessel)
-                            {
-                                DarkLog.Debug("Duplicate vessel " + currentVessel.id.ToString() + " destroyed.");
-                                KillVessel(currentVessel);
-                            }
-                        }
-                        else
-                        {
-                            //Not a duplicate vessel
-                            knownVessels.Add(currentVessel.id.ToString());
-                            if (!serverVessels.Contains(currentVessel.id.ToString()))
-                            {
-                                //Brand new vessel. Asteroid sharing code will go in here.
-                                if (!serverVessels.Contains(currentVessel.id.ToString())) {
-                                    serverVessels.Add(currentVessel.id.ToString());
-                                }
-                                DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
-                                //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
-                            }
+                            DarkLog.Debug("Duplicate vessel " + currentVessel.id.ToString() + " destroyed.");
+                            KillVessel(currentVessel);
                         }
                     }
-
-                    for (int i = serverVessels.Count - 1; i > 0; i--)
+                    else
                     {
-                        string serverVessel = serverVessels[i];
-                        if (!knownVessels.Contains(serverVessel))
+                        //Not a duplicate vessel
+                        knownVessels.Add(currentVessel.id.ToString());
+                        if (!serverVessels.Contains(currentVessel.id.ToString()))
                         {
-                            DarkLog.Debug("Vessel " + serverVessel + " destroyed!");
-                            if (!isSpectating)
+                            //Brand new vessel. Asteroid sharing code will go in here.
+                            if (!serverVessels.Contains(currentVessel.id.ToString()))
                             {
-                                parent.networkWorker.SendVesselRemove(serverVessel);
+                                serverVessels.Add(currentVessel.id.ToString());
                             }
-                            List<int> unassignKerbals = new List<int>();
-                            foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
-                            {
-                                if (kerbalAssignment.Value == serverVessel.Replace("-", ""))
-                                {
-                                    DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + serverVessel);
-                                    unassignKerbals.Add(kerbalAssignment.Key);
-                                }
-                            }
-                            foreach (int unassignKerbal in unassignKerbals)
-                            {
-                                assignedKerbals.Remove(unassignKerbal);
-                                if (!isSpectating)
-                                {
-                                    parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
-                                }
-                            }
-                            serverVessels.RemoveAt(i);
+                            DarkLog.Debug("New vessel found!, TODO: Fix up CheckVessel sending of new vessels");
+                            //parent.networkWorker.SendVesselProtoMessage(currentVessel.protoVessel);
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Threw in OnGameSceneLoadRequested, Exception " + e);
+
+                for (int i = serverVessels.Count - 1; i > 0; i--)
+                {
+                    string serverVessel = serverVessels[i];
+                    if (!knownVessels.Contains(serverVessel))
+                    {
+                        DarkLog.Debug("Vessel " + serverVessel + " destroyed!");
+                        if (!isSpectating)
+                        {
+                            parent.networkWorker.SendVesselRemove(serverVessel);
+                        }
+                        List<int> unassignKerbals = new List<int>();
+                        foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
+                        {
+                            if (kerbalAssignment.Value == serverVessel.Replace("-", ""))
+                            {
+                                DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + serverVessel);
+                                unassignKerbals.Add(kerbalAssignment.Key);
+                            }
+                        }
+                        foreach (int unassignKerbal in unassignKerbals)
+                        {
+                            assignedKerbals.Remove(unassignKerbal);
+                            if (!isSpectating)
+                            {
+                                parent.networkWorker.SendKerbalProtoMessage(unassignKerbal, HighLogic.CurrentGame.CrewRoster[unassignKerbal]);
+                            }
+                        }
+                        serverVessels.RemoveAt(i);
+                    }
+                }
             }
         }
 
