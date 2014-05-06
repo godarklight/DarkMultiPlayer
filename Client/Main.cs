@@ -127,6 +127,14 @@ namespace DarkMultiPlayer
                     connectionWindow.connectEventHandled = true;
                 }
 
+                if (!connectionWindow.disconnectEventHandled)
+                {
+                    connectionWindow.disconnectEventHandled = true;
+                    gameRunning = false;
+                    ResetWorkers();
+                    networkWorker.SendDisconnect("Quit during initial sync");
+                }
+
                 //Stop GUI from freaking out
                 connectionWindow.status = status;
                 connectionWindow.selectedSafe = connectionWindow.selected;

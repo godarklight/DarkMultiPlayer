@@ -7,6 +7,7 @@ namespace DarkMultiPlayer
     {
         public bool display;
         public bool connectEventHandled;
+        public bool disconnectEventHandled;
         public bool addEventHandled;
         public bool editEventHandled;
         public bool removeEventHandled;
@@ -113,11 +114,22 @@ namespace DarkMultiPlayer
                     serverPort = parent.settings.servers[selected].port.ToString();
                 }
             }
-            GUI.enabled = (selectedSafe != -1);
+
             //Draw connect button
-            if (GUILayout.Button("Connect", buttonStyle))
+            if (parent.networkWorker.state == DarkMultiPlayerCommon.ClientState.DISCONNECTED)
             {
-                connectEventHandled = false;
+                GUI.enabled = (selectedSafe != -1);
+                if (GUILayout.Button("Connect", buttonStyle))
+                {
+                    connectEventHandled = false;
+                }
+            }
+            else
+            {
+                if (GUILayout.Button("Disconnect", buttonStyle))
+                {
+                    disconnectEventHandled = false;
+                }
             }
             //Draw remove button
             if (GUILayout.Button("Remove", buttonStyle))

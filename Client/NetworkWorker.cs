@@ -14,7 +14,12 @@ namespace DarkMultiPlayer
     {
         private const float CONNECTION_TIMEOUT = 10;
         private const float HEARTBEAT_INTERVAL = 5;
-        private ClientState state;
+        //Read from ConnectionWindow
+        public ClientState state
+        {
+            private set;
+            get;
+        }
         private Client parent;
         private TcpClient clientConnection;
         private float lastSendTime;
