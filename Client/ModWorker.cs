@@ -14,7 +14,7 @@ namespace DarkMultiPlayer
         private Dictionary<string, string> dllList;
         //Accessed from ModWindow
         private List<string> allowedParts;
-        //private string lastModFileData;
+        private string lastModFileData;
 
         public string failText
         {
@@ -77,7 +77,7 @@ namespace DarkMultiPlayer
                     //Strip off everything from GameData
                     //Replace windows backslashes with mac/linux forward slashes.
                     //Make it lowercase so we don't worry about case sensitivity.
-                    string relativeFilePath = checkFile.Substring(checkFile.IndexOf("GameData") + 9).ToLowerInvariant().Replace('\\', '/');
+                    string relativeFilePath = checkFile.ToLowerInvariant().Substring(checkFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
                     string fileHash = CalculateSHA256Hash(checkFile);
                     dllList.Add(relativeFilePath, fileHash);
                     DarkLog.Debug("Hashed file: " + relativeFilePath + ", hash: " + fileHash);
@@ -89,7 +89,14 @@ namespace DarkMultiPlayer
         {
             bool modCheckOk = true;
             //Save mod file so we can recheck it.
-            //lastModFileData = modFileData;
+            lastModFileData = modFileData;
+            //Err...
+            string tempModFilePath = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data"), "DMPModControl.txt");
+            using (StreamWriter sw = new StreamWriter(tempModFilePath))
+            {
+                sw.WriteLine("#This file is downloaded from the server during connection. It is saved here for convenience.");
+                sw.WriteLine(lastModFileData);
+            }
 
             //Parse
             Dictionary<string,string> parseRequired = new Dictionary<string, string>();
@@ -147,7 +154,7 @@ namespace DarkMultiPlayer
                                         string[] splitLine = lowerFixedLine.Split('=');
                                         if (splitLine.Length == 2)
                                         {
-                                            parseRequired.Add(splitLine[0], splitLine[1]);
+                                            parseRequired.Add(splitLine[0], splitLine[1].ToLowerInvariant());
                                         }
                                         else
                                         {
@@ -206,51 +213,110 @@ namespace DarkMultiPlayer
                 }
             }
 
+            string[] currentGameDataFiles = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
+            List<string> currentGameDataFilesNormal = new List<string>();
+            List<string> currentGameDataFilesLower = new List<string>();
+            foreach (string currentFile in currentGameDataFiles)
+            {
+                string relativeFilePath = currentFile.Substring(currentFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
+                currentGameDataFilesNormal.Add(relativeFilePath);
+                currentGameDataFilesLower.Add(relativeFilePath.ToLowerInvariant());
+            }
             //Check
             StringBuilder sb = new StringBuilder();
             //Check Required
             foreach (KeyValuePair<string, string> requiredEntry in parseRequired)
             {
-                string fullFilePath = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", requiredEntry.Key));
-                //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
-                if (!File.Exists(fullFilePath))
+                if (!requiredEntry.Key.EndsWith("dll"))
                 {
-                    modCheckOk = false;
-                    DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
-                    sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
-                    continue;
-                }
-                //If the entry has a SHA sum, we need to check it.
-                if (requiredEntry.Value != "")
-                {
-                    if (!CheckFile(requiredEntry.Key, requiredEntry.Value))
+                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
                     {
                         modCheckOk = false;
-                        DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
-                        sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                        DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
+                        sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
                         continue;
+                    }
+                    //If the entry has a SHA sum, we need to check it.
+                    if (requiredEntry.Value != "")
+                    {
+
+                        string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(requiredEntry.Key)];
+                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        if (!CheckFile(fullFileName, requiredEntry.Value))
+                        {
+                            modCheckOk = false;
+                            DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                            sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                            continue;
+                        }
+                    }
+                }
+                else
+                {
+                    //DLL entries are cached from startup.
+                    if (!dllList.ContainsKey(requiredEntry.Key))
+                    {
+                        modCheckOk = false;
+                        DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
+                        sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
+                        continue;
+                    }
+                    if (requiredEntry.Value != "")
+                    {
+                        if (dllList[requiredEntry.Key] != requiredEntry.Value)
+                        {
+                            modCheckOk = false;
+                            DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                            sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                            continue;
+                        }
                     }
                 }
             }
             //Check Optional
-            foreach (KeyValuePair<string, string> OptionalEntry in parseOptional)
+            foreach (KeyValuePair<string, string> optionalEntry in parseOptional)
             {
-                string fullFilePath = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", OptionalEntry.Key));
-                //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
-                if (!File.Exists(fullFilePath))
+                if (!optionalEntry.Key.EndsWith("dll"))
                 {
-                    //Missing optional files is ok.
-                    continue;
-                }
-                //If the entry has a SHA sum, we need to check it.
-                if (OptionalEntry.Value != "")
-                {
-                    if (!CheckFile(OptionalEntry.Key, OptionalEntry.Value))
+                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
                     {
-                        modCheckOk = false;
-                        DarkLog.Debug("Optional file " + OptionalEntry.Key + " does not match hash " + OptionalEntry.Value + "!");
-                        sb.AppendLine("Optional file " + OptionalEntry.Key + " does not match hash " + OptionalEntry.Value + "!");
+                        //File is optional, nothing to check if it doesn't exist.
                         continue;
+                    }
+                    //If the entry has a SHA sum, we need to check it.
+                    if (optionalEntry.Value != "")
+                    {
+
+                        string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(optionalEntry.Key)];
+                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        if (!CheckFile(fullFileName, optionalEntry.Value))
+                        {
+                            modCheckOk = false;
+                            DarkLog.Debug("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
+                            sb.AppendLine("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
+                            continue;
+                        }
+                    }
+                }
+                else
+                {
+                    //DLL entries are cached from startup.
+                    if (!dllList.ContainsKey(optionalEntry.Key))
+                    {
+                        //File is optional, nothing to check if it doesn't exist.
+                        continue;
+                    }
+                    if (optionalEntry.Value != "")
+                    {
+                        if (dllList[optionalEntry.Key] != optionalEntry.Value)
+                        {
+                            modCheckOk = false;
+                            DarkLog.Debug("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
+                            sb.AppendLine("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
+                            continue;
+                        }
                     }
                 }
             }
@@ -312,7 +378,8 @@ namespace DarkMultiPlayer
             return true;
         }
 
-        public List<string> GetAllowedPartsList() {
+        public List<string> GetAllowedPartsList()
+        {
             //Return a copy
             return new List<string>(allowedParts);
         }
