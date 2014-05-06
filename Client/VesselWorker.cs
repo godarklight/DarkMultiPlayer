@@ -739,11 +739,27 @@ namespace DarkMultiPlayer
         private void CheckCrewMemberExists(int kerbalID)
         {
             IEnumerator<ProtoCrewMember> crewEnum = HighLogic.CurrentGame.CrewRoster.GetEnumerator();
-            int applicants = 0;
+            int currentKerbals = 0;
             while (crewEnum.MoveNext())
             {
-                if (crewEnum.Current.rosterStatus == ProtoCrewMember.RosterStatus.AVAILABLE)
-                    applicants++;
+                currentKerbals++;
+            }
+            if (currentKerbals <= kerbalID)
+            {
+                DarkLog.Debug("Generating " + ((kerbalID + 1) - currentKerbals) + " new kerbal for an assigned crew index " + kerbalID);
+            }
+            while (currentKerbals <= kerbalID)
+            {
+                ProtoCrewMember protoKerbal = CrewGenerator.RandomCrewMemberPrototype();
+                if (!HighLogic.CurrentGame.CrewRoster.ExistsInRoster(protoKerbal.name))
+                {
+                    DarkLog.Debug("Generated new kerbal " + protoKerbal.name + ", ID: " + currentKerbals);
+                    HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoKerbal);
+                    int newKerbalID = HighLogic.CurrentGame.CrewRoster.IndexOf(protoKerbal); 
+                    serverKerbals[newKerbalID] = new ProtoCrewMember(protoKerbal);
+                    parent.networkWorker.SendKerbalProtoMessage(newKerbalID, protoKerbal);
+                    currentKerbals++;
+                }
             }
         }
         //Also called from QuickSaveLoader
