@@ -62,7 +62,7 @@ namespace DarkMultiPlayerServer
                                         break;
                                     case "gamemode":
                                         gameMode = (GameMode)(Int32.Parse(currentValue));
-                                        DarkLog.Debug("Game mode: " + warpMode);
+                                        DarkLog.Debug("Game mode: " + gameMode);
                                         break;
                                     default:
                                         Console.WriteLine("Unknown key: " + currentKey);
