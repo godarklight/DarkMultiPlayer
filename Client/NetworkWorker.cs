@@ -20,6 +20,7 @@ namespace DarkMultiPlayer
             private set;
             get;
         }
+
         private Client parent;
         private TcpClient clientConnection;
         private float lastSendTime;
@@ -381,7 +382,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void SplitAndRewriteMessage(ref ClientMessage message) {
+        private void SplitAndRewriteMessage(ref ClientMessage message)
+        {
             if (message == null)
             {
                 return;
@@ -480,7 +482,7 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HEARTBEAT:
                         break;
                     case ServerMessageType.HANDSHAKE_REPLY:
-                        HandleHanshakeReply(message.data);
+                        HandleHandshakeReply(message.data);
                         break;
                     case ServerMessageType.CHAT_MESSAGE:
                         HandleChatMessage(message.data);
@@ -545,15 +547,17 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleHanshakeReply(byte[] messageData)
+        private void HandleHandshakeReply(byte[] messageData)
         {
 
             int reply = 0;
+            string modFileData = "";
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
+                    modFileData = mr.Read<string>();
                 }
             }
             catch (Exception e)
@@ -564,8 +568,18 @@ namespace DarkMultiPlayer
             switch (reply)
             {
                 case 0:
-                    DarkLog.Debug("Handshake successful");
-                    state = ClientState.AUTHENTICATED;
+                    {
+                        if (parent.modWorker.ParseModFile(modFileData))
+                        {
+                            DarkLog.Debug("Handshake successful");
+                            state = ClientState.AUTHENTICATED;
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Failed to pass mod validation");
+                            SendDisconnect("Failed mod validation");
+                        }
+                    }
                     break;
                 default:
                     DarkLog.Debug("Handshake failed, reason " + reply);
@@ -597,17 +611,17 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerStatus(byte[] messageData)
         {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    string playerName = mr.Read<string>();
-                    string vesselText = mr.Read<string>();
-                    string statusText = mr.Read<string>();
-                    PlayerStatus newStatus = new PlayerStatus();
-                    newStatus.playerName = playerName;
-                    newStatus.vesselText = vesselText;
-                    newStatus.statusText = statusText;
-                    parent.playerStatusWorker.AddPlayerStatus(newStatus);
-                }
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string playerName = mr.Read<string>();
+                string vesselText = mr.Read<string>();
+                string statusText = mr.Read<string>();
+                PlayerStatus newStatus = new PlayerStatus();
+                newStatus.playerName = playerName;
+                newStatus.vesselText = vesselText;
+                newStatus.statusText = statusText;
+                parent.playerStatusWorker.AddPlayerStatus(newStatus);
+            }
         }
 
         private void HandlePlayerDisconnect(byte[] messageData)
@@ -799,7 +813,8 @@ namespace DarkMultiPlayer
             if (!isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData, false)) {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
                     receiveSplitMessage = new ServerMessage();
                     receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
                     receiveSplitMessage.data = new byte[mr.Read<int>()];
@@ -1023,7 +1038,6 @@ namespace DarkMultiPlayer
             }
             sendMessageQueueHigh.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendScenarioModuleData(string[] scenarioNames, string[] scenarioData)
         {
@@ -1038,7 +1052,6 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
             sendMessageQueueLow.Enqueue(newMessage);
         }
-
         //Called from vesselWorker
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {
@@ -1092,7 +1105,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        public int GetStatistics(string statType) {
+        public int GetStatistics(string statType)
+        {
             switch (statType)
             {
                 case "HighPriorityQueueLength":

@@ -27,9 +27,11 @@ namespace DarkMultiPlayer
         public WarpWorker warpWorker;
         public ScenarioWorker scenarioWorker;
         public DynamicTickWorker dynamicTickWorker;
+        public ModWorker modWorker;
         public Settings settings;
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
+        public ModWindow modWindow;
         public ChatWindow chatWindow;
         public DebugWindow debugWindow;
         private QuickSaveLoader quickSaveLoader;
@@ -45,9 +47,11 @@ namespace DarkMultiPlayer
             warpWorker = new WarpWorker(this);
             scenarioWorker = new ScenarioWorker(this);
             dynamicTickWorker = new DynamicTickWorker(this);
+            modWorker = new ModWorker(this);
             connectionWindow = new ConnectionWindow(this);
             playerStatusWorker = new PlayerStatusWorker(this);
             playerStatusWindow = new PlayerStatusWindow(this);
+            modWindow = new ModWindow(this);
             quickSaveLoader = new QuickSaveLoader(this);
             chatWindow = new ChatWindow(this);
             debugWindow = new DebugWindow(this);
@@ -64,6 +68,13 @@ namespace DarkMultiPlayer
             {
                 //Write new log entries
                 DarkLog.Update();
+
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU && !modWorker.dllListBuilt)
+                {
+                    modWorker.dllListBuilt = true;
+                    modWorker.BuildDllFileList();
+                }
+
                 if (displayDisconnectMessage)
                 {
                     if (HighLogic.LoadedScene == GameScenes.MAINMENU)
@@ -150,6 +161,7 @@ namespace DarkMultiPlayer
                 playerStatusWindow.Update();
                 chatWindow.Update();
                 debugWindow.Update();
+                modWindow.Update();
                 quickSaveLoader.Update();
                 scenarioWorker.Update();
                 dynamicTickWorker.Update();
@@ -199,6 +211,7 @@ namespace DarkMultiPlayer
                 playerStatusWindow.Draw();
                 chatWindow.Draw();
                 debugWindow.Draw();
+                modWindow.Draw();
             }
             catch (Exception e)
             {

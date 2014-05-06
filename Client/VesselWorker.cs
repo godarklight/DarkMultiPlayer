@@ -23,9 +23,12 @@ namespace DarkMultiPlayer
         //Spectate stuff
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
-        private const float SPECTATE_MESSAGE_INTERVAL = 1f;
+        private const float UPDATE_SCREEN_MESSAGE_INTERVAL = 1f;
         private ScreenMessage spectateMessage;
         private float lastSpectateMessageUpdate;
+        private ScreenMessage bannedPartsMessage;
+        private string bannedPartsString;
+        private float lastBannedPartsMessageUpdate;
         //Incoming queue
         private object createSubspaceLock = new object();
         private Dictionary<int, Queue<VesselRemoveEntry>> vesselRemoveQueue;
@@ -34,6 +37,7 @@ namespace DarkMultiPlayer
         private Dictionary<int, Queue<KerbalEntry>> kerbalProtoQueue;
         private Queue<ActiveVesselEntry> newActiveVessels;
         private List<string> serverVessels;
+        private Dictionary<string, bool> vesselPartsOk;
         //Vessel state tracking
         private string lastVessel;
         private int lastPartCount;
@@ -166,7 +170,7 @@ namespace DarkMultiPlayer
         private void UpdateOnScreenSpectateMessage()
         {
             
-            if ((UnityEngine.Time.realtimeSinceStartup - lastSpectateMessageUpdate) > SPECTATE_MESSAGE_INTERVAL)
+            if ((UnityEngine.Time.realtimeSinceStartup - lastSpectateMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
             {
                 lastSpectateMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
                 if (isSpectating)
@@ -178,10 +182,10 @@ namespace DarkMultiPlayer
                     switch (spectateType)
                     {
                         case 1:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player...", SPECTATE_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player...", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
                             break;
                         case 2:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future...", SPECTATE_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future...", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
                             break;
                     }
                 }
@@ -355,6 +359,48 @@ namespace DarkMultiPlayer
 
         private void SendVesselUpdateIfNeeded(Vessel checkVessel, double ourDistance)
         {
+            //Check vessel parts
+            if (!vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
+            {
+                List<string> allowedParts = parent.modWorker.GetAllowedPartsList();
+                List<string> bannedParts = new List<string>();
+                foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
+                {
+                    if (!allowedParts.Contains(part.partName))
+                    {
+                        if (!bannedParts.Contains(part.partName))
+                        {
+                            bannedParts.Add(part.partName);
+                        }
+                    }
+                }
+                if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
+                {
+                    bannedPartsString = "";
+                    foreach (string bannedPart in bannedParts)
+                    {
+                        bannedPartsString += bannedPart + "\n";
+                    }
+                }
+                vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
+            }
+            if (!vesselPartsOk[checkVessel.id.ToString()])
+            {
+                if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                    {
+                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        if (bannedPartsMessage != null)
+                        {
+                            bannedPartsMessage.duration = 0;
+                        }
+                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                }
+                //Vessel with bad parts
+                return;
+            }
             //Send updates for unpacked vessels that aren't being flown by other players
             bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
             bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)parent.dynamicTickWorker.sendTickRate)) : true;
@@ -1206,6 +1252,7 @@ namespace DarkMultiPlayer
             serverVesselsPositionUpdate = new Dictionary<string, float>();
             latestVesselUpdate = new Dictionary<string, double>();
             serverVessels = new List<string>();
+            vesselPartsOk = new Dictionary<string, bool>();
             inUse = new Dictionary<string, string>();
             lastVessel = "";
             gameSceneChangeTime = 0f;

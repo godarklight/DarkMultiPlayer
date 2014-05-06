@@ -8,7 +8,7 @@
     <ProjectGuid>{F8BC0417-2D6C-4B57-BC87-787B10EF7950}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>Server</RootNamespace>
-    <AssemblyName>Server</AssemblyName>
+    <AssemblyName>DMPServer</AssemblyName>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>true</DebugSymbols>
