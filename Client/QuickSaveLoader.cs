@@ -1,5 +1,6 @@
 using System;
 using DarkMultiPlayerCommon;
+using MessageStream;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -20,14 +21,21 @@ namespace DarkMultiPlayer
             {
                 if (FlightGlobals.fetch.activeVessel.loaded && !FlightGlobals.fetch.activeVessel.packed)
                 {
-                    savedVessel = new ConfigNode();
-                    ProtoVessel tempVessel = new ProtoVessel(FlightGlobals.fetch.activeVessel);
-                    tempVessel.Save(savedVessel);
-                    savedSubspace = new Subspace();
-                    savedSubspace.planetTime = Planetarium.GetUniversalTime();
-                    savedSubspace.serverClock = parent.timeSyncer.GetServerClock();
-                    savedSubspace.subspaceSpeed = 1f;
-                    ScreenMessages.PostScreenMessage("Quicksaved!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    if (FlightGlobals.fetch.activeVessel.situation != Vessel.Situations.FLYING)
+                    {
+                        savedVessel = new ConfigNode();
+                        ProtoVessel tempVessel = new ProtoVessel(FlightGlobals.fetch.activeVessel);
+                        tempVessel.Save(savedVessel);
+                        savedSubspace = new Subspace();
+                        savedSubspace.planetTime = Planetarium.GetUniversalTime();
+                        savedSubspace.serverClock = parent.timeSyncer.GetServerClock();
+                        savedSubspace.subspaceSpeed = 1f;
+                        ScreenMessages.PostScreenMessage("Quicksaved!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    else
+                    {
+                        ScreenMessages.PostScreenMessage("Cannot quicksave - Active vessel is in flight!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    }
                 }
                 else
                 {
@@ -44,7 +52,18 @@ namespace DarkMultiPlayer
             if (savedVessel != null && savedSubspace != null)
             {
                 parent.timeSyncer.UnlockSubspace();
-                int newSubspace = parent.timeSyncer.LockNewSubspace(parent.timeSyncer.GetServerClock(), savedSubspace.planetTime, savedSubspace.subspaceSpeed);
+                long serverClock = parent.timeSyncer.GetServerClock();
+                int newSubspace = parent.timeSyncer.LockNewSubspace(serverClock, savedSubspace.planetTime, savedSubspace.subspaceSpeed);
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
+                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<int>(newSubspace);
+                    mw.Write<long>(serverClock);
+                    mw.Write<double>(savedSubspace.planetTime);
+                    mw.Write<float>(savedSubspace.subspaceSpeed);
+                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                }
                 parent.timeSyncer.LockSubspace(newSubspace);
                 parent.vesselWorker.LoadVessel(savedVessel);
                 ScreenMessages.PostScreenMessage("Quickloaded!", 3f, ScreenMessageStyle.UPPER_CENTER);
