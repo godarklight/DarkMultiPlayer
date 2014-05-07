@@ -56,6 +56,7 @@ namespace DarkMultiPlayer
         private bool wasSpectating;
         private int spectateType;
         private bool destroyIsValid;
+        private Vessel switchActiveVesselOnNextUpdate;
 
         public VesselWorker(Client parent)
         {
@@ -87,6 +88,13 @@ namespace DarkMultiPlayer
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
             {
+                //Switch to a new active vessel if needed.
+                if (switchActiveVesselOnNextUpdate != null)
+                {
+                    FlightGlobals.ForceSetActiveVessel(switchActiveVesselOnNextUpdate);
+                    switchActiveVesselOnNextUpdate = null;
+                }
+
                 //State tracking the active players vessels.
                 UpdateOtherPlayersActiveVesselStatus();
 
@@ -869,15 +877,6 @@ namespace DarkMultiPlayer
                     }
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
 
-                    //Skip active vessel
-                    /*
-                    if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == currentProto.vesselID.ToString() : false)
-                    {
-                        DarkLog.Debug("Updating the active vessel is currently not implmented, skipping!");
-                        return;
-                    }
-                    */
-
                     foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
                     {
                         //This line doesn't actually do anything useful, but if you get this reference, you're officially the most geeky person darklight knows.
@@ -901,8 +900,30 @@ namespace DarkMultiPlayer
                         if (wasActive)
                         {
                             DarkLog.Debug("ProtoVessel update for active vessel!");
+                            try
+                            {
+                                OrbitPhysicsManager.HoldVesselUnpack(5);
+                            }
+                            catch
+                            {
+                                //Don't care.
+                            }
+                            FlightGlobals.fetch.activeVessel.MakeInactive();
                         }
                     }
+
+                    //Kill old vessels, temporarily turning off destruction notifications to the server.
+                    bool oldDestroyIsValid = destroyIsValid;
+                    destroyIsValid = false;
+                    for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
+                    {
+                        Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
+                        if (oldVessel.id.ToString() == currentProto.vesselID.ToString())
+                        {
+                            KillVessel(oldVessel);
+                        }
+                    }
+                    destroyIsValid = oldDestroyIsValid;
 
                     serverVesselsProtoUpdate[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
@@ -914,7 +935,7 @@ namespace DarkMultiPlayer
                         if (wasActive)
                         {
                             DarkLog.Debug("Set active vessel");
-                            FlightGlobals.ForceSetActiveVessel(currentProto.vesselRef);
+                            switchActiveVesselOnNextUpdate = currentProto.vesselRef;
                         }
                         if (wasTarget)
                         {
@@ -922,19 +943,6 @@ namespace DarkMultiPlayer
                             FlightGlobals.fetch.SetVesselTarget(currentProto.vesselRef);
                         }
                         DarkLog.Debug("Protovessel Loaded");
-
-                        for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
-                        {
-                            Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
-                            if (oldVessel.id == currentProto.vesselID && oldVessel != currentProto.vesselRef)
-                            {
-                                if (!wasActive)
-                                {
-                                    KillVessel(oldVessel);
-                                }
-                            }
-                        }
-
                     }
                     else
                     {
@@ -1076,6 +1084,10 @@ namespace DarkMultiPlayer
                 if (!killVessel.packed)
                 {
                     killVessel.GoOnRails();
+                }
+                if (killVessel.loaded)
+                {
+                    killVessel.Unload();
                 }
                 killVessel.Die();
             }

@@ -58,7 +58,14 @@ namespace DarkMultiPlayer
                                         }
                                         break;
                                     case (Vessel.Situations.FLYING):
-                                        myPlayerStatus.statusText = "Flying above " + bodyName;
+                                        if (!parent.vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        {
+                                            myPlayerStatus.statusText = "Flying above " + bodyName;
+                                        }
+                                        else
+                                        {
+                                            myPlayerStatus.statusText = "Flying in safety bubble";
+                                        }
                                         break;
                                     case (Vessel.Situations.LANDED):
                                         if (!parent.vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
@@ -67,7 +74,7 @@ namespace DarkMultiPlayer
                                         }
                                         else
                                         {
-                                            myPlayerStatus.statusText = "In safety bubble";
+                                            myPlayerStatus.statusText = "Landed in safety bubble";
                                         }
                                         break;
                                     case (Vessel.Situations.ORBITING):
@@ -80,7 +87,7 @@ namespace DarkMultiPlayer
                                         }
                                         else
                                         {
-                                            myPlayerStatus.statusText = "In safety bubble";
+                                            myPlayerStatus.statusText = "Launching from safety bubble";
                                         }
                                         break;
                                     case (Vessel.Situations.SPLASHED):
