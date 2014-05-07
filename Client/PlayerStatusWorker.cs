@@ -61,13 +61,27 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Flying above " + bodyName;
                                         break;
                                     case (Vessel.Situations.LANDED):
-                                        myPlayerStatus.statusText = "Landed on " + bodyName;
+                                        if (!parent.vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        {
+                                            myPlayerStatus.statusText = "Landed on " + bodyName;
+                                        }
+                                        else
+                                        {
+                                            myPlayerStatus.statusText = "In safety bubble";
+                                        }
                                         break;
                                     case (Vessel.Situations.ORBITING):
                                         myPlayerStatus.statusText = "Orbiting " + bodyName;
                                         break;
                                     case (Vessel.Situations.PRELAUNCH):
-                                        myPlayerStatus.statusText = "Launching from " + bodyName;
+                                        if (!parent.vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        {
+                                            myPlayerStatus.statusText = "Launching from " + bodyName;
+                                        }
+                                        else
+                                        {
+                                            myPlayerStatus.statusText = "In safety bubble";
+                                        }
                                         break;
                                     case (Vessel.Situations.SPLASHED):
                                         myPlayerStatus.statusText = "Splashed on " + bodyName;

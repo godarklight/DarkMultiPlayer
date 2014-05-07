@@ -20,6 +20,7 @@ namespace DarkMultiPlayer
         private const float PLAYER_PACK_THRESHOLD = 10000;
         private const float NORMAL_UNPACK_THRESHOLD = 300;
         private const float NORMAL_PACK_THRESHOLD = 600;
+        private const float SAFETY_BUBBLE_DISTANCE = 100;
         //Spectate stuff
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
@@ -323,6 +324,11 @@ namespace DarkMultiPlayer
                 //Don't send updates in spectate mode
                 return;
             }
+            if (isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+            {
+                //Don't send updates while in the safety bubble
+                return;
+            }
 
             SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel, 0);
             SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
@@ -332,14 +338,18 @@ namespace DarkMultiPlayer
                 //Only update the vessel if it's loaded and unpacked (not on rails). Skip our vessel.
                 if (checkVessel.loaded && !checkVessel.packed && checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString())
                 {
-                    //Don't update other players vessels
-                    if (!inUse.ContainsKey(checkVessel.id.ToString()))
+                    //Don't update vessels in the safety bubble
+                    if (!isInSafetyBubble(checkVessel.GetWorldPos3D(), checkVessel.mainBody))
                     {
-                        //Dont update vessels manipulated in the future
-                        if (latestVesselUpdate.ContainsKey(checkVessel.id.ToString()) ? latestVesselUpdate[checkVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
+                        //Don't update other players vessels
+                        if (!inUse.ContainsKey(checkVessel.id.ToString()))
                         {
-                            double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                            secondryVessels.Add(currentDistance, checkVessel);
+                            //Dont update vessels manipulated in the future
+                            if (latestVesselUpdate.ContainsKey(checkVessel.id.ToString()) ? latestVesselUpdate[checkVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
+                            {
+                                double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
+                                secondryVessels.Add(currentDistance, checkVessel);
+                            }
                         }
                     }
                 }
@@ -539,6 +549,32 @@ namespace DarkMultiPlayer
                 spectateType = 0;
                 return false;
             }
+        }
+        //Adapted from KMP. Called from PlayerStatusWorker.
+        public bool isInSafetyBubble(Vector3d worlPos, CelestialBody body)
+        {
+            //If not at Kerbin or past ceiling we're definitely clear
+            if (body.name != "Kerbin")
+            {
+                return false;
+            }
+            Vector3d landingPadPosition = body.GetWorldSurfacePosition(-0.0971978130377757, 285.44237039111, 60);
+            Vector3d runwayPosition = body.GetWorldSurfacePosition(-0.0486001121594686, 285.275552559723, 60);
+            double landingPadDistance = Vector3d.Distance(worlPos, landingPadPosition);
+            double runwayDistance = Vector3d.Distance(worlPos, runwayPosition);
+            return runwayDistance < SAFETY_BUBBLE_DISTANCE || landingPadDistance < SAFETY_BUBBLE_DISTANCE;
+        }
+        //Adapted from KMP.
+        private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
+        {
+            //If not kerbin, we aren't in the safety bubble.
+            if (protovessel.orbitSnapShot.ReferenceBodyIndex != FlightGlobals.Bodies.FindIndex(body => body.bodyName == "Kerbin"))
+            {
+                return false;
+            }
+            CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
+            Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
+            return isInSafetyBubble(protoVesselPosition, kerbinBody);
         }
 
         private VesselUpdate GetVesselUpdate(Vessel updateVessel)
@@ -821,6 +857,12 @@ namespace DarkMultiPlayer
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
                 if (currentProto != null)
                 {
+                    if (isProtoVesselInSafetyBubble(currentProto))
+                    {
+                        DarkLog.Debug("Removing protovessel " + currentProto.vesselID.ToString() + ", name: " + currentProto.vesselName + " from server - In safety bubble!");
+                        parent.networkWorker.SendVesselRemove(currentProto.vesselID.ToString());
+                        return;
+                    }
                     if (!serverVessels.Contains(currentProto.vesselID.ToString()))
                     {
                         serverVessels.Add(currentProto.vesselID.ToString());
@@ -847,7 +889,7 @@ namespace DarkMultiPlayer
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT)
                     {
-                        if (FlightGlobals.fetch.VesselTarget != null ? FlightGlobals.fetch.VesselTarget.GetVessel() : false)
+                        if (FlightGlobals.fetch.VesselTarget != null ? FlightGlobals.fetch.VesselTarget.GetVessel() != null : false)
                         {
                             wasTarget = FlightGlobals.fetch.VesselTarget.GetVessel().id == currentProto.vesselID;
                         }
