@@ -557,7 +557,10 @@ namespace DarkMultiPlayer
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
-                    modFileData = mr.Read<string>();
+                    parent.modWorker.modControl = mr.Read<bool>();
+                    if (parent.modWorker.modControl) {
+                        modFileData = mr.Read<string>();
+                    }
                 }
             }
             catch (Exception e)

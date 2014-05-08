@@ -1326,7 +1326,11 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(response);
-                mw.Write<string>(modFileData);
+                mw.Write<bool>(Settings.modControl);
+                if (Settings.modControl)
+                {
+                    mw.Write<string>(modFileData);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);

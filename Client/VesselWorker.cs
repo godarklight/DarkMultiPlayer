@@ -378,46 +378,49 @@ namespace DarkMultiPlayer
         private void SendVesselUpdateIfNeeded(Vessel checkVessel, double ourDistance)
         {
             //Check vessel parts
-            if (!vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
+            if (parent.modWorker.modControl)
             {
-                List<string> allowedParts = parent.modWorker.GetAllowedPartsList();
-                List<string> bannedParts = new List<string>();
-                foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
+                if (!vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
                 {
-                    if (!allowedParts.Contains(part.partName))
+                    List<string> allowedParts = parent.modWorker.GetAllowedPartsList();
+                    List<string> bannedParts = new List<string>();
+                    foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
                     {
-                        if (!bannedParts.Contains(part.partName))
+                        if (!allowedParts.Contains(part.partName))
                         {
-                            bannedParts.Add(part.partName);
+                            if (!bannedParts.Contains(part.partName))
+                            {
+                                bannedParts.Add(part.partName);
+                            }
                         }
                     }
-                }
-                if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
-                {
-                    bannedPartsString = "";
-                    foreach (string bannedPart in bannedParts)
+                    if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
                     {
-                        bannedPartsString += bannedPart + "\n";
-                    }
-                }
-                vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
-            }
-            if (!vesselPartsOk[checkVessel.id.ToString()])
-            {
-                if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
-                {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
-                    {
-                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
-                        if (bannedPartsMessage != null)
+                        bannedPartsString = "";
+                        foreach (string bannedPart in bannedParts)
                         {
-                            bannedPartsMessage.duration = 0;
+                            bannedPartsString += bannedPart + "\n";
                         }
-                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
                     }
+                    vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
                 }
-                //Vessel with bad parts
-                return;
+                if (!vesselPartsOk[checkVessel.id.ToString()])
+                {
+                    if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
+                    {
+                        if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                        {
+                            lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                            if (bannedPartsMessage != null)
+                            {
+                                bannedPartsMessage.duration = 0;
+                            }
+                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                    }
+                    //Vessel with bad parts
+                    return;
+                }
             }
             //Send updates for unpacked vessels that aren't being flown by other players
             bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;

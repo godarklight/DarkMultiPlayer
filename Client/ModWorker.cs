@@ -9,6 +9,7 @@ namespace DarkMultiPlayer
     public class ModWorker
     {
         private Client parent;
+        public bool modControl;
         public bool dllListBuilt;
         //Dll files, built at startup
         private Dictionary<string, string> dllList;
@@ -26,6 +27,7 @@ namespace DarkMultiPlayer
         {
             this.parent = parent;
             failText = "";
+            modControl = true;
             if (this.parent != null)
             {
                 //Shutup compiler
@@ -87,6 +89,10 @@ namespace DarkMultiPlayer
 
         public bool ParseModFile(string modFileData)
         {
+            if (!modControl)
+            {
+                return true;
+            }
             bool modCheckOk = true;
             //Save mod file so we can recheck it.
             lastModFileData = modFileData;

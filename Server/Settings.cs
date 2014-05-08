@@ -13,12 +13,14 @@ namespace DarkMultiPlayerServer
         public static int port;
         public static WarpMode warpMode;
         public static GameMode gameMode;
+        public static bool modControl;
 
         private static void UseDefaultSettings()
         {
             port = 6702;
             warpMode = WarpMode.SUBSPACE;
             gameMode = GameMode.SANDBOX;
+            modControl = true;
         }
 
         public static void Load()
@@ -64,6 +66,10 @@ namespace DarkMultiPlayerServer
                                         gameMode = (GameMode)(Int32.Parse(currentValue));
                                         DarkLog.Debug("Game mode: " + gameMode);
                                         break;
+                                    case "modcontrol":
+                                        modControl = (currentValue == "1");
+                                        DarkLog.Debug("Mod control: " + modControl);
+                                        break;
                                     default:
                                         Console.WriteLine("Unknown key: " + currentKey);
                                         break;
@@ -104,6 +110,11 @@ namespace DarkMultiPlayerServer
                         sw.WriteLine("#Mode " + gameModeType + " - " + (GameMode)gameModeType);
                     }
                     sw.WriteLine("gamemode," + (int)gameMode);
+                    sw.WriteLine("");
+                    sw.WriteLine("#modcontrol - Enable mod control");
+                    sw.WriteLine("#WARNING: Only consider turning off mod control for private servers.");
+                    sw.WriteLine("#The game will constantly complain about missing parts if there are missing mods.");
+                    sw.WriteLine("modcontrol," + (modControl ? "1" : "0"));
                     sw.WriteLine("");
                 }
             }
