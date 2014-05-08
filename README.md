@@ -51,6 +51,12 @@ gamemode:
 Mode 0: SANDBOX - The default sandbox game mode.  
 Mode 1: CAREER - Everyone has their own career mode points. Shared science is currently not implemented.  
   
+modcontrol:  
+Enables or disables modcontrol - Only turn this off if you are running a private server where everyone has the same mods.  
+0 : Off  
+1 : On  
+  
+  
 ---Mods---  
 Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) - The file format is the same.  
   
