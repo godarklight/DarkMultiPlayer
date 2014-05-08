@@ -997,7 +997,7 @@ namespace DarkMultiPlayer
 
         public void OnVesselRecovered(ProtoVessel recoveredVessel)
         {
-            //Check the vessel hasn't been changed in the past
+            //Check the vessel hasn't been changed in the future
             if (latestVesselUpdate.ContainsKey(recoveredVessel.vesselID.ToString()) ? latestVesselUpdate[recoveredVessel.vesselID.ToString()] < Planetarium.GetUniversalTime() : true)
             {
                 //Remove the vessel from the server if it's not owned by another player.
@@ -1009,7 +1009,16 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Removing vessel " + recoveredVessel.vesselID.ToString() + ", name: " + recoveredVessel.vesselName + " from the server: Recovered");
                         unassignKerbals(recoveredVessel.vesselID.ToString());
                         serverVessels.Remove(recoveredVessel.vesselID.ToString());
+                        parent.networkWorker.SendVesselRemove(recoveredVessel.vesselID.ToString());
                     }
+                    else
+                    {
+                        DarkLog.Debug("Cannot recover a non-server vessel!");
+                    }
+                }
+                else
+                {
+                    ScreenMessages.PostScreenMessage("Cannot recover vessel, the vessel is in use.", 5f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
             else
@@ -1020,7 +1029,7 @@ namespace DarkMultiPlayer
 
         public void OnVesselTerminated(ProtoVessel terminatedVessel)
         {
-            //Check the vessel hasn't been changed in the past
+            //Check the vessel hasn't been changed in the future
             if (latestVesselUpdate.ContainsKey(terminatedVessel.vesselID.ToString()) ? latestVesselUpdate[terminatedVessel.vesselID.ToString()] < Planetarium.GetUniversalTime() : true)
             {
                 //Remove the vessel from the server if it's not owned by another player.
@@ -1031,7 +1040,16 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Removing vessel " + terminatedVessel.vesselID.ToString() + ", name: " + terminatedVessel.vesselName + " from the server: Terminated");
                         unassignKerbals(terminatedVessel.vesselID.ToString());
                         serverVessels.Remove(terminatedVessel.vesselID.ToString());
+                        parent.networkWorker.SendVesselRemove(terminatedVessel.vesselID.ToString());
                     }
+                    else
+                    {
+                        DarkLog.Debug("Cannot terminate a non-server vessel!");
+                    }
+                }
+                else
+                {
+                    ScreenMessages.PostScreenMessage("Cannot terminate vessel, the vessel is in use.", 5f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
             else
