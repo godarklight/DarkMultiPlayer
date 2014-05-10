@@ -35,6 +35,7 @@ namespace DarkMultiPlayer
         public ChatWindow chatWindow;
         public DebugWindow debugWindow;
         private QuickSaveLoader quickSaveLoader;
+        public CraftLibraryWorker craftLibraryWorker;
 
         public void Awake()
         {
@@ -55,6 +56,7 @@ namespace DarkMultiPlayer
             quickSaveLoader = new QuickSaveLoader(this);
             chatWindow = new ChatWindow(this);
             debugWindow = new DebugWindow(this);
+            craftLibraryWorker = new CraftLibraryWorker(this);
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
 
@@ -165,6 +167,7 @@ namespace DarkMultiPlayer
                 quickSaveLoader.Update();
                 scenarioWorker.Update();
                 dynamicTickWorker.Update();
+                craftLibraryWorker.Update();
 
                 //Force quit
                 if (forceQuit)
@@ -207,11 +210,21 @@ namespace DarkMultiPlayer
         {
             try
             {
+                //Window ID's
+                //Connection window: 6702
+                //Status window: 6703
+                //Chat window: 6704
+                //Debug window: 6705
+                //Mod windw: 6706
+                //Craft library window: 6707
+                //Craft upload window: 6708
+                //Craft download window: 6709
                 connectionWindow.Draw();
                 playerStatusWindow.Draw();
                 chatWindow.Draw();
                 debugWindow.Draw();
                 modWindow.Draw();
+                craftLibraryWorker.Draw();
             }
             catch (Exception e)
             {
@@ -280,6 +293,7 @@ namespace DarkMultiPlayer
             chatWindow.Reset();
             scenarioWorker.Reset();
             dynamicTickWorker.Reset();
+            craftLibraryWorker.Reset();
         }
 
         private void SetupDirectoriesIfNeeded()

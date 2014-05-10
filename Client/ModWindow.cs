@@ -23,10 +23,6 @@ namespace DarkMultiPlayer
         public ModWindow(Client parent)
         {
             this.parent = parent;
-            if (this.parent != null)
-            {
-                //Shutup compiler
-            }
         }
 
         private void InitGUI()

@@ -6,9 +6,18 @@ namespace DarkMultiPlayerCommon
     {
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long CONNECTION_TIMEOUT = 30000;
-        public const int MAX_MESSAGE_SIZE = 5242880; //5MB
-        public const int SPLIT_MESSAGE_LENGTH = 8096; //8kb
-        public const int PROTOCOL_VERSION = 2;
+        public const int MAX_MESSAGE_SIZE = 5242880;
+        //5MB
+        public const int SPLIT_MESSAGE_LENGTH = 8096;
+        //8kb
+        public const int PROTOCOL_VERSION = 3;
+    }
+
+    public enum CraftType
+    {
+        VAB,
+        SPH,
+        SUBASSEMBLY
     }
 
     public enum ClientMessageType
@@ -24,6 +33,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_PROTO,
         VESSEL_UPDATE,
         VESSEL_REMOVE,
+        CRAFT_LIBRARY,
         SEND_ACTIVE_VESSEL,
         SYNC_TIME_REQUEST,
         PING_REQUEST,
@@ -47,6 +57,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_UPDATE,
         VESSEL_COMPLETE,
         VESSEL_REMOVE,
+        CRAFT_LIBRARY,
         SET_ACTIVE_VESSEL,
         SET_SUBSPACE,
         SYNC_TIME_REPLY,
@@ -111,6 +122,16 @@ namespace DarkMultiPlayerCommon
         REPORT_RATE
     }
 
+    public enum CraftMessageType
+    {
+        LIST,
+        REQUEST_FILE,
+        RESPOND_FILE,
+        UPLOAD_FILE,
+        ADD_FILE,
+        DELETE_FILE,
+    }
+
     public class ClientMessage
     {
         public ClientMessageType type;
@@ -123,7 +144,6 @@ namespace DarkMultiPlayerCommon
         public byte[] data;
     }
 
-    
     public class PlayerStatus
     {
         public string playerName;
@@ -131,7 +151,6 @@ namespace DarkMultiPlayerCommon
         public string statusText;
     }
 
-    
     public class Subspace
     {
         public long serverClock;

@@ -120,6 +120,7 @@ namespace DarkMultiPlayer
                 parent.scenarioWorker.workerEnabled = true;
                 parent.dynamicTickWorker.workerEnabled = true;
                 parent.warpWorker.workerEnabled = true;
+                parent.craftLibraryWorker.workerEnabled = true;
             }
 
         }
@@ -517,6 +518,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.VESSEL_REMOVE:
                         HandleVesselRemove(message.data);
                         break;
+                    case ServerMessageType.CRAFT_LIBRARY:
+                        HandleCraftLibrary(message.data);
+                        break;
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
                         break;
@@ -558,7 +562,8 @@ namespace DarkMultiPlayer
                 {
                     reply = mr.Read<int>();
                     parent.modWorker.modControl = mr.Read<bool>();
-                    if (parent.modWorker.modControl) {
+                    if (parent.modWorker.modControl)
+                    {
                         modFileData = mr.Read<string>();
                     }
                 }
@@ -797,6 +802,101 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandleCraftLibrary(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                CraftMessageType messageType = (CraftMessageType)mr.Read<int>();
+                switch (messageType)
+                {
+                    case CraftMessageType.LIST:
+                        {
+                            string[] playerList = mr.Read<string[]>();
+                            foreach (string player in playerList)
+                            {
+                                bool vabExists = mr.Read<bool>();
+                                bool sphExists = mr.Read<bool>();
+                                bool subassemblyExists = mr.Read<bool>();
+                                DarkLog.Debug("Player: " + player + ", VAB: " + vabExists + ", SPH: " + sphExists + ", SUBASSEMBLY" + subassemblyExists);
+                                if (vabExists)
+                                {
+                                    string[] vabCrafts = mr.Read<string[]>();
+                                    foreach (string vabCraft in vabCrafts)
+                                    {
+                                        CraftAddEntry cae = new CraftAddEntry();
+                                        cae.playerName = player;
+                                        cae.craftType = CraftType.VAB;
+                                        cae.craftName = vabCraft;
+                                        parent.craftLibraryWorker.QueueCraftAdd(cae);
+                                    }
+                                }
+                                if (sphExists)
+                                {
+                                    string[] sphCrafts = mr.Read<string[]>();
+                                    foreach (string sphCraft in sphCrafts)
+                                    {
+                                        CraftAddEntry cae = new CraftAddEntry();
+                                        cae.playerName = player;
+                                        cae.craftType = CraftType.SPH;
+                                        cae.craftName = sphCraft;
+                                        parent.craftLibraryWorker.QueueCraftAdd(cae);
+                                    }
+                                }
+                                if (subassemblyExists)
+                                {
+                                    string[] subassemblyCrafts = mr.Read<string[]>();
+                                    foreach (string subassemblyCraft in subassemblyCrafts)
+                                    {
+                                        CraftAddEntry cae = new CraftAddEntry();
+                                        cae.playerName = player;
+                                        cae.craftType = CraftType.SUBASSEMBLY;
+                                        cae.craftName = subassemblyCraft;
+                                        parent.craftLibraryWorker.QueueCraftAdd(cae);
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case CraftMessageType.ADD_FILE:
+                        {
+                            CraftAddEntry cae = new CraftAddEntry();
+                            cae.playerName = mr.Read<string>();
+                            cae.craftType = (CraftType)mr.Read<int>();
+                            cae.craftName = mr.Read<string>();
+                            parent.craftLibraryWorker.QueueCraftAdd(cae);
+                        }
+                        break;
+                    case CraftMessageType.DELETE_FILE:
+                        {
+                            CraftDeleteEntry cde = new CraftDeleteEntry();
+                            cde.playerName = mr.Read<string>();
+                            cde.craftType = (CraftType)mr.Read<int>();
+                            cde.craftName = mr.Read<string>();
+                            parent.craftLibraryWorker.QueueCraftDelete(cde);
+                        }
+                        break;
+                    case CraftMessageType.RESPOND_FILE:
+                        {
+                            CraftResponseEntry cre = new CraftResponseEntry();
+                            cre.playerName = mr.Read<string>();
+                            cre.craftType = (CraftType)mr.Read<int>();
+                            cre.craftName = mr.Read<string>();
+                            bool hasCraft = mr.Read<bool>();
+                            if (hasCraft)
+                            {
+                                cre.craftData = mr.Read<byte[]>();
+                                parent.craftLibraryWorker.QueueCraftResponse(cre);
+                            }
+                            else
+                            {
+                                ScreenMessages.PostScreenMessage("Craft " + cre.craftName + " from " + cre.playerName + " not available", 5f, ScreenMessageStyle.UPPER_CENTER);
+                            }
+                        }
+                        break;
+                }
+            }
+        }
+
         private void HandleSetSubspace(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -1018,6 +1118,14 @@ namespace DarkMultiPlayer
                 mw.Write<string>(vesselID);
                 newMessage.data = mw.GetMessageBytes();
             }
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+        //Called fro craftLibraryWorker
+        public void SendCraftLibraryMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.CRAFT_LIBRARY;
+            newMessage.data = messageData;
             sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from vesselWorker

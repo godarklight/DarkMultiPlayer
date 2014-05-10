@@ -63,6 +63,7 @@
     <Compile Include="DynamicTickWorker.cs" />
     <Compile Include="ModWorker.cs" />
     <Compile Include="ModWindow.cs" />
+    <Compile Include="CraftLibraryWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

@@ -55,6 +55,10 @@ namespace DarkMultiPlayerServer
             {
                 Directory.CreateDirectory(universeDirectory);
             }
+            if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Crafts")))
+            {
+                Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Crafts"));
+            }
             if (!Directory.Exists(Path.Combine(universeDirectory, "Players")))
             {
                 Directory.CreateDirectory(Path.Combine(universeDirectory, "Players"));
