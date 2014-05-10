@@ -42,6 +42,7 @@ namespace DarkMultiPlayer
         private int numberOfKerbalsReceived;
         private int numberOfVessels;
         private int numberOfVesselsReceived;
+        private object disconnectLock = new object();
 
         public NetworkWorker(Client parent)
         {
@@ -173,9 +174,24 @@ namespace DarkMultiPlayer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Debug("Connection error: " + e);
-                    Disconnect();
-                    parent.status = "Connection error: " + e.Message;
+                    if (e.InnerException != null)
+                    {
+                        DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                        Disconnect();
+                        if (parent.status == "Running")
+                        {
+                            parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Connection error: " + e.Message);
+                        Disconnect();
+                        if (parent.status == "Running")
+                        {
+                            parent.status = "Connection error: " + e.Message;
+                        }
+                    }
                 }
             }
         }
@@ -202,9 +218,24 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e);
-                Disconnect();
-                parent.status = "Connection error: " + e.Message;
+                if (e.InnerException != null)
+                {
+                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Connection error: " + e.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message;
+                    }
+                }
             }
         }
         #endregion
@@ -232,23 +263,26 @@ namespace DarkMultiPlayer
 
         private void Disconnect()
         {
-            if (state != ClientState.DISCONNECTED)
+            lock (disconnectLock)
             {
-                DarkLog.Debug("Disconnecting...");
-                if (parent.status == "Running")
+                if (state != ClientState.DISCONNECTED)
                 {
-                    parent.status = "Disconnected";
-                }
-                parent.displayDisconnectMessage = true;
-                state = ClientState.DISCONNECTED;
-                if (clientConnection != null)
-                {
-                    clientConnection.Close();
-                }
-                DarkLog.Debug("Disconnected");
-                if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
-                {
-                    parent.forceQuit = true;
+                    DarkLog.Debug("Disconnecting...");
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Disconnected";
+                    }
+                    parent.displayDisconnectMessage = true;
+                    state = ClientState.DISCONNECTED;
+                    if (clientConnection != null)
+                    {
+                        clientConnection.Close();
+                    }
+                    DarkLog.Debug("Disconnected");
+                    if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
+                    {
+                        parent.forceQuit = true;
+                    }
                 }
             }
         }
@@ -268,9 +302,24 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
-                Disconnect();
-                parent.status = "Connection error: " + e.Message;
+                if (e.InnerException != null)
+                {
+                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Connection error: " + e.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message;
+                    }
+                }
             }
         }
 
@@ -347,11 +396,23 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
-                Disconnect();
-                if (parent.status == "Running")
+                if (e.InnerException != null)
                 {
-                    parent.status = "Connection error: " + e.Message;
+                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Connection error: " + e.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message;
+                    }
                 }
             }
         }
@@ -432,11 +493,23 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
-                Disconnect();
-                if (parent.status == "Running")
+                if (e.InnerException != null)
                 {
-                    parent.status = "Connection error: " + e.Message;
+                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Connection error: " + e.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message;
+                    }
                 }
             }
         }
@@ -464,11 +537,23 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Connection error: " + e.Message);
-                Disconnect();
-                if (parent.status == "Running")
+                if (e.InnerException != null)
                 {
-                    parent.status = "Connection error: " + e.Message;
+                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Connection error: " + e.Message);
+                    Disconnect();
+                    if (parent.status == "Running")
+                    {
+                        parent.status = "Connection error: " + e.Message;
+                    }
                 }
             }
         }
