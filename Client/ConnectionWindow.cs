@@ -106,7 +106,7 @@ namespace DarkMultiPlayer
             addingServer = GUILayout.Toggle(addingServer, addMode, buttonStyle);
             if (addingServer && !addingServerSafe)
             {
-                if (selectedSafe != -1)
+                if (selected != -1)
                 {
                     //Load the existing server settings
                     serverName = parent.settings.servers[selected].name;

@@ -147,15 +147,34 @@ namespace DarkMultiPlayer
                 IPAddress destinationAddress;
                 if (!IPAddress.TryParse(address, out destinationAddress))
                 {
-                    IPHostEntry dnsResult = Dns.GetHostEntry(address);
-                    if (dnsResult.AddressList.Length > 0)
+                    try
                     {
-                        destinationAddress = dnsResult.AddressList[0];
+                        IPHostEntry dnsResult = Dns.GetHostEntry(address);
+                        if (dnsResult.AddressList.Length > 0)
+                        {
+                            foreach (IPAddress testAddress in dnsResult.AddressList) {
+                                if (testAddress.AddressFamily == AddressFamily.InterNetwork) {
+                                    destinationAddress = testAddress;
+                                    break;
+                                }
+                            }
+                            if (destinationAddress == null) {
+                                DarkLog.Debug("DNS does not contain a valid address entry");
+                                parent.status = "DNS does not contain a valid address entry";
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Address is not a IP or DNS name");
+                            parent.status = "Address is not a IP or DNS name";
+                            return;
+                        }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        DarkLog.Debug("Address is not a IP or DNS name");
-                        parent.status = "Address is not a IP or DNS name";
+                        DarkLog.Debug("DNS Error: " + e.Message);
+                        parent.status = "DNS Error: " + e.Message;
                         return;
                     }
 
@@ -176,21 +195,11 @@ namespace DarkMultiPlayer
                 {
                     if (e.InnerException != null)
                     {
-                        DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                        Disconnect();
-                        if (parent.status == "Running")
-                        {
-                            parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                        }
+                        Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                     }
                     else
                     {
-                        DarkLog.Debug("Connection error: " + e.Message);
-                        Disconnect();
-                        if (parent.status == "Running")
-                        {
-                            parent.status = "Connection error: " + e.Message;
-                        }
+                        Disconnect("Connection error: " + e.Message);
                     }
                 }
             }
@@ -220,21 +229,11 @@ namespace DarkMultiPlayer
             {
                 if (e.InnerException != null)
                 {
-                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                 }
                 else
                 {
-                    DarkLog.Debug("Connection error: " + e.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message);
                 }
             }
         }
@@ -246,8 +245,7 @@ namespace DarkMultiPlayer
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > CONNECTION_TIMEOUT)
                 {
-                    DarkLog.Debug("Failed to connect!");
-                    Disconnect();
+                    Disconnect("Failed to connect!");
                     parent.status = "Failed to connect - no reply";
                 }
             }
@@ -255,23 +253,19 @@ namespace DarkMultiPlayer
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > CONNECTION_TIMEOUT)
                 {
-                    DarkLog.Debug("Connection lost!");
                     SendDisconnect("Connection timeout");
                 }
             }
         }
 
-        private void Disconnect()
+        private void Disconnect(string reason)
         {
             lock (disconnectLock)
             {
                 if (state != ClientState.DISCONNECTED)
                 {
-                    DarkLog.Debug("Disconnecting...");
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Disconnected";
-                    }
+                    DarkLog.Debug("Disconnecting, reason: " + reason);
+                    parent.status = reason;
                     parent.displayDisconnectMessage = true;
                     state = ClientState.DISCONNECTED;
                     if (clientConnection != null)
@@ -304,21 +298,11 @@ namespace DarkMultiPlayer
             {
                 if (e.InnerException != null)
                 {
-                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                 }
                 else
                 {
-                    DarkLog.Debug("Connection error: " + e.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message);
                 }
             }
         }
@@ -339,8 +323,7 @@ namespace DarkMultiPlayer
                             if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
                             {
                                 //Malformed message, most likely from a non DMP-server.
-                                Disconnect();
-                                parent.status = "Disconnected from non-DMP server";
+                                Disconnect("Disconnected from non-DMP server");
                                 //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                 return;
                             }
@@ -366,8 +349,7 @@ namespace DarkMultiPlayer
                                 else
                                 {
                                     //Malformed message, most likely from a non DMP-server.
-                                    Disconnect();
-                                    parent.status = "Disconnected from non-DMP server";
+                                    Disconnect("Disconnected from non-DMP server");
                                     //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                     return;
                                 }
@@ -398,21 +380,11 @@ namespace DarkMultiPlayer
             {
                 if (e.InnerException != null)
                 {
-                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                 }
                 else
                 {
-                    DarkLog.Debug("Connection error: " + e.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message);
                 }
             }
         }
@@ -495,21 +467,11 @@ namespace DarkMultiPlayer
             {
                 if (e.InnerException != null)
                 {
-                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                 }
                 else
                 {
-                    DarkLog.Debug("Connection error: " + e.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message);
                 }
             }
         }
@@ -532,28 +494,20 @@ namespace DarkMultiPlayer
                 clientConnection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendCallback), null);
                 if (message.type == ClientMessageType.CONNECTION_END)
                 {
-                    Disconnect();
+                    using (MessageReader mr = new MessageReader(message.data, false)) {
+                        Disconnect("Connection ended: " + mr.Read<string>());
+                    }
                 }
             }
             catch (Exception e)
             {
                 if (e.InnerException != null)
                 {
-                    DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message + ", " + e.InnerException.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
                 }
                 else
                 {
-                    DarkLog.Debug("Connection error: " + e.Message);
-                    Disconnect();
-                    if (parent.status == "Running")
-                    {
-                        parent.status = "Connection error: " + e.Message;
-                    }
+                    Disconnect("Connection error: " + e.Message);
                 }
             }
         }
@@ -1034,9 +988,7 @@ namespace DarkMultiPlayer
             {
                 reason = mr.Read<string>();
             }
-            Disconnect();
-            ScreenMessages.PostScreenMessage("Server closed the connection: " + reason, 10f, ScreenMessageStyle.UPPER_CENTER);
-            parent.status = "Server closed connection: " + reason;
+            Disconnect("Server closed connection: " + reason);
         }
         #endregion
         #region Message Sending
