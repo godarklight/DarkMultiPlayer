@@ -298,7 +298,7 @@ namespace DarkMultiPlayer
             {
                 playerWindowRect = GUILayout.Window(GUIUtility.GetControlID(6707, FocusType.Passive), playerWindowRect, DrawPlayerContent, "DarkMultiPlayer - Craft Library", windowStyle, playerLayoutOptions);
             }
-            if (selectedPlayer != null)
+            if (safeDisplay && selectedPlayer != null)
             {
                 //Sanity check
                 if (playersWithCrafts.Contains(selectedPlayer))
