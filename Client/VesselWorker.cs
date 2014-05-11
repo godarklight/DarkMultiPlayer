@@ -977,6 +977,7 @@ namespace DarkMultiPlayer
                             DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
                             unassignKerbals(dyingVessel.id.ToString());
                             serverVessels.Remove(dyingVessel.id.ToString());
+                            parent.networkWorker.SendVesselRemove(dyingVessel.id.ToString());
                         }
                     }
                     else
