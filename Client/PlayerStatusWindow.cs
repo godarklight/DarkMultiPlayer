@@ -146,7 +146,7 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            parent.chatWindow.display = GUILayout.Toggle(parent.chatWindow.display, "Chat", buttonStyle);
+            parent.chatWorker.display = GUILayout.Toggle(parent.chatWorker.display, "Chat", buttonStyle);
             parent.craftLibraryWorker.display = GUILayout.Toggle(parent.craftLibraryWorker.display, "Craft", buttonStyle);
             parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "Debug", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
@@ -489,7 +489,7 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            parent.chatWindow.display = GUILayout.Toggle(parent.chatWindow.display, "C", buttonStyle);
+            parent.chatWorker.display = GUILayout.Toggle(parent.chatWorker.display, "C", buttonStyle);
             parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "D", buttonStyle);
             if (GUILayout.Button("+", buttonStyle))
             {

@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
         private static string modFileData;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
+        private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
         #region Main loop
         public static void ThreadMain()
         {
@@ -742,7 +743,6 @@ namespace DarkMultiPlayerServer
 
             try
             {
-
                 switch (message.type)
                 {
                     case ClientMessageType.HEARTBEAT:
@@ -914,6 +914,7 @@ namespace DarkMultiPlayerServer
                 SendScenarioModules(client);
                 SendAllReportedSkewRates(client);
                 SendCraftList(client);
+                SendPlayerChatChannels(client);
             }
             else
             {
@@ -932,13 +933,93 @@ namespace DarkMultiPlayerServer
             newMessage.data = messageData;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                string playerName = mr.Read<string>();
-                string playerText = mr.Read<string>();
-                DarkLog.Normal(playerName + ": " + playerText);
+                ChatMessageType messageType = (ChatMessageType)mr.Read<int>();
+                string fromPlayer = mr.Read<string>();
+                if (fromPlayer != client.playerName)
+                {
+                    SendConnectionEnd(client, "Kicked for sending a chat message for another player");
+                    return;
+                }
+                switch (messageType)
+                {
+                    case ChatMessageType.JOIN:
+                        {
+                            string joinChannel = mr.Read<string>();
+                            if (!playerChatChannels.ContainsKey(fromPlayer))
+                            {
+                                playerChatChannels.Add(fromPlayer, new List<string>());
+                            }
+                            if (!playerChatChannels[fromPlayer].Contains(joinChannel))
+                            {
+                                playerChatChannels[fromPlayer].Add(joinChannel);
+                            }
+                            DarkLog.Debug(fromPlayer + " joined channel: " + joinChannel);
+                        }
+                        SendToAll(client, newMessage, true);
+                        break;
+                    case ChatMessageType.LEAVE:
+                        {
+                            string leaveChannel = mr.Read<string>();
+                            if (playerChatChannels.ContainsKey(fromPlayer))
+                            {
+                                if (playerChatChannels[fromPlayer].Contains(leaveChannel))
+                                {
+                                    playerChatChannels[fromPlayer].Remove(leaveChannel);
+                                }
+                                if (playerChatChannels[fromPlayer].Count == 0)
+                                {
+                                    playerChatChannels.Remove(fromPlayer);
+                                }
+                            }
+                            DarkLog.Debug(fromPlayer + " left channel: " + leaveChannel);
+                        }
+                        SendToAll(client, newMessage, true);
+                        break;
+                    case ChatMessageType.CHANNEL_MESSAGE:
+                        {
+                            string channel = mr.Read<string>();
+                            string message = mr.Read<string>();
+                            if (channel != "")
+                            {
+                                foreach (KeyValuePair<string, List<string>> playerEntry in playerChatChannels)
+                                {
+                                    if (playerEntry.Value.Contains(channel))
+                                    {
+                                        ClientObject findClient = GetClientByName(playerEntry.Key);
+                                        if (findClient != null)
+                                        {
+                                            SendToClient(findClient, newMessage, true);
+                                        }
+                                    }
+                                }
+                                DarkLog.Normal(fromPlayer + " -> #" + channel + ": " + message);
+                            }
+                            else
+                            {
+                                SendToClient(client, newMessage, true);
+                                SendToAll(client, newMessage, true);
+                                DarkLog.Normal(fromPlayer + " -> #Global: " + message);
+                            }
+                        }
+                        break;
+                    case ChatMessageType.PRIVATE_MESSAGE:
+                        {
+                            string toPlayer = mr.Read<string>();
+                            string message = mr.Read<string>();
+                            ClientObject findClient = GetClientByName(toPlayer);
+                            if (findClient != null)
+                            {
+                                SendToClient(client, newMessage, true);
+                                SendToClient(findClient, newMessage, true);
+                                DarkLog.Normal(fromPlayer + " -> @" + toPlayer + ": " + message);
+                            }
+                            {
+                                DarkLog.Debug(fromPlayer + " -X-> @" + toPlayer + ": " + message);
+                            }
+                        }
+                        break;
+                }
             }
-            //Relay it back and to the other clients.
-            SendToClient(client, newMessage, true);
-            SendToAll(client, newMessage, true);
         }
 
         private static void HandleSyncTimeRequest(ClientObject client, byte[] messageData)
@@ -1439,6 +1520,20 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static ClientObject GetClientByName(string playerName)
+        {
+            ClientObject findClient = null;
+            foreach (ClientObject testClient in clients)
+            {
+                if (testClient.authenticated && testClient.playerName == playerName)
+                {
+                    findClient = testClient;
+                    break;
+                }
+            }
+            return findClient;
+        }
+
         private static void SendHeartBeat(ClientObject client)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -1553,6 +1648,28 @@ namespace DarkMultiPlayerServer
                 newMessage.data = mw.GetMessageBytes();
                 SendToClient(client, newMessage, true);
                 DarkLog.Debug("Sending " + client.playerName + " " + numberOfCrafts + " craft library entries");
+            }
+        }
+
+        private static void SendPlayerChatChannels(ClientObject client)
+        {
+            List<string> playerList = new List<string>();
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.LIST);
+                foreach (KeyValuePair<string, List<string>> playerEntry in playerChatChannels)
+                {
+                    playerList.Add(playerEntry.Key);
+                }
+                mw.Write<string[]>(playerList.ToArray());
+                foreach (string player in playerList)
+                {
+                    mw.Write<string[]>(playerChatChannels[player].ToArray());
+                }
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.CHAT_MESSAGE;
+                newMessage.data = mw.GetMessageBytes();
+                SendToClient(client, newMessage, true);
             }
         }
 

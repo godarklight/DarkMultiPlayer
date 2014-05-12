@@ -132,6 +132,15 @@ namespace DarkMultiPlayerCommon
         DELETE_FILE,
     }
 
+    public enum ChatMessageType
+    {
+        LIST,
+        JOIN,
+        LEAVE,
+        CHANNEL_MESSAGE,
+        PRIVATE_MESSAGE,
+    }
+
     public class ClientMessage
     {
         public ClientMessageType type;

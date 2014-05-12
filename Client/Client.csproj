@@ -56,7 +56,6 @@
     <Compile Include="WarpWorker.cs" />
     <Compile Include="PlayerStatusWindow.cs" />
     <Compile Include="PlayerStatusWorker.cs" />
-    <Compile Include="ChatWindow.cs" />
     <Compile Include="QuickSaveLoader.cs" />
     <Compile Include="ScenarioWorker.cs" />
     <Compile Include="DebugWindow.cs" />
@@ -64,6 +63,7 @@
     <Compile Include="ModWorker.cs" />
     <Compile Include="ModWindow.cs" />
     <Compile Include="CraftLibraryWorker.cs" />
+    <Compile Include="ChatWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

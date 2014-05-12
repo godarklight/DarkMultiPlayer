@@ -98,6 +98,7 @@ namespace DarkMultiPlayer
                 //Process the messages so we get the subspaces, but don't enable the worker until the game is started.
                 parent.warpWorker.ProcessWarpMessages();
                 parent.timeSyncer.workerEnabled = true;
+                parent.chatWorker.workerEnabled = true;
             }
             if (state == ClientState.TIME_LOCKING)
             {
@@ -123,7 +124,6 @@ namespace DarkMultiPlayer
                 parent.warpWorker.workerEnabled = true;
                 parent.craftLibraryWorker.workerEnabled = true;
             }
-
         }
         #region Connecting to server
         //Called from main
@@ -152,13 +152,16 @@ namespace DarkMultiPlayer
                         IPHostEntry dnsResult = Dns.GetHostEntry(address);
                         if (dnsResult.AddressList.Length > 0)
                         {
-                            foreach (IPAddress testAddress in dnsResult.AddressList) {
-                                if (testAddress.AddressFamily == AddressFamily.InterNetwork) {
+                            foreach (IPAddress testAddress in dnsResult.AddressList)
+                            {
+                                if (testAddress.AddressFamily == AddressFamily.InterNetwork)
+                                {
                                     destinationAddress = testAddress;
                                     break;
                                 }
                             }
-                            if (destinationAddress == null) {
+                            if (destinationAddress == null)
+                            {
                                 DarkLog.Debug("DNS does not contain a valid address entry");
                                 parent.status = "DNS does not contain a valid address entry";
                                 return;
@@ -494,7 +497,8 @@ namespace DarkMultiPlayer
                 clientConnection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendCallback), null);
                 if (message.type == ClientMessageType.CONNECTION_END)
                 {
-                    using (MessageReader mr = new MessageReader(message.data, false)) {
+                    using (MessageReader mr = new MessageReader(message.data, false))
+                    {
                         Disconnect("Connection ended: " + mr.Read<string>());
                     }
                 }
@@ -639,9 +643,57 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                string playerName = mr.Read<string>();
-                string chatText = mr.Read<string>();
-                parent.chatWindow.QueueChatEntry(playerName, chatText);
+                ChatMessageType chatMessageType = (ChatMessageType)mr.Read<int>();
+
+                switch (chatMessageType)
+                {
+                    case ChatMessageType.LIST:
+                        {
+                            string[] playerList = mr.Read<string[]>();
+                            foreach (string playerName in playerList)
+                            {
+                                string[] channelList = mr.Read<string[]>();
+                                foreach (string channelName in channelList)
+                                {
+                                    parent.chatWorker.QueueChatJoin(playerName, channelName);
+                                }
+                            }
+                        }
+                        break;
+                    case ChatMessageType.JOIN:
+                        {
+                            string playerName = mr.Read<string>();
+                            string channelName = mr.Read<string>();
+                            parent.chatWorker.QueueChatJoin(playerName, channelName);
+                        }
+                        break;
+                    case ChatMessageType.LEAVE:
+                        {
+                            string playerName = mr.Read<string>();
+                            string channelName = mr.Read<string>();
+                            parent.chatWorker.QueueChatLeave(playerName, channelName);
+                        }
+                        break;
+                    case ChatMessageType.CHANNEL_MESSAGE:
+                        {
+                            string playerName = mr.Read<string>();
+                            string channelName = mr.Read<string>();
+                            string channelMessage = mr.Read<string>();
+                            parent.chatWorker.QueueChannelMessage(playerName, channelName, channelMessage);
+                        }
+                        break;
+                    case ChatMessageType.PRIVATE_MESSAGE:
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            string toPlayer = mr.Read<string>();
+                            string privateMessage = mr.Read<string>();
+                            if (toPlayer == parent.settings.playerName)
+                            {
+                                parent.chatWorker.QueuePrivateMessage(fromPlayer, privateMessage);
+                            }
+                        }
+                        break;
+                }
             }
         }
 
@@ -1022,18 +1074,11 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from ChatWindow
-        public void SendChatMessage(string chatMessage)
+        public void SendChatMessage(byte[] messageData)
         {
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<string>(parent.settings.playerName);
-                mw.Write<string>(chatMessage);
-                messageBytes = mw.GetMessageBytes();
-            }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CHAT_MESSAGE;
-            newMessage.data = messageBytes;
+            newMessage.data = messageData;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from PlayerStatusWorker

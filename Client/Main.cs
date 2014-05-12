@@ -32,7 +32,7 @@ namespace DarkMultiPlayer
         private ConnectionWindow connectionWindow;
         private PlayerStatusWindow playerStatusWindow;
         public ModWindow modWindow;
-        public ChatWindow chatWindow;
+        public ChatWorker chatWorker;
         public DebugWindow debugWindow;
         private QuickSaveLoader quickSaveLoader;
         public CraftLibraryWorker craftLibraryWorker;
@@ -54,7 +54,7 @@ namespace DarkMultiPlayer
             playerStatusWindow = new PlayerStatusWindow(this);
             modWindow = new ModWindow(this);
             quickSaveLoader = new QuickSaveLoader(this);
-            chatWindow = new ChatWindow(this);
+            chatWorker = new ChatWorker(this);
             debugWindow = new DebugWindow(this);
             craftLibraryWorker = new CraftLibraryWorker(this);
             DarkLog.Debug("DarkMultiPlayer Initialized!");
@@ -161,7 +161,7 @@ namespace DarkMultiPlayer
                 playerStatusWorker.Update();
                 warpWorker.Update();
                 playerStatusWindow.Update();
-                chatWindow.Update();
+                chatWorker.Update();
                 debugWindow.Update();
                 modWindow.Update();
                 quickSaveLoader.Update();
@@ -221,7 +221,7 @@ namespace DarkMultiPlayer
                 //Craft download window: 6709
                 connectionWindow.Draw();
                 playerStatusWindow.Draw();
-                chatWindow.Draw();
+                chatWorker.Draw();
                 debugWindow.Draw();
                 modWindow.Draw();
                 craftLibraryWorker.Draw();
@@ -257,7 +257,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Started!");
             Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
-            chatWindow.display = true;
+            chatWorker.display = true;
         }
 
         private void StopGame()
@@ -284,13 +284,13 @@ namespace DarkMultiPlayer
 
         private void ResetWorkers()
         {
-            chatWindow.display = false;
+            chatWorker.display = false;
             debugWindow.display = false;
             timeSyncer.Reset();
             vesselWorker.Reset();
             playerStatusWorker.Reset();
             warpWorker.Reset();
-            chatWindow.Reset();
+            chatWorker.Reset();
             scenarioWorker.Reset();
             dynamicTickWorker.Reset();
             craftLibraryWorker.Reset();
