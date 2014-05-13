@@ -366,6 +366,7 @@ namespace DarkMultiPlayerServer
             stockPartList.Add("LaunchEscapeSystem");
             stockPartList.Add("MassiveBooster");
             stockPartList.Add("PotatoRoid");
+            stockPartList.Add("Size2LFB");
             stockPartList.Add("Size3AdvancedEngine");
             stockPartList.Add("size3Decoupler");
             stockPartList.Add("Size3EngineCluster");

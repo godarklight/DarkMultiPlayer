@@ -305,6 +305,11 @@ namespace DarkMultiPlayer
                     {
                         lastPartCount = FlightGlobals.fetch.activeVessel.parts.Count;
                         serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = 0;
+                        if (vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+                        {
+                            DarkLog.Debug("Forcing parts recheck on " + FlightGlobals.fetch.activeVessel.id.ToString());
+                            vesselPartsOk.Remove(FlightGlobals.fetch.activeVessel.id.ToString());
+                        }
                     }
                 }
             }
@@ -332,6 +337,26 @@ namespace DarkMultiPlayer
                 //Don't send updates in spectate mode
                 return;
             }
+
+            if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+            {
+                //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
+                CheckVesselParts(FlightGlobals.fetch.activeVessel);
+            }
+
+            if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
+            {
+                if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                {
+                    lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                    if (bannedPartsMessage != null)
+                    {
+                        bannedPartsMessage.duration = 0;
+                    }
+                    bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                }
+            }
+
             if (isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
             {
                 //Don't send updates while in the safety bubble
@@ -375,6 +400,38 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void CheckVesselParts(Vessel checkVessel)
+        {
+
+            List<string> allowedParts = parent.modWorker.GetAllowedPartsList();
+            List<string> bannedParts = new List<string>();
+            ProtoVessel checkProto = checkVessel.protoVessel;
+            if (!checkVessel.packed)
+            {
+                checkProto = new ProtoVessel(checkVessel);
+            }
+            foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
+            {
+                if (!allowedParts.Contains(part.partName))
+                {
+                    if (!bannedParts.Contains(part.partName))
+                    {
+                        bannedParts.Add(part.partName);
+                    }
+                }
+            }
+            if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
+            {
+                bannedPartsString = "";
+                foreach (string bannedPart in bannedParts)
+                {
+                    bannedPartsString += bannedPart + "\n";
+                }
+            }
+            DarkLog.Debug("Checked vessel " + checkVessel.id.ToString() + " for banned parts, is ok: " + (bannedParts.Count == 0));
+            vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
+        }
+
         private void SendVesselUpdateIfNeeded(Vessel checkVessel, double ourDistance)
         {
             //Check vessel parts
@@ -382,42 +439,10 @@ namespace DarkMultiPlayer
             {
                 if (!vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
                 {
-                    List<string> allowedParts = parent.modWorker.GetAllowedPartsList();
-                    List<string> bannedParts = new List<string>();
-                    foreach (ProtoPartSnapshot part in checkVessel.protoVessel.protoPartSnapshots)
-                    {
-                        if (!allowedParts.Contains(part.partName))
-                        {
-                            if (!bannedParts.Contains(part.partName))
-                            {
-                                bannedParts.Add(part.partName);
-                            }
-                        }
-                    }
-                    if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
-                    {
-                        bannedPartsString = "";
-                        foreach (string bannedPart in bannedParts)
-                        {
-                            bannedPartsString += bannedPart + "\n";
-                        }
-                    }
-                    vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
+                    CheckVesselParts(checkVessel);
                 }
                 if (!vesselPartsOk[checkVessel.id.ToString()])
                 {
-                    if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
-                    {
-                        if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
-                        {
-                            lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
-                            if (bannedPartsMessage != null)
-                            {
-                                bannedPartsMessage.duration = 0;
-                            }
-                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
-                        }
-                    }
                     //Vessel with bad parts
                     return;
                 }
@@ -978,6 +1003,10 @@ namespace DarkMultiPlayer
                             unassignKerbals(dyingVessel.id.ToString());
                             serverVessels.Remove(dyingVessel.id.ToString());
                             parent.networkWorker.SendVesselRemove(dyingVessel.id.ToString());
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", not a server vessel.");
                         }
                     }
                     else
