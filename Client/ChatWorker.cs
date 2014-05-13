@@ -28,6 +28,7 @@ namespace DarkMultiPlayer
         private string selectedChannel;
         private string selectedPMChannel;
         private bool chatLocked;
+        private bool ignoreChatInput;
         private string sendText;
         //event handling
         private bool leaveEventHandled;
@@ -124,6 +125,12 @@ namespace DarkMultiPlayer
         public void Update()
         {
             safeDisplay = display;
+            ignoreChatInput = false;
+            if (chatLocked && !display)
+            {
+                chatLocked = false;
+                InputLockManager.RemoveControlLock(DMP_CHAT_LOCK);
+            }
             if (workerEnabled)
             {
                 //Handle leave event
@@ -470,13 +477,16 @@ namespace DarkMultiPlayer
             GUI.SetNextControlName("SendTextArea");
             string tempSendText = GUILayout.TextArea(sendText, textAreaStyle);
             //Don't add the newline to the messages, queue a send
-            if (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter))
+            if (!ignoreChatInput)
             {
-                sendEventHandled = false;
-            }
-            else
-            {
-                sendText = tempSendText;
+                if (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter))
+                {
+                    sendEventHandled = false;
+                }
+                else
+                {
+                    sendText = tempSendText;
+                }
             }
             if (sendText == "")
             {
@@ -501,6 +511,7 @@ namespace DarkMultiPlayer
             }
             if (Input.GetKey(KeyCode.BackQuote) && GUI.GetNameOfFocusedControl() != "SendTextArea")
             {
+                ignoreChatInput = true;
                 GUI.FocusControl("SendTextArea");
             }
         }
