@@ -14,8 +14,9 @@ namespace DarkMultiPlayer
         private bool initialized;
         private Vector2 scrollPosition;
         public bool minmized;
-        public bool safeMinimized;
+        private bool safeMinimized;
         //GUI Layout
+        private bool calculatedMinSize;
         private Rect windowRect;
         private Rect minWindowRect;
         private Rect moveRect;
@@ -50,9 +51,7 @@ namespace DarkMultiPlayer
         {
             //Setup GUI stuff
             windowRect = new Rect(Screen.width * 0.9f - WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
-            minWindowRect = new Rect(windowRect);
-            minWindowRect.xMax = minWindowRect.xMin + 40;
-            minWindowRect.yMax = minWindowRect.yMin + 20;
+            minWindowRect = new Rect(float.NegativeInfinity, float.NegativeInfinity, 0, 0);
             moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
@@ -69,10 +68,10 @@ namespace DarkMultiPlayer
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
 
             minLayoutOptions = new GUILayoutOption[4];
-            minLayoutOptions[0] = GUILayout.MinWidth(40);
-            minLayoutOptions[1] = GUILayout.MinHeight(20);
-            minLayoutOptions[2] = GUILayout.ExpandWidth(true);
-            minLayoutOptions[3] = GUILayout.ExpandHeight(true);
+            minLayoutOptions[0] = GUILayout.MinWidth(0);
+            minLayoutOptions[1] = GUILayout.MinHeight(0);
+            minLayoutOptions[2] = GUILayout.ExpandHeight(true);
+            minLayoutOptions[3] = GUILayout.ExpandWidth(true);
 
             //Adapted from KMP.
             playerNameStyle = new GUIStyle(GUI.skin.label);
@@ -107,6 +106,11 @@ namespace DarkMultiPlayer
         {
             if (display)
             {
+                safeMinimized = minmized;
+                if (!calculatedMinSize && minWindowRect.width != 0 && minWindowRect.height != 0)
+                {
+                    calculatedMinSize = true;
+                }
                 if ((UnityEngine.Time.realtimeSinceStartup - lastStatusUpdate) > UPDATE_STATUS_INTERVAL)
                 {
                     lastStatusUpdate = UnityEngine.Time.realtimeSinceStartup;
@@ -129,6 +133,11 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
+                //Calculate the minimum size of the minimize window by drawing it off the screen
+                if (!calculatedMinSize)
+                {
+                    minWindowRect = GUILayout.Window(GUIUtility.GetControlID(6701, FocusType.Passive), minWindowRect, DrawMaximize, "DMP", windowStyle, minLayoutOptions);
+                }
                 if (!safeMinimized)
                 {
                     windowRect = GUILayout.Window(GUIUtility.GetControlID(6703, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Status", windowStyle, layoutOptions);
@@ -151,11 +160,9 @@ namespace DarkMultiPlayer
             parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "Debug", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
-                minWindowRect.xMax = windowRect.xMax;
-                minWindowRect.yMin = windowRect.yMin;
-                minWindowRect.xMin = minWindowRect.xMax - 40;
-                minWindowRect.yMax = minWindowRect.yMin + 20;
                 minmized = true;
+                minWindowRect.x = windowRect.xMax - minWindowRect.width;
+                minWindowRect.y = windowRect.y;
             }
             GUILayout.EndHorizontal();
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollStyle);
