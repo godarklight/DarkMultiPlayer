@@ -145,7 +145,7 @@ namespace DarkMultiPlayer
                     mw.Write<byte[]>(fileData);
                     parent.networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
                     AddCraftEntry(parent.settings.playerName, uploadCraftType, uploadCraftName);
-
+                    ScreenMessages.PostScreenMessage("Uploading " + uploadCraftName, 3f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
             else
@@ -345,7 +345,6 @@ namespace DarkMultiPlayer
         {
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
-            libraryScrollPos = GUILayout.BeginScrollView(libraryScrollPos, scrollStyle);
             bool newShowUpload = false;
             if (selectedPlayer == parent.settings.playerName)
             {
@@ -357,6 +356,7 @@ namespace DarkMultiPlayer
                 BuildUploadList();
             }
             showUpload = newShowUpload;
+            libraryScrollPos = GUILayout.BeginScrollView(libraryScrollPos, scrollStyle);
             if (showUpload)
             {
                 //Draw upload screen
@@ -378,11 +378,19 @@ namespace DarkMultiPlayer
                 GUILayout.Label(entryType.Key.ToString(), labelStyle);
                 foreach (string entryName in entryType.Value)
                 {
+                    if (playerList[parent.settings.playerName].ContainsKey(entryType.Key))
+                    {
+                        if (playerList[parent.settings.playerName][entryType.Key].Contains(entryName))
+                        {
+                            GUI.enabled = false;
+                        }
+                    }
                     if (GUILayout.Button(entryName, buttonStyle))
                     {
                         uploadCraftType = entryType.Key;
                         uploadCraftName = entryName;
                     }
+                    GUI.enabled = true;
                 }
             }
         }
