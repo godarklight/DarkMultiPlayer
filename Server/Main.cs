@@ -23,9 +23,11 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Loading universe... ");
             CheckUniverse();
             DarkLog.Normal("Done!");
+
             DarkLog.Normal("Loading settings... ");
             Settings.Load();
             DarkLog.Normal("Done!");
+
             DarkLog.Normal("Starting " + Settings.warpMode + " server on port " + Settings.port + "... ");
             serverStarting = true;
             serverRunning = true;
@@ -38,10 +40,14 @@ namespace DarkMultiPlayerServer
                 Thread.Sleep(500);
             }
             DarkLog.Normal("Done!");
+
+            CommandHandler.RegisterCommand("exit", (x) => ShutDown(), "Shuts down the server");
+
             while (serverRunning)
             {
                 Thread.Sleep(500);
             }
+
             DarkLog.Normal("Shutting down... ");
             commandThread.Join();
             clientThread.Join();
