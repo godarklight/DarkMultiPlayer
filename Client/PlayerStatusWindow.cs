@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using DarkMultiPlayerCommon;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
@@ -153,7 +153,7 @@ namespace DarkMultiPlayer
             {
                 minWindowRect.xMax = windowRect.xMax;
                 minWindowRect.yMin = windowRect.yMin;
-                minWindowRect.xMin = minWindowRect.xMax - 40;
+                minWindowRect.xMin = minWindowRect.xMax - 90;
                 minWindowRect.yMax = minWindowRect.yMin + 20;
                 minmized = true;
             }
@@ -203,7 +203,7 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
- 
+
             if (GUILayout.Button("Disconnect", buttonStyle))
             {
                 disconnectEventHandled = false;
