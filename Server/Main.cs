@@ -119,6 +119,26 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug("Terminating!");
             }
         }
+
+        // KICK COMMAND
+        private static void KickPlayer(string[] commandArgs)
+        {
+            /* What I think this command needs:
+             * - find ClientObject by player name
+             * - split the command args into 2
+             */
+            ClientObject kickPlayer = new ClientObject();
+            if (commandArgs[1] != "")
+            {
+                DarkLog.Normal(String.Format("kicking {0} from the server: {1}", commandArgs[0], commandArgs[1]));
+                ClientHandler.SendConnectionEndToClient(kickPlayer, commandArgs[1]);
+            }
+            else
+            {
+                DarkLog.Normal(String.Format("kicking {0} from the server: no reason specified", commandArgs[0]));
+                ClientHandler.SendConnectionEndToClient(kickPlayer, "no reason specified");
+            }
+        }
     }
 }
 

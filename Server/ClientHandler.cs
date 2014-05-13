@@ -1953,6 +1953,14 @@ namespace DarkMultiPlayerServer
                 }
             }
         }
+
+        public static void SendConnectionEndToClient(ClientObject client, string reason)
+        {
+                if (client.authenticated)
+                {
+                    SendConnectionEnd(client, reason);
+                }
+        }
         #endregion
     }
 
