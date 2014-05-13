@@ -687,9 +687,9 @@ namespace DarkMultiPlayer
                             string fromPlayer = mr.Read<string>();
                             string toPlayer = mr.Read<string>();
                             string privateMessage = mr.Read<string>();
-                            if (toPlayer == parent.settings.playerName)
+                            if (toPlayer == parent.settings.playerName || fromPlayer == parent.settings.playerName)
                             {
-                                parent.chatWorker.QueuePrivateMessage(fromPlayer, privateMessage);
+                                parent.chatWorker.QueuePrivateMessage(fromPlayer, toPlayer, privateMessage);
                             }
                         }
                         break;
@@ -731,6 +731,7 @@ namespace DarkMultiPlayer
                 parent.warpWorker.RemovePlayer(playerName);
                 parent.playerStatusWorker.RemovePlayerStatus(playerName);
                 parent.vesselWorker.SetNotInUse(playerName);
+                parent.chatWorker.QueueRemovePlayer(playerName);
             }
         }
 

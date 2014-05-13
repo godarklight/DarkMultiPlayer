@@ -14,6 +14,7 @@ namespace DarkMultiPlayer
         private bool safeDisplay;
         private bool initialized;
         //State tracking
+        private Queue<string> disconnectingPlayers;
         private Queue<JoinLeaveMessage> newJoinMessages;
         private Queue<JoinLeaveMessage> newLeaveMessages;
         private Queue<ChannelEntry> newChannelMessages;
@@ -114,12 +115,18 @@ namespace DarkMultiPlayer
             newChannelMessages.Enqueue(ce);
         }
 
-        public void QueuePrivateMessage(string fromPlayer, string privateMessage)
+        public void QueuePrivateMessage(string fromPlayer, string toPlayer, string privateMessage)
         {
             PrivateEntry pe = new PrivateEntry();
             pe.fromPlayer = fromPlayer;
+            pe.toPlayer = toPlayer;
             pe.message = privateMessage;
             newPrivateMessages.Enqueue(pe);
+        }
+
+        public void QueueRemovePlayer(string playerName)
+        {
+            disconnectingPlayers.Enqueue(playerName);
         }
 
         public void Update()
@@ -336,28 +343,58 @@ namespace DarkMultiPlayer
                 while (newPrivateMessages.Count > 0)
                 {
                     PrivateEntry pe = newPrivateMessages.Dequeue();
-                    if (!privateMessages.ContainsKey(pe.fromPlayer))
+                    if (pe.fromPlayer != parent.settings.playerName)
                     {
-                        privateMessages.Add(pe.fromPlayer, new List<string>());
-                    }
-                    //Highlight if the player isn't selected
-                    if (!joinedPMChannels.Contains(pe.fromPlayer))
-                    {
-                        joinedPMChannels.Add(pe.fromPlayer);
-                    }
-                    if (selectedPMChannel != pe.fromPlayer)
-                    {
-                        if (!highlightPM.Contains(pe.fromPlayer))
+                        if (!privateMessages.ContainsKey(pe.fromPlayer))
                         {
-                            highlightPM.Add(pe.fromPlayer);
+                            privateMessages.Add(pe.fromPlayer, new List<string>());
+                        }
+                        //Highlight if the player isn't selected
+                        if (!joinedPMChannels.Contains(pe.fromPlayer))
+                        {
+                            joinedPMChannels.Add(pe.fromPlayer);
+                        }
+                        if (selectedPMChannel != pe.fromPlayer)
+                        {
+                            if (!highlightPM.Contains(pe.fromPlayer))
+                            {
+                                highlightPM.Add(pe.fromPlayer);
+                            }
                         }
                     }
                     //Move the bar to the bottom on a new message
-                    if (selectedPMChannel != null && selectedChannel == null && pe.fromPlayer == selectedPMChannel)
+                    if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == parent.settings.playerName))
                     {
                         chatScrollPos.y = float.PositiveInfinity;
                     }
-                    privateMessages[pe.fromPlayer].Add(pe.fromPlayer + ": " + pe.message);
+                    if (pe.fromPlayer != parent.settings.playerName)
+                    {
+                        privateMessages[pe.fromPlayer].Add(pe.fromPlayer + ": " + pe.message);
+                    }
+                    else
+                    {
+                        privateMessages[pe.toPlayer].Add(pe.fromPlayer + ": " + pe.message);
+                    }
+                }
+                while (disconnectingPlayers.Count > 0)
+                {
+                    string disconnectingPlayer = disconnectingPlayers.Dequeue();
+                    if (playerChannels.ContainsKey(disconnectingPlayer))
+                    {
+                        playerChannels.Remove(disconnectingPlayer);
+                    }
+                    if (joinedPMChannels.Contains(disconnectingPlayer))
+                    {
+                        joinedPMChannels.Remove(disconnectingPlayer);
+                    }
+                    if (highlightPM.Contains(disconnectingPlayer))
+                    {
+                        highlightPM.Remove(disconnectingPlayer);
+                    }
+                    if (privateMessages.ContainsKey(disconnectingPlayer))
+                    {
+                        privateMessages.Remove(disconnectingPlayer);
+                    }
                 }
             }
         }
@@ -611,6 +648,7 @@ namespace DarkMultiPlayer
             sendEventHandled = true;
             selectedChannel = null;
             sendText = "";
+            disconnectingPlayers = new Queue<string>();
             newJoinMessages = new Queue<JoinLeaveMessage>();
             newLeaveMessages = new Queue<JoinLeaveMessage>();
             newChannelMessages = new Queue<ChannelEntry>();
@@ -635,6 +673,7 @@ namespace DarkMultiPlayer
     public class PrivateEntry
     {
         public string fromPlayer;
+        public string toPlayer;
         public string message;
     }
 
