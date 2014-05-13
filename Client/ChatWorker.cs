@@ -309,11 +309,17 @@ namespace DarkMultiPlayer
                     //Highlight if the channel isn't selected.
                     if (selectedChannel != null && ce.channel == "")
                     {
-                        highlightChannel.Add(ce.channel);
+                        if (!highlightChannel.Contains(ce.channel))
+                        {
+                            highlightChannel.Add(ce.channel);
+                        }
                     }
                     if (ce.channel != selectedChannel && ce.channel != "")
                     {
-                        highlightChannel.Add(ce.channel);
+                        if (!highlightChannel.Contains(ce.channel))
+                        {
+                            highlightChannel.Add(ce.channel);
+                        }
                     }
                     //Move the bar to the bottom on a new message
                     if (selectedChannel == null && selectedPMChannel == null && ce.channel == "")
@@ -341,7 +347,10 @@ namespace DarkMultiPlayer
                     }
                     if (selectedPMChannel != pe.fromPlayer)
                     {
-                        highlightPM.Add(pe.fromPlayer);
+                        if (!highlightPM.Contains(pe.fromPlayer))
+                        {
+                            highlightPM.Add(pe.fromPlayer);
+                        }
                     }
                     //Move the bar to the bottom on a new message
                     if (selectedPMChannel != null && selectedChannel == null && pe.fromPlayer == selectedPMChannel)
