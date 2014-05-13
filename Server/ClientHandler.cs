@@ -52,6 +52,23 @@ namespace DarkMultiPlayerServer
                 }
                 Thread.Sleep(10);
             }
+            bool sendingHighPriotityMessages = true;
+            while (sendingHighPriotityMessages)
+            {
+                sendingHighPriotityMessages = false;
+                foreach (ClientObject client in clients)
+                {
+                    if (client.authenticated)
+                    {
+                        if (client.sendMessageQueueHigh != null ? client.sendMessageQueueHigh.Count > 0 : false)
+                        {
+                            SendOutgoingHighPriorityMessages(client);
+                            sendingHighPriotityMessages = true;
+                        }
+                    }
+                }
+                Thread.Sleep(10);
+            }
             ShutdownTCPServer();
         }
         #endregion
@@ -487,6 +504,22 @@ namespace DarkMultiPlayerServer
                     message = client.sendMessageQueueLow.Dequeue();
                     //Splits large messages to higher priority messages can get into the queue faster
                     SplitAndRewriteMessage(client, ref message);
+                }
+                if (message != null)
+                {
+                    SendNetworkMessage(client, message);
+                }
+            }
+        }
+
+        private static void SendOutgoingHighPriorityMessages(ClientObject client)
+        {
+            if (!client.isSendingToClient)
+            {
+                ServerMessage message = null;
+                if (client.sendMessageQueueHigh.Count > 0)
+                {
+                    message = client.sendMessageQueueHigh.Dequeue();
                 }
                 if (message != null)
                 {
@@ -1502,6 +1535,11 @@ namespace DarkMultiPlayerServer
 
         private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
+            if (!Server.serverRunning && !highPriority)
+            {
+                //Skip sending low priority messages during a server shutdown.
+                return;
+            }
             if (message == null)
             {
                 Exception up = new Exception("Cannot send a null message to a client!");
@@ -1556,6 +1594,22 @@ namespace DarkMultiPlayerServer
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
+        }
+
+        public static void SendChatMessageToAll(string messageText)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
+                mw.Write<string>("Server");
+                //Global channel
+                mw.Write<string>("");
+                mw.Write(messageText);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToAll(null, newMessage, true);
         }
 
         private static void SendServerSettings(ClientObject client)
@@ -1886,6 +1940,17 @@ namespace DarkMultiPlayerServer
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
+        }
+
+        public static void SendConnectionEndToAll(string reason)
+        {
+            foreach (ClientObject client in clients)
+            {
+                if (client.authenticated)
+                {
+                    SendConnectionEnd(client, reason);
+                }
+            }
         }
         #endregion
     }

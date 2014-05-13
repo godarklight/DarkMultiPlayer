@@ -11,12 +11,17 @@ namespace DarkMultiPlayerServer
         public static bool serverStarting;
         public static string universeDirectory;
         public static Stopwatch serverClock;
+        private static long ctrlCTime;
 
         public static void Main()
         {
             //Start the server clock
             serverClock = new Stopwatch();
             serverClock.Start();
+            //Register the exit/shutdown commands
+            CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
+            CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
+            CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             //Load settings
@@ -41,15 +46,11 @@ namespace DarkMultiPlayerServer
             }
             DarkLog.Normal("Done!");
 
-            CommandHandler.RegisterCommand("exit", (x) => ShutDown(), "Shuts down the server");
-
             while (serverRunning)
             {
                 Thread.Sleep(500);
             }
-
-            DarkLog.Normal("Shutting down... ");
-            commandThread.Join();
+            commandThread.Abort();
             clientThread.Join();
             DarkLog.Normal("Goodbye!");
         }
@@ -88,16 +89,35 @@ namespace DarkMultiPlayerServer
 
         }
         //Shutdown
-        private static void ShutDown()
+        private static void ShutDown(string commandArgs)
         {
+            if (commandArgs != "")
+            {
+                DarkLog.Normal("Shutting down - " + commandArgs);
+                ClientHandler.SendConnectionEndToAll("Server is shutting down - " + commandArgs);
+            }
+            else
+            {
+                DarkLog.Normal("Shutting down");
+                ClientHandler.SendConnectionEndToAll("Server is shutting down");
+            }
             serverStarting = false;
             serverRunning = false;
         }
         //Gracefully shut down
         private static void CatchExit(object sender, ConsoleCancelEventArgs args)
         {
-            args.Cancel = true;
-            ShutDown();
+            //If control+c not pressed within 5 seconds, catch it and shutdown gracefully.
+            if ((DateTime.UtcNow.Ticks - ctrlCTime) > 50000000)
+            {
+                ctrlCTime = DateTime.UtcNow.Ticks;
+                args.Cancel = true;
+                ShutDown("Caught Crtl+C");
+            }
+            else
+            {
+                DarkLog.Debug("Terminating!");
+            }
         }
     }
 }

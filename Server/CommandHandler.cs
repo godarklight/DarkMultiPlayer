@@ -10,41 +10,59 @@ namespace DarkMultiPlayerServer
 
         public static void ThreadMain()
         {
-            //Init
-            CommandHandler.RegisterCommand("help", (x) => CommandHandler.DisplayHelp(), "Displays this help");
+            //Register commands
+            CommandHandler.RegisterCommand("help", CommandHandler.DisplayHelp, "Displays this help");
+            CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
 
             //Main loop
             while (Server.serverRunning)
             {
                 string input = Console.ReadLine();
-                string[] split = input.Split(new char[]{' '});
-                if (split.Length > 0)
+                if (input.StartsWith("/"))
                 {
-                    string command = split[0];
-                    if (commands.ContainsKey(command))
+                    string commandPart = input.Substring(1);
+                    string argumentPart = "";
+                    if (commandPart.Contains(" "))
                     {
-                        commands[command].func(split);
+                        if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                        {
+                            argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                        }
+                        commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
                     }
-                    else
+                    if (commandPart.Length > 0)
                     {
-                        Console.WriteLine("Unknown command: " + command);
+                        if (commands.ContainsKey(commandPart))
+                        {
+                            try
+                            {
+                                commands[commandPart].func(argumentPart);
+                            }
+                            catch (Exception e)
+                            {
+                                DarkLog.Debug("Error handling command " + commandPart + ", Exception " + e);
+                            }
+                        }
+                        else
+                        {
+                            DarkLog.Normal("Unknown command: " + commandPart);
+                        }
                     }
+                }
+                else
+                {
+                    commands["say"].func(input);
                 }
             }
         }
 
-        public static void RegisterCommand(string command, Action<string[]> func, string description)
+        public static void RegisterCommand(string command, Action<string> func, string description)
         {
             Command cmd = new Command(command, func, description);
             commands.Add(command, cmd);
         }
 
-        public static void RegisterCommand(string command, Action<string[]> func)
-        {
-            RegisterCommand(command, func, "");
-        }
-
-        private static void DisplayHelp()
+        private static void DisplayHelp(string commandArgs)
         {
             List<Command> commands = new List<Command>();
             int longestName = 0;
@@ -52,29 +70,30 @@ namespace DarkMultiPlayerServer
             {
                 commands.Add(cmd);
                 if (cmd.name.Length > longestName)
+                {
                     longestName = cmd.name.Length;
+                }
             }
             commands.Sort();
             foreach (Command cmd in commands)
             {
-                if (cmd.description != "")
-                {
-                    Console.WriteLine("{0,-" + (longestName) + "} - {1}", cmd.name, cmd.description);
-                }
-                else
-                {
-                    Console.WriteLine(cmd.name);
-                }
+                DarkLog.Normal(cmd.name.PadRight(longestName) + " - " + cmd.description);
             }
+        }
+
+        private static void Say(string sayText)
+        {
+            DarkLog.Normal("Broadcasting " + sayText);
+            ClientHandler.SendChatMessageToAll(sayText);
         }
 
         private class Command : IComparable
         {
             public string name;
-            public Action<string[]> func;
+            public Action<string> func;
             public string description;
 
-            public Command(string name, Action<string[]> func, string description)
+            public Command(string name, Action<string> func, string description)
             {
                 this.name = name;
                 this.func = func;
