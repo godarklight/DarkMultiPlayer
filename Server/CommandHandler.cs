@@ -13,6 +13,7 @@ namespace DarkMultiPlayerServer
             //Register commands
             CommandHandler.RegisterCommand("help", CommandHandler.DisplayHelp, "Displays this help");
             CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
+            CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
 
             //Main loop
             while (Server.serverRunning)

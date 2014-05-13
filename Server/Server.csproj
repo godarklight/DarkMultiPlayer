@@ -43,6 +43,7 @@
     <Compile Include="ClientHandler.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Log.cs" />
+    <Compile Include="Dekessler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
