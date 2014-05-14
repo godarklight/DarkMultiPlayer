@@ -378,11 +378,14 @@ namespace DarkMultiPlayer
                 GUILayout.Label(entryType.Key.ToString(), labelStyle);
                 foreach (string entryName in entryType.Value)
                 {
-                    if (playerList[parent.settings.playerName].ContainsKey(entryType.Key))
+                    if (playerList.ContainsKey(parent.settings.playerName))
                     {
-                        if (playerList[parent.settings.playerName][entryType.Key].Contains(entryName))
+                        if (playerList[parent.settings.playerName].ContainsKey(entryType.Key))
                         {
-                            GUI.enabled = false;
+                            if (playerList[parent.settings.playerName][entryType.Key].Contains(entryName))
+                            {
+                                GUI.enabled = false;
+                            }
                         }
                     }
                     if (GUILayout.Button(entryName, buttonStyle))
