@@ -15,7 +15,7 @@ namespace DarkMultiPlayerServer
         //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
         private static Queue<ClientObject> addClients;
-        private static List<ClientObject> clients;
+        public static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
         private static string modFileData;
@@ -1559,12 +1559,12 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static ClientObject GetClientByName(string playerName)
+        public static ClientObject GetClientByName(string playerName)
         {
             ClientObject findClient = null;
             foreach (ClientObject testClient in clients)
             {
-                if (testClient.authenticated && testClient.playerName == playerName)
+                if (testClient.authenticated && testClient.playerName.ToLower() == playerName.ToLower())
                 {
                     findClient = testClient;
                     break;
@@ -1995,6 +1995,7 @@ namespace DarkMultiPlayerServer
         //State tracking
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
+       
     }
 }
 

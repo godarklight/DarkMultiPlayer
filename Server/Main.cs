@@ -22,6 +22,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
+            CommandHandler.RegisterCommand("kick", Server.KickPlayer, "Kicks a player from the server");
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             //Load settings
@@ -121,22 +122,18 @@ namespace DarkMultiPlayerServer
         }
 
         // KICK COMMAND
-        private static void KickPlayer(string[] commandArgs)
+        private static void KickPlayer(string commandArgs)
         {
             /* What I think this command needs:
              * - find ClientObject by player name
              * - split the command args into 2
              */
-            ClientObject kickPlayer = new ClientObject();
-            if (commandArgs[1] != "")
+            ClientObject kickPlayer = null;
+            if (commandArgs != "")
             {
-                DarkLog.Normal(String.Format("kicking {0} from the server: {1}", commandArgs[0], commandArgs[1]));
-                ClientHandler.SendConnectionEndToClient(kickPlayer, commandArgs[1]);
-            }
-            else
-            {
-                DarkLog.Normal(String.Format("kicking {0} from the server: no reason specified", commandArgs[0]));
-                ClientHandler.SendConnectionEndToClient(kickPlayer, "no reason specified");
+                kickPlayer = ClientHandler.GetClientByName(commandArgs);
+                DarkLog.Normal(String.Format("Kicking {0} from the server: no reason specified", commandArgs));
+                ClientHandler.SendConnectionEndToClient(kickPlayer, commandArgs);
             }
         }
     }

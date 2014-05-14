@@ -41,7 +41,7 @@ namespace DarkMultiPlayerServer
                             }
                             catch (Exception e)
                             {
-                                DarkLog.Debug("Error handling command " + commandPart + ", Exception " + e);
+                                DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
                             }
                         }
                         else
