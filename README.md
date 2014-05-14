@@ -1,8 +1,8 @@
-DarkMultiPlayer 0.1.0.0.  
+DarkMultiPlayer 0.1.1.1.  
   
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
-The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.
+The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.  
   
   
 ===Client===  
@@ -18,6 +18,19 @@ A player token will be generated (At GameData/DarkMultiPlayer/Plugins/Data/token
 If you are running the server locally, you will want to connect to 127.0.0.1/localhost.  
 If you are running the server on a networked computer, you will most likely be connecting to a 10.x.x.x or 192.168.x.x address.  
 Do not type in your public IP, this usually refers to your modem, which won't be running the DMP server (Unless you have the public IP address in your computer, which is rare).  
+  
+---Chat window---  
+By default, you will join the Global channel (and cannot leave it).  
+To PM a player, type /query playername or click on their player name in the global chat.  
+To start a group chat, type /join groupname.  
+To leave a PM or group chat, type /part or /leave in the window you want to leave. You can also press the 'Leave' button.
+Group chats are indicated by the '#' mark, player chats are indicated by the '@' mark.
+  
+---Craft sharing window---  
+To upload a craft, press on your user name and then click 'Upload'.  
+To download a craft, press on the owning player's username and select one of their uploaded vessels.  
+  
+  
   
 ---Mods---  
 If you try to connect to a modded server, DMP will tell you everything you are missing, and tell you everything you shouldn't have in order to connect. If there is any DLL's that need to be added, you will need to restart KSP.  
