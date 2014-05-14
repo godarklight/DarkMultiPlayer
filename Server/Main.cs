@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
@@ -24,16 +25,21 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
-            //Load settings
+
             DarkLog.Normal("Loading universe... ");
             CheckUniverse();
             DarkLog.Normal("Done!");
 
+			//Load settings
             DarkLog.Normal("Loading settings... ");
+			Settings.RegisterEnumConfigKey("warpmode", WarpMode.SUBSPACE, typeof(WarpMode), new string[]{ "Specify the warp tyoe" });
+			Settings.RegisterConfigKey("port", 6702, Settings.ConfigType.INTEGER, new string[]{ "The port the server listens on" });
+			Settings.RegisterEnumConfigKey("gamemode", GameMode.SANDBOX, typeof(GameMode), new string[]{ "Specify the game type" });
+			Settings.RegisterConfigKey("modcontrol", true, Settings.ConfigType.BOOLEAN, new string[]{ "Enable mod control", "WARNING: Only consider turning off mod control for private servers.", "The game will constantly complain about missing parts if there are missing mods." });
             Settings.Load();
             DarkLog.Normal("Done!");
 
-            DarkLog.Normal("Starting " + Settings.warpMode + " server on port " + Settings.port + "... ");
+			DarkLog.Normal("Starting " + Settings.getEnum("warpmode") + " server on port " + Settings.getInteger("port") + "... ");
             serverStarting = true;
             serverRunning = true;
             Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
