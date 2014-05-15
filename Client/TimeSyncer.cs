@@ -13,37 +13,45 @@ namespace DarkMultiPlayer
             get;
             private set;
         }
+
         public bool synced
         {
             get;
             private set;
         }
+
         public bool workerEnabled;
+
         public int currentSubspace
         {
             get;
             private set;
         }
+
         public long clockOffsetAverage
         {
             get;
             private set;
         }
+
         public long networkLatencyAverage
         {
             get;
             private set;
         }
+
         public long serverLag
         {
             get;
             private set;
         }
+
         public float averageSkewRate
         {
             get;
             private set;
         }
+
         public float requestedRate
         {
             get
@@ -65,6 +73,7 @@ namespace DarkMultiPlayer
                 return 1f;
             }
         }
+
         private const float MAX_CLOCK_SKEW = 5f;
         private const float MIN_CLOCK_RATE = 0.5f;
         private const float MAX_CLOCK_RATE = 1.5f;
@@ -74,19 +83,23 @@ namespace DarkMultiPlayer
         private const int SYNC_TIME_MAX = 10;
         private float lastSyncTime = 0f;
         private float lastClockSkew = 0f;
-        private List<long> clockOffset;
-        private List<long> networkLatency;
-        private List<float> skewList;
-        private Dictionary<int, Subspace> subspaces;
-        public Client parent;
+        private List<long> clockOffset = new List<long>();
+        private List<long> networkLatency = new List<long>();
+        private List<float> skewList = new List<float>();
+        private Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
+        public static TimeSyncer singleton;
 
-        public TimeSyncer(Client parent)
+        public TimeSyncer()
         {
-            this.parent = parent;
-            Reset();
-            if (this.parent != null)
+            currentSubspace = -1;
+            averageSkewRate = 1f;
+        }
+
+        public static TimeSyncer fetch
+        {
+            get
             {
-                //Shutup compiler
+                return singleton;
             }
         }
 
@@ -99,7 +112,7 @@ namespace DarkMultiPlayer
                     if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
                     {
                         lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
-                        parent.networkWorker.SendTimeSync();
+                        NetworkWorker.fetch.SendTimeSync();
                     }
 
                     if (!locked && currentSubspace != -1)
@@ -168,7 +181,8 @@ namespace DarkMultiPlayer
             Planetarium.SetUniversalTime(targetTick);
         }
 
-        private bool SafeToStepClock(Vessel checkVessel) {
+        private bool SafeToStepClock(Vessel checkVessel)
+        {
             switch (checkVessel.situation)
             {
                 case Vessel.Situations.LANDED:
@@ -194,9 +208,11 @@ namespace DarkMultiPlayer
         private void SkewClock(double currentError)
         {
             //Same code from KMP.
-            float timeWarpRate = (float) Math.Pow(2, -currentError);
-            if ( timeWarpRate > 1.5f ) timeWarpRate = 1.5f;
-            if ( timeWarpRate < 0.5f ) timeWarpRate = 0.5f;
+            float timeWarpRate = (float)Math.Pow(2, -currentError);
+            if (timeWarpRate > 1.5f)
+                timeWarpRate = 1.5f;
+            if (timeWarpRate < 0.5f)
+                timeWarpRate = 0.5f;
             Time.timeScale = timeWarpRate;
             skewList.Add(timeWarpRate);
             while (skewList.Count > 300)
@@ -263,9 +279,9 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
-                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<string>(Settings.fetch.playerName);
                     mw.Write<int>(subspaceID);
-                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
                 }
             }
             currentSubspace = subspaceID;
@@ -278,9 +294,9 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
-                mw.Write<string>(parent.settings.playerName);
+                mw.Write<string>(Settings.fetch.playerName);
                 mw.Write<int>(currentSubspace);
-                parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
             }
         }
 
@@ -318,13 +334,15 @@ namespace DarkMultiPlayer
 
         public double GetUniverseTime(int subspace)
         {
-            if (subspaces.ContainsKey(subspace)) {
+            if (subspaces.ContainsKey(subspace))
+            {
                 long realTimeSinceLock = GetServerClock() - subspaces[subspace].serverClock;
                 double realTimeSinceLockSeconds = realTimeSinceLock / 10000000d;
                 double adjustedTimeSinceLockSeconds = realTimeSinceLockSeconds * subspaces[subspace].subspaceSpeed;
                 return subspaces[subspace].planetTime + adjustedTimeSinceLockSeconds;
             }
-            else {
+            else
+            {
                 return 0;
             }
         }
@@ -371,24 +389,6 @@ namespace DarkMultiPlayer
             return canSync;
         }
 
-        public void Reset()
-        {
-            currentSubspace = -1;
-            workerEnabled = false;
-            synced = false;
-            locked = false;
-            lastSyncTime = 0f;
-            lastClockSkew = 0f;
-            clockOffset = new List<long>();
-            networkLatency = new List<long>();
-            subspaces = new Dictionary<int, Subspace>();
-            clockOffsetAverage = 0;
-            networkLatencyAverage = 0;
-            serverLag = 0;
-            skewList = new List<float>();
-            averageSkewRate = 1f;
-        }
-
         public void HandleSyncTime(long clientSend, long serverReceive, long serverSend)
         {
             long clientReceive = DateTime.UtcNow.Ticks;
@@ -433,10 +433,22 @@ namespace DarkMultiPlayer
             if (!synced)
             {
                 lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
-                parent.networkWorker.SendTimeSync();
+                NetworkWorker.fetch.SendTimeSync();
+            }
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
+                }
+                singleton = new TimeSyncer();
+                Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
             }
         }
     }
-
 }
 

@@ -9,54 +9,59 @@ namespace DarkMultiPlayer
     [KSPAddon(KSPAddon.Startup.Instantly, true)]
     public class Client : MonoBehaviour
     {
+        private static Client singleton;
         //Global state vars
         public string status;
         public bool forceQuit;
-        //Game running is directly set from networkWorker after a successful connection
+        //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public GameMode gameMode;
         //Disconnect message
         public bool displayDisconnectMessage;
         private ScreenMessage disconnectMessage;
         private float lastDisconnectMessageCheck;
-        //Singletons
-        public TimeSyncer timeSyncer;
-        public VesselWorker vesselWorker;
-        public NetworkWorker networkWorker;
-        public PlayerStatusWorker playerStatusWorker;
-        public WarpWorker warpWorker;
-        public ScenarioWorker scenarioWorker;
-        public DynamicTickWorker dynamicTickWorker;
-        public ModWorker modWorker;
-        public Settings settings;
-        private ConnectionWindow connectionWindow;
-        private PlayerStatusWindow playerStatusWindow;
-        public ModWindow modWindow;
-        public ChatWorker chatWorker;
-        public DebugWindow debugWindow;
-        private QuickSaveLoader quickSaveLoader;
-        public CraftLibraryWorker craftLibraryWorker;
+        public static List<Action> updateEvent = new List<Action>();
+        public static List<Action> fixedUpdateEvent = new List<Action>();
+        public static List<Action> drawEvent = new List<Action>();
+        public static List<Action> resetEvent = new List<Action>();
+        public static object eventLock = new object();
+
+        public Client()
+        {
+            singleton = this;
+        }
+
+        public static Client fetch
+        {
+            get
+            {
+                return singleton;
+            }
+        }
 
         public void Awake()
         {
             GameObject.DontDestroyOnLoad(this);
             SetupDirectoriesIfNeeded();
-            settings = new Settings();
-            timeSyncer = new TimeSyncer(this);
-            networkWorker = new NetworkWorker(this);
-            vesselWorker = new VesselWorker(this);
-            warpWorker = new WarpWorker(this);
-            scenarioWorker = new ScenarioWorker(this);
-            dynamicTickWorker = new DynamicTickWorker(this);
-            modWorker = new ModWorker(this);
-            connectionWindow = new ConnectionWindow(this);
-            playerStatusWorker = new PlayerStatusWorker(this);
-            playerStatusWindow = new PlayerStatusWindow(this);
-            modWindow = new ModWindow(this);
-            quickSaveLoader = new QuickSaveLoader(this);
-            chatWorker = new ChatWorker(this);
-            debugWindow = new DebugWindow(this);
-            craftLibraryWorker = new CraftLibraryWorker(this);
+            //Register events needed to bootstrap the workers.
+            lock (eventLock)
+            {
+                updateEvent.Add(DarkLog.Update);
+                resetEvent.Add(ChatWorker.Reset);
+                resetEvent.Add(ConnectionWindow.Reset);
+                resetEvent.Add(CraftLibraryWorker.Reset);
+                resetEvent.Add(DebugWindow.Reset);
+                resetEvent.Add(DynamicTickWorker.Reset);
+                resetEvent.Add(ModWindow.Reset);
+                resetEvent.Add(PlayerStatusWindow.Reset);
+                resetEvent.Add(PlayerStatusWorker.Reset);
+                resetEvent.Add(QuickSaveLoader.Reset);
+                resetEvent.Add(ScenarioWorker.Reset);
+                resetEvent.Add(TimeSyncer.Reset);
+                resetEvent.Add(VesselWorker.Reset);
+                resetEvent.Add(WarpWorker.Reset);
+            }
+            FireResetEvent();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
         }
 
@@ -68,15 +73,11 @@ namespace DarkMultiPlayer
         {
             try
             {
-                //Write new log entries
-                DarkLog.Update();
-
-                if (HighLogic.LoadedScene == GameScenes.MAINMENU && !modWorker.dllListBuilt)
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU && !ModWorker.fetch.dllListBuilt)
                 {
-                    modWorker.dllListBuilt = true;
-                    modWorker.BuildDllFileList();
+                    ModWorker.fetch.dllListBuilt = true;
+                    ModWorker.fetch.BuildDllFileList();
                 }
-
                 if (displayDisconnectMessage)
                 {
                     if (HighLogic.LoadedScene == GameScenes.MAINMENU)
@@ -97,84 +98,74 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Handle GUI events
-                if (!playerStatusWindow.disconnectEventHandled)
+                if (!PlayerStatusWindow.fetch.disconnectEventHandled)
                 {
-                    playerStatusWindow.disconnectEventHandled = true;
+                    PlayerStatusWindow.fetch.disconnectEventHandled = true;
                     forceQuit = true;
-                    networkWorker.SendDisconnect("Quit");
+                    NetworkWorker.fetch.SendDisconnect("Quit");
                 }
-                if (!connectionWindow.renameEventHandled)
+                if (!ConnectionWindow.fetch.renameEventHandled)
                 {
-                    playerStatusWorker.myPlayerStatus.playerName = settings.playerName;
-                    settings.SaveSettings();
-                    connectionWindow.renameEventHandled = true;
+                    PlayerStatusWorker.fetch.myPlayerStatus.playerName = Settings.fetch.playerName;
+                    Settings.fetch.SaveSettings();
+                    ConnectionWindow.fetch.renameEventHandled = true;
                 }
-                if (!connectionWindow.addEventHandled)
+                if (!ConnectionWindow.fetch.addEventHandled)
                 {
-                    settings.servers.Add(connectionWindow.addEntry);
-                    connectionWindow.addEntry = null;
-                    settings.SaveSettings();
-                    connectionWindow.addingServer = false;
-                    connectionWindow.addEventHandled = true;
+                    Settings.fetch.servers.Add(ConnectionWindow.fetch.addEntry);
+                    ConnectionWindow.fetch.addEntry = null;
+                    Settings.fetch.SaveSettings();
+                    ConnectionWindow.fetch.addingServer = false;
+                    ConnectionWindow.fetch.addEventHandled = true;
                 }
-                if (!connectionWindow.editEventHandled)
+                if (!ConnectionWindow.fetch.editEventHandled)
                 {
-                    settings.servers[connectionWindow.selected].name = connectionWindow.editEntry.name;
-                    settings.servers[connectionWindow.selected].address = connectionWindow.editEntry.address;
-                    settings.servers[connectionWindow.selected].port = connectionWindow.editEntry.port;
-                    connectionWindow.editEntry = null;
-                    settings.SaveSettings();
-                    connectionWindow.addingServer = false;
-                    connectionWindow.editEventHandled = true;
+                    Settings.fetch.servers[ConnectionWindow.fetch.selected].name = ConnectionWindow.fetch.editEntry.name;
+                    Settings.fetch.servers[ConnectionWindow.fetch.selected].address = ConnectionWindow.fetch.editEntry.address;
+                    Settings.fetch.servers[ConnectionWindow.fetch.selected].port = ConnectionWindow.fetch.editEntry.port;
+                    ConnectionWindow.fetch.editEntry = null;
+                    Settings.fetch.SaveSettings();
+                    ConnectionWindow.fetch.addingServer = false;
+                    ConnectionWindow.fetch.editEventHandled = true;
                 }
-                if (!connectionWindow.removeEventHandled)
+                if (!ConnectionWindow.fetch.removeEventHandled)
                 {
-                    settings.servers.RemoveAt(connectionWindow.selected);
-                    connectionWindow.selected = -1;
-                    settings.SaveSettings();
-                    connectionWindow.removeEventHandled = true;
+                    Settings.fetch.servers.RemoveAt(ConnectionWindow.fetch.selected);
+                    ConnectionWindow.fetch.selected = -1;
+                    Settings.fetch.SaveSettings();
+                    ConnectionWindow.fetch.removeEventHandled = true;
                 }
-                if (!connectionWindow.connectEventHandled)
+                if (!ConnectionWindow.fetch.connectEventHandled)
                 {
-                    networkWorker.ConnectToServer(settings.servers[connectionWindow.selected].address, settings.servers[connectionWindow.selected].port);
-                    connectionWindow.connectEventHandled = true;
+                    NetworkWorker.fetch.ConnectToServer(Settings.fetch.servers[ConnectionWindow.fetch.selected].address, Settings.fetch.servers[ConnectionWindow.fetch.selected].port);
+                    ConnectionWindow.fetch.connectEventHandled = true;
                 }
 
-                if (!connectionWindow.disconnectEventHandled)
+                if (!ConnectionWindow.fetch.disconnectEventHandled)
                 {
-                    connectionWindow.disconnectEventHandled = true;
+                    ConnectionWindow.fetch.disconnectEventHandled = true;
                     gameRunning = false;
-                    ResetWorkers();
-                    networkWorker.SendDisconnect("Quit during initial sync");
+                    FireResetEvent();
+                    NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
                 }
-
-                //Stop GUI from freaking out
-                connectionWindow.status = status;
-                connectionWindow.selectedSafe = connectionWindow.selected;
-                connectionWindow.addingServerSafe = connectionWindow.addingServer;
-                connectionWindow.display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
-                playerStatusWindow.display = gameRunning;
-
-                //Call the update hooks
-                networkWorker.Update();
-                playerStatusWorker.Update();
-                warpWorker.Update();
-                playerStatusWindow.Update();
-                chatWorker.Update();
-                debugWindow.Update();
-                modWindow.Update();
-                quickSaveLoader.Update();
-                scenarioWorker.Update();
-                dynamicTickWorker.Update();
-                craftLibraryWorker.Update();
-
+                foreach (Action updateAction in updateEvent)
+                {
+                    try
+                    {
+                        updateAction();
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Debug("Threw in UpdateEvent, exception: " + e);
+                    }
+                }
                 //Force quit
                 if (forceQuit)
                 {
                     forceQuit = false;
                     gameRunning = false;
-                    ResetWorkers();
-                    networkWorker.SendDisconnect("Force quit to main menu");
+                    FireResetEvent();
+                    NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
                 }
 
@@ -182,8 +173,8 @@ namespace DarkMultiPlayer
                 if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
                 {
                     gameRunning = false;
-                    ResetWorkers();
-                    networkWorker.SendDisconnect("Quit to main menu");
+                    FireResetEvent();
+                    NetworkWorker.fetch.SendDisconnect("Quit to main menu");
                 }
             }
             catch (Exception e)
@@ -194,47 +185,46 @@ namespace DarkMultiPlayer
 
         public void FixedUpdate()
         {
-            try
+            foreach (Action fixedUpdateAction in fixedUpdateEvent)
             {
-                timeSyncer.FixedUpdate();
-                vesselWorker.FixedUpdate();
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Threw in FixedUpdate, exception: " + e);
+                try
+                {
+                    fixedUpdateAction();
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Threw in FixedUpdate event, exception: " + e);
+                }
             }
         }
 
         public void OnGUI()
         {
-            try
+            //Window ID's
+            //Connection window: 6702
+            //Status window: 6703
+            //Chat window: 6704
+            //Debug window: 6705
+            //Mod windw: 6706
+            //Craft library window: 6707
+            //Craft upload window: 6708
+            //Craft download window: 6709
+            foreach (Action drawAction in drawEvent)
             {
-                //Window ID's
-                //Connection window: 6702
-                //Status window: 6703
-                //Chat window: 6704
-                //Debug window: 6705
-                //Mod windw: 6706
-                //Craft library window: 6707
-                //Craft upload window: 6708
-                //Craft download window: 6709
-                connectionWindow.Draw();
-                playerStatusWindow.Draw();
-                chatWorker.Draw();
-                debugWindow.Draw();
-                modWindow.Draw();
-                craftLibraryWorker.Draw();
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Threw in OnGUI, exception: " + e);
-            }
+                try
+                {
+                    drawAction();
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Threw in OnGUI event, exception: " + e);
+                }
+            }       
         }
 
         public void OnDestroy()
         {
         }
-
         //WARNING: Called from NetworkWorker.
         public void StartGame()
         {
@@ -246,17 +236,17 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            HighLogic.CurrentGame.flightState.universalTime = timeSyncer.GetUniverseTime();
+            HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
             SetGameMode();
-            scenarioWorker.LoadScenarioDataIntoGame();
-            vesselWorker.LoadKerbalsIntoGame();
-            vesselWorker.LoadVesselsIntoGame();
+            ScenarioWorker.fetch.LoadScenarioDataIntoGame();
+            VesselWorker.fetch.LoadKerbalsIntoGame();
+            VesselWorker.fetch.LoadVesselsIntoGame();
             DarkLog.Debug("Starting " + gameMode + " game...");
             HighLogic.CurrentGame.Start();
             DarkLog.Debug("Started!");
-            Planetarium.SetUniversalTime(timeSyncer.GetUniverseTime());
+            Planetarium.SetUniversalTime(TimeSyncer.fetch.GetUniverseTime());
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
-            chatWorker.display = true;
+            ChatWorker.fetch.display = true;
         }
 
         private void StopGame()
@@ -281,18 +271,19 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void ResetWorkers()
+        private void FireResetEvent()
         {
-            chatWorker.display = false;
-            debugWindow.display = false;
-            timeSyncer.Reset();
-            vesselWorker.Reset();
-            playerStatusWorker.Reset();
-            warpWorker.Reset();
-            chatWorker.Reset();
-            scenarioWorker.Reset();
-            dynamicTickWorker.Reset();
-            craftLibraryWorker.Reset();
+            foreach (Action resetAction in resetEvent)
+            {
+                try
+                {
+                    resetAction();
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Threw in FireResetEvent, exception: " + e);
+                }
+            }
         }
 
         private void SetupDirectoriesIfNeeded()

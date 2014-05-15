@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
         public bool display;
         private bool safeDisplay;
         private bool initialized;
-        private Client parent;
+        private static ModWindow singleton;
         private Rect windowRect;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
@@ -20,9 +20,12 @@ namespace DarkMultiPlayer
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 600;
 
-        public ModWindow(Client parent)
+        public static ModWindow fetch
         {
-            this.parent = parent;
+            get
+            {
+                return singleton;
+            }
         }
 
         private void InitGUI()
@@ -44,7 +47,7 @@ namespace DarkMultiPlayer
             scrollPos = new Vector2();
         }
 
-        public void Update()
+        private void Update()
         {
             safeDisplay = display;
         }
@@ -67,13 +70,28 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUILayout.Label("Failed mod validation", labelStyle);
             scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle);
-            GUILayout.Label(parent.modWorker.failText, labelStyle);
+            GUILayout.Label(ModWorker.fetch.failText, labelStyle);
             GUILayout.EndScrollView();
             if (GUILayout.Button("Close", buttonStyle))
             {
                 display = false;
             }
             GUILayout.EndVertical();
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.updateEvent.Remove(singleton.Draw);
+                }
+                singleton = new ModWindow();
+                Client.updateEvent.Add(singleton.Update);
+                Client.updateEvent.Add(singleton.Draw);
+            }
         }
     }
 }

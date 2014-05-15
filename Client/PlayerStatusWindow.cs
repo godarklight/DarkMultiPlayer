@@ -7,10 +7,10 @@ namespace DarkMultiPlayer
 {
     public class PlayerStatusWindow
     {
-        public bool display;
-        public bool disconnectEventHandled;
+        public bool display = false;
+        public bool disconnectEventHandled = true;
         //private parts
-        private Client parent;
+        private static PlayerStatusWindow singleton;
         private bool initialized;
         private Vector2 scrollPosition;
         public bool minmized;
@@ -39,12 +39,12 @@ namespace DarkMultiPlayer
         private const float WINDOW_WIDTH = 300;
         private const float UPDATE_STATUS_INTERVAL = .2f;
 
-        public PlayerStatusWindow(Client parent)
+        public static PlayerStatusWindow fetch
         {
-            //Main setup
-            display = false;
-            disconnectEventHandled = true;
-            this.parent = parent;
+            get
+            {
+                return singleton;
+            }
         }
 
         private void InitGUI()
@@ -102,8 +102,9 @@ namespace DarkMultiPlayer
             subspacePlayers = new Dictionary<int, List<string>>();
         }
 
-        public void Update()
+        private void Update()
         {
+            display = Client.fetch.gameRunning;
             if (display)
             {
                 safeMinimized = minmized;
@@ -114,17 +115,17 @@ namespace DarkMultiPlayer
                 if ((UnityEngine.Time.realtimeSinceStartup - lastStatusUpdate) > UPDATE_STATUS_INTERVAL)
                 {
                     lastStatusUpdate = UnityEngine.Time.realtimeSinceStartup;
-                    activeSubspaces = parent.warpWorker.GetActiveSubspaces();
+                    activeSubspaces = WarpWorker.fetch.GetActiveSubspaces();
                     subspacePlayers.Clear();
                     foreach (int subspace in activeSubspaces)
                     {
-                        subspacePlayers.Add(subspace, parent.warpWorker.GetClientsInSubspace(subspace));
+                        subspacePlayers.Add(subspace, WarpWorker.fetch.GetClientsInSubspace(subspace));
                     }
                 }
             }
         }
 
-        public void Draw()
+        private void Draw()
         {
             if (!initialized)
             {
@@ -155,9 +156,9 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            parent.chatWorker.display = GUILayout.Toggle(parent.chatWorker.display, "Chat", buttonStyle);
-            parent.craftLibraryWorker.display = GUILayout.Toggle(parent.craftLibraryWorker.display, "Craft", buttonStyle);
-            parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "Debug", buttonStyle);
+            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", buttonStyle);
+            CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, "Craft", buttonStyle);
+            DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "Debug", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minmized = true;
@@ -168,12 +169,12 @@ namespace DarkMultiPlayer
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollStyle);
             foreach (int activeSubspace in activeSubspaces)
             {
-                double ourtime = (parent.timeSyncer.currentSubspace != -1) ? parent.timeSyncer.GetUniverseTime() : Planetarium.GetUniversalTime();
-                double diffTime = parent.timeSyncer.GetUniverseTime(activeSubspace) - ourtime;
+                double ourtime = (TimeSyncer.fetch.currentSubspace != -1) ? TimeSyncer.fetch.GetUniverseTime() : Planetarium.GetUniversalTime();
+                double diffTime = TimeSyncer.fetch.GetUniverseTime(activeSubspace) - ourtime;
                 string diffState = "NOW";
                 if (activeSubspace != -1)
                 {
-                    if (activeSubspace != parent.timeSyncer.currentSubspace)
+                    if (activeSubspace != TimeSyncer.fetch.currentSubspace)
                     {
                         diffState = (diffTime > 0) ? SecondsToVeryShortString((int)diffTime) + " in the future" : SecondsToVeryShortString(-(int)diffTime) + " in the past";
                     }
@@ -183,28 +184,28 @@ namespace DarkMultiPlayer
                     diffState = "Unknown";
                 }
                 GUILayout.BeginHorizontal(subspaceStyle);
-                GUILayout.Label("T+ " + SecondsToShortString((int)parent.timeSyncer.GetUniverseTime(activeSubspace)) + " - " + diffState);
-                if ((activeSubspace != parent.timeSyncer.currentSubspace) && (activeSubspace != -1))
+                GUILayout.Label("T+ " + SecondsToShortString((int)TimeSyncer.fetch.GetUniverseTime(activeSubspace)) + " - " + diffState);
+                if ((activeSubspace != TimeSyncer.fetch.currentSubspace) && (activeSubspace != -1))
                 {
                     GUILayout.FlexibleSpace();
-                    if (parent.warpWorker.warpMode == WarpMode.SUBSPACE)
+                    if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
                     {
                         if (GUILayout.Button("Sync", buttonStyle))
                         {
-                            parent.timeSyncer.LockSubspace(activeSubspace);
+                            TimeSyncer.fetch.LockSubspace(activeSubspace);
                         }
                     }
                 }
                 GUILayout.EndHorizontal();
                 foreach (string activeclient in subspacePlayers[activeSubspace])
                 {
-                    if (activeclient == parent.settings.playerName)
+                    if (activeclient == Settings.fetch.playerName)
                     {
-                        DrawPlayerEntry(parent.playerStatusWorker.myPlayerStatus);
+                        DrawPlayerEntry(PlayerStatusWorker.fetch.myPlayerStatus);
                     }
                     else
                     {
-                        DrawPlayerEntry(parent.playerStatusWorker.GetPlayerStatus(activeclient));
+                        DrawPlayerEntry(PlayerStatusWorker.fetch.GetPlayerStatus(activeclient));
                     }
                 }
             }
@@ -496,8 +497,8 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            parent.chatWorker.display = GUILayout.Toggle(parent.chatWorker.display, "C", buttonStyle);
-            parent.debugWindow.display = GUILayout.Toggle(parent.debugWindow.display, "D", buttonStyle);
+            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "C", buttonStyle);
+            DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "D", buttonStyle);
             if (GUILayout.Button("+", buttonStyle))
             {
                 windowRect.xMax = minWindowRect.xMax;
@@ -525,6 +526,21 @@ namespace DarkMultiPlayer
             if (playerStatus.vesselText != "")
             {
                 GUILayout.Label("Pilot: " + playerStatus.vesselText, vesselNameStyle);
+            }
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new PlayerStatusWindow();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
             }
         }
     }

@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
     public class Settings
     {
         //Settings
+        private static Settings singleton = new Settings();
         public string playerName;
         public Guid playerGuid;
         public List<ServerEntry> servers;
@@ -17,6 +18,14 @@ namespace DarkMultiPlayer
         private string dataLocation;
         private string settingsFile;
         private string tokenFile;
+
+        public static Settings fetch
+        {
+            get
+            {
+                return singleton;
+            }
+        }
 
         public Settings()
         {

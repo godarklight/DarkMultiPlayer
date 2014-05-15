@@ -5,30 +5,27 @@ namespace DarkMultiPlayer
 {
     public class ConnectionWindow
     {
-        public bool display;
-        public bool connectEventHandled;
-        public bool disconnectEventHandled;
-        public bool addEventHandled;
-        public bool editEventHandled;
-        public bool removeEventHandled;
-        public bool renameEventHandled;
-        public bool addingServer;
-        public bool addingServerSafe;
-        public int selected;
-        public int selectedSafe;
-        public string status;
-        public ServerEntry addEntry;
-        public ServerEntry editEntry;
-
-
+        public bool display = false;
+        public bool connectEventHandled = true;
+        public bool disconnectEventHandled = true;
+        public bool addEventHandled = true;
+        public bool editEventHandled = true;
+        public bool removeEventHandled = true;
+        public bool renameEventHandled = true;
+        public bool addingServer = false;
+        public bool addingServerSafe = false;
+        public int selected = -1;
+        private int selectedSafe = -1;
+        private string status = "";
+        public ServerEntry addEntry = null;
+        public ServerEntry editEntry = null;
         //private parts
-        private Client parent;
+        private static ConnectionWindow singleton;
         private bool initialized;
         //Add window
-        private string serverName;
-        private string serverAddress;
-        private string serverPort;
-
+        private string serverName = "Local";
+        private string serverAddress = "127.0.0.1";
+        private string serverPort = "6702";
         //GUI Layout
         private Rect windowRect;
         private GUILayoutOption[] layoutOptions;
@@ -36,28 +33,28 @@ namespace DarkMultiPlayer
         private GUIStyle buttonStyle;
         private GUIStyle textAreaStyle;
         private GUIStyle statusStyle;
-
         //const
         private const float WINDOW_HEIGHT = 200;
         private const float WINDOW_WIDTH = 400;
 
-        public ConnectionWindow(Client parent) {
-            //Main setup
-            display = false;
-            connectEventHandled = true;
-            addEventHandled = true;
-            editEventHandled = true;
-            removeEventHandled = true;
-            renameEventHandled = true;
-            selected = -1;
-            status = "";
-            serverName = "Local";
-            serverAddress = "127.0.0.1";
-            serverPort = "6702";
-            this.parent = parent;
+        public static ConnectionWindow fetch
+        {
+            get
+            {
+                return singleton;
+            }
         }
 
-        private void InitGUI() {
+        private void Update()
+        {
+            status = Client.fetch.status;
+            selectedSafe = selected;
+            addingServerSafe = addingServer;
+            display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
+        }
+
+        private void InitGUI()
+        {
             //Setup GUI stuff
             windowRect = new Rect(Screen.width * 0.9f - WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -76,7 +73,8 @@ namespace DarkMultiPlayer
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
         }
 
-        public void Draw() {
+        public void Draw()
+        {
             if (!initialized)
             {
                 initialized = true;
@@ -93,9 +91,9 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
             GUILayout.Label("Player name:");
-            string oldPlayerName = parent.settings.playerName;
-            parent.settings.playerName = GUILayout.TextArea(parent.settings.playerName, textAreaStyle);
-            if (oldPlayerName != parent.settings.playerName)
+            string oldPlayerName = Settings.fetch.playerName;
+            Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, textAreaStyle);
+            if (oldPlayerName != Settings.fetch.playerName)
             {
                 renameEventHandled = false;
             }
@@ -109,14 +107,14 @@ namespace DarkMultiPlayer
                 if (selected != -1)
                 {
                     //Load the existing server settings
-                    serverName = parent.settings.servers[selected].name;
-                    serverAddress = parent.settings.servers[selected].address;
-                    serverPort = parent.settings.servers[selected].port.ToString();
+                    serverName = Settings.fetch.servers[selected].name;
+                    serverAddress = Settings.fetch.servers[selected].address;
+                    serverPort = Settings.fetch.servers[selected].port.ToString();
                 }
             }
 
             //Draw connect button
-            if (parent.networkWorker.state == DarkMultiPlayerCommon.ClientState.DISCONNECTED)
+            if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.DISCONNECTED)
             {
                 GUI.enabled = (selectedSafe != -1);
                 if (GUILayout.Button("Connect", buttonStyle))
@@ -178,14 +176,14 @@ namespace DarkMultiPlayer
             }
 
             GUILayout.Label("Servers:");
-            if (parent.settings.servers.Count == 0)
+            if (Settings.fetch.servers.Count == 0)
             {
                 GUILayout.Label("(None - Add a server first)");
             }
 
-            for (int serverPos = 0; serverPos < parent.settings.servers.Count; serverPos++)
+            for (int serverPos = 0; serverPos < Settings.fetch.servers.Count; serverPos++)
             {
-                bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, parent.settings.servers[serverPos].name, buttonStyle);
+                bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, Settings.fetch.servers[serverPos].name, buttonStyle);
                 if (selected == selectedSafe)
                 {
                     if (thisSelected)
@@ -208,6 +206,21 @@ namespace DarkMultiPlayer
             //Draw status message
             GUILayout.Label(status, statusStyle);
             GUILayout.EndVertical();
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new ConnectionWindow();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
+            }
         }
     }
 }

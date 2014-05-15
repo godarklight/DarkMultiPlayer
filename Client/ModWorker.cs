@@ -8,14 +8,14 @@ namespace DarkMultiPlayer
 {
     public class ModWorker
     {
-        private Client parent;
-        public bool modControl;
-        public bool dllListBuilt;
+        private static ModWorker singleton = new ModWorker();
+        public bool modControl = true;
+        public bool dllListBuilt = false;
         //Dll files, built at startup
         private Dictionary<string, string> dllList;
         //Accessed from ModWindow
         private List<string> allowedParts;
-        private string lastModFileData;
+        private string lastModFileData = "";
 
         public string failText
         {
@@ -23,14 +23,11 @@ namespace DarkMultiPlayer
             get;
         }
 
-        public ModWorker(Client parent)
+        public static ModWorker fetch
         {
-            this.parent = parent;
-            failText = "";
-            modControl = true;
-            if (this.parent != null)
+            get
             {
-                //Shutup compiler
+                return singleton;
             }
         }
 
@@ -376,7 +373,7 @@ namespace DarkMultiPlayer
             if (!modCheckOk)
             {
                 failText = sb.ToString();
-                parent.modWindow.display = true;
+                ModWindow.fetch.display = true;
                 return false;
             }
             allowedParts = parsePartsList;

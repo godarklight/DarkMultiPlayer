@@ -7,16 +7,20 @@ namespace DarkMultiPlayer
 {
     public class QuickSaveLoader
     {
-        Client parent;
-        ConfigNode savedVessel;
-        Subspace savedSubspace;
+        private static QuickSaveLoader singleton;
+        private ConfigNode savedVessel;
+        private Subspace savedSubspace;
 
-        public QuickSaveLoader(Client parent) {
-            this.parent = parent;
-            Reset();
+        public static QuickSaveLoader fetch
+        {
+            get
+            {
+                return singleton;  
+            }
         }
 
-        public void Save() {
+        public void Save()
+        {
             if ((HighLogic.LoadedScene == GameScenes.FLIGHT) && (FlightGlobals.fetch.activeVessel != null))
             {
                 if (FlightGlobals.fetch.activeVessel.loaded && !FlightGlobals.fetch.activeVessel.packed)
@@ -28,7 +32,7 @@ namespace DarkMultiPlayer
                         tempVessel.Save(savedVessel);
                         savedSubspace = new Subspace();
                         savedSubspace.planetTime = Planetarium.GetUniversalTime();
-                        savedSubspace.serverClock = parent.timeSyncer.GetServerClock();
+                        savedSubspace.serverClock = TimeSyncer.fetch.GetServerClock();
                         savedSubspace.subspaceSpeed = 1f;
                         ScreenMessages.PostScreenMessage("Quicksaved!", 3f, ScreenMessageStyle.UPPER_CENTER);
                     }
@@ -48,24 +52,25 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void Load() {
+        public void Load()
+        {
             if (savedVessel != null && savedSubspace != null)
             {
-                parent.timeSyncer.UnlockSubspace();
-                long serverClock = parent.timeSyncer.GetServerClock();
-                int newSubspace = parent.timeSyncer.LockNewSubspace(serverClock, savedSubspace.planetTime, savedSubspace.subspaceSpeed);
+                TimeSyncer.fetch.UnlockSubspace();
+                long serverClock = TimeSyncer.fetch.GetServerClock();
+                int newSubspace = TimeSyncer.fetch.LockNewSubspace(serverClock, savedSubspace.planetTime, savedSubspace.subspaceSpeed);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
-                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<string>(Settings.fetch.playerName);
                     mw.Write<int>(newSubspace);
                     mw.Write<long>(serverClock);
                     mw.Write<double>(savedSubspace.planetTime);
                     mw.Write<float>(savedSubspace.subspaceSpeed);
-                    parent.networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
                 }
-                parent.timeSyncer.LockSubspace(newSubspace);
-                parent.vesselWorker.LoadVessel(savedVessel);
+                TimeSyncer.fetch.LockSubspace(newSubspace);
+                VesselWorker.fetch.LoadVessel(savedVessel);
                 ScreenMessages.PostScreenMessage("Quickloaded!", 3f, ScreenMessageStyle.UPPER_CENTER);
             }
             else
@@ -74,7 +79,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void Update() {
+        private void Update()
+        {
             if (Input.GetKey(KeyCode.F5))
             {
                 Save();
@@ -85,9 +91,17 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void Reset() {
-            savedVessel = null;
-            savedSubspace = null;
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                }
+                singleton = new QuickSaveLoader();
+                Client.updateEvent.Add(singleton.Update);
+            }
         }
     }
 }

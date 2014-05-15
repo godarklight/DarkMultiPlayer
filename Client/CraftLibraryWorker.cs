@@ -10,22 +10,22 @@ namespace DarkMultiPlayer
     public class CraftLibraryWorker
     {
         //Public
-        private Client parent;
+        private static CraftLibraryWorker singleton;
         public bool display;
         public bool workerEnabled;
         //Private
-        private Queue<CraftAddEntry> craftAddQueue;
-        private Queue<CraftDeleteEntry> craftDeleteQueue;
-        private Queue<CraftResponseEntry> craftResponseQueue;
+        private Queue<CraftAddEntry> craftAddQueue = new Queue<CraftAddEntry>();
+        private Queue<CraftDeleteEntry> craftDeleteQueue = new Queue<CraftDeleteEntry>();
+        private Queue<CraftResponseEntry> craftResponseQueue = new Queue<CraftResponseEntry>();
         private bool safeDisplay;
         private bool initialized;
         private bool showUpload;
         private string selectedPlayer;
-        private List<string> playersWithCrafts;
+        private List<string> playersWithCrafts = new List<string>();
         //Player -> Craft type -> Craft name
-        private Dictionary<string, Dictionary<CraftType, List<string>>> playerList;
+        private Dictionary<string, Dictionary<CraftType, List<string>>> playerList = new Dictionary<string, Dictionary<CraftType, List<string>>>();
         //Craft type -> Craft name
-        private Dictionary<CraftType, List<string>> uploadList;
+        private Dictionary<CraftType, List<string>> uploadList = new Dictionary<CraftType, List<string>>();
         //GUI Layout
         private Rect playerWindowRect;
         private Rect libraryWindowRect;
@@ -59,16 +59,23 @@ namespace DarkMultiPlayer
         private const float LIBRARY_WINDOW_HEIGHT = 400;
         private const float LIBRARY_WINDOW_WIDTH = 300;
 
-        public CraftLibraryWorker(Client parent)
+        public CraftLibraryWorker()
         {
-            this.parent = parent;
-            if (this.parent != null)
+            savePath = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            vabPath = Path.Combine(Path.Combine(savePath, "Ships"), "VAB");
+            sphPath = Path.Combine(Path.Combine(savePath, "Ships"), "SPH");
+            subassemblyPath = Path.Combine(savePath, "Subassemblies");
+        }
+
+        public static CraftLibraryWorker fetch
+        {
+            get
             {
-                return;
+                return singleton;
             }
         }
 
-        public void Update()
+        private void Update()
         {
             if (workerEnabled)
             {
@@ -102,14 +109,14 @@ namespace DarkMultiPlayer
                 }
                 if (deleteCraftName != null)
                 {
-                    DeleteCraftEntry(parent.settings.playerName, deleteCraftType, deleteCraftName);
+                    DeleteCraftEntry(Settings.fetch.playerName, deleteCraftType, deleteCraftName);
                     using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<int>((int)CraftMessageType.DELETE_FILE);
-                        mw.Write<string>(parent.settings.playerName);
+                        mw.Write<string>(Settings.fetch.playerName);
                         mw.Write<int>((int)deleteCraftType);
                         mw.Write<string>(deleteCraftName);
-                        parent.networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
+                        NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
                     }
                     deleteCraftName = null;
                     deleteCraftType = CraftType.VAB;
@@ -139,12 +146,12 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)CraftMessageType.UPLOAD_FILE);
-                    mw.Write<string>(parent.settings.playerName);
+                    mw.Write<string>(Settings.fetch.playerName);
                     mw.Write<int>((int)type);
                     mw.Write<string>(name);
                     mw.Write<byte[]>(fileData);
-                    parent.networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
-                    AddCraftEntry(parent.settings.playerName, uploadCraftType, uploadCraftName);
+                    NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
+                    AddCraftEntry(Settings.fetch.playerName, uploadCraftType, uploadCraftName);
                     ScreenMessages.PostScreenMessage("Uploading " + uploadCraftName, 3f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
@@ -161,11 +168,11 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)CraftMessageType.REQUEST_FILE);
-                mw.Write<string>(parent.settings.playerName);
+                mw.Write<string>(Settings.fetch.playerName);
                 mw.Write<string>(playerName);
                 mw.Write<int>((int)craftType);
                 mw.Write<string>(craftName);
-                parent.networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
+                NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
             }
         }
 
@@ -205,7 +212,7 @@ namespace DarkMultiPlayer
                         }
                         if (playerList[playerName].Count == 0)
                         {
-                            if (playerName != parent.settings.playerName)
+                            if (playerName != Settings.fetch.playerName)
                             {
                                 playerList.Remove(playerName);
                                 if (playersWithCrafts.Contains(playerName))
@@ -346,7 +353,7 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             bool newShowUpload = false;
-            if (selectedPlayer == parent.settings.playerName)
+            if (selectedPlayer == Settings.fetch.playerName)
             {
                 newShowUpload = GUILayout.Toggle(showUpload, "Upload", buttonStyle);
             }
@@ -378,11 +385,11 @@ namespace DarkMultiPlayer
                 GUILayout.Label(entryType.Key.ToString(), labelStyle);
                 foreach (string entryName in entryType.Value)
                 {
-                    if (playerList.ContainsKey(parent.settings.playerName))
+                    if (playerList.ContainsKey(Settings.fetch.playerName))
                     {
-                        if (playerList[parent.settings.playerName].ContainsKey(entryType.Key))
+                        if (playerList[Settings.fetch.playerName].ContainsKey(entryType.Key))
                         {
-                            if (playerList[parent.settings.playerName][entryType.Key].Contains(entryName))
+                            if (playerList[Settings.fetch.playerName][entryType.Key].Contains(entryName))
                             {
                                 GUI.enabled = false;
                             }
@@ -442,7 +449,7 @@ namespace DarkMultiPlayer
                     GUILayout.Label(entry.Key.ToString(), labelStyle);
                     foreach (string craftName in entry.Value)
                     {
-                        if (selectedPlayer == parent.settings.playerName)
+                        if (selectedPlayer == Settings.fetch.playerName)
                         {
                             //Also draw remove button on player screen
                             GUILayout.BeginHorizontal();
@@ -486,34 +493,21 @@ namespace DarkMultiPlayer
             craftResponseQueue.Enqueue(entry);
         }
 
-        public void Reset()
+        public static void Reset()
         {
-            workerEnabled = false;
-            display = false;
-            safeDisplay = false;
-            showUpload = false;
-            selectedPlayer = "";
-            workerEnabled = false;
-            showUpload = false;
-            selectedPlayer = null;
-            //Reset state info
-            craftAddQueue = new Queue<CraftAddEntry>();
-            craftDeleteQueue = new Queue<CraftDeleteEntry>();
-            craftResponseQueue = new Queue<CraftResponseEntry>();
-            playerList = new Dictionary<string, Dictionary<CraftType, List<string>>>();
-            //Make sure we are always at the top so we can upload
-            playersWithCrafts = new List<string>();
-            playersWithCrafts.Add(parent.settings.playerName);
-
-            playerScrollPos = new Vector2(0, 0);
-            libraryScrollPos = new Vector2(0, 0);
-            //Set paths
-            savePath = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
-            vabPath = Path.Combine(Path.Combine(savePath, "Ships"), "VAB");
-            sphPath = Path.Combine(Path.Combine(savePath, "Ships"), "SPH");
-            subassemblyPath = Path.Combine(savePath, "Subassemblies");
-            BuildUploadList();
-            uploadCraftName = null;
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new CraftLibraryWorker();
+                singleton.playersWithCrafts.Add(Settings.fetch.playerName);
+                singleton.BuildUploadList();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
+            }
         }
     }
 

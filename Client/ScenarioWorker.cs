@@ -8,21 +8,23 @@ namespace DarkMultiPlayer
 {
     public class ScenarioWorker
     {
-        public bool workerEnabled;
-        private Client parent;
-        private Queue<ScenarioEntry> scenarioQueue;
-        private bool blockScenarioDataSends;
-        private bool loadedScience;
-        private float lastScenarioSendTime;
+        public bool workerEnabled = false;
+        private static ScenarioWorker singleton;
+        private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
+        private bool blockScenarioDataSends = false;
+        private bool loadedScience = false;
+        private float lastScenarioSendTime = 0f;
         private const float SEND_SCENARIO_DATA_INTERVAL = 30f;
 
-        public ScenarioWorker(Client parent)
+        public static ScenarioWorker fetch
         {
-            this.parent = parent;
-            Reset();
+            get
+            {
+                return singleton;
+            }
         }
 
-        public void Update()
+        private void Update()
         {
             if (workerEnabled && !blockScenarioDataSends)
             {
@@ -43,7 +45,7 @@ namespace DarkMultiPlayer
                 //Skip sending science data in sandbox mode (If this can even happen?)
                 if (psm != null ? (psm.moduleName != null && psm.moduleRef != null) : false)
                 {
-                    if (!(psm.moduleName == "ResearchAndDevelopment" && parent.gameMode == GameMode.SANDBOX))
+                    if (!(psm.moduleName == "ResearchAndDevelopment" && Client.fetch.gameMode == GameMode.SANDBOX))
                     {
                         ConfigNode scenarioNode = new ConfigNode();
                         psm.moduleRef.Save(scenarioNode);
@@ -62,7 +64,7 @@ namespace DarkMultiPlayer
             if (scenarioName.Count > 0)
             {
                 DarkLog.Debug("Sending " + scenarioName.Count + " scenario modules");
-                parent.networkWorker.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
+                NetworkWorker.fetch.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
             }
         }
 
@@ -72,7 +74,7 @@ namespace DarkMultiPlayer
             {
                 LoadScenarioData(scenarioQueue.Dequeue());
             }
-            if (!loadedScience && parent.gameMode == GameMode.CAREER)
+            if (!loadedScience && Client.fetch.gameMode == GameMode.CAREER)
             {
                 DarkLog.Debug("Creating new science data");
                 ConfigNode newNode = GetBlankResearchAndDevelopmentNode();
@@ -89,7 +91,6 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Would be nice if we could ask KSP to do this for us...
         private ConfigNode GetBlankResearchAndDevelopmentNode()
         {
@@ -112,12 +113,12 @@ namespace DarkMultiPlayer
 
         public void LoadScenarioData(ScenarioEntry entry)
         {
-            if (entry.scenarioName == "ResearchAndDevelopment" && parent.gameMode != GameMode.CAREER)
+            if (entry.scenarioName == "ResearchAndDevelopment" && Client.fetch.gameMode != GameMode.CAREER)
             {
                 DarkLog.Debug("Skipping loading career mode data in sandbox");
                 return;
             }
-            if (entry.scenarioName == "ResearchAndDevelopment" && parent.gameMode == GameMode.CAREER)
+            if (entry.scenarioName == "ResearchAndDevelopment" && Client.fetch.gameMode == GameMode.CAREER)
             {
                 loadedScience = true;
             }
@@ -183,13 +184,17 @@ namespace DarkMultiPlayer
             scenarioQueue.Enqueue(entry);
         }
 
-        public void Reset()
+        public static void Reset()
         {
-            workerEnabled = false;
-            loadedScience = false;
-            scenarioQueue = new Queue<ScenarioEntry>();
-            blockScenarioDataSends = false;
-            lastScenarioSendTime = 0f;
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                }
+                singleton = new ScenarioWorker();
+                Client.updateEvent.Add(singleton.Update);
+            }
         }
     }
 

@@ -8,32 +8,32 @@ namespace DarkMultiPlayer
 {
     public class ChatWorker
     {
-        private Client parent;
-        public bool display;
-        public bool workerEnabled;
-        private bool safeDisplay;
-        private bool initialized;
+        private static ChatWorker singleton;
+        public bool display = false;
+        public bool workerEnabled = false;
+        private bool safeDisplay = false;
+        private bool initialized = false;
         //State tracking
-        private Queue<string> disconnectingPlayers;
-        private Queue<JoinLeaveMessage> newJoinMessages;
-        private Queue<JoinLeaveMessage> newLeaveMessages;
-        private Queue<ChannelEntry> newChannelMessages;
-        private Queue<PrivateEntry> newPrivateMessages;
-        private Dictionary<string, List<string>> channelMessages;
-        private Dictionary<string, List<string>> privateMessages;
-        private Dictionary<string, List<string>> playerChannels;
-        private List<string> joinedChannels;
-        private List<string> joinedPMChannels;
-        private List<string> highlightChannel;
-        private List<string> highlightPM;
-        private string selectedChannel;
-        private string selectedPMChannel;
-        private bool chatLocked;
-        private bool ignoreChatInput;
-        private string sendText;
+        private Queue<string> disconnectingPlayers = new Queue<string>();
+        private Queue<JoinLeaveMessage> newJoinMessages = new Queue<JoinLeaveMessage>();
+        private Queue<JoinLeaveMessage> newLeaveMessages = new Queue<JoinLeaveMessage>();
+        private Queue<ChannelEntry> newChannelMessages = new Queue<ChannelEntry>();
+        private Queue<PrivateEntry> newPrivateMessages = new Queue<PrivateEntry>();
+        private Dictionary<string, List<string>> channelMessages = new Dictionary<string, List<string>>();
+        private Dictionary<string, List<string>> privateMessages = new Dictionary<string, List<string>>();
+        private Dictionary<string, List<string>> playerChannels = new Dictionary<string, List<string>>();
+        private List<string> joinedChannels = new List<string>();
+        private List<string> joinedPMChannels = new List<string>();
+        private List<string> highlightChannel = new List<string>();
+        private List<string> highlightPM = new List<string>();
+        private string selectedChannel = null;
+        private string selectedPMChannel = null;
+        private bool chatLocked = false;
+        private bool ignoreChatInput = false;
+        private string sendText = "";
         //event handling
-        private bool leaveEventHandled;
-        private bool sendEventHandled;
+        private bool leaveEventHandled = true;
+        private bool sendEventHandled = true;
         //GUILayout stuff
         private Rect windowRect;
         private Rect moveRect;
@@ -53,12 +53,11 @@ namespace DarkMultiPlayer
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
-        public ChatWorker(Client parent)
+        public static ChatWorker fetch
         {
-            this.parent = parent;
-            if (this.parent != null)
+            get
             {
-                //Shutup compiler
+                return singleton;
             }
         }
 
@@ -129,7 +128,7 @@ namespace DarkMultiPlayer
             disconnectingPlayers.Enqueue(playerName);
         }
 
-        public void Update()
+        private void Update()
         {
             safeDisplay = display;
             ignoreChatInput = false;
@@ -148,9 +147,9 @@ namespace DarkMultiPlayer
                         using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<int>((int)ChatMessageType.LEAVE);
-                            mw.Write<string>(parent.settings.playerName);
+                            mw.Write<string>(Settings.fetch.playerName);
                             mw.Write<string>(selectedChannel);
-                            parent.networkWorker.SendChatMessage(mw.GetMessageBytes());
+                            NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                         }
                         if (joinedChannels.Contains(selectedChannel))
                         {
@@ -187,11 +186,11 @@ namespace DarkMultiPlayer
                                 using (MessageWriter mw = new MessageWriter())
                                 {
                                     mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                                    mw.Write<string>(parent.settings.playerName);
+                                    mw.Write<string>(Settings.fetch.playerName);
                                     //Global channel name is empty string.
                                     mw.Write<string>("");
                                     mw.Write<string>(sendText);
-                                    parent.networkWorker.SendChatMessage(mw.GetMessageBytes());
+                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                                 }
                             }
                             if (selectedChannel != null)
@@ -199,10 +198,10 @@ namespace DarkMultiPlayer
                                 using (MessageWriter mw = new MessageWriter())
                                 {
                                     mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                                    mw.Write<string>(parent.settings.playerName);
+                                    mw.Write<string>(Settings.fetch.playerName);
                                     mw.Write<string>(selectedChannel);
                                     mw.Write<string>(sendText);
-                                    parent.networkWorker.SendChatMessage(mw.GetMessageBytes());
+                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                                 }
                             }
                             if (selectedPMChannel != null)
@@ -210,10 +209,10 @@ namespace DarkMultiPlayer
                                 using (MessageWriter mw = new MessageWriter())
                                 {
                                     mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
-                                    mw.Write<string>(parent.settings.playerName);
+                                    mw.Write<string>(Settings.fetch.playerName);
                                     mw.Write<string>(selectedPMChannel);
                                     mw.Write<string>(sendText);
-                                    parent.networkWorker.SendChatMessage(mw.GetMessageBytes());
+                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                                 }
                             }
                         }
@@ -232,9 +231,9 @@ namespace DarkMultiPlayer
                                     using (MessageWriter mw = new MessageWriter())
                                     {
                                         mw.Write<int>((int)ChatMessageType.JOIN);
-                                        mw.Write<string>(parent.settings.playerName);
+                                        mw.Write<string>(Settings.fetch.playerName);
                                         mw.Write<string>(channelName);
-                                        parent.networkWorker.SendChatMessage(mw.GetMessageBytes());
+                                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                                     }
                                 }
                                 else
@@ -246,7 +245,7 @@ namespace DarkMultiPlayer
                             {
                                 string playerName = sendText.Substring(7);
                                 bool playerFound = false;
-                                foreach (PlayerStatus ps in parent.playerStatusWorker.playerStatusList)
+                                foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
                                 {
                                     if (ps.playerName == playerName)
                                     {
@@ -343,7 +342,7 @@ namespace DarkMultiPlayer
                 while (newPrivateMessages.Count > 0)
                 {
                     PrivateEntry pe = newPrivateMessages.Dequeue();
-                    if (pe.fromPlayer != parent.settings.playerName)
+                    if (pe.fromPlayer != Settings.fetch.playerName)
                     {
                         if (!privateMessages.ContainsKey(pe.fromPlayer))
                         {
@@ -363,11 +362,11 @@ namespace DarkMultiPlayer
                         }
                     }
                     //Move the bar to the bottom on a new message
-                    if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == parent.settings.playerName))
+                    if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == Settings.fetch.playerName))
                     {
                         chatScrollPos.y = float.PositiveInfinity;
                     }
-                    if (pe.fromPlayer != parent.settings.playerName)
+                    if (pe.fromPlayer != Settings.fetch.playerName)
                     {
                         privateMessages[pe.fromPlayer].Add(pe.fromPlayer + ": " + pe.message);
                     }
@@ -465,7 +464,7 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             playerScrollPos = GUILayout.BeginScrollView(playerScrollPos, scrollStyle, smallSizeOption);
             GUILayout.BeginVertical();
-            GUILayout.Label(parent.settings.playerName, labelStyle);
+            GUILayout.Label(Settings.fetch.playerName, labelStyle);
             if (selectedPMChannel != null)
             {
                 GUILayout.Label(selectedPMChannel, labelStyle);
@@ -475,7 +474,7 @@ namespace DarkMultiPlayer
                 if (selectedChannel == null)
                 {
                     //Global chat
-                    foreach (PlayerStatus player in parent.playerStatusWorker.playerStatusList)
+                    foreach (PlayerStatus player in PlayerStatusWorker.fetch.playerStatusList)
                     {
                         if (joinedPMChannels.Contains(player.playerName))
                         {
@@ -495,7 +494,7 @@ namespace DarkMultiPlayer
                 {
                     foreach (KeyValuePair<string, List<string>> playerEntry in playerChannels)
                     {
-                        if (playerEntry.Key != parent.settings.playerName)
+                        if (playerEntry.Key != Settings.fetch.playerName)
                         {
                             if (playerEntry.Value.Contains(selectedChannel))
                             {
@@ -640,26 +639,19 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void Reset()
+        public static void Reset()
         {
-            display = false;
-            workerEnabled = false;
-            leaveEventHandled = true;
-            sendEventHandled = true;
-            selectedChannel = null;
-            sendText = "";
-            disconnectingPlayers = new Queue<string>();
-            newJoinMessages = new Queue<JoinLeaveMessage>();
-            newLeaveMessages = new Queue<JoinLeaveMessage>();
-            newChannelMessages = new Queue<ChannelEntry>();
-            newPrivateMessages = new Queue<PrivateEntry>();
-            channelMessages = new Dictionary<string, List<string>>();
-            privateMessages = new Dictionary<string, List<string>>();
-            playerChannels = new Dictionary<string, List<string>>();
-            joinedChannels = new List<string>();
-            joinedPMChannels = new List<string>();
-            highlightChannel = new List<string>();
-            highlightPM = new List<string>();
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new ChatWorker();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
+            }
         }
     }
 

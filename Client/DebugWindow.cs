@@ -6,20 +6,20 @@ namespace DarkMultiPlayer
 {
     public class DebugWindow
     {
-        public bool display;
-        private bool safeDisplay;
-        private bool initialized;
-        private Client parent;
+        public bool display = false;
+        private bool safeDisplay = false;
+        private bool initialized = false;
+        private static DebugWindow singleton;
         //private parts
         private bool displayFast;
         private bool displayNTP;
         private bool displayConnectionQueue;
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
-        private string ntpText;
-        private string connectionText;
-        private string dynamicTickText;
-        private string requestedRateText;
+        private string ntpText = "";
+        private string connectionText = "";
+        private string dynamicTickText = "";
+        private string requestedRateText = "";
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -34,15 +34,12 @@ namespace DarkMultiPlayer
         private const float WINDOW_WIDTH = 300;
         private const float DISPLAY_UPDATE_INTERVAL = .2f;
 
-        public DebugWindow(Client parent)
+        public static DebugWindow fetch
         {
-            //Main setup
-            display = false;
-            this.parent = parent;
-            ntpText = "";
-            connectionText = "";
-            dynamicTickText = "";
-            requestedRateText = "";
+            get
+            {
+                return singleton;
+            }
         }
 
         private void InitGUI()
@@ -107,7 +104,7 @@ namespace DarkMultiPlayer
             GUILayout.EndVertical();
         }
 
-        public void Update()
+        private void Update()
         {
             safeDisplay = display;
             if (display)
@@ -117,35 +114,50 @@ namespace DarkMultiPlayer
                     lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
-                    ntpText += "Average Warp rate: " + Math.Round(parent.timeSyncer.averageSkewRate, 3) + "x.\n";
-                    ntpText += "Current subspace: " + parent.timeSyncer.currentSubspace + ".\n";
-                    ntpText += "Current subspace rate: " + Math.Round(parent.timeSyncer.GetSubspace(parent.timeSyncer.currentSubspace).subspaceSpeed, 3) + "x.\n";
-                    ntpText += "Current Error: " + Math.Round((parent.timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
+                    ntpText += "Average Warp rate: " + Math.Round(TimeSyncer.fetch.averageSkewRate, 3) + "x.\n";
+                    ntpText += "Current subspace: " + TimeSyncer.fetch.currentSubspace + ".\n";
+                    ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.GetSubspace(TimeSyncer.fetch.currentSubspace).subspaceSpeed, 3) + "x.\n";
+                    ntpText += "Current Error: " + Math.Round((TimeSyncer.fetch.GetCurrentError() * 1000), 0) + " ms.\n";
                     ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
-                    ntpText += "Network latency: " + Math.Round((parent.timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server clock difference: " + Math.Round((parent.timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server lag: " + Math.Round((parent.timeSyncer.serverLag / 10000f), 3) + " ms\n";
+                    ntpText += "Network latency: " + Math.Round((TimeSyncer.fetch.networkLatencyAverage / 10000f), 3) + " ms\n";
+                    ntpText += "Server clock difference: " + Math.Round((TimeSyncer.fetch.clockOffsetAverage / 10000f), 3) + " ms\n";
+                    ntpText += "Server lag: " + Math.Round((TimeSyncer.fetch.serverLag / 10000f), 3) + " ms\n";
 
                     //Connection queue text
-                    connectionText = "Last send time: " + parent.networkWorker.GetStatistics("LastSendTime") + "ms.\n";
-                    connectionText += "Last receive time: " + parent.networkWorker.GetStatistics("LastReceiveTime") + "ms.\n";
-                    connectionText += "Queued outgoing messages (High): " + parent.networkWorker.GetStatistics("HighPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Split): " + parent.networkWorker.GetStatistics("SplitPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Low): " + parent.networkWorker.GetStatistics("LowPriorityQueueLength") + ".\n";
-                    connectionText += "Stored future updates: " + parent.vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
-                    connectionText += "Stored future proto updates: " + parent.vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
+                    connectionText = "Last send time: " + NetworkWorker.fetch.GetStatistics("LastSendTime") + "ms.\n";
+                    connectionText += "Last receive time: " + NetworkWorker.fetch.GetStatistics("LastReceiveTime") + "ms.\n";
+                    connectionText += "Queued outgoing messages (High): " + NetworkWorker.fetch.GetStatistics("HighPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Split): " + NetworkWorker.fetch.GetStatistics("SplitPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Low): " + NetworkWorker.fetch.GetStatistics("LowPriorityQueueLength") + ".\n";
+                    connectionText += "Stored future updates: " + VesselWorker.fetch.GetStatistics("StoredFutureUpdates") + "\n";
+                    connectionText += "Stored future proto updates: " + VesselWorker.fetch.GetStatistics("StoredFutureProtoUpdates") + ".\n";
 
                     //Dynamic tick text
-                    dynamicTickText = "Current tick rate: " + parent.dynamicTickWorker.sendTickRate + "hz.\n";
-                    dynamicTickText += "Current max secondry vessels: " + parent.dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
+                    dynamicTickText = "Current tick rate: " + DynamicTickWorker.fetch.sendTickRate + "hz.\n";
+                    dynamicTickText += "Current max secondry vessels: " + DynamicTickWorker.fetch.maxSecondryVesselsPerTick + ".\n";
 
                     //Requested rates text
-                    requestedRateText = parent.settings.playerName + ": " + Math.Round(parent.timeSyncer.requestedRate, 3) + "x.\n";
-                    foreach (KeyValuePair<string, float> playerEntry in parent.warpWorker.clientSkewList)
+                    requestedRateText = Settings.fetch.playerName + ": " + Math.Round(TimeSyncer.fetch.requestedRate, 3) + "x.\n";
+                    foreach (KeyValuePair<string, float> playerEntry in WarpWorker.fetch.clientSkewList)
                     {
                         requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
                     }
                 }
+            }
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new DebugWindow();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
             }
         }
     }

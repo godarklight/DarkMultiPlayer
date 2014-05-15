@@ -7,7 +7,7 @@ namespace DarkMultiPlayer
     public class DynamicTickWorker
     {
         public bool workerEnabled;
-        private Client parent;
+        private static DynamicTickWorker singleton;
         private float lastDynamicTickRateCheck;
         private float lastDynamicTickRateChange;
         private const float DYNAMIC_TICK_RATE_CHECK_INTERVAL = 1f;
@@ -20,11 +20,13 @@ namespace DarkMultiPlayer
         private const int MASTER_MESSAGE_TO_TICK_RATE_DECREASE = 10;
         private const int MASTER_MESSAGE_TO_TICK_RATE_INCREASE = 30;
         private const int MASTER_MESSAGE_TO_PANIC = 200;
-        //Constructor
-        public DynamicTickWorker(Client parent)
+
+        public static DynamicTickWorker fetch
         {
-            this.parent = parent;
-            Reset();
+            get
+            {
+                return singleton;
+            }
         }
         //Restricted access variables
         public int maxSecondryVesselsPerTick
@@ -38,8 +40,8 @@ namespace DarkMultiPlayer
             private set;
             get;
         }
-        //Main worker hook
-        public void Update()
+
+        private void Update()
         {
             if (workerEnabled)
             {
@@ -55,9 +57,9 @@ namespace DarkMultiPlayer
         {
             if ((UnityEngine.Time.realtimeSinceStartup - lastDynamicTickRateChange) > DYNAMIC_TICK_RATE_CHANGE_INTERVAL)
             {
-                int outgoingHigh = parent.networkWorker.GetStatistics("HighPriorityQueueLength");
-                int outgoingSplit = parent.networkWorker.GetStatistics("SplitPriorityQueueLength");
-                int outgoingLow = parent.networkWorker.GetStatistics("LowPriorityQueueLength");
+                int outgoingHigh = NetworkWorker.fetch.GetStatistics("HighPriorityQueueLength");
+                int outgoingSplit = NetworkWorker.fetch.GetStatistics("SplitPriorityQueueLength");
+                int outgoingLow = NetworkWorker.fetch.GetStatistics("LowPriorityQueueLength");
                 int outgoingTotal = outgoingHigh + outgoingSplit + outgoingLow;
                 if (outgoingTotal < MASTER_MESSAGE_TO_PANIC)
                 {
@@ -77,7 +79,8 @@ namespace DarkMultiPlayer
                             return;
                         }
                     }
-                    if (sendTickRate == MASTER_MAX_TICKS_PER_SECOND) {
+                    if (sendTickRate == MASTER_MAX_TICKS_PER_SECOND)
+                    {
                         if ((outgoingTotal < MASTER_MESSAGE_TO_TICK_RATE_INCREASE) && (maxSecondryVesselsPerTick < MASTER_MAX_SECONDRY_VESSELS))
                         {
                             lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
@@ -102,13 +105,18 @@ namespace DarkMultiPlayer
                 }
             }
         }
-        //Main worker reset
-        public void Reset()
+
+        public static void Reset()
         {
-            lastDynamicTickRateCheck = 0f;
-            maxSecondryVesselsPerTick = MASTER_MAX_SECONDRY_VESSELS;
-            sendTickRate = MASTER_MAX_TICKS_PER_SECOND;
-            workerEnabled = false;
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                }
+                singleton = new DynamicTickWorker();
+                Client.updateEvent.Add(singleton.Update);
+            }
         }
     }
 }
