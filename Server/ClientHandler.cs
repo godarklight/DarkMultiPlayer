@@ -1564,7 +1564,7 @@ namespace DarkMultiPlayerServer
             ClientObject findClient = null;
             foreach (ClientObject testClient in clients)
             {
-                if (testClient.authenticated && testClient.playerName.ToLower() == playerName.ToLower())
+                if (testClient.authenticated && testClient.playerName == playerName)
                 {
                     findClient = testClient;
                     break;
@@ -1972,6 +1972,10 @@ namespace DarkMultiPlayerServer
                 player = GetClientByName(commandArgs);
                 DarkLog.Normal(String.Format("Kicking {0} from the server - no reason specified", commandArgs));
                 SendConnectionEnd(player, "kicked from the server");
+            }
+            else
+            {
+                DarkLog.Error("Syntax error. Usage: /kick <playername>");
             }
         }
         #endregion
