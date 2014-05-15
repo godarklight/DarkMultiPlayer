@@ -1962,6 +1962,19 @@ namespace DarkMultiPlayerServer
                 }
         }
         #endregion
+        #region Server commands
+        public static void KickPlayer(string commandArgs)
+        {
+            ClientObject player = null;
+
+            if (commandArgs != "")
+            {
+                player = GetClientByName(commandArgs);
+                DarkLog.Normal(String.Format("Kicking {0} from the server - no reason specified", commandArgs));
+                SendConnectionEnd(player, "kicked from the server");
+            }
+        }
+        #endregion
     }
 
     public class ClientObject
