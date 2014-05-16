@@ -23,10 +23,17 @@ namespace DarkMultiPlayerServer
             if (!Directory.Exists(LogFolder))
                 Directory.CreateDirectory(LogFolder);
 
-            if (level < minLogLevel) { return; }
+            string output;
 
             float currentTime = Server.serverClock.ElapsedMilliseconds / 1000f;
-            string output = String.Format("[{0}][{1}] : {2}", DateTime.Now.ToString("HH:mm:ss"), level.ToString(), message);
+
+            if (level < minLogLevel) { return; }
+
+            if (Settings.useUTCTimeInLog == true)
+                output = String.Format("[{0}][{1}] : {2}", DateTime.Now.ToString("HH:mm:ss"), level.ToString(), message);
+            else
+                output = String.Format("[{0}][{1}] : {2}", currentTime, level.ToString(), message);
+            
 
             Console.WriteLine(output);
             try

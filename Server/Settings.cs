@@ -14,6 +14,7 @@ namespace DarkMultiPlayerServer
         public static WarpMode warpMode;
         public static GameMode gameMode;
         public static bool modControl;
+        public static bool useUTCTimeInLog;
 
         private static void UseDefaultSettings()
         {
@@ -21,6 +22,7 @@ namespace DarkMultiPlayerServer
             warpMode = WarpMode.SUBSPACE;
             gameMode = GameMode.SANDBOX;
             modControl = true;
+            useUTCTimeInLog = false;
         }
 
         public static void Load()
@@ -70,6 +72,10 @@ namespace DarkMultiPlayerServer
                                         modControl = (currentValue == "1");
                                         DarkLog.Debug("Mod control: " + modControl);
                                         break;
+                                    case "useUTC":
+                                        useUTCTimeInLog = (currentValue == "1");
+                                        DarkLog.Debug("Use UTC Time in logs: " + useUTCTimeInLog);
+                                        break;
                                     default:
                                         Console.WriteLine("Unknown key: " + currentKey);
                                         break;
@@ -116,6 +122,8 @@ namespace DarkMultiPlayerServer
                     sw.WriteLine("#The game will constantly complain about missing parts if there are missing mods.");
                     sw.WriteLine("modcontrol," + (modControl ? "1" : "0"));
                     sw.WriteLine("");
+                    sw.WriteLine("#useUTC - displays the time in UTC/GMT format instead of displaying the elapsed milliseconds.");
+                    sw.WriteLine("useUTC," + (useUTCTimeInLog ? "1" : "0"));
                 }
             }
             if (File.Exists(settingsFile))

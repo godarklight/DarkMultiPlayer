@@ -15,7 +15,7 @@ namespace DarkMultiPlayerServer
         //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
         private static Queue<ClientObject> addClients;
-        public static List<ClientObject> clients;
+        private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
         private static string modFileData;
