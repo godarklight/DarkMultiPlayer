@@ -86,11 +86,11 @@ namespace DarkMultiPlayer
                 if (singleton != null)
                 {
                     Client.updateEvent.Remove(singleton.Update);
-                    Client.updateEvent.Remove(singleton.Draw);
+                    Client.drawEvent.Remove(singleton.Draw);
                 }
                 singleton = new ModWindow();
                 Client.updateEvent.Add(singleton.Update);
-                Client.updateEvent.Add(singleton.Draw);
+                Client.drawEvent.Add(singleton.Draw);
             }
         }
     }
