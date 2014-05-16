@@ -128,7 +128,14 @@ namespace DarkMultiPlayer
                 xmlDoc.LoadXml(newXMLString());
             }
             xmlDoc.SelectSingleNode("/settings/global/@username").Value = playerName;
-            xmlDoc.SelectSingleNode("/settings/global/@cache-size").Value = cacheSize.ToString();
+            try {
+                xmlDoc.SelectSingleNode("/settings/global/@cache-size").Value = cacheSize.ToString();
+            }
+            catch {
+                XmlAttribute cacheAttribute = xmlDoc.CreateAttribute("cache-size");
+                cacheAttribute.Value = DEFAULT_CACHE_SIZE.ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(cacheAttribute);
+            }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();
             foreach (ServerEntry server in servers)
@@ -144,7 +151,7 @@ namespace DarkMultiPlayer
 
         private string newXMLString()
         {
-            return String.Format("<?xml version=\"1.0\"?><settings><global username=\"{0}\"/><servers></servers></settings>", DEFAULT_PLAYER_NAME);
+            return String.Format("<?xml version=\"1.0\"?><settings><global username=\"{0}\" cache-size=\"{1}\"/><servers></servers></settings>", DEFAULT_PLAYER_NAME, DEFAULT_CACHE_SIZE);
         }
     }
 
