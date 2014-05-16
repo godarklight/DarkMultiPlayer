@@ -418,7 +418,7 @@ namespace DarkMultiPlayerServer
         {
             try
             {
-                TCPServer = new TcpListener(new IPEndPoint(IPAddress.Any, Settings.port));
+                TCPServer = new TcpListener(new IPEndPoint(IPAddress.Any, Settings.settingsStore.port));
                 TCPServer.Start(4);
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }
@@ -1591,8 +1591,8 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(response);
-                mw.Write<bool>(Settings.modControl);
-                if (Settings.modControl)
+                mw.Write<bool>(Settings.settingsStore.modControl);
+                if (Settings.settingsStore.modControl)
                 {
                     mw.Write<string>(modFileData);
                 }
@@ -1626,8 +1626,8 @@ namespace DarkMultiPlayerServer
             newMessage.type = ServerMessageType.SERVER_SETTINGS;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<int>((int)Settings.warpMode);
-                mw.Write<int>((int)Settings.gameMode);
+                mw.Write<int>((int)Settings.settingsStore.warpMode);
+                mw.Write<int>((int)Settings.settingsStore.gameMode);
                 //Tack the amount of kerbals, vessels and scenario modules onto this message
                 mw.Write<int>(numberOfKerbals);
                 mw.Write<int>(numberOfVessels);

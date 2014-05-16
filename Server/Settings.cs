@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using System.Reflection;
+using System.Collections.Generic;
 
 namespace DarkMultiPlayerServer
 {
@@ -10,22 +12,11 @@ namespace DarkMultiPlayerServer
         public static string serverPath = AppDomain.CurrentDomain.BaseDirectory;
         private static string settingsFile = Path.Combine(serverPath, SETTINGS_FILE_NAME);
         //Port
-        public static int port;
-        public static WarpMode warpMode;
-        public static GameMode gameMode;
-        public static bool modControl;
-
-        private static void UseDefaultSettings()
-        {
-            port = 6702;
-            warpMode = WarpMode.SUBSPACE;
-            gameMode = GameMode.SANDBOX;
-            modControl = true;
-        }
+        public static SettingsStore settingsStore = new SettingsStore();
 
         public static void Load()
         {
-            UseDefaultSettings();
+            FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
             if (!File.Exists(Path.Combine(serverPath, SETTINGS_FILE_NAME)))
             {
                 Save();
@@ -52,27 +43,41 @@ namespace DarkMultiPlayerServer
                             {
                                 currentKey = trimmedLine.Substring(0, trimmedLine.IndexOf(","));
                                 currentValue = trimmedLine.Substring(trimmedLine.IndexOf(",") + 1);
-                                switch (currentKey)
+
+                                foreach (FieldInfo settingField in settingFields)
                                 {
-                                    case "port":
-                                        port = Int32.Parse(currentValue);
-                                        DarkLog.Debug("Port: " + port);
-                                        break;
-                                    case "warpmode":
-                                        warpMode = (WarpMode)(Int32.Parse(currentValue));
-                                        DarkLog.Debug("Warp mode: " + warpMode);
-                                        break;
-                                    case "gamemode":
-                                        gameMode = (GameMode)(Int32.Parse(currentValue));
-                                        DarkLog.Debug("Game mode: " + gameMode);
-                                        break;
-                                    case "modcontrol":
-                                        modControl = (currentValue == "1");
-                                        DarkLog.Debug("Mod control: " + modControl);
-                                        break;
-                                    default:
-                                        Console.WriteLine("Unknown key: " + currentKey);
-                                        break;
+                                    if (settingField.Name.ToLower() == currentKey)
+                                    {
+                                        if (settingField.FieldType == typeof(string))
+                                        {
+                                            settingField.SetValue(settingsStore, currentValue);
+                                        }
+                                        if (settingField.FieldType == typeof(int))
+                                        {
+                                            int intValue = Int32.Parse(currentValue);
+                                            settingField.SetValue(settingsStore, (int)intValue);
+                                        }
+                                        if (settingField.FieldType == typeof(bool)) {
+                                            if (currentValue == "1")
+                                            {
+                                                settingField.SetValue(settingsStore, true);
+                                            }
+                                            else
+                                            {
+                                                settingField.SetValue(settingsStore, false);
+                                            }
+                                        }
+                                        if (settingField.FieldType.IsEnum)
+                                        {
+                                            int intValue = Int32.Parse(currentValue);
+                                            Array enumValues = settingField.FieldType.GetEnumValues();
+                                            if (intValue <= enumValues.Length)
+                                            {
+                                                settingField.SetValue(settingsStore, enumValues.GetValue(intValue));
+                                            }
+                                        }
+                                        DarkLog.Debug(settingField.Name + ": " + currentValue);
+                                    }
                                 }
                             }
                         }
@@ -84,6 +89,8 @@ namespace DarkMultiPlayerServer
 
         public static void Save()
         {
+            FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
+            Dictionary<string,string> settingDescriptions = GetSettingsDescriptions();
             if (File.Exists(settingsFile + ".tmp"))
             {
                 File.Delete(settingsFile + ".tmp");
@@ -94,28 +101,37 @@ namespace DarkMultiPlayerServer
                 {
                     sw.WriteLine("#Setting file format: (key),(value)");
                     sw.WriteLine("#This file will be re-written every time the server is started. Only known keys will be saved.");
-                    sw.WriteLine("#port - The port the server listens on");
-                    sw.WriteLine("port," + port);
-                    sw.WriteLine("");
-                    sw.WriteLine("#warpmode - Specify the warp type");
-                    foreach (int warpModeType in Enum.GetValues(typeof(WarpMode)))
+                    foreach (FieldInfo settingField in settingFields)
                     {
-                        sw.WriteLine("#Mode " + warpModeType + " - " + (WarpMode)warpModeType);
+                        if (settingDescriptions.ContainsKey(settingField.Name))
+                        {
+                            sw.WriteLine("#" + settingField.Name.ToLower() + " - " + settingDescriptions[settingField.Name]);
+                        }
+                        if (settingField.FieldType == typeof(string) || settingField.FieldType == typeof(int))
+                        {
+                            sw.WriteLine(settingField.Name.ToLower() + "," + settingField.GetValue(settingsStore));
+                        }
+                        if (settingField.FieldType == typeof(bool)) {
+                            if ((bool)settingField.GetValue(settingsStore))
+                            {
+                                sw.WriteLine(settingField.Name.ToLower() + ",1");
+                            }
+                            else
+                            {
+                                sw.WriteLine(settingField.Name.ToLower() + ",0");
+                            }
+                        }
+                        if (settingField.FieldType.IsEnum)
+                        {
+                            sw.WriteLine("#Valid values are:");
+                            foreach (int enumValue in settingField.FieldType.GetEnumValues())
+                            {
+                                sw.WriteLine("#" + enumValue + " - " + settingField.FieldType.GetEnumValues().GetValue(enumValue).ToString());
+                            }
+                            sw.WriteLine(settingField.Name.ToLower() + "," + (int)settingField.GetValue(settingsStore));
+                        }
+                        sw.WriteLine("");
                     }
-                    sw.WriteLine("warpmode," + (int)warpMode);
-                    sw.WriteLine("");
-                    sw.WriteLine("#gamemode - Specify the game type");
-                    foreach (int gameModeType in Enum.GetValues(typeof(GameMode)))
-                    {
-                        sw.WriteLine("#Mode " + gameModeType + " - " + (GameMode)gameModeType);
-                    }
-                    sw.WriteLine("gamemode," + (int)gameMode);
-                    sw.WriteLine("");
-                    sw.WriteLine("#modcontrol - Enable mod control");
-                    sw.WriteLine("#WARNING: Only consider turning off mod control for private servers.");
-                    sw.WriteLine("#The game will constantly complain about missing parts if there are missing mods.");
-                    sw.WriteLine("modcontrol," + (modControl ? "1" : "0"));
-                    sw.WriteLine("");
                 }
             }
             if (File.Exists(settingsFile))
@@ -124,6 +140,23 @@ namespace DarkMultiPlayerServer
             }
             File.Move(Path.Combine(serverPath, SETTINGS_FILE_NAME + ".tmp"), Path.Combine(serverPath, SETTINGS_FILE_NAME));
         }
+
+        private static Dictionary<string,string> GetSettingsDescriptions()
+        {
+            Dictionary<string, string> descriptionList = new Dictionary<string, string>();
+            descriptionList.Add("port", "The port the server listens on");
+            descriptionList.Add("warpMode", "Specify the warp type");
+            descriptionList.Add("gameMode", "Specify the game type");
+            descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
+            return descriptionList;
+        }
+    }
+
+    public class SettingsStore
+    {
+        public int port = 6702;
+        public WarpMode warpMode = WarpMode.SUBSPACE;
+        public GameMode gameMode = GameMode.SANDBOX;
+        public bool modControl = true;
     }
 }
-

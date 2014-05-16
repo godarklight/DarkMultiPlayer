@@ -33,7 +33,7 @@ namespace DarkMultiPlayerServer
             Settings.Load();
             DarkLog.Normal("Done!");
 
-            DarkLog.Normal("Starting " + Settings.warpMode + " server on port " + Settings.port + "... ");
+            DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
             serverStarting = true;
             serverRunning = true;
             Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
