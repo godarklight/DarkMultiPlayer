@@ -1179,7 +1179,7 @@ namespace DarkMultiPlayer
                     mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
-                    mw.Write<string>(sr.ReadToEnd());
+                    mw.Write<byte[]>(File.ReadAllBytes(tempFile));
                     newMessage.data = mw.GetMessageBytes();
                 }
             }
@@ -1299,7 +1299,7 @@ namespace DarkMultiPlayer
                     mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<int>(kerbalID);
-                    mw.Write<string>(sr.ReadToEnd());
+                    mw.Write<byte[]>(File.ReadAllBytes(tempFile));
                     newMessage.data = mw.GetMessageBytes();
                 }
             }
