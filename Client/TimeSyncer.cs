@@ -198,8 +198,16 @@ namespace DarkMultiPlayer
                     }
                 case Vessel.Situations.ORBITING:
                 case Vessel.Situations.ESCAPING:
-                case Vessel.Situations.SUB_ORBITAL:
                     return true;
+                case Vessel.Situations.SUB_ORBITAL:
+                    if (checkVessel.altitude < 10000) 
+                    {
+                        return true;
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 default :
                     return false;
             }
