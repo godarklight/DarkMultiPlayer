@@ -22,6 +22,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
+            CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             //Load settings
