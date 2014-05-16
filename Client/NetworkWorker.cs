@@ -92,14 +92,6 @@ namespace DarkMultiPlayer
                 state = ClientState.SYNCING_KERBALS;
                 SendKerbalsRequest();
             }
-            if (state == ClientState.KERBALS_SYNCED)
-            {
-                DarkLog.Debug("Kerbals Synced!");
-                DarkLog.Debug("Requesting vessels!");
-                Client.fetch.status = "Syncing vessels";
-                state = ClientState.SYNCING_VESSELS;
-                SendVesselsRequest();
-            }
             if (state == ClientState.VESSELS_SYNCED)
             {
                 DarkLog.Debug("Vessels Synced!");
@@ -559,6 +551,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
+                    case ServerMessageType.VESSEL_LIST:
+                        HandleVesselList(message.data);
+                        break;
                     case ServerMessageType.VESSEL_PROTO:
                         HandleVesselProto(message.data);
                         break;
@@ -777,12 +772,9 @@ namespace DarkMultiPlayer
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 int kerbalID = mr.Read<int>();
-                string kerbalData = mr.Read<string>();
+                byte[] kerbalData = mr.Read<byte[]>();
                 string tempFile = Path.GetTempFileName();
-                using (StreamWriter sw = new StreamWriter(tempFile))
-                {
-                    sw.Write(kerbalData);
-                }
+                File.WriteAllBytes(tempFile, kerbalData);
                 ConfigNode vesselNode = ConfigNode.Load(tempFile);
                 File.Delete(tempFile);
                 if (vesselNode != null)
@@ -806,6 +798,38 @@ namespace DarkMultiPlayer
         private void HandleKerbalComplete()
         {
             state = ClientState.KERBALS_SYNCED;
+            DarkLog.Debug("Kerbals Synced!");
+            Client.fetch.status = "Kerbals synced";
+        }
+
+        private void HandleVesselList(byte[] messageData)
+        {
+            state = ClientState.SYNCING_VESSELS;
+            Client.fetch.status = "Syncing vessels";
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                List<string> serverVessels = new List<string>(mr.Read<string[]>());
+                List<string> cacheObjects = new List<string>(UniverseSyncCache.fetch.GetCachedObjects());
+                List<string> requestedObjects = new List<string>();
+                foreach (string serverVessel in serverVessels)
+                {
+                    if (!cacheObjects.Contains(serverVessel))
+                    {
+                        requestedObjects.Add(serverVessel);
+                    }
+                    else
+                    {
+                        numberOfVesselsReceived++;
+                        ConfigNode vesselNode = ConfigNode.Load(Path.Combine(UniverseSyncCache.fetch.cacheDirectory, serverVessel + ".txt"));
+                        VesselWorker.fetch.QueueVesselProto(0, 0, vesselNode);
+                    }
+                }
+                if (numberOfVessels != 0)
+                {
+                    Client.fetch.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
+                }
+                SendVesselsRequest(requestedObjects.ToArray());
+            }
         }
 
         private void HandleVesselProto(byte[] messageData)
@@ -815,12 +839,10 @@ namespace DarkMultiPlayer
             {
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
-                string vesselData = mr.Read<string>();
+                byte[] vesselData = mr.Read<byte[]>();
+                UniverseSyncCache.fetch.SaveToCache(vesselData);
                 string tempFile = Path.GetTempFileName();
-                using (StreamWriter sw = new StreamWriter(tempFile))
-                {
-                    sw.Write(vesselData);
-                }
+                File.WriteAllBytes(tempFile, vesselData);
                 ConfigNode vesselNode = ConfigNode.Load(tempFile);
                 File.Delete(tempFile);
                 if (vesselNode != null)
@@ -834,7 +856,7 @@ namespace DarkMultiPlayer
             }
             if (state == ClientState.SYNCING_VESSELS)
             {
-                if (numberOfKerbals != 0)
+                if (numberOfVessels != 0)
                 {
                     Client.fetch.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
@@ -1130,10 +1152,15 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
 
-        private void SendVesselsRequest()
+        private void SendVesselsRequest(string[] requestList)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(requestList);
+                newMessage.data = mw.GetMessageBytes();
+            }
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from vesselWorker

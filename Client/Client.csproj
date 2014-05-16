@@ -64,6 +64,7 @@
     <Compile Include="ModWindow.cs" />
     <Compile Include="CraftLibraryWorker.cs" />
     <Compile Include="ChatWorker.cs" />
+    <Compile Include="UniverseSyncCache.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

@@ -11,10 +11,12 @@ namespace DarkMultiPlayer
         private static Settings singleton = new Settings();
         public string playerName;
         public Guid playerGuid;
+        public int cacheSize;
         public List<ServerEntry> servers;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string TOKEN_FILE = "token.txt";
+        private const int DEFAULT_CACHE_SIZE = 100;
         private string dataLocation;
         private string settingsFile;
         private string tokenFile;
@@ -41,6 +43,7 @@ namespace DarkMultiPlayer
             //Read XML settings
             try
             {
+                bool saveXMLAfterLoad = false;
                 XmlDocument xmlDoc = new XmlDocument();
                 if (!File.Exists(settingsFile))
                 {
@@ -50,6 +53,15 @@ namespace DarkMultiPlayer
                 }
                 xmlDoc.Load(settingsFile);
                 playerName = xmlDoc.SelectSingleNode("/settings/global/@username").Value;
+                try {
+                    cacheSize = Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@cache-size").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding cache size to settings file");
+                    saveXMLAfterLoad = true;
+                    cacheSize = DEFAULT_CACHE_SIZE;
+                }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
                 foreach (XmlNode xmlNode in serverNodeList)
@@ -59,6 +71,9 @@ namespace DarkMultiPlayer
                     newServer.address = xmlNode.Attributes["address"].Value;
                     Int32.TryParse(xmlNode.Attributes["port"].Value, out newServer.port);
                     servers.Add(newServer);
+                }
+                if (saveXMLAfterLoad) {
+                    SaveSettings();
                 }
             }
             catch (Exception e)
@@ -113,6 +128,7 @@ namespace DarkMultiPlayer
                 xmlDoc.LoadXml(newXMLString());
             }
             xmlDoc.SelectSingleNode("/settings/global/@username").Value = playerName;
+            xmlDoc.SelectSingleNode("/settings/global/@cache-size").Value = cacheSize.ToString();
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();
             foreach (ServerEntry server in servers)

@@ -1,4 +1,7 @@
 using System;
+using System.Text;
+using System.Security.Cryptography;
+using System.IO;
 
 namespace DarkMultiPlayerCommon
 {
@@ -10,7 +13,27 @@ namespace DarkMultiPlayerCommon
         //5MB
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //8kb
-        public const int PROTOCOL_VERSION = 3;
+        public const int PROTOCOL_VERSION = 4;
+
+        public static string CalculateSHA256Hash(string fileName)
+        {
+            return CalculateSHA256Hash(File.ReadAllBytes(fileName));
+        }
+
+        public static string CalculateSHA256Hash(byte[] fileData)
+        {
+            StringBuilder sb = new StringBuilder();
+            using (SHA256Managed sha = new SHA256Managed())
+            {
+                byte[] fileHashData = sha.ComputeHash(fileData);
+                //Byte[] to string conversion adapted from MSDN...
+                for (int i = 0; i < fileHashData.Length; i++)
+                {
+                    sb.Append(fileHashData[i].ToString("x2"));
+                }
+            }
+            return sb.ToString();
+        }
     }
 
     public enum CraftType
@@ -53,6 +76,7 @@ namespace DarkMultiPlayerCommon
         SCENARIO_DATA,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
+        VESSEL_LIST,
         VESSEL_PROTO,
         VESSEL_UPDATE,
         VESSEL_COMPLETE,

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Security.Cryptography;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -31,29 +31,10 @@ namespace DarkMultiPlayer
             }
         }
 
-        private string CalculateSHA256Hash(string filename)
-        {
-            StringBuilder sb = new StringBuilder();
-            using (SHA256Managed sha = new SHA256Managed())
-            {
-                using (FileStream fs = new FileStream(filename, FileMode.Open))
-                {
-                    byte[] fileHashData = sha.ComputeHash(fs);
-
-                    //Byte[] to string conversion adapted from MSDN...
-                    for (int i = 0; i < fileHashData.Length; i++)
-                    {
-                        sb.Append(fileHashData[i].ToString("x2"));
-                    }
-                }
-            }
-            return sb.ToString();
-        }
-
         private bool CheckFile(string relativeFileName, string referencefileHash)
         {
             string fullFileName = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", relativeFileName));
-            string fileHash = CalculateSHA256Hash(fullFileName);
+            string fileHash = Common.CalculateSHA256Hash(fullFileName);
             if (fileHash != referencefileHash)
             {
                 DarkLog.Debug(relativeFileName + " hash mismatch");
@@ -77,7 +58,7 @@ namespace DarkMultiPlayer
                     //Replace windows backslashes with mac/linux forward slashes.
                     //Make it lowercase so we don't worry about case sensitivity.
                     string relativeFilePath = checkFile.ToLowerInvariant().Substring(checkFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
-                    string fileHash = CalculateSHA256Hash(checkFile);
+                    string fileHash = Common.CalculateSHA256Hash(checkFile);
                     dllList.Add(relativeFilePath, fileHash);
                     DarkLog.Debug("Hashed file: " + relativeFilePath + ", hash: " + fileHash);
                 }

@@ -294,8 +294,10 @@ namespace DarkMultiPlayer
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerDataDirectory = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", Path.Combine("DarkMultiPlayer", Path.Combine("Plugins", "Data"))));
+            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath ,"GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
             CreateIfNeeded(darkMultiPlayerDataDirectory);
+            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath ,"GameData"), "DarkMultiPlayer"), "Cache");
+            CreateIfNeeded(darkMultiPlayerCacheDirectory);
         }
 
         private void CreateIfNeeded(string path)

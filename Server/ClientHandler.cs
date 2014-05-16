@@ -804,7 +804,7 @@ namespace DarkMultiPlayerServer
                         HandleKerbalProto(client, message.data);
                         break;
                     case ClientMessageType.VESSELS_REQUEST:
-                        HandleVesselsRequest(client);
+                        HandleVesselsRequest(client, message.data);
                         break;
                     case ClientMessageType.VESSEL_PROTO:
                         HandleVesselProto(client, message.data);
@@ -940,15 +940,6 @@ namespace DarkMultiPlayerServer
                     }
                 }
                 SendHandshakeReply(client, handshakeReponse);
-                SendServerSettings(client);
-                SendSetSubspace(client);
-                SendAllActiveVessels(client);
-                SendAllSubspaces(client);
-                SendAllPlayerStatus(client);
-                SendScenarioModules(client);
-                SendAllReportedSkewRates(client);
-                SendCraftList(client);
-                SendPlayerChatChannels(client);
             }
             else
             {
@@ -1125,15 +1116,24 @@ namespace DarkMultiPlayerServer
 
         private static void HandleKerbalsRequest(ClientObject client)
         {
+            //The time sensitive SYNC_TIME is over by this point.
+            SendServerSettings(client);
+            SendSetSubspace(client);
+            SendAllActiveVessels(client);
+            SendAllSubspaces(client);
+            SendAllPlayerStatus(client);
+            SendScenarioModules(client);
+            SendAllReportedSkewRates(client);
+            SendCraftList(client);
+            SendPlayerChatChannels(client);
+            //Send kerbals
             int kerbalCount = 0;
             while (File.Exists(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
             {
-                using (StreamReader sr = new StreamReader(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
-                {
-                    string kerbalData = sr.ReadToEnd();
-                    SendKerbal(client, kerbalCount, kerbalData);
-                    kerbalCount++;
-                }
+                string kerbalFile = Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt");
+                byte[] kerbalData = File.ReadAllBytes(kerbalFile);
+                SendKerbal(client, kerbalCount, kerbalData);
+                kerbalCount++;
             }
             DarkLog.Debug("Sending " + client.playerName + " " + kerbalCount + " kerbals...");
             SendKerbalsComplete(client);
@@ -1149,11 +1149,8 @@ namespace DarkMultiPlayerServer
                 mr.Read<double>();
                 int kerbalID = mr.Read<int>();
                 DarkLog.Debug("Saving kerbal " + kerbalID + " from " + client.playerName);
-                string kerbalData = mr.Read<string>();
-                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Kerbals", kerbalID + ".txt")))
-                {
-                    sw.Write(kerbalData);
-                }
+                byte[] kerbalData = mr.Read<byte[]>();
+                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalID + ".txt"), kerbalData);
                 ServerMessage newMessage = new ServerMessage();
                 newMessage.type = ServerMessageType.KERBAL_REPLY;
                 newMessage.data = messageData;
@@ -1161,20 +1158,30 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void HandleVesselsRequest(ClientObject client)
+        private static void HandleVesselsRequest(ClientObject client, byte[] messageData)
         {
-            int vesselCount = 0;
-            foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (StreamReader sr = new StreamReader(file))
+                int sendVesselCount = 0;
+                int cachedVesselCount = 0;
+                List<string> clientRequested = new List<string>(mr.Read<string[]>());
+                foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
                 {
-                    string vesselData = sr.ReadToEnd();
-                    vesselCount++;
-                    SendVessel(client, vesselData);
+                    byte[] vesselData = File.ReadAllBytes(file);
+                    string vesselObject = Common.CalculateSHA256Hash(vesselData);
+                    if (clientRequested.Contains(vesselObject))
+                    {
+                        sendVesselCount++;
+                        SendVessel(client, vesselData);
+                    }
+                    else
+                    {
+                        cachedVesselCount++;
+                    }
                 }
+                DarkLog.Debug("Sending " + client.playerName + " " + sendVesselCount + " vessels, cached: " + cachedVesselCount + "...");
+                SendVesselsComplete(client);
             }
-            DarkLog.Debug("Sending " + client.playerName + " " + vesselCount + " vessels...");
-            SendVesselsComplete(client);
         }
 
         private static void HandleVesselProto(ClientObject client, byte[] messageData)
@@ -1186,16 +1193,13 @@ namespace DarkMultiPlayerServer
                 double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
                 DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
-                string vesselData = mr.Read<string>();
-                using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt")))
-                {
-                    sw.Write(vesselData);
-                }
+                byte[] vesselData = mr.Read<byte[]>();
+                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>(subspaceID);
                     mw.Write<double>(planetTime);
-                    mw.Write<string>(vesselData);
+                    mw.Write<byte[]>(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
                     newMessage.data = mw.GetMessageBytes();
@@ -1840,13 +1844,6 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
-        private static void SendKerbalsComplete(ClientObject client)
-        {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.KERBAL_COMPLETE;
-            SendToClient(client, newMessage, false);
-        }
-
         private static void SendAllActiveVessels(ClientObject client)
         {
             foreach (ClientObject otherClient in clients)
@@ -1893,7 +1890,25 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SendKerbal(ClientObject client, int kerbalID, string kerbalData)
+        private static void SendVesselList(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.VESSEL_LIST;
+            string[] vesselFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
+            string[] vesselObjects = new string[vesselFiles.Length];
+            for (int i = 0; i < vesselFiles.Length; i++)
+            {
+                vesselObjects[i] = Common.CalculateSHA256Hash(vesselFiles[i]);
+            }
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(vesselObjects);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, false);
+        }
+
+        private static void SendKerbal(ClientObject client, int kerbalID, byte[] kerbalData)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
@@ -1903,13 +1918,22 @@ namespace DarkMultiPlayerServer
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
                 mw.Write<int>(kerbalID);
-                mw.Write<string>(kerbalData);
+                mw.Write<byte[]>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, false);
         }
 
-        private static void SendVessel(ClientObject client, string vesselData)
+        private static void SendKerbalsComplete(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.KERBAL_COMPLETE;
+            SendToClient(client, newMessage, false);
+            //Send vessel list needed for sync to the client
+            SendVesselList(client);
+        }
+
+        private static void SendVessel(ClientObject client, byte[] vesselData)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_PROTO;
@@ -1918,7 +1942,7 @@ namespace DarkMultiPlayerServer
                 mw.Write<int>(GetLatestSubspace());
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
-                mw.Write<string>(vesselData);
+                mw.Write<byte[]>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, false);
