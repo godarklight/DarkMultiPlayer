@@ -13,11 +13,12 @@ namespace DarkMultiPlayerServer
 
     public class ClientHandler
     {
-        public class Bans
+        public class BanRecord
         {
             public string BannedName { get; set; }
             public IPAddress BannedIP { get; set;}
             public Guid BannedGuid { get; set; }
+            public string Reason { get; set;  }
         }
 
         //No point support IPv6 until KSP enables it on their windows builds.
@@ -32,8 +33,8 @@ namespace DarkMultiPlayerServer
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPBans.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
 
-        private static List<Bans> _bans = new List<Bans>();
-        internal static List<Bans> bans
+        private static List<BanRecord> _bans = new List<BanRecord>();
+        internal static List<BanRecord> bans
         {
             get
             {
@@ -510,11 +511,11 @@ namespace DarkMultiPlayerServer
 
                 using (StreamWriter sw = new StreamWriter(banlistFile))
                 {
-                    sw.WriteLine("#BannedName\tBannedIP\tBannedGUID");
+                    sw.WriteLine("#BannedName\tBannedIP\tBannedGUID\tReason");
 
                     foreach (var ban in bans)
                     {
-                        sw.WriteLine("{0}\t{1}\t{2}", ban.BannedName, ban.BannedIP, ban.BannedGuid);
+                        sw.WriteLine("{0}\t{1}\t{2}\t{3}", ban.BannedName, ban.BannedIP, ban.BannedGuid, ban.Reason);
                     }
                 }
             }
@@ -535,11 +536,12 @@ namespace DarkMultiPlayerServer
                         {
                             if (line.StartsWith("#")) { continue; }
                             var parts = line.Split('\t');
-                            var newBan = new Bans()
+                            var newBan = new BanRecord()
                             {
                                 BannedName = parts[0],
                                 BannedIP = IPAddress.Parse(parts[1]),
                                 BannedGuid = Guid.Parse(parts[2]),
+                                Reason = parts[3],
                             };
 
                             bans.Add(newBan);
@@ -1003,8 +1005,6 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-
-            
 
             client.playerName = playerName;
             client.GUID = Guid.Parse(playerGuid);
@@ -2114,6 +2114,12 @@ namespace DarkMultiPlayerServer
         public static void BanPlayer(string commandArgs)
         {
             string playerName = commandArgs;
+            string reason = "";
+            if (commandArgs.Contains(" "))
+            {
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
 
             ClientObject player = null;
             Guid guid = Guid.Empty;
@@ -2126,18 +2132,22 @@ namespace DarkMultiPlayerServer
                 {
                     SendConnectionEnd(player, "You were banned from the server!");
 
-                    var ban = new Bans()
+                    if (reason == "")
+                        reason = "no reason specified";
+
+                    var ban = new BanRecord()
                     {
                         BannedName = player.playerName,
                         BannedIP = player.ipAddress,
                         BannedGuid = player.GUID,
+                        Reason = reason,
                     };
 
                     if (!bans.Contains(ban))
                     {
                         bans.Add(ban);
                         SaveBans();
-                        DarkLog.Normal("Player '" + playerName + "' was banned from the server.");
+                        DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
                     }
                 }
                 else
