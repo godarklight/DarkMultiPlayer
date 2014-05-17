@@ -1977,29 +1977,38 @@ namespace DarkMultiPlayerServer
                 }
             }
         }
-
-        public static void SendConnectionEndToClient(ClientObject client, string reason)
-        {
-                if (client.authenticated)
-                {
-                    SendConnectionEnd(client, reason);
-                }
-        }
         #endregion
         #region Server commands
         public static void KickPlayer(string commandArgs)
         {
+            string playerName = commandArgs;
+            string reason = "";
+            if (commandArgs.Contains(" "))
+            {
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
             ClientObject player = null;
 
-            if (commandArgs != "")
+            if (playerName != "")
             {
-                player = GetClientByName(commandArgs);
-                DarkLog.Normal(String.Format("Kicking {0} from the server - no reason specified", commandArgs));
-                SendConnectionEnd(player, "kicked from the server");
+                player = GetClientByName(playerName);
+                if (player != null)
+                {
+                    DarkLog.Normal("Kicking " + playerName + " from the server");
+                    if (reason != "")
+                    {
+                        SendConnectionEnd(player, "Kicked from the server, " + reason);
+                    }
+                    else
+                    {
+                        SendConnectionEnd(player, "Kicked from the server");
+                    }
+                }
             }
             else
             {
-                DarkLog.Error("Syntax error. Usage: /kick <playername>");
+                DarkLog.Error("Syntax error. Usage: /kick playername [reason]");
             }
         }
         #endregion

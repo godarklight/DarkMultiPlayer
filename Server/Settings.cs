@@ -13,8 +13,6 @@ namespace DarkMultiPlayerServer
         private static string settingsFile = Path.Combine(serverPath, SETTINGS_FILE_NAME);
         //Port
         public static SettingsStore settingsStore = new SettingsStore();
-        public static bool useUTCTimeInLog;
-            useUTCTimeInLog = false;
 
         public static void Load()
         {
@@ -133,8 +131,6 @@ namespace DarkMultiPlayerServer
                             sw.WriteLine(settingField.Name.ToLower() + "," + (int)settingField.GetValue(settingsStore));
                         }
                         sw.WriteLine("");
-                    sw.WriteLine("#useUTC - displays the time in UTC/GMT format instead of displaying the elapsed milliseconds.");
-                    sw.WriteLine("useUTC," + (useUTCTimeInLog ? "1" : "0"));
                     }
                 }
             }
@@ -152,6 +148,8 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("warpMode", "Specify the warp type");
             descriptionList.Add("gameMode", "Specify the game type");
             descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
+            descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
+            descriptionList.Add("logLevel", "Minimum log level.");
             return descriptionList;
         }
     }
@@ -162,5 +160,7 @@ namespace DarkMultiPlayerServer
         public WarpMode warpMode = WarpMode.SUBSPACE;
         public GameMode gameMode = GameMode.SANDBOX;
         public bool modControl = true;
+        public bool useUTCTimeInLog = false;
+        public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
     }
 }

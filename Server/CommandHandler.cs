@@ -19,6 +19,7 @@ namespace DarkMultiPlayerServer
             while (Server.serverRunning)
             {
                 string input = Console.ReadLine();
+                DarkLog.Normal("Command input: " + input);
                 if (input.StartsWith("/"))
                 {
                     string commandPart = input.Substring(1);
