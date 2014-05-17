@@ -13,7 +13,6 @@ namespace DarkMultiPlayerServer
 
     public class ClientHandler
     {
-
         public class Bans
         {
             public string BannedName { get; set; }
@@ -479,8 +478,6 @@ namespace DarkMultiPlayerServer
 
         private static void SetupClient(TcpClient newClientConnection)
         {
-            string splitIP;
-
             ClientObject newClientObject = new ClientObject();
             newClientObject.subspace = GetLatestSubspace();
             newClientObject.playerStatus = new PlayerStatus();
@@ -489,11 +486,8 @@ namespace DarkMultiPlayerServer
             newClientObject.activeVessel = "";
             newClientObject.subspaceRate = 1f;
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
-            splitIP = newClientObject.endpoint.Substring(0, newClientObject.endpoint.IndexOf(":"));
-
             newClientObject.ipAddress = (newClientConnection.Client.RemoteEndPoint as IPEndPoint).Address;
             newClientObject.GUID = Guid.Empty;
-
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
             //Add the queues
