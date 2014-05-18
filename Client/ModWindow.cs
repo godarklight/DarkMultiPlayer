@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
         public bool display;
         private bool safeDisplay;
         private bool initialized;
-        private static ModWindow singleton;
+        private static ModWindow singleton = new ModWindow();
         private Rect windowRect;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
@@ -19,6 +19,12 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 600;
+
+        public ModWindow()
+        {
+            Client.updateEvent.Add(this.Update);
+            Client.drawEvent.Add(this.Draw);
+        }
 
         public static ModWindow fetch
         {
@@ -77,21 +83,6 @@ namespace DarkMultiPlayer
                 display = false;
             }
             GUILayout.EndVertical();
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new ModWindow();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
         }
     }
 }
