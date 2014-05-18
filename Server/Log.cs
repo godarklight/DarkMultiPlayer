@@ -5,8 +5,8 @@ namespace DarkMultiPlayerServer
 {
     public class DarkLog
     {
-        private static string LogFolder = "logs";
-        private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("dd-MM-yyyy HH-mm-ss") + ".log");
+        private static string LogFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "logs");
+        private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
 
         public enum LogLevels : int
         {
@@ -15,36 +15,27 @@ namespace DarkMultiPlayerServer
             ERROR = 2,
         }
 
-        public static LogLevels minLogLevel { get; set; }
-
         private static void WriteLog(LogLevels level, string message)
         {
 
             if (!Directory.Exists(LogFolder))
+            {
                 Directory.CreateDirectory(LogFolder);
-
-            string output;
-
-            float currentTime = Server.serverClock.ElapsedMilliseconds / 1000f;
-
-            if (level < minLogLevel) { return; }
-
-            if (Settings.settingsStore.useUTCTimeInLog == true)
-                output = "[" + DateTime.UtcNow.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
-            else
-                output = "[" + DateTime.UtcNow.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
-
-
-            Console.WriteLine(output);
-            try
-            {
-                File.AppendAllText(LogFilename, output + Environment.NewLine);
-            }
-            catch (Exception e)
-            {
-                Error("Error writing to log file!, Exception: " + e);
             }
 
+            if (level >= Settings.settingsStore.logLevel)
+            {
+                string output = "[" + DateTime.UtcNow.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
+                Console.WriteLine(output);
+                try
+                {
+                    File.AppendAllText(LogFilename, output + Environment.NewLine);
+                }
+                catch (Exception e)
+                {
+                    Error("Error writing to log file!, Exception: " + e);
+                }
+            }
         }
 
         public static void Debug(string message)
@@ -53,11 +44,13 @@ namespace DarkMultiPlayerServer
             WriteLog(LogLevels.DEBUG, message);
             Console.ForegroundColor = ConsoleColor.Gray;
         }
+
         public static void Normal(string message)
         {
             Console.ForegroundColor = ConsoleColor.Gray;
             WriteLog(LogLevels.INFO, message);
         }
+
         public static void Error(string message)
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;

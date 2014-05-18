@@ -519,7 +519,10 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error saving bans!, Exception: " + e);
+            }
         }
 
         private static void LoadBans()
@@ -546,11 +549,14 @@ namespace DarkMultiPlayerServer
 
                             bans.Add(newBan);
                         }
-                        catch { }
+                        catch { } // ?
                     }
                 }
             }
-            catch { }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error loading bans!, Exception: " + e);
+            }
         }
 
         #endregion
