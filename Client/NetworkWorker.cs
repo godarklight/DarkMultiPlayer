@@ -839,6 +839,11 @@ namespace DarkMultiPlayer
             {
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
+                bool isDockingUpdate = mr.Read<bool>();
+                if (isDockingUpdate)
+                {
+                    DarkLog.Debug("Got a docking update!");
+                }
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
                 string tempFile = Path.GetTempFileName();
@@ -922,7 +927,14 @@ namespace DarkMultiPlayer
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
-                VesselWorker.fetch.QueueVesselRemove(subspaceID, planetTime, vesselID);
+                bool isDockingUpdate = mr.Read<bool>();
+                string dockingPlayer = null;
+                if (isDockingUpdate)
+                {
+                    DarkLog.Debug("Got a docking update!");
+                    dockingPlayer = mr.Read<string>();
+                }
+                VesselWorker.fetch.QueueVesselRemove(subspaceID, planetTime, vesselID, isDockingUpdate, dockingPlayer);
             }
         }
 
@@ -1164,7 +1176,7 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from vesselWorker
-        public void SendVesselProtoMessage(ProtoVessel vessel)
+        public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate)
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
@@ -1179,6 +1191,7 @@ namespace DarkMultiPlayer
                     mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
+                    mw.Write<bool>(isDockingUpdate);
                     mw.Write<byte[]>(File.ReadAllBytes(tempFile));
                     newMessage.data = mw.GetMessageBytes();
                 }
@@ -1226,7 +1239,7 @@ namespace DarkMultiPlayer
             sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from vesselWorker
-        public void SendVesselRemove(string vesselID)
+        public void SendVesselRemove(string vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
@@ -1236,6 +1249,11 @@ namespace DarkMultiPlayer
                 mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(vesselID);
+                mw.Write<bool>(isDockingUpdate);
+                if (isDockingUpdate)
+                {
+                    mw.Write<string>(Settings.fetch.playerName);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             sendMessageQueueLow.Enqueue(newMessage);

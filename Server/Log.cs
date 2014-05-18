@@ -17,7 +17,6 @@ namespace DarkMultiPlayerServer
 
         private static void WriteLog(LogLevels level, string message)
         {
-
             if (!Directory.Exists(LogFolder))
             {
                 Directory.CreateDirectory(LogFolder);

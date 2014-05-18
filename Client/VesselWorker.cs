@@ -28,6 +28,8 @@ namespace DarkMultiPlayer
         private ScreenMessage bannedPartsMessage;
         private string bannedPartsString = "";
         private float lastBannedPartsMessageUpdate;
+        private float lastDockingMessageUpdate;
+        private ScreenMessage dockingMessage;
         //Incoming queue
         private object createSubspaceLock = new object();
         private Dictionary<int, Queue<VesselRemoveEntry>> vesselRemoveQueue = new Dictionary<int, Queue<VesselRemoveEntry>>();
@@ -39,7 +41,7 @@ namespace DarkMultiPlayer
         private Dictionary<string, bool> vesselPartsOk = new Dictionary<string, bool>();
         //Vessel state tracking
         private string lastVessel;
-        private int lastPartCount;
+        private Dictionary <string, int> vesselPartCount = new Dictionary<string, int>();
         //Known kerbals
         private Dictionary<int, ProtoCrewMember> serverKerbals = new Dictionary<int, ProtoCrewMember>();
         public Dictionary<int, string> assignedKerbals = new Dictionary<int, string>();
@@ -54,7 +56,14 @@ namespace DarkMultiPlayer
         private bool wasSpectating;
         private int spectateType;
         private bool destroyIsValid;
+        private int reenableDestroyInFixedUpdates;
         private Vessel switchActiveVesselOnNextUpdate;
+        private string fromDockedVesselID;
+        private string toDockedVesselID;
+        private bool sentDockingDestroyUpdate;
+        private bool isSpectatorDocking;
+        private string spectatorDockingPlayer;
+        private string spectatorDockingID;
 
         public static VesselWorker fetch
         {
@@ -75,6 +84,7 @@ namespace DarkMultiPlayer
                 GameEvents.onVesselDestroy.Add(OnVesselDestroyed);
                 GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
                 GameEvents.onFlightReady.Add(OnFlightReady);
+                GameEvents.onPartCouple.Add(OnVesselDock);
             }
             if (!workerEnabled && registered)
             {
@@ -84,6 +94,7 @@ namespace DarkMultiPlayer
                 GameEvents.onVesselDestroy.Remove(OnVesselDestroyed);
                 GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
                 GameEvents.onFlightReady.Remove(OnFlightReady);
+                GameEvents.onPartCouple.Remove(OnVesselDock);
             }
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
@@ -93,6 +104,27 @@ namespace DarkMultiPlayer
                 {
                     FlightGlobals.ForceSetActiveVessel(switchActiveVesselOnNextUpdate);
                     switchActiveVesselOnNextUpdate = null;
+                }
+
+                if (fromDockedVesselID != null || toDockedVesselID != null)
+                {
+                    HandleDocking();
+                }
+
+                if (isSpectatorDocking)
+                {
+                    HandleSpectatorDocking();
+                }
+
+
+                if (reenableDestroyInFixedUpdates > 1)
+                {
+                    reenableDestroyInFixedUpdates--;
+                    if (reenableDestroyInFixedUpdates == 0)
+                    {
+                        DarkLog.Debug("Destroy is valid");
+                        destroyIsValid = true;
+                    }
                 }
 
                 //State tracking the active players vessels.
@@ -121,6 +153,75 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandleDocking()
+        {
+            if (sentDockingDestroyUpdate && FlightGlobals.fetch.activeVessel != null)
+            {
+                if (!FlightGlobals.fetch.activeVessel.packed)
+                {
+                    serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                    serverVesselsPositionUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                    if (!serverVessels.Contains(FlightGlobals.fetch.activeVessel.id.ToString()))
+                    {
+                        serverVessels.Add(FlightGlobals.fetch.activeVessel.id.ToString());
+                    }
+                    vesselPartCount[FlightGlobals.fetch.activeVessel.id.ToString()] = FlightGlobals.fetch.activeVessel.parts.Count;
+                    //Resend active vessel id so spectators can catch which vessel is used.
+                    PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
+                    SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
+                    NetworkWorker.fetch.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
+                    lastVessel = FlightGlobals.ActiveVessel.id.ToString();
+                    //Send protovessel
+                    NetworkWorker.fetch.SendVesselProtoMessage(new ProtoVessel(FlightGlobals.fetch.activeVessel), true);
+                    fromDockedVesselID = null;
+                    toDockedVesselID = null;
+                    sentDockingDestroyUpdate = false;
+                    DarkLog.Debug("Docking event over!");
+                }
+                else
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
+                    {
+                        lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        if (dockingMessage != null)
+                        {
+                            dockingMessage.duration = 0f;
+                        }
+                        dockingMessage = ScreenMessages.PostScreenMessage("Docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                }
+            }
+        }
+
+        private void HandleSpectatorDocking()
+        {
+            if (spectatorDockingID == null)
+            {
+                if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
+                {
+                    lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                    if (dockingMessage != null)
+                    {
+                        dockingMessage.duration = 0f;
+                    }
+                    dockingMessage = ScreenMessages.PostScreenMessage("Spectating docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
+                }
+            }
+            else
+            {
+                Vessel switchToVessel = null;
+                switchToVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == spectatorDockingID);
+                if (switchToVessel != null)
+                {
+                    KillVessel(FlightGlobals.fetch.activeVessel);
+                    FlightGlobals.ForceSetActiveVessel(switchToVessel);
+                    isSpectatorDocking = false;
+                    spectatorDockingID = null;
+                    spectatorDockingPlayer = null;
+                }
+            }
+        }
+
         private void UpdateOtherPlayersActiveVesselStatus()
         {
             while (newActiveVessels.Count > 0)
@@ -130,6 +231,10 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Player " + ave.player + " is now flying " + ave.vesselID);
                     SetInUse(ave.vesselID, ave.player);
+                    if (isSpectatorDocking && ave.player == spectatorDockingPlayer)
+                    {
+                        spectatorDockingID = ave.vesselID;
+                    }
                 }
                 else
                 {
@@ -147,7 +252,7 @@ namespace DarkMultiPlayer
                 while (vesselRemoveSubspace.Value.Count > 0 ? (vesselRemoveSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
                     VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
-                    RemoveVessel(removeVessel.vesselID);
+                    RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
                 }
             }
             foreach (KeyValuePair<int, Queue<KerbalEntry>> kerbalProtoSubspace in kerbalProtoQueue)
@@ -162,8 +267,8 @@ namespace DarkMultiPlayer
             {
                 while (vesselProtoSubspace.Value.Count > 0 ? (vesselProtoSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
-                    VesselProtoUpdate vesselNode = vesselProtoSubspace.Value.Dequeue();
-                    LoadVessel(vesselNode.vesselNode);
+                    VesselProtoUpdate vpu = vesselProtoSubspace.Value.Dequeue();
+                    LoadVessel(vpu.vesselNode);
                 }
             }
             foreach (KeyValuePair<int, Queue<VesselUpdate>> vesselUpdateSubspace in vesselUpdateQueue)
@@ -178,7 +283,6 @@ namespace DarkMultiPlayer
 
         private void UpdateOnScreenSpectateMessage()
         {
-            
             if ((UnityEngine.Time.realtimeSinceStartup - lastSpectateMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
             {
                 lastSpectateMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
@@ -299,16 +403,19 @@ namespace DarkMultiPlayer
         {
             if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
             {
-                if (!isSpectating && FlightGlobals.fetch.activeVessel.loaded && !FlightGlobals.fetch.activeVessel.packed)
+                foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
                 {
-                    if (FlightGlobals.fetch.activeVessel.parts.Count != lastPartCount)
+                    if (!isSpectating && checkVessel.loaded && !checkVessel.packed)
                     {
-                        lastPartCount = FlightGlobals.fetch.activeVessel.parts.Count;
-                        serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = 0;
-                        if (vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+                        if (vesselPartCount.ContainsKey(checkVessel.id.ToString()) ? checkVessel.parts.Count != vesselPartCount[checkVessel.id.ToString()] : true)
                         {
-                            DarkLog.Debug("Forcing parts recheck on " + FlightGlobals.fetch.activeVessel.id.ToString());
-                            vesselPartsOk.Remove(FlightGlobals.fetch.activeVessel.id.ToString());
+                            vesselPartCount[checkVessel.id.ToString()] = checkVessel.parts.Count;
+                            serverVesselsProtoUpdate[checkVessel.id.ToString()] = 0;
+                            if (vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
+                            {
+                                DarkLog.Debug("Forcing parts recheck on " + checkVessel.id.ToString());
+                                vesselPartsOk.Remove(checkVessel.id.ToString());
+                            }
                         }
                     }
                 }
@@ -472,7 +579,6 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-
             if (!anotherPlayerCloser)
             {
                 //Check that is hasn't been recently sent
@@ -530,7 +636,7 @@ namespace DarkMultiPlayer
                             {
                                 serverVessels.Add(checkProto.vesselID.ToString());
                             }
-                            NetworkWorker.fetch.SendVesselProtoMessage(checkProto);
+                            NetworkWorker.fetch.SendVesselProtoMessage(checkProto, false);
                         }
                         else
                         {
@@ -546,14 +652,10 @@ namespace DarkMultiPlayer
                 {
                     //Send a position update
                     serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-
-                    if (!anotherPlayerCloser)
+                    VesselUpdate update = GetVesselUpdate(checkVessel);
+                    if (update != null)
                     {
-                        VesselUpdate update = GetVesselUpdate(checkVessel);
-                        if (update != null)
-                        {
-                            NetworkWorker.fetch.SendVesselUpdate(update);
-                        }
+                        NetworkWorker.fetch.SendVesselUpdate(update);
                     }
                 }
             }
@@ -565,6 +667,11 @@ namespace DarkMultiPlayer
             {
                 if (FlightGlobals.fetch.activeVessel != null)
                 {
+                    if (isSpectatorDocking)
+                    {
+                        spectateType = 1;
+                        return true;
+                    }
                     if (inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
                         if (inUse[FlightGlobals.ActiveVessel.id.ToString()] != Settings.fetch.playerName)
@@ -904,7 +1011,7 @@ namespace DarkMultiPlayer
                     if (isProtoVesselInSafetyBubble(currentProto))
                     {
                         DarkLog.Debug("Removing protovessel " + currentProto.vesselID.ToString() + ", name: " + currentProto.vesselName + " from server - In safety bubble!");
-                        NetworkWorker.fetch.SendVesselRemove(currentProto.vesselID.ToString());
+                        NetworkWorker.fetch.SendVesselRemove(currentProto.vesselID.ToString(), false);
                         return;
                     }
                     if (!serverVessels.Contains(currentProto.vesselID.ToString()))
@@ -949,8 +1056,7 @@ namespace DarkMultiPlayer
                     }
 
                     //Kill old vessels, temporarily turning off destruction notifications to the server.
-                    bool oldDestroyIsValid = destroyIsValid;
-                    destroyIsValid = false;
+
                     for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
                     {
                         Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
@@ -959,7 +1065,6 @@ namespace DarkMultiPlayer
                             KillVessel(oldVessel);
                         }
                     }
-                    destroyIsValid = oldDestroyIsValid;
 
                     serverVesselsProtoUpdate[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
@@ -998,6 +1103,21 @@ namespace DarkMultiPlayer
 
         public void OnVesselDestroyed(Vessel dyingVessel)
         {
+            //Docking destructions
+            DarkLog.Debug("OnVesselDestroyed called for " + dyingVessel.id.ToString());
+            if (dyingVessel.id.ToString() == fromDockedVesselID || dyingVessel.id.ToString() == toDockedVesselID)
+            {
+                DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Docked");
+                unassignKerbals(dyingVessel.id.ToString());
+                if (serverVessels.Contains(dyingVessel.id.ToString()))
+                {
+                    serverVessels.Remove(dyingVessel.id.ToString());
+                }
+                NetworkWorker.fetch.SendVesselRemove(dyingVessel.id.ToString(), true);
+                sentDockingDestroyUpdate = true;
+                return;
+            }
+            //Normal destructions
             if (destroyIsValid)
             {
                 if (latestVesselUpdate.ContainsKey(dyingVessel.id.ToString()) ? latestVesselUpdate[dyingVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
@@ -1010,7 +1130,7 @@ namespace DarkMultiPlayer
                             DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
                             unassignKerbals(dyingVessel.id.ToString());
                             serverVessels.Remove(dyingVessel.id.ToString());
-                            NetworkWorker.fetch.SendVesselRemove(dyingVessel.id.ToString());
+                            NetworkWorker.fetch.SendVesselRemove(dyingVessel.id.ToString(), false);
                         }
                         else
                         {
@@ -1047,7 +1167,7 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Removing vessel " + recoveredVessel.vesselID.ToString() + ", name: " + recoveredVessel.vesselName + " from the server: Recovered");
                         unassignKerbals(recoveredVessel.vesselID.ToString());
                         serverVessels.Remove(recoveredVessel.vesselID.ToString());
-                        NetworkWorker.fetch.SendVesselRemove(recoveredVessel.vesselID.ToString());
+                        NetworkWorker.fetch.SendVesselRemove(recoveredVessel.vesselID.ToString(), false);
                     }
                     else
                     {
@@ -1078,7 +1198,7 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Removing vessel " + terminatedVessel.vesselID.ToString() + ", name: " + terminatedVessel.vesselName + " from the server: Terminated");
                         unassignKerbals(terminatedVessel.vesselID.ToString());
                         serverVessels.Remove(terminatedVessel.vesselID.ToString());
-                        NetworkWorker.fetch.SendVesselRemove(terminatedVessel.vesselID.ToString());
+                        NetworkWorker.fetch.SendVesselRemove(terminatedVessel.vesselID.ToString(), false);
                     }
                     else
                     {
@@ -1114,6 +1234,42 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void OnVesselDock(GameEvents.FromToAction<Part, Part> partAction)
+        {
+            DarkLog.Debug("Vessel docking detected!");
+            if (!isSpectating)
+            {
+                if (partAction.from.vessel != null && partAction.to.vessel != null)
+                {
+                    if (partAction.from.vessel == FlightGlobals.fetch.activeVessel || partAction.to.vessel == FlightGlobals.fetch.activeVessel)
+                    {                    
+                        DarkLog.Debug("Vessel docking, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
+                        DarkLog.Debug("Vessel docking, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
+                        if (FlightGlobals.fetch.activeVessel != null)
+                        {
+                            DarkLog.Debug("Vessel docking, our vessel: " + FlightGlobals.fetch.activeVessel.id);
+                        }
+                        fromDockedVesselID = partAction.from.vessel.id.ToString();
+                        toDockedVesselID = partAction.to.vessel.id.ToString();
+                    }
+                }
+            }
+            else
+            {
+                //We need to get the spectator to stay spectating until the master has docked.
+                DarkLog.Debug("Docked during spectate mode");
+                if (inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
+                {
+                    isSpectatorDocking = true;
+                    spectatorDockingPlayer = inUse[FlightGlobals.ActiveVessel.id.ToString()];
+                }
+                else
+                {
+                    HighLogic.LoadScene(GameScenes.TRACKSTATION);
+                }
+            }
+        }
+
         private void unassignKerbals(string vesselID)
         {
             List<int> unassignKerbals = new List<int>();
@@ -1139,39 +1295,84 @@ namespace DarkMultiPlayer
         {
             if (killVessel != null)
             {
+                bool oldDestroyIsValid = destroyIsValid;
+                destroyIsValid = false;
+                if (oldDestroyIsValid)
+                {
+                    DarkLog.Debug("Disabling vessel destroy for vessel killing");
+                }
                 DarkLog.Debug("Killing vessel: " + killVessel.id.ToString());
-                if (!killVessel.packed)
+                try
                 {
-                    killVessel.GoOnRails();
+                    if (!killVessel.packed)
+                    {
+                        killVessel.GoOnRails();
+                    }
+                    if (killVessel.loaded)
+                    {
+                        killVessel.Unload();
+                    }
+                    killVessel.Die();
                 }
-                if (killVessel.loaded)
+                catch (Exception e)
                 {
-                    killVessel.Unload();
+                    DarkLog.Debug("Error destroying vessel: " + e);
                 }
-                killVessel.Die();
+                if (oldDestroyIsValid)
+                {
+                    reenableDestroyInFixedUpdates = 5;
+                }
             }
         }
 
-        private void RemoveVessel(string vesselID)
+        private void RemoveVessel(string vesselID, bool isDockingUpdate, string dockingPlayer)
         {
             for (int i = FlightGlobals.fetch.vessels.Count - 1; i >= 0; i--)
             {
                 Vessel checkVessel = FlightGlobals.fetch.vessels[i];
                 if (checkVessel.id.ToString() == vesselID)
                 {
-                    if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == checkVessel.id.ToString() : false)
+                    if (isDockingUpdate)
                     {
-                        if (!isSpectating)
+                        if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == checkVessel.id.ToString() : false)
                         {
-                            //Got a remove message for our vessel, reset the send time on our vessel so we send it back.
-                            DarkLog.Debug("Resending vessel, our vessel was removed by another player");
-                            serverVesselsProtoUpdate[vesselID] = 0f;
+                            Vessel dockingPlayerVessel = null;
+                            foreach (Vessel findVessel in FlightGlobals.fetch.vessels)
+                            {
+                                if (inUse[findVessel.id.ToString()] == dockingPlayer)
+                                {
+                                    dockingPlayerVessel = findVessel;
+                                }
+                            }
+                            if (dockingPlayerVessel != null)
+                            {
+                                FlightGlobals.ForceSetActiveVessel(dockingPlayerVessel);
+                            }
+                            else
+                            {
+                                HighLogic.LoadScene(GameScenes.TRACKSTATION);
+                                ScreenMessages.PostScreenMessage("Kicked to tracking station, a player docked with you but they were not loaded into the game.");
+                            }
                         }
+                        DarkLog.Debug("Removing docked vessel: " + vesselID);
+                        KillVessel(checkVessel);
                     }
                     else
                     {
-                        DarkLog.Debug("Removing vessel: " + vesselID);
-                        KillVessel(checkVessel);
+                        if (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == checkVessel.id.ToString() : false)
+                        {
+                            if (!isSpectating)
+                            {
+                                //Got a remove message for our vessel, reset the send time on our vessel so we send it back.
+                                DarkLog.Debug("Resending vessel, our vessel was removed by another player");
+                                serverVesselsProtoUpdate[vesselID] = 0f;
+                            }
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Removing vessel: " + vesselID);
+                            KillVessel(checkVessel);
+                        }
                     }
                 }
             }
@@ -1291,7 +1492,7 @@ namespace DarkMultiPlayer
             kerbalProtoQueue[subspace].Enqueue(newEntry);
         }
         //Called from networkWorker
-        public void QueueVesselRemove(int subspace, double planetTime, string vesselID)
+        public void QueueVesselRemove(int subspace, double planetTime, string vesselID, bool isDockingUpdate, string dockingPlayer)
         {
             if (!vesselRemoveQueue.ContainsKey(subspace))
             {
@@ -1300,6 +1501,8 @@ namespace DarkMultiPlayer
             VesselRemoveEntry vre = new VesselRemoveEntry();
             vre.planetTime = planetTime;
             vre.vesselID = vesselID;
+            vre.isDockingUpdate = isDockingUpdate;
+            vre.dockingPlayer = dockingPlayer;
             vesselRemoveQueue[subspace].Enqueue(vre);
             if (latestVesselUpdate.ContainsKey(vesselID) ? latestVesselUpdate[vesselID] < planetTime : true)
             {
@@ -1401,6 +1604,8 @@ namespace DarkMultiPlayer
     {
         public string vesselID;
         public double planetTime;
+        public bool isDockingUpdate;
+        public string dockingPlayer;
     }
 
     class VesselProtoUpdate

@@ -115,6 +115,8 @@ namespace DarkMultiPlayer
                     Client.updateEvent.Remove(singleton.Update);
                 }
                 singleton = new DynamicTickWorker();
+                singleton.maxSecondryVesselsPerTick = MASTER_MAX_SECONDRY_VESSELS;
+                singleton.sendTickRate = MASTER_MAX_TICKS_PER_SECOND;
                 Client.updateEvent.Add(singleton.Update);
             }
         }
