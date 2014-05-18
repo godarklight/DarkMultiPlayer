@@ -64,7 +64,10 @@ namespace DarkMultiPlayer
         {
             CheckDisconnection();
             SendHeartBeat();
-            SendOutgoingMessages();
+            if (!isSendingMessage)
+            {
+                SendOutgoingMessages();
+            }
             if (state == ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending handshake!");
@@ -125,6 +128,7 @@ namespace DarkMultiPlayer
                 DynamicTickWorker.fetch.workerEnabled = true;
                 WarpWorker.fetch.workerEnabled = true;
                 CraftLibraryWorker.fetch.workerEnabled = true;
+                ScreenshotWorker.fetch.workerEnabled = true;
             }
         }
         #region Connecting to server
@@ -467,6 +471,7 @@ namespace DarkMultiPlayer
             {
                 clientConnection.GetStream().EndWrite(ar);
                 isSendingMessage = false;
+                SendOutgoingMessages();
             }
             catch (Exception e)
             {
@@ -568,6 +573,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.CRAFT_LIBRARY:
                         HandleCraftLibrary(message.data);
+                        break;
+                    case ServerMessageType.SCREENSHOT_LIBRARY:
+                        HandleScreenshotLibrary(message.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
@@ -710,6 +718,7 @@ namespace DarkMultiPlayer
                 Client.fetch.gameMode = (GameMode)mr.Read<int>();
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
+                ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
             }
         }
 
@@ -1033,6 +1042,37 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandleScreenshotLibrary(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
+                switch (messageType)
+                {
+                    case ScreenshotMessageType.LIST:
+                        {
+                            DarkLog.Debug("TODO: Handle screenshot message list");
+                        }
+                        break;
+                    case ScreenshotMessageType.SCREENSHOT:
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            byte[] screenshotData = mr.Read<byte[]>();
+                            ScreenshotWorker.fetch.QueueNewScreenshot(fromPlayer, screenshotData);
+                        }
+                        break;
+                    case ScreenshotMessageType.WATCH:
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            string watchPlayer = mr.Read<string>();
+                            ScreenshotWorker.fetch.QueueNewScreenshotWatch(fromPlayer, watchPlayer);
+                        }
+                        break;
+
+                }
+            }
+        }
+
         private void HandleSetSubspace(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -1263,6 +1303,14 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CRAFT_LIBRARY;
+            newMessage.data = messageData;
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+        //Called from ScreenshotWorker
+        public void SendScreenshotMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SCREENSHOT_LIBRARY;
             newMessage.data = messageData;
             sendMessageQueueLow.Enqueue(newMessage);
         }
