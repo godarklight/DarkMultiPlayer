@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         //Global state vars
         public string status;
         public bool forceQuit;
+        public bool showGUI = true;
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public GameMode gameMode;
@@ -60,6 +61,14 @@ namespace DarkMultiPlayer
                 resetEvent.Add(TimeSyncer.Reset);
                 resetEvent.Add(VesselWorker.Reset);
                 resetEvent.Add(WarpWorker.Reset);
+                GameEvents.onHideUI.Add(() =>
+                {
+                    showGUI = false;
+                });
+                GameEvents.onShowUI.Add(() =>
+                {
+                    showGUI = true;
+                });
             }
             FireResetEvent();
             DarkLog.Debug("DarkMultiPlayer Initialized!");
@@ -209,17 +218,20 @@ namespace DarkMultiPlayer
             //Craft library window: 6707
             //Craft upload window: 6708
             //Craft download window: 6709
-            foreach (Action drawAction in drawEvent)
+            if (showGUI)
             {
-                try
+                foreach (Action drawAction in drawEvent)
                 {
-                    drawAction();
+                    try
+                    {
+                        drawAction();
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Debug("Threw in OnGUI event, exception: " + e);
+                    }
                 }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Threw in OnGUI event, exception: " + e);
-                }
-            }       
+            }
         }
 
         public void OnDestroy()
