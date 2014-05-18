@@ -48,8 +48,6 @@ namespace DarkMultiPlayerServer
             }
             DarkLog.Normal("Done!");
 
-            DarkLog.Normal("Loaded " + ClientHandler.bans.Count + " bans.");
-
             while (serverRunning)
             {
                 Thread.Sleep(500);

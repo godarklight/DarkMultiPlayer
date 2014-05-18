@@ -13,14 +13,6 @@ namespace DarkMultiPlayerServer
 
     public class ClientHandler
     {
-        public class BanRecord
-        {
-            public string BannedName { get; set; }
-            public IPAddress BannedIP { get; set;}
-            public Guid BannedGuid { get; set; }
-            public string Reason { get; set;  }
-        }
-
         //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
         private static Queue<ClientObject> addClients;
@@ -33,14 +25,10 @@ namespace DarkMultiPlayerServer
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPBans.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
 
-        private static List<BanRecord> _bans = new List<BanRecord>();
-        internal static List<BanRecord> bans
-        {
-            get
-            {
-                return _bans;
-            }
-        }
+        private static List<string> bannedNames = new List<string>();
+        private static List<IPAddress> bannedIPs = new List<IPAddress>();
+        private static List<Guid> bannedGUIDs = new List<Guid>();
+        private static List<string> banReasons = new List<string>();
 
         #region Main loop
         public static void ThreadMain()
@@ -66,7 +54,6 @@ namespace DarkMultiPlayerServer
                 {
                     CheckHeartBeat(client);
                     SendOutgoingMessages(client);
-                    //CheckIsBanned(client);
                 }
                 //Delete old clients
                 while (deleteClients.Count > 0)
@@ -513,9 +500,12 @@ namespace DarkMultiPlayerServer
                 {
                     sw.WriteLine("#BannedName\tBannedIP\tBannedGUID\tReason");
 
-                    foreach (var ban in bans)
+                    foreach (var name in bannedNames)
+                    foreach (var ip in bannedIPs)
+                    foreach (var guid in bannedGUIDs)
+                    foreach (var reason in banReasons)
                     {
-                        sw.WriteLine("{0}\t{1}\t{2}\t{3}", ban.BannedName, ban.BannedIP, ban.BannedGuid, ban.Reason);
+                        sw.WriteLine("{0}\t{1}\t{2}\t{3}", name, ip, guid, reason);
                     }
                 }
             }
@@ -531,7 +521,10 @@ namespace DarkMultiPlayerServer
             {
                 if (File.Exists(banlistFile))
                 {
-                    bans.Clear();
+                    bannedNames.Clear();
+                    bannedIPs.Clear();
+                    bannedGUIDs.Clear();
+                    banReasons.Clear();
 
                     foreach (var line in File.ReadAllLines(banlistFile))
                     {
@@ -539,15 +532,10 @@ namespace DarkMultiPlayerServer
                         {
                             if (line.StartsWith("#")) { continue; }
                             var parts = line.Split('\t');
-                            var newBan = new BanRecord()
-                            {
-                                BannedName = parts[0],
-                                BannedIP = IPAddress.Parse(parts[1]),
-                                BannedGuid = Guid.Parse(parts[2]),
-                                Reason = parts[3],
-                            };
-
-                            bans.Add(newBan);
+                            bannedNames.Add(parts[0]);
+                            bannedIPs.Add(IPAddress.Parse(parts[1]));
+                            bannedGUIDs.Add(Guid.Parse(parts[2]));
+                            banReasons.Add(parts[3]);
                         }
                         catch (Exception e)
                         {
@@ -1020,17 +1008,12 @@ namespace DarkMultiPlayerServer
 
             if (handshakeReponse == 0)
             {
-                foreach (var b in bans)
-                {
-                    if ((b.BannedName == client.playerName) || (b.BannedIP == client.ipAddress) || (b.BannedGuid == client.GUID))
-                        client.isBanned = true;
-                }
-
-                if (client.isBanned)
-                {
-                    handshakeReponse = 5;
-                    reason = "You were banned from the server!";
-                }
+                    if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
+                    {
+                        client.authenticated = false;
+                        handshakeReponse = 5;
+                        reason = "You were banned from the server!";
+                    }
             }
 
             if (handshakeReponse == 0)
@@ -2144,17 +2127,16 @@ namespace DarkMultiPlayerServer
                     if (reason == "")
                         reason = "no reason specified";
 
-                    var ban = new BanRecord()
-                    {
-                        BannedName = player.playerName,
-                        BannedIP = player.ipAddress,
-                        BannedGuid = player.GUID,
-                        Reason = reason,
-                    };
+                    string bannedName = player.playerName;
+                    IPAddress bannedIP = player.ipAddress;
+                    Guid bannedGuid = player.GUID;
 
-                    if (!bans.Contains(ban))
+                    if ((!bannedNames.Contains(bannedName)) && (!bannedIPs.Contains(bannedIP)) && (!bannedGUIDs.Contains(bannedGuid)) )
                     {
-                        bans.Add(ban);
+                        bannedNames.Add(bannedName);
+                        bannedIPs.Add(bannedIP);
+                        bannedGUIDs.Add(bannedGuid);
+                        banReasons.Add(reason);
                         SaveBans();
                         DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
                     }

@@ -148,6 +148,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("warpMode", "Specify the warp type");
             descriptionList.Add("gameMode", "Specify the game type");
             descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
+            descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
             descriptionList.Add("logLevel", "Minimum log level.");
             return descriptionList;
         }
@@ -159,6 +160,7 @@ namespace DarkMultiPlayerServer
         public WarpMode warpMode = WarpMode.SUBSPACE;
         public GameMode gameMode = GameMode.SANDBOX;
         public bool modControl = true;
+        public bool useUTCTimeInLog = false;
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
     }
 }
