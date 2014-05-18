@@ -6,7 +6,7 @@ namespace DarkMultiPlayerServer
     public class DarkLog
     {
         private static string LogFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-        private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + ".log");
+        private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
 
         public enum LogLevels : int
         {
