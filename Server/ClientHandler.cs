@@ -549,7 +549,10 @@ namespace DarkMultiPlayerServer
 
                             bans.Add(newBan);
                         }
-                        catch { } // ?
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        } // ?
                     }
                 }
             }
