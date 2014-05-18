@@ -1192,13 +1192,22 @@ namespace DarkMultiPlayerServer
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
-                DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
+                bool isDockingUpdate = mr.Read<bool>();
+                if (!isDockingUpdate)
+                {
+                    DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
+                }
+                else
+                {
+                    DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
+                }
                 byte[] vesselData = mr.Read<byte[]>();
                 File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>(subspaceID);
                     mw.Write<double>(planetTime);
+                    mw.Write<bool>(isDockingUpdate);
                     mw.Write<byte[]>(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
@@ -1225,12 +1234,20 @@ namespace DarkMultiPlayerServer
                 mr.Read<int>();
                 mr.Read<double>();
                 string vesselID = mr.Read<string>();
-                if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
+                bool isDockingUpdate = mr.Read<bool>();
+                if (!isDockingUpdate)
                 {
                     DarkLog.Debug("Removing vessel " + vesselID + " from " + client.playerName);
-                    File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
-                    //Relay the message.
                 }
+                else
+                {
+                    DarkLog.Debug("Removing DOCKED vessel " + vesselID + " from " + client.playerName);
+                }
+                if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
+                {
+                    File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
+                }
+                //Relay the message.
                 ServerMessage newMessage = new ServerMessage();
                 newMessage.type = ServerMessageType.VESSEL_REMOVE;
                 newMessage.data = messageData;
@@ -1942,6 +1959,7 @@ namespace DarkMultiPlayerServer
                 mw.Write<int>(GetLatestSubspace());
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
+                mw.Write<bool>(false);
                 mw.Write<byte[]>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }
