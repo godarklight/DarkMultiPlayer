@@ -22,6 +22,9 @@ namespace DarkMultiPlayerServer
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
+        private static Dictionary<string, int> playerUploadedScreenshotIndex = new Dictionary<string, int>();
+        private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
+        private static Dictionary<string, string> playerWatchScreenshot = new Dictionary<string, string>();
         #region Main loop
         public static void ThreadMain()
         {
@@ -43,7 +46,10 @@ namespace DarkMultiPlayerServer
                 foreach (ClientObject client in clients)
                 {
                     CheckHeartBeat(client);
-                    SendOutgoingMessages(client);
+                    if (!client.isSendingToClient)
+                    {
+                        SendOutgoingMessages(client);
+                    }
                 }
                 //Delete old clients
                 while (deleteClients.Count > 0)
@@ -642,6 +648,7 @@ namespace DarkMultiPlayerServer
                 DisconnectClient(client);
             }
             client.isSendingToClient = false;
+            SendOutgoingMessages(client);
         }
 
         private static void StartReceivingIncomingMessages(ClientObject client)
@@ -745,6 +752,25 @@ namespace DarkMultiPlayerServer
         {
             if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
             {
+                if (client.playerName != null)
+                {
+                    if (playerChatChannels.ContainsKey(client.playerName))
+                    {
+                        playerChatChannels.Remove(client.playerName);
+                    }
+                    if (playerDownloadedScreenshotIndex.ContainsKey(client.playerName))
+                    {
+                        playerDownloadedScreenshotIndex.Remove(client.playerName);
+                    }
+                    if (playerUploadedScreenshotIndex.ContainsKey(client.playerName))
+                    {
+                        playerUploadedScreenshotIndex.Remove(client.playerName);
+                    }
+                    if (playerWatchScreenshot.ContainsKey(client.playerName))
+                    {
+                        playerWatchScreenshot.Remove(client.playerName);
+                    }
+                }
                 client.connectionStatus = ConnectionStatus.DISCONNECTED;
                 if (client.authenticated)
                 {
@@ -817,6 +843,9 @@ namespace DarkMultiPlayerServer
                         break;
                     case ClientMessageType.CRAFT_LIBRARY:
                         HandleCraftLibrary(client, message.data);
+                        break;
+                    case ClientMessageType.SCREENSHOT_LIBRARY:
+                        HandleScreenshotLibrary(client, message.data);
                         break;
                     case ClientMessageType.SEND_ACTIVE_VESSEL:
                         HandleSendActiveVessel(client, message.data);
@@ -1378,6 +1407,206 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void HandleScreenshotLibrary(ClientObject client, byte[] messageData)
+        {
+            string screenshotDirectory = Path.Combine(Server.universeDirectory, "Screenshots");
+            if (!Directory.Exists(screenshotDirectory))
+            {
+                Directory.CreateDirectory(screenshotDirectory);
+            }
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
+                string fromPlayer = mr.Read<string>();
+                switch (messageType)
+                {
+                    case ScreenshotMessageType.LIST:
+                        {
+                            using (MessageWriter mw = new MessageWriter())
+                            {
+                                mw.Write<int>((int)ScreenshotMessageType.LIST);
+                                string[] playerKeys = new string[playerWatchScreenshot.Count];
+                                string[] playerValues = new string[playerWatchScreenshot.Count];
+                                playerWatchScreenshot.Keys.CopyTo(playerKeys, 0);
+                                playerWatchScreenshot.Values.CopyTo(playerValues, 0);
+                                mw.Write<string[]>(playerKeys);
+                                mw.Write<string[]>(playerValues);
+                                newMessage.data = mw.GetMessageBytes();
+                            }
+                            SendToClient(client, newMessage, false);
+                        }
+                        break;
+                    case ScreenshotMessageType.SCREENSHOT:
+                        {
+                            if (Settings.settingsStore.screenshotsPerPlayer > -1)
+                            {
+                                string playerScreenshotDirectory = Path.Combine(screenshotDirectory, fromPlayer);
+                                if (!Directory.Exists(playerScreenshotDirectory))
+                                {
+                                    Directory.CreateDirectory(playerScreenshotDirectory);
+                                }
+                                string screenshotFile = Path.Combine(playerScreenshotDirectory, DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".png");
+                                DarkLog.Debug("Saving screenshot from " + fromPlayer);
+                            
+                                byte[] screenshotData = mr.Read<byte[]>();
+                            
+                                File.WriteAllBytes(screenshotFile, screenshotData);
+                                if (Settings.settingsStore.screenshotsPerPlayer != 0)
+                                {
+                                    while (Directory.GetFiles(playerScreenshotDirectory).Length > Settings.settingsStore.screenshotsPerPlayer)
+                                    {
+                                        string[] currentFiles = Directory.GetFiles(playerScreenshotDirectory);
+                                        string deleteFile = currentFiles[0];
+                                        //Find oldest file
+                                        foreach (string testFile in currentFiles)
+                                        {
+                                            if (File.GetCreationTime(testFile) < File.GetCreationTime(deleteFile))
+                                            {
+                                                deleteFile = testFile;
+                                            }
+                                        }
+                                        File.Delete(deleteFile);
+                                        DarkLog.Debug("Removing old screenshot " + Path.GetFileName(deleteFile));
+                                    }
+                                }
+                            }
+                            if (!playerUploadedScreenshotIndex.ContainsKey(fromPlayer))
+                            {
+                                playerUploadedScreenshotIndex.Add(fromPlayer, 0);
+                            }
+                            else
+                            {
+                                playerUploadedScreenshotIndex[fromPlayer]++;
+                            }
+                            if (!playerDownloadedScreenshotIndex.ContainsKey(fromPlayer))
+                            {
+                                playerDownloadedScreenshotIndex.Add(fromPlayer, new Dictionary<string, int>());
+                            }
+                            if (!playerDownloadedScreenshotIndex[fromPlayer].ContainsKey(fromPlayer))
+                            {
+                                playerDownloadedScreenshotIndex[fromPlayer].Add(fromPlayer, playerUploadedScreenshotIndex[fromPlayer]);
+                            }
+                            else
+                            {
+                                playerDownloadedScreenshotIndex[fromPlayer][fromPlayer] = playerUploadedScreenshotIndex[fromPlayer];
+                            }
+                            newMessage.data = messageData;
+                            foreach (KeyValuePair<string, string> entry in playerWatchScreenshot)
+                            {
+                                if (entry.Key != fromPlayer)
+                                {
+                                    if (entry.Value == fromPlayer && entry.Key != client.playerName)
+                                    {
+                                        ClientObject toClient = GetClientByName(entry.Key);
+                                        if (toClient != null && toClient != client)
+                                        {
+                                            if (!playerDownloadedScreenshotIndex.ContainsKey(entry.Key))
+                                            {
+                                                playerDownloadedScreenshotIndex.Add(entry.Key, new Dictionary<string, int>());
+                                            }
+                                            if (!playerDownloadedScreenshotIndex[entry.Key].ContainsKey(fromPlayer))
+                                            {
+                                                playerDownloadedScreenshotIndex[entry.Key].Add(fromPlayer, 0);
+                                            }
+                                            playerDownloadedScreenshotIndex[entry.Key][fromPlayer] = playerUploadedScreenshotIndex[fromPlayer];
+                                            DarkLog.Debug("Sending screenshot from " + fromPlayer + " to " + entry.Key);
+                                            SendToClient(toClient, newMessage, false);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        break;
+                    case ScreenshotMessageType.WATCH:
+                        {
+                            newMessage.data = messageData;
+                            string watchPlayer = mr.Read<string>();
+                            if (watchPlayer == "")
+                            {
+                                if (playerWatchScreenshot.ContainsKey(fromPlayer))
+                                {
+                                    DarkLog.Debug(fromPlayer + " is no longer watching screenshots from " + playerWatchScreenshot[fromPlayer]);
+                                    playerWatchScreenshot.Remove(fromPlayer);
+                                }
+                            }
+                            else
+                            {
+                                DarkLog.Debug(fromPlayer + " is watching screenshots from " + watchPlayer);
+                                playerWatchScreenshot[fromPlayer] = watchPlayer;
+                                if (!playerDownloadedScreenshotIndex.ContainsKey(fromPlayer))
+                                {
+                                    playerDownloadedScreenshotIndex.Add(fromPlayer, new Dictionary<string, int>());
+                                }
+                                string watchPlayerScreenshotDirectory = Path.Combine(screenshotDirectory, watchPlayer);
+                                //Find latest screenshot
+                                string sendFile = null;
+                                if (Directory.Exists(watchPlayerScreenshotDirectory))
+                                {
+                                    string[] playerScreenshots = Directory.GetFiles(watchPlayerScreenshotDirectory);
+                                    if (playerScreenshots.Length > 1)
+                                    {
+                                        sendFile = playerScreenshots[0];
+                                        foreach (string testFile in playerScreenshots)
+                                        {
+                                            if (File.GetCreationTime(testFile) > File.GetCreationTime(sendFile))
+                                            {
+                                                sendFile = testFile;
+                                            }
+                                        }
+                                        if (!playerUploadedScreenshotIndex.ContainsKey(watchPlayer))
+                                        {
+                                            playerUploadedScreenshotIndex.Add(watchPlayer, 0);
+                                        }
+                                    }
+                                }
+                                //Send screenshot if needed
+                                if (sendFile != null)
+                                {
+                                    bool sendScreenshot = false;
+                                    if (!playerDownloadedScreenshotIndex[fromPlayer].ContainsKey(watchPlayer))
+                                    {
+                                        playerDownloadedScreenshotIndex[fromPlayer].Add(watchPlayer, playerUploadedScreenshotIndex[watchPlayer]);
+                                        sendScreenshot = true;
+                                    }
+                                    else
+                                    {
+                                        if (playerDownloadedScreenshotIndex[fromPlayer][watchPlayer] != playerUploadedScreenshotIndex[watchPlayer])
+                                        {
+                                            sendScreenshot = true;
+                                            playerDownloadedScreenshotIndex[fromPlayer][watchPlayer] = playerUploadedScreenshotIndex[watchPlayer];
+                                        }
+                                    }
+                                    if (sendScreenshot)
+                                    {
+                                        
+                                        ServerMessage screenshotMessage = new ServerMessage();
+                                        screenshotMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+                                        using (MessageWriter mw = new MessageWriter())
+                                        {
+                                            mw.Write<int>((int)ScreenshotMessageType.SCREENSHOT);
+                                            mw.Write<string>(watchPlayer);
+                                            mw.Write<byte[]>(File.ReadAllBytes(sendFile));
+                                            screenshotMessage.data = mw.GetMessageBytes();
+                                        }
+                                        ClientObject toClient = GetClientByName(fromPlayer);
+                                        if (toClient != null)
+                                        {
+                                            DarkLog.Debug("Sending saved screenshot from " + watchPlayer + " to " + fromPlayer);
+                                            SendToClient(toClient, screenshotMessage, false);
+                                        }
+                                    }
+                                }
+                            }
+                            //Relay the message
+                            SendToAll(client, newMessage, false);
+                        }
+                        break;
+                }
+            }
+        }
+
         private static void HandleSendActiveVessel(ClientObject client, byte[] messageData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -1453,7 +1682,7 @@ namespace DarkMultiPlayerServer
                                 newAverageRate = 1f;
                             }
                             //Relock the subspace if the rate is more than 3% out of the average
-                            DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
+                            //DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
                             if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newAverageRate) > 0.03f)
                             {
                                 //New time = Old time + (seconds since lock * subspace rate)
@@ -1648,7 +1877,8 @@ namespace DarkMultiPlayerServer
                 //Tack the amount of kerbals, vessels and scenario modules onto this message
                 mw.Write<int>(numberOfKerbals);
                 mw.Write<int>(numberOfVessels);
-                mw.Write<int>(numberOfScenarioModules);
+                //mw.Write<int>(numberOfScenarioModules);
+                mw.Write<int>(Settings.settingsStore.screenshotHeight);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -2063,7 +2293,6 @@ namespace DarkMultiPlayerServer
         //State tracking
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
-       
     }
 }
 

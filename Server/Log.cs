@@ -7,6 +7,7 @@ namespace DarkMultiPlayerServer
     {
         private static string LogFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+        private static object logLock = new object();
 
         public enum LogLevels : int
         {
@@ -36,7 +37,9 @@ namespace DarkMultiPlayerServer
                 Console.WriteLine(output);
                 try
                 {
-                    File.AppendAllText(LogFilename, output + Environment.NewLine);
+                    lock (logLock) {
+                        File.AppendAllText(LogFilename, output + Environment.NewLine);
+                    }
                 }
                 catch (Exception e)
                 {

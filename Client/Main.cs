@@ -58,6 +58,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(PlayerStatusWorker.Reset);
                 resetEvent.Add(QuickSaveLoader.Reset);
                 resetEvent.Add(ScenarioWorker.Reset);
+                resetEvent.Add(ScreenshotWorker.Reset);
                 resetEvent.Add(TimeSyncer.Reset);
                 resetEvent.Add(VesselWorker.Reset);
                 resetEvent.Add(WarpWorker.Reset);
@@ -218,6 +219,7 @@ namespace DarkMultiPlayer
             //Craft library window: 6707
             //Craft upload window: 6708
             //Craft download window: 6709
+            //Screenshot window: 6710
             if (showGUI)
             {
                 foreach (Action drawAction in drawEvent)

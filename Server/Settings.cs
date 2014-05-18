@@ -150,6 +150,8 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
             descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
             descriptionList.Add("logLevel", "Minimum log level.");
+            descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
+            descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
             return descriptionList;
         }
     }
@@ -162,5 +164,7 @@ namespace DarkMultiPlayerServer
         public bool modControl = true;
         public bool useUTCTimeInLog = false;
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
+        public int screenshotsPerPlayer = 20;
+        public int screenshotHeight = 720;
     }
 }

@@ -1,0 +1,273 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using MessageStream;
+using DarkMultiPlayerCommon;
+
+namespace DarkMultiPlayer
+{
+    public class ScreenshotWorker
+    {
+        //Height setting
+        public int screenshotHeight = 720;
+        private static ScreenshotWorker singleton;
+        //GUI stuff
+        private bool initialized;
+        public bool workerEnabled;
+        private GUIStyle windowStyle;
+        private GUILayoutOption[] windowLayoutOption;
+        private GUIStyle buttonStyle;
+        private GUILayoutOption[] fixedButtonSizeOption;
+        private GUIStyle scrollStyle;
+        public bool display;
+        private bool safeDisplay;
+        private Rect windowRect;
+        private Rect moveRect;
+        private Vector2 scrollPos;
+        //State tracking
+        private string selectedPlayer = "";
+        private string safeSelectedPlayer = "";
+        private Dictionary<string, Texture2D> screenshots = new Dictionary<string, Texture2D>();
+        private bool uploadEventHandled = true;
+        private Queue<ScreenshotEntry> newScreenshotQueue = new Queue<ScreenshotEntry>();
+        private Queue<ScreenshotWatchEntry> newScreenshotWatchQueue = new Queue<ScreenshotWatchEntry>();
+        private Dictionary<string, string> watchPlayers = new Dictionary<string, string>();
+        //const
+        private const float MIN_WINDOW_HEIGHT = 200;
+        private const float MIN_WINDOW_WIDTH = 150;
+        private const float BUTTON_WIDTH = 150;
+
+        public static ScreenshotWorker fetch
+        {
+            get
+            {
+                return singleton;
+            }
+        }
+
+        private void InitGUI()
+        {
+            windowRect = new Rect(50, (Screen.height / 2f) - (MIN_WINDOW_HEIGHT / 2f), MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
+            moveRect = new Rect(0, 0, 10000, 20);
+            windowLayoutOption = new GUILayoutOption[4];
+            windowLayoutOption[0] = GUILayout.MinWidth(MIN_WINDOW_WIDTH);
+            windowLayoutOption[1] = GUILayout.MinHeight(MIN_WINDOW_HEIGHT);
+            windowLayoutOption[2] = GUILayout.ExpandWidth(true);
+            windowLayoutOption[3] = GUILayout.ExpandHeight(true);
+            windowStyle = new GUIStyle(GUI.skin.window);
+            buttonStyle = new GUIStyle(GUI.skin.button);
+            fixedButtonSizeOption = new GUILayoutOption[2];
+            fixedButtonSizeOption[0] = GUILayout.Width(BUTTON_WIDTH);
+            fixedButtonSizeOption[1] = GUILayout.ExpandWidth(true);
+            scrollStyle = new GUIStyle(GUI.skin.scrollView);
+            scrollPos = new Vector2(0, 0);
+        }
+
+        private void Update()
+        {
+            safeDisplay = display;
+            if (workerEnabled)
+            {
+                while (newScreenshotQueue.Count > 0)
+                {
+                    ScreenshotEntry se = newScreenshotQueue.Dequeue();
+                    Texture2D screenshotTexture = new Texture2D(4,4,TextureFormat.RGB24, false, true);
+                    if (screenshotTexture.LoadImage(se.screenshotData))
+                    {
+                        screenshotTexture.Apply();
+                        screenshots[se.fromPlayer] = screenshotTexture;
+                        DarkLog.Debug("Loaded screenshot from " + se.fromPlayer);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Error loading screenshot from " + se.fromPlayer);
+                    }
+                }
+
+                while (newScreenshotWatchQueue.Count > 0)
+                {
+                    ScreenshotWatchEntry swe = newScreenshotWatchQueue.Dequeue();
+                    if (swe.watchPlayer != "")
+                    {
+                        watchPlayers[swe.fromPlayer] = swe.watchPlayer;
+                    }
+                    else
+                    {
+                        if (watchPlayers.ContainsKey(swe.fromPlayer))
+                        {
+                            watchPlayers.Remove(swe.fromPlayer);
+                        }
+                    }
+                }
+
+                if (safeSelectedPlayer != selectedPlayer)
+                {
+                    windowRect.height = 0;
+                    windowRect.width = 0;
+                    safeSelectedPlayer = selectedPlayer;
+                    WatchPlayer(selectedPlayer);
+                }
+
+                if (Input.GetKey(KeyCode.F8))
+                {
+                    uploadEventHandled = false;
+                }
+
+                if (!uploadEventHandled)
+                {
+                    SendScreenshot();
+                    ScreenMessages.PostScreenMessage("Uploaded screenshot!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    uploadEventHandled = true;
+                }
+
+            }
+        }
+
+        private void Draw()
+        {
+            if (!initialized)
+            {
+                initialized = true;
+                InitGUI();
+            }
+            if (safeDisplay)
+            {
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6710, FocusType.Passive), windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption);
+            }
+        }
+
+        private void DrawContent(int windowID)
+        {
+            GUI.DragWindow(moveRect);
+            GUILayout.BeginHorizontal();
+            if (safeSelectedPlayer != "")
+            {
+                if (screenshots.ContainsKey(safeSelectedPlayer))
+                {
+                    GUILayout.Box(screenshots[safeSelectedPlayer]);
+                }
+            }
+            scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle, fixedButtonSizeOption);
+            GUILayout.BeginVertical();
+            DrawPlayerButton(Settings.fetch.playerName);
+            foreach (PlayerStatus player in PlayerStatusWorker.fetch.playerStatusList)
+            {
+                DrawPlayerButton(player.playerName);
+            }
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Upload (F8)", buttonStyle))
+            {
+                uploadEventHandled = false;
+            }
+            GUILayout.EndVertical();
+            GUILayout.EndScrollView();
+            GUILayout.EndHorizontal();
+        }
+
+        private void DrawPlayerButton(string playerName)
+        {
+            bool newValue = GUILayout.Toggle(safeSelectedPlayer == playerName, playerName, buttonStyle);
+            if (newValue && (safeSelectedPlayer != playerName))
+            {
+                selectedPlayer = playerName;
+            }
+            if (!newValue && (safeSelectedPlayer == playerName))
+            {
+                selectedPlayer = "";
+            }
+        }
+
+        private void WatchPlayer(string playerName)
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ScreenshotMessageType.WATCH);
+                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(playerName);
+                NetworkWorker.fetch.SendScreenshotMessage(mw.GetMessageBytes());
+            }
+        }
+
+        private void SendScreenshot()
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ScreenshotMessageType.SCREENSHOT);
+                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<byte[]>(GetScreenshotBytes());
+                NetworkWorker.fetch.SendScreenshotMessage(mw.GetMessageBytes());
+            }
+        }
+        //Adapted from KMP.
+        private byte[] GetScreenshotBytes()
+        {
+            int screenshotWidth = (int)(Screen.width * (screenshotHeight / (float)Screen.height));
+
+            //Read the screen pixels into a texture
+            Texture2D fullScreenTexture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+            fullScreenTexture.filterMode = FilterMode.Bilinear;
+            fullScreenTexture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
+            fullScreenTexture.Apply();
+
+            RenderTexture renderTexture = new RenderTexture(screenshotWidth, screenshotHeight, 24);
+            renderTexture.useMipMap = false;
+
+            Graphics.Blit(fullScreenTexture, renderTexture); //Blit the screen texture to a render texture
+
+            RenderTexture.active = renderTexture;
+
+            //Read the pixels from the render texture into a Texture2D
+            Texture2D resizedTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
+            resizedTexture.ReadPixels(new Rect(0, 0, screenshotWidth, screenshotHeight), 0, 0);
+            resizedTexture.Apply();
+
+            RenderTexture.active = null;
+            screenshots[Settings.fetch.playerName] = resizedTexture;
+            return resizedTexture.EncodeToPNG();
+        }
+
+        public void QueueNewScreenshot(string fromPlayer, byte[] screenshotData)
+        {
+            ScreenshotEntry se = new ScreenshotEntry();
+            se.fromPlayer = fromPlayer;
+            se.screenshotData = screenshotData;
+            newScreenshotQueue.Enqueue(se);
+        }
+
+        public void QueueNewScreenshotWatch(string fromPlayer, string watchPlayer)
+        {
+            ScreenshotWatchEntry swe = new ScreenshotWatchEntry();
+            swe.fromPlayer = fromPlayer;
+            swe.watchPlayer = watchPlayer;
+            newScreenshotWatchQueue.Enqueue(swe);
+        }
+
+        public static void Reset()
+        {
+            lock (Client.eventLock)
+            {
+                if (singleton != null)
+                {
+                    Client.updateEvent.Remove(singleton.Update);
+                    Client.drawEvent.Remove(singleton.Draw);
+                }
+                singleton = new ScreenshotWorker();
+                Client.updateEvent.Add(singleton.Update);
+                Client.drawEvent.Add(singleton.Draw);
+            }
+        }
+    }
+
+    class ScreenshotEntry
+    {
+        public string fromPlayer;
+        public byte[] screenshotData;
+    }
+
+    class ScreenshotWatchEntry
+    {
+        public string fromPlayer;
+        public string watchPlayer;
+    }
+}
+
