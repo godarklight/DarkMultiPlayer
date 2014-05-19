@@ -159,6 +159,7 @@ namespace DarkMultiPlayer
             ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", buttonStyle);
             CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, "Craft", buttonStyle);
             DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "Debug", buttonStyle);
+            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "Screenshot", buttonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minmized = true;
@@ -499,6 +500,7 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "C", buttonStyle);
             DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "D", buttonStyle);
+            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "S", buttonStyle);
             if (GUILayout.Button("+", buttonStyle))
             {
                 windowRect.xMax = minWindowRect.xMax;

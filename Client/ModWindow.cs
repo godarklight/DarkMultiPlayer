@@ -8,8 +8,9 @@ namespace DarkMultiPlayer
         public bool display;
         private bool safeDisplay;
         private bool initialized;
-        private static ModWindow singleton;
+        private static ModWindow singleton = new ModWindow();
         private Rect windowRect;
+        private Rect moveRect;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         private GUIStyle labelStyle;
@@ -19,6 +20,12 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 600;
+
+        public ModWindow()
+        {
+            Client.updateEvent.Add(this.Update);
+            Client.drawEvent.Add(this.Draw);
+        }
 
         public static ModWindow fetch
         {
@@ -32,6 +39,7 @@ namespace DarkMultiPlayer
         {
             //Setup GUI stuff
             windowRect = new Rect(((Screen.width / 2f) - (WINDOW_WIDTH / 2f)), ((Screen.height / 4f) - (WINDOW_HEIGHT / 2f)), WINDOW_WIDTH, WINDOW_HEIGHT);
+            moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
@@ -61,13 +69,14 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                GUILayout.Window(GUIUtility.GetControlID(6706, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6706, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
             }
         }
 
         private void DrawContent(int windowID)
         {
             GUILayout.BeginVertical();
+            GUI.DragWindow(moveRect);
             GUILayout.Label("Failed mod validation", labelStyle);
             scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle);
             GUILayout.Label(ModWorker.fetch.failText, labelStyle);
@@ -77,21 +86,6 @@ namespace DarkMultiPlayer
                 display = false;
             }
             GUILayout.EndVertical();
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new ModWindow();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
         }
     }
 }

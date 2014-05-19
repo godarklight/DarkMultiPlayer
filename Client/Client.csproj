@@ -65,6 +65,7 @@
     <Compile Include="CraftLibraryWorker.cs" />
     <Compile Include="ChatWorker.cs" />
     <Compile Include="UniverseSyncCache.cs" />
+    <Compile Include="ScreenshotWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

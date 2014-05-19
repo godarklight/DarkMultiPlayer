@@ -47,7 +47,7 @@ namespace DarkMultiPlayer
                         //Send vessel+status update
                         if (FlightGlobals.ActiveVessel != null)
                         {
-                            if (VesselWorker.fetch.isSpectating)
+                            if (!VesselWorker.fetch.isSpectating)
                             {
                                 myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                                 string bodyName = FlightGlobals.ActiveVessel.mainBody.bodyName;
@@ -103,7 +103,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Splashed on " + bodyName;
                                         break;
                                     case (Vessel.Situations.SUB_ORBITAL):
-                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe < 0)
+                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
                                         {
                                             myPlayerStatus.statusText = "Ascending from " + bodyName;
                                         }

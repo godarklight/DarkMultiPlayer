@@ -64,7 +64,10 @@ namespace DarkMultiPlayer
         {
             CheckDisconnection();
             SendHeartBeat();
-            SendOutgoingMessages();
+            if (!isSendingMessage)
+            {
+                SendOutgoingMessages();
+            }
             if (state == ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending handshake!");
@@ -125,6 +128,7 @@ namespace DarkMultiPlayer
                 DynamicTickWorker.fetch.workerEnabled = true;
                 WarpWorker.fetch.workerEnabled = true;
                 CraftLibraryWorker.fetch.workerEnabled = true;
+                ScreenshotWorker.fetch.workerEnabled = true;
             }
         }
         #region Connecting to server
@@ -467,6 +471,7 @@ namespace DarkMultiPlayer
             {
                 clientConnection.GetStream().EndWrite(ar);
                 isSendingMessage = false;
+                SendOutgoingMessages();
             }
             catch (Exception e)
             {
@@ -569,6 +574,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.CRAFT_LIBRARY:
                         HandleCraftLibrary(message.data);
                         break;
+                    case ServerMessageType.SCREENSHOT_LIBRARY:
+                        HandleScreenshotLibrary(message.data);
+                        break;
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
                         break;
@@ -603,16 +611,25 @@ namespace DarkMultiPlayer
         {
 
             int reply = 0;
+            string reason = "";
             string modFileData = "";
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
-                    ModWorker.fetch.modControl = mr.Read<bool>();
-                    if (ModWorker.fetch.modControl)
+                    reason = mr.Read<string>();
+                    if (reply == 0)
                     {
-                        modFileData = mr.Read<string>();
+                        ModWorker.fetch.modControl = mr.Read<bool>();
+                        if (ModWorker.fetch.modControl)
+                        {
+                            modFileData = mr.Read<string>();
+                        }
+                    }
+                    else
+                    {
+                        Disconnect(reason);
                     }
                 }
             }
@@ -620,6 +637,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Error handling HANDSHAKE_REPLY message, exception: " + e);
                 reply = 99;
+                reason = "Incompatible HANDSHAKE_REPLY message";
             }
             switch (reply)
             {
@@ -638,8 +656,8 @@ namespace DarkMultiPlayer
                     }
                     break;
                 default:
-                    DarkLog.Debug("Handshake failed, reason " + reply);
-                    //Server disconnects us.
+                    DarkLog.Debug("Handshake failed, response " + reply + ", reason: " + reason);
+                    Disconnect("Disconnected: " + reason);
                     break;
             }
         }
@@ -710,6 +728,7 @@ namespace DarkMultiPlayer
                 Client.fetch.gameMode = (GameMode)mr.Read<int>();
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
+                ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
             }
         }
 
@@ -839,6 +858,11 @@ namespace DarkMultiPlayer
             {
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
+                bool isDockingUpdate = mr.Read<bool>();
+                if (isDockingUpdate)
+                {
+                    DarkLog.Debug("Got a docking update!");
+                }
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
                 string tempFile = Path.GetTempFileName();
@@ -922,7 +946,14 @@ namespace DarkMultiPlayer
                 int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
-                VesselWorker.fetch.QueueVesselRemove(subspaceID, planetTime, vesselID);
+                bool isDockingUpdate = mr.Read<bool>();
+                string dockingPlayer = null;
+                if (isDockingUpdate)
+                {
+                    DarkLog.Debug("Got a docking update!");
+                    dockingPlayer = mr.Read<string>();
+                }
+                VesselWorker.fetch.QueueVesselRemove(subspaceID, planetTime, vesselID, isDockingUpdate, dockingPlayer);
             }
         }
 
@@ -1017,6 +1048,37 @@ namespace DarkMultiPlayer
                             }
                         }
                         break;
+                }
+            }
+        }
+
+        private void HandleScreenshotLibrary(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
+                switch (messageType)
+                {
+                    case ScreenshotMessageType.LIST:
+                        {
+                            DarkLog.Debug("TODO: Handle screenshot message list");
+                        }
+                        break;
+                    case ScreenshotMessageType.SCREENSHOT:
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            byte[] screenshotData = mr.Read<byte[]>();
+                            ScreenshotWorker.fetch.QueueNewScreenshot(fromPlayer, screenshotData);
+                        }
+                        break;
+                    case ScreenshotMessageType.WATCH:
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            string watchPlayer = mr.Read<string>();
+                            ScreenshotWorker.fetch.QueueNewScreenshotWatch(fromPlayer, watchPlayer);
+                        }
+                        break;
+
                 }
             }
         }
@@ -1164,7 +1226,7 @@ namespace DarkMultiPlayer
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from vesselWorker
-        public void SendVesselProtoMessage(ProtoVessel vessel)
+        public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate)
         {
             ConfigNode currentNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
@@ -1179,6 +1241,7 @@ namespace DarkMultiPlayer
                     mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
+                    mw.Write<bool>(isDockingUpdate);
                     mw.Write<byte[]>(File.ReadAllBytes(tempFile));
                     newMessage.data = mw.GetMessageBytes();
                 }
@@ -1226,7 +1289,7 @@ namespace DarkMultiPlayer
             sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from vesselWorker
-        public void SendVesselRemove(string vesselID)
+        public void SendVesselRemove(string vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
@@ -1236,6 +1299,11 @@ namespace DarkMultiPlayer
                 mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(vesselID);
+                mw.Write<bool>(isDockingUpdate);
+                if (isDockingUpdate)
+                {
+                    mw.Write<string>(Settings.fetch.playerName);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             sendMessageQueueLow.Enqueue(newMessage);
@@ -1245,6 +1313,14 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CRAFT_LIBRARY;
+            newMessage.data = messageData;
+            sendMessageQueueLow.Enqueue(newMessage);
+        }
+        //Called from ScreenshotWorker
+        public void SendScreenshotMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SCREENSHOT_LIBRARY;
             newMessage.data = messageData;
             sendMessageQueueLow.Enqueue(newMessage);
         }
