@@ -633,6 +633,19 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("Client " + client.playerName + " disconnected, sent CONNECTION_END to endpoint " + client.endpoint);
                 DisconnectClient(client);
             }
+            if (message.type == ServerMessageType.HANDSHAKE_REPLY)
+            {
+                using (MessageReader mr = new MessageReader(message.data, false))
+                {
+                    int response = mr.Read<int>();
+                    string reason = mr.Read<string>();
+                    if (response != 0)
+                    {
+                        DarkLog.Normal("Client " + client.playerName + " disconnected, sent HANDSHAKE REPLY (" + reason + ") to endpoint " + client.endpoint);
+                        DisconnectClient(client);
+                    }
+                }
+            }
         }
 
         private static void SendMessageCallback(IAsyncResult ar)
@@ -893,8 +906,7 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + client.playerName + ": " + e);
-                SendHandshakeReply(client, 99);
-                SendConnectionEnd(client, "Malformed handshake");
+                SendHandshakeReply(client, 99, "Malformed handshake");
                 return;
             }
             if (protocolVersion != Common.PROTOCOL_VERSION)
@@ -968,13 +980,12 @@ namespace DarkMultiPlayerServer
                         File.Copy(file, Path.Combine(Server.universeDirectory, "Scenarios", playerName, Path.GetFileName(file)));
                     }
                 }
-                SendHandshakeReply(client, handshakeReponse);
+                SendHandshakeReply(client, handshakeReponse, "success");
             }
             else
             {
                 DarkLog.Normal("Client " + playerName + " failed to handshake, reason " + reason);
-                SendHandshakeReply(client, handshakeReponse);
-                SendConnectionEnd(client, reason);
+                SendHandshakeReply(client, handshakeReponse, reason);
             }
 
 
@@ -1830,17 +1841,21 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
-        private static void SendHandshakeReply(ClientObject client, int response)
+        private static void SendHandshakeReply(ClientObject client, int response, string reason)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.HANDSHAKE_REPLY;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(response);
-                mw.Write<bool>(Settings.settingsStore.modControl);
-                if (Settings.settingsStore.modControl)
+                mw.Write<string>(reason);
+                if (response == 0)
                 {
-                    mw.Write<string>(modFileData);
+                    mw.Write<bool>(Settings.settingsStore.modControl);
+                    if (Settings.settingsStore.modControl)
+                    {
+                        mw.Write<string>(modFileData);
+                    }
                 }
                 newMessage.data = mw.GetMessageBytes();
             }

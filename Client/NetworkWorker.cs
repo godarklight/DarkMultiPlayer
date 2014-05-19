@@ -611,16 +611,25 @@ namespace DarkMultiPlayer
         {
 
             int reply = 0;
+            string reason = "";
             string modFileData = "";
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
-                    ModWorker.fetch.modControl = mr.Read<bool>();
-                    if (ModWorker.fetch.modControl)
+                    reason = mr.Read<string>();
+                    if (reply == 0)
                     {
-                        modFileData = mr.Read<string>();
+                        ModWorker.fetch.modControl = mr.Read<bool>();
+                        if (ModWorker.fetch.modControl)
+                        {
+                            modFileData = mr.Read<string>();
+                        }
+                    }
+                    else
+                    {
+                        Disconnect(reason);
                     }
                 }
             }
@@ -628,6 +637,7 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Error handling HANDSHAKE_REPLY message, exception: " + e);
                 reply = 99;
+                reason = "Incompatible HANDSHAKE_REPLY message";
             }
             switch (reply)
             {
@@ -646,8 +656,8 @@ namespace DarkMultiPlayer
                     }
                     break;
                 default:
-                    DarkLog.Debug("Handshake failed, reason " + reply);
-                    //Server disconnects us.
+                    DarkLog.Debug("Handshake failed, response " + reply + ", reason: " + reason);
+                    Disconnect("Disconnected: " + reason);
                     break;
             }
         }
