@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
         private bool initialized;
         private static ModWindow singleton = new ModWindow();
         private Rect windowRect;
+        private Rect moveRect;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         private GUIStyle labelStyle;
@@ -38,6 +39,7 @@ namespace DarkMultiPlayer
         {
             //Setup GUI stuff
             windowRect = new Rect(((Screen.width / 2f) - (WINDOW_WIDTH / 2f)), ((Screen.height / 4f) - (WINDOW_HEIGHT / 2f)), WINDOW_WIDTH, WINDOW_HEIGHT);
+            moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
@@ -67,13 +69,14 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                GUILayout.Window(GUIUtility.GetControlID(6706, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6706, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
             }
         }
 
         private void DrawContent(int windowID)
         {
             GUILayout.BeginVertical();
+            GUI.DragWindow(moveRect);
             GUILayout.Label("Failed mod validation", labelStyle);
             scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle);
             GUILayout.Label(ModWorker.fetch.failText, labelStyle);
