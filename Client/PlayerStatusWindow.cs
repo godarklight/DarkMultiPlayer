@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUIStyle subspaceStyle;
         private GUIStyle buttonStyle;
+        private GUIStyle highlightStyle;
         private GUIStyle scrollStyle;
         private GUIStyle playerNameStyle;
         private GUIStyle vesselNameStyle;
@@ -56,6 +57,10 @@ namespace DarkMultiPlayer
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle.normal.textColor = Color.red;
+            highlightStyle.active.textColor = Color.red;
+            highlightStyle.hover.textColor = Color.red;
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
             subspaceStyle = new GUIStyle();
             subspaceStyle.normal.background = new Texture2D(1, 1);
@@ -156,7 +161,12 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
             GUILayout.FlexibleSpace();
-            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", buttonStyle);
+            GUIStyle chatButtonStyle = buttonStyle;
+            if (ChatWorker.fetch.chatButtonHighlighted)
+            {
+                chatButtonStyle = highlightStyle;
+            }
+            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", chatButtonStyle);
             CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, "Craft", buttonStyle);
             DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "Debug", buttonStyle);
             ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "Screenshot", buttonStyle);
