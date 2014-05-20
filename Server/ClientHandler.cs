@@ -1433,22 +1433,6 @@ namespace DarkMultiPlayerServer
                 string fromPlayer = mr.Read<string>();
                 switch (messageType)
                 {
-                    case ScreenshotMessageType.LIST:
-                        {
-                            using (MessageWriter mw = new MessageWriter())
-                            {
-                                mw.Write<int>((int)ScreenshotMessageType.LIST);
-                                string[] playerKeys = new string[playerWatchScreenshot.Count];
-                                string[] playerValues = new string[playerWatchScreenshot.Count];
-                                playerWatchScreenshot.Keys.CopyTo(playerKeys, 0);
-                                playerWatchScreenshot.Values.CopyTo(playerValues, 0);
-                                mw.Write<string[]>(playerKeys);
-                                mw.Write<string[]>(playerValues);
-                                newMessage.data = mw.GetMessageBytes();
-                            }
-                            SendToClient(client, newMessage, false);
-                        }
-                        break;
                     case ScreenshotMessageType.SCREENSHOT:
                         {
                             if (Settings.settingsStore.screenshotsPerPlayer > -1)
@@ -1480,6 +1464,17 @@ namespace DarkMultiPlayerServer
                                         }
                                         File.Delete(deleteFile);
                                         DarkLog.Debug("Removing old screenshot " + Path.GetFileName(deleteFile));
+                                    }
+                                    //Notify players that aren't watching that there's a new screenshot availabe. This only works if there's a file available on the server.
+                                    //The server does not keep the screenshots in memory.
+                                    ServerMessage notifyMessage = new ServerMessage();
+                                    notifyMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+                                    using (MessageWriter mw = new MessageWriter())
+                                    {
+                                        mw.Write<int>((int)ScreenshotMessageType.NOTIFY);
+                                        mw.Write(fromPlayer);
+                                        notifyMessage.data = mw.GetMessageBytes();
+                                        SendToAll(client, notifyMessage, false);
                                     }
                                 }
                             }
@@ -1556,7 +1551,7 @@ namespace DarkMultiPlayerServer
                                 if (Directory.Exists(watchPlayerScreenshotDirectory))
                                 {
                                     string[] playerScreenshots = Directory.GetFiles(watchPlayerScreenshotDirectory);
-                                    if (playerScreenshots.Length > 1)
+                                    if (playerScreenshots.Length > 0)
                                     {
                                         sendFile = playerScreenshots[0];
                                         foreach (string testFile in playerScreenshots)

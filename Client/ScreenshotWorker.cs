@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUILayoutOption[] windowLayoutOption;
         private GUIStyle buttonStyle;
+        private GUIStyle highlightStyle;
         private GUILayoutOption[] fixedButtonSizeOption;
         private GUIStyle scrollStyle;
         public bool display;
@@ -25,12 +26,15 @@ namespace DarkMultiPlayer
         private Rect moveRect;
         private Vector2 scrollPos;
         //State tracking
+        public bool screenshotButtonHighlighted;
+        List<string> highlightedPlayers = new List<string>();
         private string selectedPlayer = "";
         private string safeSelectedPlayer = "";
         private Dictionary<string, Texture2D> screenshots = new Dictionary<string, Texture2D>();
         private bool uploadEventHandled = true;
         private Queue<ScreenshotEntry> newScreenshotQueue = new Queue<ScreenshotEntry>();
         private Queue<ScreenshotWatchEntry> newScreenshotWatchQueue = new Queue<ScreenshotWatchEntry>();
+        private Queue<string> newScreenshotNotifiyQueue = new Queue<string>();
         private Dictionary<string, string> watchPlayers = new Dictionary<string, string>();
         //const
         private const float MIN_WINDOW_HEIGHT = 200;
@@ -56,6 +60,10 @@ namespace DarkMultiPlayer
             windowLayoutOption[3] = GUILayout.ExpandHeight(true);
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle.normal.textColor = Color.red;
+            highlightStyle.active.textColor = Color.red;
+            highlightStyle.hover.textColor = Color.red;
             fixedButtonSizeOption = new GUILayoutOption[2];
             fixedButtonSizeOption[0] = GUILayout.Width(BUTTON_WIDTH);
             fixedButtonSizeOption[1] = GUILayout.ExpandWidth(true);
@@ -66,8 +74,39 @@ namespace DarkMultiPlayer
         private void Update()
         {
             safeDisplay = display;
+
             if (workerEnabled)
             {
+
+                while (newScreenshotNotifiyQueue.Count > 0)
+                {
+                    string notifyPlayer = newScreenshotNotifiyQueue.Dequeue();
+                    if (!display)
+                    {
+                        screenshotButtonHighlighted = true;
+                    }
+                    if (selectedPlayer != notifyPlayer)
+                    {
+                        if (!highlightedPlayers.Contains(notifyPlayer))
+                        {
+                            highlightedPlayers.Add(notifyPlayer);
+                        }
+                    }
+
+                }
+
+                //Update highlights
+                if (screenshotButtonHighlighted && display)
+                {
+                    screenshotButtonHighlighted = false;
+                }
+
+                if (highlightedPlayers.Contains(selectedPlayer))
+                {
+                    highlightedPlayers.Remove(selectedPlayer);
+                }
+
+
                 while (newScreenshotQueue.Count > 0)
                 {
                     ScreenshotEntry se = newScreenshotQueue.Dequeue();
@@ -166,7 +205,12 @@ namespace DarkMultiPlayer
 
         private void DrawPlayerButton(string playerName)
         {
-            bool newValue = GUILayout.Toggle(safeSelectedPlayer == playerName, playerName, buttonStyle);
+            GUIStyle playerButtonStyle = buttonStyle;
+            if (highlightedPlayers.Contains(playerName))
+            {
+                playerButtonStyle = highlightStyle;
+            }
+            bool newValue = GUILayout.Toggle(safeSelectedPlayer == playerName, playerName, playerButtonStyle);
             if (newValue && (safeSelectedPlayer != playerName))
             {
                 selectedPlayer = playerName;
@@ -240,6 +284,11 @@ namespace DarkMultiPlayer
             swe.fromPlayer = fromPlayer;
             swe.watchPlayer = watchPlayer;
             newScreenshotWatchQueue.Enqueue(swe);
+        }
+
+        public void QueueNewNotify(string fromPlayer)
+        {
+            newScreenshotNotifiyQueue.Enqueue(fromPlayer);
         }
 
         public static void Reset()
