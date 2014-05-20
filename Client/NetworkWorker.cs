@@ -627,10 +627,6 @@ namespace DarkMultiPlayer
                             modFileData = mr.Read<string>();
                         }
                     }
-                    else
-                    {
-                        Disconnect("Handshake failure: " + reason);
-                    }
                 }
             }
             catch (Exception e)
@@ -657,7 +653,7 @@ namespace DarkMultiPlayer
                     break;
                 default:
                     DarkLog.Debug("Handshake failed, response " + reply + ", reason: " + reason);
-                    Disconnect("Disconnected: " + reason);
+                    Disconnect("Handshake failure: " + reason);
                     break;
             }
         }
