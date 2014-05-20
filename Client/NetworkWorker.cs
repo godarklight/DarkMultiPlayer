@@ -1059,9 +1059,10 @@ namespace DarkMultiPlayer
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 switch (messageType)
                 {
-                    case ScreenshotMessageType.LIST:
+                    case ScreenshotMessageType.NOTIFY:
                         {
-                            DarkLog.Debug("TODO: Handle screenshot message list");
+                            string fromPlayer = mr.Read<string>();
+                            ScreenshotWorker.fetch.QueueNewNotify(fromPlayer);
                         }
                         break;
                     case ScreenshotMessageType.SCREENSHOT:

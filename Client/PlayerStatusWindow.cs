@@ -169,7 +169,12 @@ namespace DarkMultiPlayer
             ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", chatButtonStyle);
             CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, "Craft", buttonStyle);
             DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "Debug", buttonStyle);
-            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "Screenshot", buttonStyle);
+            GUIStyle screenshotButtonStyle = buttonStyle;
+            if (ScreenshotWorker.fetch.screenshotButtonHighlighted)
+            {
+                screenshotButtonStyle = highlightStyle;
+            }
+            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "Screenshot", screenshotButtonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minmized = true;
