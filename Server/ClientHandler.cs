@@ -1465,17 +1465,18 @@ namespace DarkMultiPlayerServer
                                         File.Delete(deleteFile);
                                         DarkLog.Debug("Removing old screenshot " + Path.GetFileName(deleteFile));
                                     }
-                                    //Notify players that aren't watching that there's a new screenshot availabe. This only works if there's a file available on the server.
-                                    //The server does not keep the screenshots in memory.
-                                    ServerMessage notifyMessage = new ServerMessage();
-                                    notifyMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
-                                    using (MessageWriter mw = new MessageWriter())
-                                    {
-                                        mw.Write<int>((int)ScreenshotMessageType.NOTIFY);
-                                        mw.Write(fromPlayer);
-                                        notifyMessage.data = mw.GetMessageBytes();
-                                        SendToAll(client, notifyMessage, false);
-                                    }
+                                }
+
+                                //Notify players that aren't watching that there's a new screenshot availabe. This only works if there's a file available on the server.
+                                //The server does not keep the screenshots in memory.
+                                ServerMessage notifyMessage = new ServerMessage();
+                                notifyMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+                                using (MessageWriter mw = new MessageWriter())
+                                {
+                                    mw.Write<int>((int)ScreenshotMessageType.NOTIFY);
+                                    mw.Write(fromPlayer);
+                                    notifyMessage.data = mw.GetMessageBytes();
+                                    SendToAll(client, notifyMessage, false);
                                 }
                             }
                             if (!playerUploadedScreenshotIndex.ContainsKey(fromPlayer))
