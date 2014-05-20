@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUILayoutOption[] windowLayoutOption;
         private GUIStyle buttonStyle;
+        private GUIStyle highlightStyle;
         private GUILayoutOption[] fixedButtonSizeOption;
         private GUIStyle scrollStyle;
         public bool display;
@@ -25,17 +26,30 @@ namespace DarkMultiPlayer
         private Rect moveRect;
         private Vector2 scrollPos;
         //State tracking
+        public bool screenshotButtonHighlighted;
+        List<string> highlightedPlayers = new List<string>();
         private string selectedPlayer = "";
         private string safeSelectedPlayer = "";
         private Dictionary<string, Texture2D> screenshots = new Dictionary<string, Texture2D>();
         private bool uploadEventHandled = true;
+        public bool uploadScreenshot = false;
+        private float lastScreenshotSend;
         private Queue<ScreenshotEntry> newScreenshotQueue = new Queue<ScreenshotEntry>();
         private Queue<ScreenshotWatchEntry> newScreenshotWatchQueue = new Queue<ScreenshotWatchEntry>();
+        private Queue<string> newScreenshotNotifiyQueue = new Queue<string>();
         private Dictionary<string, string> watchPlayers = new Dictionary<string, string>();
+        //Screenshot uploading message
+        private bool displayScreenshotUploadingMessage = false;
+        public bool finishedUploadingScreenshot = false;
+        private float lastScreenshotMessageCheck;
+        ScreenMessage screenshotUploadMessage;
+
         //const
         private const float MIN_WINDOW_HEIGHT = 200;
         private const float MIN_WINDOW_WIDTH = 150;
         private const float BUTTON_WIDTH = 150;
+        private const float SCREENSHOT_MESSAGE_CHECK_INTERVAL = .2f;
+        private const float MIN_SCREENSHOT_SEND_INTERVAL = 3f;
 
         public static ScreenshotWorker fetch
         {
@@ -56,6 +70,10 @@ namespace DarkMultiPlayer
             windowLayoutOption[3] = GUILayout.ExpandHeight(true);
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle = new GUIStyle(GUI.skin.button);
+            highlightStyle.normal.textColor = Color.red;
+            highlightStyle.active.textColor = Color.red;
+            highlightStyle.hover.textColor = Color.red;
             fixedButtonSizeOption = new GUILayoutOption[2];
             fixedButtonSizeOption[0] = GUILayout.Width(BUTTON_WIDTH);
             fixedButtonSizeOption[1] = GUILayout.ExpandWidth(true);
@@ -66,8 +84,39 @@ namespace DarkMultiPlayer
         private void Update()
         {
             safeDisplay = display;
+
             if (workerEnabled)
             {
+
+                while (newScreenshotNotifiyQueue.Count > 0)
+                {
+                    string notifyPlayer = newScreenshotNotifiyQueue.Dequeue();
+                    if (!display)
+                    {
+                        screenshotButtonHighlighted = true;
+                    }
+                    if (selectedPlayer != notifyPlayer)
+                    {
+                        if (!highlightedPlayers.Contains(notifyPlayer))
+                        {
+                            highlightedPlayers.Add(notifyPlayer);
+                        }
+                    }
+
+                }
+
+                //Update highlights
+                if (screenshotButtonHighlighted && display)
+                {
+                    screenshotButtonHighlighted = false;
+                }
+
+                if (highlightedPlayers.Contains(selectedPlayer))
+                {
+                    highlightedPlayers.Remove(selectedPlayer);
+                }
+
+
                 while (newScreenshotQueue.Count > 0)
                 {
                     ScreenshotEntry se = newScreenshotQueue.Dequeue();
@@ -115,9 +164,32 @@ namespace DarkMultiPlayer
 
                 if (!uploadEventHandled)
                 {
-                    SendScreenshot();
-                    ScreenMessages.PostScreenMessage("Uploaded screenshot!", 3f, ScreenMessageStyle.UPPER_CENTER);
                     uploadEventHandled = true;
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
+                    {
+                        lastScreenshotSend = UnityEngine.Time.realtimeSinceStartup;
+                        displayScreenshotUploadingMessage = true;
+                        finishedUploadingScreenshot = false;
+                        uploadScreenshot = true;
+                    }
+                }
+
+                if (displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
+                {
+                    lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                    if (screenshotUploadMessage != null)
+                    {
+                        screenshotUploadMessage.duration = 0f;
+                    }
+                    if (finishedUploadingScreenshot)
+                    {
+                        displayScreenshotUploadingMessage = false;
+                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Screenshot uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    else
+                    {
+                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Uploading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                    }
                 }
 
             }
@@ -155,10 +227,12 @@ namespace DarkMultiPlayer
                 DrawPlayerButton(player.playerName);
             }
             GUILayout.FlexibleSpace();
+            GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
             if (GUILayout.Button("Upload (F8)", buttonStyle))
             {
                 uploadEventHandled = false;
             }
+            GUI.enabled = true;
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
             GUILayout.EndHorizontal();
@@ -166,7 +240,12 @@ namespace DarkMultiPlayer
 
         private void DrawPlayerButton(string playerName)
         {
-            bool newValue = GUILayout.Toggle(safeSelectedPlayer == playerName, playerName, buttonStyle);
+            GUIStyle playerButtonStyle = buttonStyle;
+            if (highlightedPlayers.Contains(playerName))
+            {
+                playerButtonStyle = highlightStyle;
+            }
+            bool newValue = GUILayout.Toggle(safeSelectedPlayer == playerName, playerName, playerButtonStyle);
             if (newValue && (safeSelectedPlayer != playerName))
             {
                 selectedPlayer = playerName;
@@ -188,7 +267,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void SendScreenshot()
+        //Called from main due to WaitForEndOfFrame timing.
+        public void SendScreenshot()
         {
             using (MessageWriter mw = new MessageWriter())
             {
@@ -240,6 +320,11 @@ namespace DarkMultiPlayer
             swe.fromPlayer = fromPlayer;
             swe.watchPlayer = watchPlayer;
             newScreenshotWatchQueue.Enqueue(swe);
+        }
+
+        public void QueueNewNotify(string fromPlayer)
+        {
+            newScreenshotNotifiyQueue.Enqueue(fromPlayer);
         }
 
         public static void Reset()

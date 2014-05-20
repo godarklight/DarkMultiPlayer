@@ -13,7 +13,7 @@ namespace DarkMultiPlayerCommon
         //5MB
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //8kb
-        public const int PROTOCOL_VERSION = 6;
+        public const int PROTOCOL_VERSION = 7;
 
         public static string CalculateSHA256Hash(string fileName)
         {
@@ -160,7 +160,7 @@ namespace DarkMultiPlayerCommon
 
     public enum ScreenshotMessageType
     {
-        LIST,
+        NOTIFY,
         WATCH,
         SCREENSHOT,
     }

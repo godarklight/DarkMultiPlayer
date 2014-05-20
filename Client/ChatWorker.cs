@@ -26,10 +26,12 @@ namespace DarkMultiPlayer
         private List<string> joinedPMChannels = new List<string>();
         private List<string> highlightChannel = new List<string>();
         private List<string> highlightPM = new List<string>();
+        public bool chatButtonHighlighted = false;
         private string selectedChannel = null;
         private string selectedPMChannel = null;
         private bool chatLocked = false;
         private bool ignoreChatInput = false;
+        private bool selectTextBox = false;
         private string sendText = "";
         //event handling
         private bool leaveEventHandled = true;
@@ -112,6 +114,10 @@ namespace DarkMultiPlayer
             ce.channel = channelName;
             ce.message = channelMessage;
             newChannelMessages.Enqueue(ce);
+            if (!display)
+            {
+                chatButtonHighlighted = true;
+            }
         }
 
         public void QueuePrivateMessage(string fromPlayer, string toPlayer, string privateMessage)
@@ -121,6 +127,10 @@ namespace DarkMultiPlayer
             pe.toPlayer = toPlayer;
             pe.message = privateMessage;
             newPrivateMessages.Enqueue(pe);
+            if (!display)
+            {
+                chatButtonHighlighted = true;
+            }
         }
 
         public void QueueRemovePlayer(string playerName)
@@ -132,6 +142,10 @@ namespace DarkMultiPlayer
         {
             safeDisplay = display;
             ignoreChatInput = false;
+            if (chatButtonHighlighted && display)
+            {
+                chatButtonHighlighted = false;
+            }
             if (chatLocked && !display)
             {
                 chatLocked = false;
@@ -407,12 +421,19 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
+                bool pressedChatShortcutKey = (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.BackQuote);
+                if (pressedChatShortcutKey)
+                {
+                    ignoreChatInput = true;
+                    selectTextBox = true;
+                }
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6704, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer Chat", windowStyle, windowLayoutOptions);
             }
         }
 
         private void DrawContent(int windowID)
         {
+            bool pressedEnter = (Event.current.type == EventType.KeyDown && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter));
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
@@ -524,7 +545,7 @@ namespace DarkMultiPlayer
             //Don't add the newline to the messages, queue a send
             if (!ignoreChatInput)
             {
-                if (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter))
+                if (pressedEnter)
                 {
                     sendEventHandled = false;
                 }
@@ -554,9 +575,9 @@ namespace DarkMultiPlayer
                 chatLocked = false;
                 InputLockManager.RemoveControlLock(DMP_CHAT_LOCK);
             }
-            if (Input.GetKey(KeyCode.BackQuote) && GUI.GetNameOfFocusedControl() != "SendTextArea")
+            if (selectTextBox)
             {
-                ignoreChatInput = true;
+                selectTextBox = false;
                 GUI.FocusControl("SendTextArea");
             }
         }

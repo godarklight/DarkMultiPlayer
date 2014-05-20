@@ -1,4 +1,4 @@
-DarkMultiPlayer 0.1.1.1.  
+DarkMultiPlayer 0.1.2.0.  
   
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -23,14 +23,17 @@ Do not type in your public IP, this usually refers to your modem, which won't be
 By default, you will join the Global channel (and cannot leave it).  
 To PM a player, type /query playername or click on their player name in the global chat.  
 To start a group chat, type /join groupname.  
-To leave a PM or group chat, type /part or /leave in the window you want to leave. You can also press the 'Leave' button.
-Group chats are indicated by the '#' mark, player chats are indicated by the '@' mark.
+To leave a PM or group chat, type /part or /leave in the window you want to leave. You can also press the 'Leave' button.  
+Group chats are indicated by the '#' mark, player chats are indicated by the '@' mark.  
   
 ---Craft sharing window---  
 To upload a craft, press on your user name and then click 'Upload'.  
 To download a craft, press on the owning player's username and select one of their uploaded vessels.  
   
-  
+---Screenshot sharing window---  
+To upload a screenshot, press 'Upload'.  
+To view a players screenshot, press on their player name.  
+If the server has screenshot saving enabled, The players name will go red when there is a new screenshot to view.
   
 ---Mods---  
 If you try to connect to a modded server, DMP will tell you everything you are missing, and tell you everything you shouldn't have in order to connect. If there is any DLL's that need to be added, you will need to restart KSP.  
@@ -48,6 +51,14 @@ Option a) Extract the DarkMultiPlayer zip to a folder, Not under the KSP or Game
 Option a) Extract the zip as above  
 Option b) Place DMPUpdater next to DMPServer.exe and run it.  
   
+---Server console commands---
+dekessler - Clears out debris from the server  
+exit      - Shuts down the server  
+help      - Displays this help  
+kick      - Kicks a player from the server  
+quit      - Shuts down the server  
+say       - Broadcasts a message to clients  
+shutdown  - Shuts down the server  
 ---Options---  
 The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.
 port: The port to listen on, default 6702.  
@@ -68,6 +79,19 @@ modcontrol:
 Enables or disables modcontrol - Only turn this off if you are running a private server where everyone has the same mods.  
 0 : Off  
 1 : On  
+  
+useutctimeinlog:  
+Use UTC instead of system time in the log. This is useful if you want to co-ordinate logging between the server and client.  
+
+loglevel:  
+Minimum log level to display. While DMP is in alpha, it's recommended to leave this on DEBUG (0) if you want to submit bug reports ;).
+  
+screenshotsperplayer:  
+Number of screenshots to save. -1 is disabled, 0 is unlimited.  
+You need to have a number higher than -1 in order for players to view screenshots for players they are not currently watching.  
+  
+screenshotheight:  
+The height of the screenshot in pixels.  
   
   
 ---Mods---  
