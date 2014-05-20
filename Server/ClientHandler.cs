@@ -23,6 +23,8 @@ namespace DarkMultiPlayerServer
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPBans.txt");
+        private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
+        private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
 
         private static List<string> bannedNames = new List<string>();
@@ -505,14 +507,26 @@ namespace DarkMultiPlayerServer
 
                 using (StreamWriter sw = new StreamWriter(banlistFile))
                 {
-                    sw.WriteLine("#BannedName\tBannedIP\tBannedGUID\tReason");
 
                     foreach (var name in bannedNames)
-                    foreach (var ip in bannedIPs)
-                    foreach (var guid in bannedGUIDs)
-                    foreach (var reason in banReasons)
                     {
-                        sw.WriteLine("{0}\t{1}\t{2}\t{3}", name, ip, guid, reason);
+                        sw.WriteLine("{0}", name);
+                    }
+                }
+
+                using (StreamWriter sw = new StreamWriter(ipBanlistFile))
+                {
+                    foreach (var ip in bannedIPs)
+                    {
+                        sw.WriteLine("{0}", ip);
+                    }
+                }
+
+                using (StreamWriter sw = new StreamWriter(guidBanlistFile))
+                {
+                    foreach (var guid in bannedGUIDs)
+                    {
+                        sw.WriteLine("{0}", guid);
                     }
                 }
             }
@@ -537,17 +551,36 @@ namespace DarkMultiPlayerServer
                     {
                         try
                         {
-                            if (line.StartsWith("#")) { continue; }
-                            var parts = line.Split('\t');
-                            bannedNames.Add(parts[0]);
-                            bannedIPs.Add(IPAddress.Parse(parts[1]));
-                            bannedGUIDs.Add(Guid.Parse(parts[2]));
-                            banReasons.Add(parts[3]);
+                            bannedNames.Add(line);      
                         }
                         catch (Exception e)
                         {
                             DarkLog.Error("Error reading ban list!, Exception: " + e);
-                        } // ?
+                        }
+                    }
+
+                    foreach (var line in File.ReadAllLines(ipBanlistFile))
+                    {
+                        try
+                        {
+                            bannedIPs.Add(IPAddress.Parse(line));
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        }
+                    }
+
+                    foreach (var line in File.ReadAllLines(guidBanlistFile))
+                    {
+                        try
+                        {
+                            bannedGUIDs.Add(Guid.Parse(line));
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        }
                     }
                 }
             }
@@ -1149,13 +1182,13 @@ namespace DarkMultiPlayerServer
                                         }
                                     }
                                 }
-                                DarkLog.Normal(fromPlayer + " -> #" + channel + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> #" + channel + ": " + message);
                             }
                             else
                             {
                                 SendToClient(client, newMessage, true);
                                 SendToAll(client, newMessage, true);
-                                DarkLog.Normal(fromPlayer + " -> #Global: " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> #Global: " + message);
                             }
                         }
                         break;
@@ -1168,10 +1201,10 @@ namespace DarkMultiPlayerServer
                             {
                                 SendToClient(client, newMessage, true);
                                 SendToClient(findClient, newMessage, true);
-                                DarkLog.Normal(fromPlayer + " -> @" + toPlayer + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> @" + toPlayer + ": " + message);
                             }
                             {
-                                DarkLog.Debug(fromPlayer + " -X-> @" + toPlayer + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -X-> @" + toPlayer + ": " + message);
                             }
                         }
                         break;
@@ -1922,6 +1955,34 @@ namespace DarkMultiPlayerServer
             return findClient;
         }
 
+        public static ClientObject GetClientByIP(IPAddress ipAddress)
+        {
+            ClientObject findClient = null;
+            foreach (ClientObject testClient in clients)
+            {
+                if (testClient.authenticated && testClient.ipAddress == ipAddress)
+                {
+                    findClient = testClient;
+                    break;
+                }
+            }
+            return findClient;
+        }
+
+        public static ClientObject GetClientByGuid(Guid guid)
+        {
+            ClientObject findClient = null;
+            foreach (ClientObject testClient in clients)
+            {
+                if (testClient.authenticated && testClient.GUID == guid)
+                {
+                    findClient = testClient;
+                    break;
+                }
+            }
+            return findClient;
+        }
+
         private static void SendHeartBeat(ClientObject client)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -2368,6 +2429,7 @@ namespace DarkMultiPlayerServer
         {
             string playerName = commandArgs;
             string reason = "";
+
             if (commandArgs.Contains(" "))
             {
                 playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
@@ -2375,42 +2437,121 @@ namespace DarkMultiPlayerServer
             }
 
             ClientObject player = null;
-            Guid guid = Guid.Empty;
 
             if (playerName != "")
             {
+
                 player = GetClientByName(playerName);
+
+                if (reason == "")
+                    reason = "no reason specified";
 
                 if (player != null)
                 {
                     SendConnectionEnd(player, "You were banned from the server!");
 
-                    if (reason == "")
-                        reason = "no reason specified";
+                    bannedNames.Add(playerName);
+                    banReasons.Add(reason);
+                    SaveBans();
 
-                    string bannedName = player.playerName;
-                    IPAddress bannedIP = player.ipAddress;
-                    Guid bannedGuid = player.GUID;
-
-                    if ((!bannedNames.Contains(bannedName)) && (!bannedIPs.Contains(bannedIP)) && (!bannedGUIDs.Contains(bannedGuid)) )
-                    {
-                        bannedNames.Add(bannedName);
-                        bannedIPs.Add(bannedIP);
-                        bannedGUIDs.Add(bannedGuid);
-                        banReasons.Add(reason);
-                        SaveBans();
-                        DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
-                    }
+                    DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
                 }
                 else
                 {
-                    DarkLog.Normal("Player '" + playerName + "' has gone offline or is already banned from the server.");
+                    bannedNames.Add(playerName);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
                 }
             }
-            else
+
+        }
+
+        public static void BanIP(string commandArgs)
+        {
+            string ip = commandArgs;
+            string reason = "";
+
+            if (commandArgs.Contains(" "))
             {
-                DarkLog.Error("Syntax error. Usage: /ban playername [reason]");
+                ip = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
             }
+
+            ClientObject player = null;
+
+            IPAddress ipAddress = IPAddress.Parse(ip);
+
+            if (ipAddress != null)
+            {
+
+                player = GetClientByIP(ipAddress);
+
+                if (reason == "")
+                    reason = "no reason specified";
+
+                if (player != null)
+                {
+                    SendConnectionEnd(player, "You were banned from the server!");
+
+                    bannedIPs.Add(ipAddress);
+                    banReasons.Add(reason);
+                    SaveBans();
+
+                    DarkLog.Normal("IP Address '" + ip + "' was banned from the server: " + reason);
+                }
+                else
+                {
+                    bannedIPs.Add(ipAddress);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("IP Address '" + ip + "' was banned from the server: " + reason);
+                }
+            }
+
+        }
+
+        public static void BanGuid(string commandArgs)
+        {
+            string guid = commandArgs;
+            string reason = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                guid = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
+
+            ClientObject player = null;
+            Guid bguid = Guid.Parse(guid);
+
+            if (bguid != null)
+            {
+
+                player = GetClientByGuid(bguid);
+
+                if (reason == "")
+                    reason = "no reason specified";
+
+                if (player != null)
+                {
+                    SendConnectionEnd(player, "You were banned from the server!");
+
+                    bannedGUIDs.Add(bguid);
+                    banReasons.Add(reason);
+                    SaveBans();
+
+                    DarkLog.Normal("GUID '" + guid + "' was banned from the server: " + reason);
+                }
+                else
+                {
+                    bannedGUIDs.Add(bguid);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("GUID '" + guid + "' was banned from the server: " + reason);
+                }
+            }
+
         }
 
         #endregion
