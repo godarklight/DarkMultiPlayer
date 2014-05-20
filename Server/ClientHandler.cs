@@ -10,6 +10,7 @@ using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
+
     public class ClientHandler
     {
         //No point support IPv6 until KSP enables it on their windows builds.
@@ -21,10 +22,20 @@ namespace DarkMultiPlayerServer
         private static string modFileData;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
+        private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPBans.txt");
+        private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
+        private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
+
+        private static List<string> bannedNames = new List<string>();
+        private static List<IPAddress> bannedIPs = new List<IPAddress>();
+        private static List<Guid> bannedGUIDs = new List<Guid>();
+        private static List<string> banReasons = new List<string>();
+
         private static Dictionary<string, int> playerUploadedScreenshotIndex = new Dictionary<string, int>();
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
         private static Dictionary<string, string> playerWatchScreenshot = new Dictionary<string, string>();
+
         #region Main loop
         public static void ThreadMain()
         {
@@ -35,8 +46,10 @@ namespace DarkMultiPlayerServer
             LoadSavedSubspace();
             LoadModFile();
             SetupTCPServer();
+            LoadBans();
             while (Server.serverRunning)
             {
+                LoadBans();
                 //Add new clients
                 while (addClients.Count > 0)
                 {
@@ -58,6 +71,7 @@ namespace DarkMultiPlayerServer
                 }
                 Thread.Sleep(10);
             }
+
             bool sendingHighPriotityMessages = true;
             while (sendingHighPriotityMessages)
             {
@@ -469,6 +483,8 @@ namespace DarkMultiPlayerServer
             newClientObject.activeVessel = "";
             newClientObject.subspaceRate = 1f;
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
+            newClientObject.ipAddress = (newClientConnection.Client.RemoteEndPoint as IPEndPoint).Address;
+            newClientObject.GUID = Guid.Empty;
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
             //Add the queues
@@ -479,8 +495,104 @@ namespace DarkMultiPlayerServer
             StartReceivingIncomingMessages(newClientObject);
             addClients.Enqueue(newClientObject);
         }
+
+        private static void SaveBans()
+        {
+            try
+            {
+                if (File.Exists(banlistFile))
+                {
+                    File.SetAttributes(banlistFile, FileAttributes.Normal);
+                }
+
+                using (StreamWriter sw = new StreamWriter(banlistFile))
+                {
+
+                    foreach (var name in bannedNames)
+                    {
+                        sw.WriteLine("{0}", name);
+                    }
+                }
+
+                using (StreamWriter sw = new StreamWriter(ipBanlistFile))
+                {
+                    foreach (var ip in bannedIPs)
+                    {
+                        sw.WriteLine("{0}", ip);
+                    }
+                }
+
+                using (StreamWriter sw = new StreamWriter(guidBanlistFile))
+                {
+                    foreach (var guid in bannedGUIDs)
+                    {
+                        sw.WriteLine("{0}", guid);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error saving bans!, Exception: " + e);
+            }
+        }
+
+        private static void LoadBans()
+        {
+            try
+            {
+                if (File.Exists(banlistFile))
+                {
+                    bannedNames.Clear();
+                    bannedIPs.Clear();
+                    bannedGUIDs.Clear();
+                    banReasons.Clear();
+
+                    foreach (var line in File.ReadAllLines(banlistFile))
+                    {
+                        try
+                        {
+                            bannedNames.Add(line);      
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        }
+                    }
+
+                    foreach (var line in File.ReadAllLines(ipBanlistFile))
+                    {
+                        try
+                        {
+                            bannedIPs.Add(IPAddress.Parse(line));
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        }
+                    }
+
+                    foreach (var line in File.ReadAllLines(guidBanlistFile))
+                    {
+                        try
+                        {
+                            bannedGUIDs.Add(Guid.Parse(line));
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Error("Error reading ban list!, Exception: " + e);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error loading bans!, Exception: " + e);
+            }
+        }
+
         #endregion
         #region Network related methods
+
         private static void CheckHeartBeat(ClientObject client)
         {
             if (client.sendMessageQueueHigh.Count == 0 && client.sendMessageQueueSplit.Count == 0 && client.sendMessageQueueLow.Count == 0)
@@ -965,7 +1077,20 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
+
             client.playerName = playerName;
+            client.GUID = Guid.Parse(playerGuid);
+
+            if (handshakeReponse == 0)
+            {
+                    if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
+                    {
+                        client.authenticated = false;
+                        handshakeReponse = 5;
+                        reason = "You were banned from the server!";
+                    }
+            }
+
             if (handshakeReponse == 0)
             {
                 client.authenticated = true;
@@ -1057,13 +1182,13 @@ namespace DarkMultiPlayerServer
                                         }
                                     }
                                 }
-                                DarkLog.Normal(fromPlayer + " -> #" + channel + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> #" + channel + ": " + message);
                             }
                             else
                             {
                                 SendToClient(client, newMessage, true);
                                 SendToAll(client, newMessage, true);
-                                DarkLog.Normal(fromPlayer + " -> #Global: " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> #Global: " + message);
                             }
                         }
                         break;
@@ -1076,10 +1201,10 @@ namespace DarkMultiPlayerServer
                             {
                                 SendToClient(client, newMessage, true);
                                 SendToClient(findClient, newMessage, true);
-                                DarkLog.Normal(fromPlayer + " -> @" + toPlayer + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -> @" + toPlayer + ": " + message);
                             }
                             {
-                                DarkLog.Debug(fromPlayer + " -X-> @" + toPlayer + ": " + message);
+                                DarkLog.ChatMessage(fromPlayer + " -X-> @" + toPlayer + ": " + message);
                             }
                         }
                         break;
@@ -1830,6 +1955,34 @@ namespace DarkMultiPlayerServer
             return findClient;
         }
 
+        public static ClientObject GetClientByIP(IPAddress ipAddress)
+        {
+            ClientObject findClient = null;
+            foreach (ClientObject testClient in clients)
+            {
+                if (testClient.authenticated && testClient.ipAddress == ipAddress)
+                {
+                    findClient = testClient;
+                    break;
+                }
+            }
+            return findClient;
+        }
+
+        public static ClientObject GetClientByGuid(Guid guid)
+        {
+            ClientObject findClient = null;
+            foreach (ClientObject testClient in clients)
+            {
+                if (testClient.authenticated && testClient.GUID == guid)
+                {
+                    findClient = testClient;
+                    break;
+                }
+            }
+            return findClient;
+        }
+
         private static void SendHeartBeat(ClientObject client)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -1885,6 +2038,7 @@ namespace DarkMultiPlayerServer
             {
                 mw.Write<int>((int)Settings.settingsStore.warpMode);
                 mw.Write<int>((int)Settings.settingsStore.gameMode);
+                mw.Write<bool>(Settings.settingsStore.cheats);
                 //Tack the amount of kerbals, vessels and scenario modules onto this message
                 mw.Write<int>(numberOfKerbals);
                 mw.Write<int>(numberOfVessels);
@@ -2270,6 +2424,136 @@ namespace DarkMultiPlayerServer
                 DarkLog.Error("Syntax error. Usage: /kick playername [reason]");
             }
         }
+
+        public static void BanPlayer(string commandArgs)
+        {
+            string playerName = commandArgs;
+            string reason = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
+
+            ClientObject player = null;
+
+            if (playerName != "")
+            {
+
+                player = GetClientByName(playerName);
+
+                if (reason == "")
+                    reason = "no reason specified";
+
+                if (player != null)
+                {
+                    SendConnectionEnd(player, "You were banned from the server!");
+
+                    bannedNames.Add(playerName);
+                    banReasons.Add(reason);
+                    SaveBans();
+
+                    DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
+                }
+                else
+                {
+                    bannedNames.Add(playerName);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("Player '" + playerName + "' was banned from the server: " + reason);
+                }
+            }
+
+        }
+
+        public static void BanIP(string commandArgs)
+        {
+            string ip = commandArgs;
+            string reason = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                ip = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
+
+            ClientObject player = null;
+
+            IPAddress ipAddress = IPAddress.Parse(ip);
+
+            if (ipAddress != null)
+            {
+
+                player = GetClientByIP(ipAddress);
+
+                if (reason == "")
+                    reason = "no reason specified";
+
+                if (player != null)
+                {
+                    SendConnectionEnd(player, "You were banned from the server!");
+
+                    bannedIPs.Add(ipAddress);
+                    banReasons.Add(reason);
+                    SaveBans();
+
+                    DarkLog.Normal("IP Address '" + ip + "' was banned from the server: " + reason);
+                }
+                else
+                {
+                    bannedIPs.Add(ipAddress);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("IP Address '" + ip + "' was banned from the server: " + reason);
+                }
+            }
+
+        }
+
+        public static void BanGuid(string commandArgs)
+        {
+            string guid = commandArgs;
+            string reason = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                guid = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
+
+            ClientObject player = null;
+            Guid bguid = Guid.Parse(guid);
+
+            if (bguid != null)
+            {
+
+                player = GetClientByGuid(bguid);
+
+                if (reason == "")
+                    reason = "no reason specified";
+
+                if (player != null)
+                {
+                    SendConnectionEnd(player, "You were banned from the server!");
+
+                    bannedGUIDs.Add(bguid);
+                    banReasons.Add(reason);
+                    SaveBans();
+
+                    DarkLog.Normal("GUID '" + guid + "' was banned from the server: " + reason);
+                }
+                else
+                {
+                    bannedGUIDs.Add(bguid);
+                    banReasons.Add(reason);
+                    SaveBans();
+                    DarkLog.Normal("GUID '" + guid + "' was banned from the server: " + reason);
+                }
+            }
+
+        }
+
         #endregion
     }
 
@@ -2277,6 +2561,9 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName;
+        public bool isBanned;
+        public IPAddress ipAddress;
+        public Guid GUID;
         //subspace tracking
         public int subspace;
         public float subspaceRate;
