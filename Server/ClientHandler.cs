@@ -1977,6 +1977,7 @@ namespace DarkMultiPlayerServer
             {
                 mw.Write<int>((int)Settings.settingsStore.warpMode);
                 mw.Write<int>((int)Settings.settingsStore.gameMode);
+                mw.Write<bool>(Settings.settingsStore.cheats);
                 //Tack the amount of kerbals, vessels and scenario modules onto this message
                 mw.Write<int>(numberOfKerbals);
                 mw.Write<int>(numberOfVessels);
