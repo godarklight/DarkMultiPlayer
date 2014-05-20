@@ -53,7 +53,10 @@ namespace DarkMultiPlayerServer
                 }
                 else
                 {
-                    commands["say"].func(input);
+                    if (input != "")
+                    {
+                        commands["say"].func(input);
+                    }
                 }
             }
         }
