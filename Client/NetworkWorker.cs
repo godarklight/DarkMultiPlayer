@@ -629,7 +629,7 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        Disconnect(reason);
+                        Disconnect("Handshake failure: " + reason);
                     }
                 }
             }
