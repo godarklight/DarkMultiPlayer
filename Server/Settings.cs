@@ -152,6 +152,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("logLevel", "Minimum log level.");
             descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
             descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
+            descriptionList.Add("cheats", "Enable use of cheats ingame.");
             return descriptionList;
         }
     }
@@ -166,5 +167,6 @@ namespace DarkMultiPlayerServer
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
         public int screenshotsPerPlayer = 20;
         public int screenshotHeight = 720;
+        public bool cheats = true;
     }
 }

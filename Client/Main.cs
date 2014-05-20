@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public GameMode gameMode;
+        public bool serverAllowCheats;
         //Disconnect message
         public bool displayDisconnectMessage;
         private ScreenMessage disconnectMessage;
@@ -105,6 +106,15 @@ namespace DarkMultiPlayer
                             disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
                         }
                     }
+                }
+                //handle use of cheats
+                if (!serverAllowCheats)
+                {
+                    CheatOptions.InfiniteFuel = false;
+                    CheatOptions.InfiniteEVAFuel = false;
+                    CheatOptions.InfiniteRCS = false;
+                    CheatOptions.NoCrashDamage = false;
+                    Destroy(FindObjectOfType(typeof(DebugToolbar)));
                 }
                 //Handle GUI events
                 if (!PlayerStatusWindow.fetch.disconnectEventHandled)

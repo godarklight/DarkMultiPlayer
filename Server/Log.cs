@@ -14,6 +14,7 @@ namespace DarkMultiPlayerServer
             DEBUG = 0,
             INFO = 1,
             ERROR = 2,
+            CHAT = 3,
         }
 
         private static void WriteLog(LogLevels level, string message)
@@ -67,6 +68,13 @@ namespace DarkMultiPlayerServer
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             WriteLog(LogLevels.ERROR, message);
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
+
+        public static void ChatMessage(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Yellow;
+            WriteLog(LogLevels.CHAT, message);
             Console.ForegroundColor = ConsoleColor.Gray;
         }
     }
