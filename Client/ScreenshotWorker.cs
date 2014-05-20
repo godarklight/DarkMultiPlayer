@@ -36,10 +36,17 @@ namespace DarkMultiPlayer
         private Queue<ScreenshotWatchEntry> newScreenshotWatchQueue = new Queue<ScreenshotWatchEntry>();
         private Queue<string> newScreenshotNotifiyQueue = new Queue<string>();
         private Dictionary<string, string> watchPlayers = new Dictionary<string, string>();
+        //Screenshot uploading message
+        private bool displayScreenshotUploadingMessage = false;
+        public bool finishedUploadingScreenshot = false;
+        private float lastScreenshotMessageCheck;
+        ScreenMessage screenshotUploadMessage;
+
         //const
         private const float MIN_WINDOW_HEIGHT = 200;
         private const float MIN_WINDOW_WIDTH = 150;
         private const float BUTTON_WIDTH = 150;
+        private const float SCREENSHOT_MESSAGE_CHECK_INTERVAL = .2f;
 
         public static ScreenshotWorker fetch
         {
@@ -154,9 +161,28 @@ namespace DarkMultiPlayer
 
                 if (!uploadEventHandled)
                 {
+                    finishedUploadingScreenshot = false;
                     SendScreenshot();
-                    ScreenMessages.PostScreenMessage("Uploaded screenshot!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                    displayScreenshotUploadingMessage = true;
                     uploadEventHandled = true;
+                }
+
+                if (displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
+                {
+                    lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                    if (screenshotUploadMessage != null)
+                    {
+                        screenshotUploadMessage.duration = 0f;
+                    }
+                    if (finishedUploadingScreenshot)
+                    {
+                        displayScreenshotUploadingMessage = false;
+                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Screenshot uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    else
+                    {
+                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Uploading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                    }
                 }
 
             }

@@ -53,11 +53,17 @@ namespace DarkMultiPlayer
         //delete event
         private CraftType deleteCraftType;
         private string deleteCraftName;
+        //Screen message
+        private bool displayCraftUploadingMessage = false;
+        public bool finishedUploadingCraft = false;
+        private float lastCraftMessageCheck;
+        ScreenMessage craftUploadMessage;
         //const
         private const float PLAYER_WINDOW_HEIGHT = 300;
         private const float PLAYER_WINDOW_WIDTH = 200;
         private const float LIBRARY_WINDOW_HEIGHT = 400;
         private const float LIBRARY_WINDOW_WIDTH = 300;
+        private const float CRAFT_MESSAGE_CHECK_INTERVAL = 0.2f;
 
         public CraftLibraryWorker()
         {
@@ -77,6 +83,7 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
+            safeDisplay = display;
             if (workerEnabled)
             {
                 while (craftAddQueue.Count > 0)
@@ -84,29 +91,33 @@ namespace DarkMultiPlayer
                     CraftAddEntry cae = craftAddQueue.Dequeue();
                     AddCraftEntry(cae.playerName, cae.craftType, cae.craftName);
                 }
+
                 while (craftDeleteQueue.Count > 0)
                 {
                     CraftDeleteEntry cde = craftDeleteQueue.Dequeue();
                     DeleteCraftEntry(cde.playerName, cde.craftType, cde.craftName);
                 }
+
                 while (craftResponseQueue.Count > 0)
                 {
                     CraftResponseEntry cre = craftResponseQueue.Dequeue();
                     SaveCraftFile(cre.craftType, cre.craftName, cre.craftData);
                 }
-                safeDisplay = display;
+
                 if (uploadCraftName != null)
                 {
                     UploadCraftFile(uploadCraftType, uploadCraftName);
                     uploadCraftName = null;
                     uploadCraftType = CraftType.VAB;
                 }
+
                 if (downloadCraftName != null)
                 {
                     DownloadCraftFile(selectedPlayer, downloadCraftType, downloadCraftName);
                     downloadCraftName = null;
                     downloadCraftType = CraftType.VAB;
                 }
+
                 if (deleteCraftName != null)
                 {
                     DeleteCraftEntry(Settings.fetch.playerName, deleteCraftType, deleteCraftName);
@@ -121,6 +132,25 @@ namespace DarkMultiPlayer
                     deleteCraftName = null;
                     deleteCraftType = CraftType.VAB;
                 }
+
+                if (displayCraftUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastCraftMessageCheck) > CRAFT_MESSAGE_CHECK_INTERVAL))
+                {
+                    lastCraftMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                    if (craftUploadMessage != null)
+                    {
+                        craftUploadMessage.duration = 0f;
+                    }
+                    if (finishedUploadingCraft)
+                    {
+                        displayCraftUploadingMessage = false;
+                        craftUploadMessage = ScreenMessages.PostScreenMessage("Craft uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    else
+                    {
+                        craftUploadMessage = ScreenMessages.PostScreenMessage("Uploading craft...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                }
+
             }
         }
 
@@ -152,7 +182,7 @@ namespace DarkMultiPlayer
                     mw.Write<byte[]>(fileData);
                     NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
                     AddCraftEntry(Settings.fetch.playerName, uploadCraftType, uploadCraftName);
-                    ScreenMessages.PostScreenMessage("Uploading " + uploadCraftName, 3f, ScreenMessageStyle.UPPER_CENTER);
+                    displayCraftUploadingMessage = true;
                 }
             }
             else

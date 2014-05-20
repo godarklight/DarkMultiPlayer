@@ -31,6 +31,7 @@ namespace DarkMultiPlayer
         private string selectedPMChannel = null;
         private bool chatLocked = false;
         private bool ignoreChatInput = false;
+        private bool selectTextBox = false;
         private string sendText = "";
         //event handling
         private bool leaveEventHandled = true;
@@ -420,12 +421,19 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
+                bool pressedChatShortcutKey = (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.BackQuote);
+                if (pressedChatShortcutKey)
+                {
+                    ignoreChatInput = true;
+                    selectTextBox = true;
+                }
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6704, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer Chat", windowStyle, windowLayoutOptions);
             }
         }
 
         private void DrawContent(int windowID)
         {
+            bool pressedEnter = (Event.current.type == EventType.KeyDown && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter));
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
@@ -537,7 +545,7 @@ namespace DarkMultiPlayer
             //Don't add the newline to the messages, queue a send
             if (!ignoreChatInput)
             {
-                if (Input.GetKey(KeyCode.Return) || Input.GetKey(KeyCode.KeypadEnter))
+                if (pressedEnter)
                 {
                     sendEventHandled = false;
                 }
@@ -567,9 +575,9 @@ namespace DarkMultiPlayer
                 chatLocked = false;
                 InputLockManager.RemoveControlLock(DMP_CHAT_LOCK);
             }
-            if (Input.GetKey(KeyCode.BackQuote) && GUI.GetNameOfFocusedControl() != "SendTextArea")
+            if (selectTextBox)
             {
-                ignoreChatInput = true;
+                selectTextBox = false;
                 GUI.FocusControl("SendTextArea");
             }
         }
