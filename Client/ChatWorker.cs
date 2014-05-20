@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         private List<string> joinedPMChannels = new List<string>();
         private List<string> highlightChannel = new List<string>();
         private List<string> highlightPM = new List<string>();
+        public bool chatButtonHighlighted = false;
         private string selectedChannel = null;
         private string selectedPMChannel = null;
         private bool chatLocked = false;
@@ -112,6 +113,10 @@ namespace DarkMultiPlayer
             ce.channel = channelName;
             ce.message = channelMessage;
             newChannelMessages.Enqueue(ce);
+            if (!display)
+            {
+                chatButtonHighlighted = true;
+            }
         }
 
         public void QueuePrivateMessage(string fromPlayer, string toPlayer, string privateMessage)
@@ -121,6 +126,10 @@ namespace DarkMultiPlayer
             pe.toPlayer = toPlayer;
             pe.message = privateMessage;
             newPrivateMessages.Enqueue(pe);
+            if (!display)
+            {
+                chatButtonHighlighted = true;
+            }
         }
 
         public void QueueRemovePlayer(string playerName)
@@ -132,6 +141,10 @@ namespace DarkMultiPlayer
         {
             safeDisplay = display;
             ignoreChatInput = false;
+            if (chatButtonHighlighted && display)
+            {
+                chatButtonHighlighted = false;
+            }
             if (chatLocked && !display)
             {
                 chatLocked = false;
