@@ -736,6 +736,7 @@ namespace DarkMultiPlayer
             {
                 WarpWorker.fetch.warpMode = (WarpMode)mr.Read<int>();
                 Client.fetch.gameMode = (GameMode)mr.Read<int>();
+                Client.fetch.serverAllowCheats = mr.Read<bool>();
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
                 ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
