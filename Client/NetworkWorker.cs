@@ -28,6 +28,7 @@ namespace DarkMultiPlayer
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueSplit = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueLow = new Queue<ClientMessage>();
+        private ClientMessageType lastSplitMessageType = ClientMessageType.HEARTBEAT;
         //Receive buffer
         private float lastReceiveTime = 0f;
         private bool isReceivingMessage = false;
@@ -411,6 +412,18 @@ namespace DarkMultiPlayer
                 if (sendMessageQueueSplit.Count > 0)
                 {
                     ClientMessage message = sendMessageQueueSplit.Dequeue();
+                    //We just sent the last piece of a split message
+                    if (sendMessageQueueSplit.Count == 0)
+                    {
+                        if (lastSplitMessageType == ClientMessageType.CRAFT_LIBRARY)
+                        {
+                            CraftLibraryWorker.fetch.finishedUploadingCraft = true;
+                        }
+                        if (lastSplitMessageType == ClientMessageType.SCREENSHOT_LIBRARY)
+                        {
+                            ScreenshotWorker.fetch.finishedUploadingScreenshot = true;
+                        }
+                    }
                     SendNetworkMessage(message);
                     return;
                 }
@@ -437,6 +450,7 @@ namespace DarkMultiPlayer
             }
             if (message.data.Length > Common.SPLIT_MESSAGE_LENGTH)
             {
+                lastSplitMessageType = message.type;
                 ClientMessage newSplitMessage = new ClientMessage();
                 newSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
                 int splitBytesLeft = message.data.Length;
