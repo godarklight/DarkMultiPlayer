@@ -32,6 +32,8 @@ namespace DarkMultiPlayer
         private string safeSelectedPlayer = "";
         private Dictionary<string, Texture2D> screenshots = new Dictionary<string, Texture2D>();
         private bool uploadEventHandled = true;
+        public bool uploadScreenshot = false;
+        private float lastScreenshotSend;
         private Queue<ScreenshotEntry> newScreenshotQueue = new Queue<ScreenshotEntry>();
         private Queue<ScreenshotWatchEntry> newScreenshotWatchQueue = new Queue<ScreenshotWatchEntry>();
         private Queue<string> newScreenshotNotifiyQueue = new Queue<string>();
@@ -47,6 +49,7 @@ namespace DarkMultiPlayer
         private const float MIN_WINDOW_WIDTH = 150;
         private const float BUTTON_WIDTH = 150;
         private const float SCREENSHOT_MESSAGE_CHECK_INTERVAL = .2f;
+        private const float MIN_SCREENSHOT_SEND_INTERVAL = 3f;
 
         public static ScreenshotWorker fetch
         {
@@ -161,10 +164,14 @@ namespace DarkMultiPlayer
 
                 if (!uploadEventHandled)
                 {
-                    finishedUploadingScreenshot = false;
-                    SendScreenshot();
-                    displayScreenshotUploadingMessage = true;
                     uploadEventHandled = true;
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
+                    {
+                        lastScreenshotSend = UnityEngine.Time.realtimeSinceStartup;
+                        displayScreenshotUploadingMessage = true;
+                        finishedUploadingScreenshot = false;
+                        uploadScreenshot = true;
+                    }
                 }
 
                 if (displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
@@ -220,10 +227,12 @@ namespace DarkMultiPlayer
                 DrawPlayerButton(player.playerName);
             }
             GUILayout.FlexibleSpace();
+            GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
             if (GUILayout.Button("Upload (F8)", buttonStyle))
             {
                 uploadEventHandled = false;
             }
+            GUI.enabled = true;
             GUILayout.EndVertical();
             GUILayout.EndScrollView();
             GUILayout.EndHorizontal();
@@ -258,7 +267,8 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void SendScreenshot()
+        //Called from main due to WaitForEndOfFrame timing.
+        public void SendScreenshot()
         {
             using (MessageWriter mw = new MessageWriter())
             {

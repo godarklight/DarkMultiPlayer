@@ -157,6 +157,12 @@ namespace DarkMultiPlayer
                     FireResetEvent();
                     NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
                 }
+
+                if (ScreenshotWorker.fetch.uploadScreenshot) {
+                    ScreenshotWorker.fetch.uploadScreenshot = false;
+                    StartCoroutine(UploadScreenshot());
+                }
+
                 foreach (Action updateAction in updateEvent)
                 {
                     try
@@ -190,6 +196,12 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Threw in Update, exception" + e);
             }
+        }
+
+        public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
+        {
+            yield return new WaitForEndOfFrame();
+            ScreenshotWorker.fetch.SendScreenshot();
         }
 
         public void FixedUpdate()
