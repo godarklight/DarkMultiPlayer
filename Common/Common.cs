@@ -13,7 +13,7 @@ namespace DarkMultiPlayerCommon
         //5MB
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //8kb
-        public const int PROTOCOL_VERSION = 7;
+        public const int PROTOCOL_VERSION = 8;
 
         public static string CalculateSHA256Hash(string fileName)
         {
