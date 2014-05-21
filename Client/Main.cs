@@ -17,7 +17,7 @@ namespace DarkMultiPlayer
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public GameMode gameMode;
-        public bool serverAllowCheats;
+        public bool serverAllowCheats = true;
         //Disconnect message
         public bool displayDisconnectMessage;
         private ScreenMessage disconnectMessage;
@@ -88,34 +88,7 @@ namespace DarkMultiPlayer
                     ModWorker.fetch.dllListBuilt = true;
                     ModWorker.fetch.BuildDllFileList();
                 }
-                if (displayDisconnectMessage)
-                {
-                    if (HighLogic.LoadedScene == GameScenes.MAINMENU)
-                    {
-                        displayDisconnectMessage = false;
-                    }
-                    else
-                    {
-                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
-                        {
-                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
-                            if (disconnectMessage != null)
-                            {
-                                disconnectMessage.duration = 0;
-                            }
-                            disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
-                        }
-                    }
-                }
-                //handle use of cheats
-                if (!serverAllowCheats)
-                {
-                    CheatOptions.InfiniteFuel = false;
-                    CheatOptions.InfiniteEVAFuel = false;
-                    CheatOptions.InfiniteRCS = false;
-                    CheatOptions.NoCrashDamage = false;
-                    Destroy(FindObjectOfType(typeof(DebugToolbar)));
-                }
+
                 //Handle GUI events
                 if (!PlayerStatusWindow.fetch.disconnectEventHandled)
                 {
@@ -168,11 +141,6 @@ namespace DarkMultiPlayer
                     NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
                 }
 
-                if (ScreenshotWorker.fetch.uploadScreenshot) {
-                    ScreenshotWorker.fetch.uploadScreenshot = false;
-                    StartCoroutine(UploadScreenshot());
-                }
-
                 foreach (Action updateAction in updateEvent)
                 {
                     try
@@ -195,12 +163,45 @@ namespace DarkMultiPlayer
                 }
 
                 //Normal quit
-                if (gameRunning == true && HighLogic.LoadedScene == GameScenes.MAINMENU)
+                if (gameRunning)
                 {
-                    gameRunning = false;
-                    FireResetEvent();
-                    NetworkWorker.fetch.SendDisconnect("Quit to main menu");
+                    if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                    {
+                        gameRunning = false;
+                        displayDisconnectMessage = false;
+                        FireResetEvent();
+                        NetworkWorker.fetch.SendDisconnect("Quit to main menu");
+                    }
+
+                    if (ScreenshotWorker.fetch.uploadScreenshot)
+                    {
+                        ScreenshotWorker.fetch.uploadScreenshot = false;
+                        StartCoroutine(UploadScreenshot());
+                    }
+
+                    //handle use of cheats
+                    if (!serverAllowCheats)
+                    {
+                        CheatOptions.InfiniteFuel = false;
+                        CheatOptions.InfiniteEVAFuel = false;
+                        CheatOptions.InfiniteRCS = false;
+                        CheatOptions.NoCrashDamage = false;
+                    }
+
+                    if (displayDisconnectMessage)
+                    {
+                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                        {
+                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                            if (disconnectMessage != null)
+                            {
+                                disconnectMessage.duration = 0;
+                            }
+                            disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                    }
                 }
+
             }
             catch (Exception e)
             {
@@ -329,9 +330,9 @@ namespace DarkMultiPlayer
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath ,"GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
+            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
             CreateIfNeeded(darkMultiPlayerDataDirectory);
-            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath ,"GameData"), "DarkMultiPlayer"), "Cache");
+            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
         }
 
