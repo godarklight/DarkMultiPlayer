@@ -18,12 +18,13 @@ namespace DarkMultiPlayerServer
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
+        private static string adminsListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
+        private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
+        private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
+        private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
+        private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
         private static string modFileData;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
-        private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
-        private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
-        private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
-        private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
         private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
         private static List<string> bannedNames = new List<string>();
         private static List<IPAddress> bannedIPs = new List<IPAddress>();
@@ -32,6 +33,8 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string, int> playerUploadedScreenshotIndex = new Dictionary<string, int>();
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
         private static Dictionary<string, string> playerWatchScreenshot = new Dictionary<string, string>();
+        private static List<string> adminList = new List<string>();
+
         #region Main loop
         public static void ThreadMain()
         {
@@ -42,6 +45,7 @@ namespace DarkMultiPlayerServer
             LoadSavedSubspace();
             LoadModFile();
             LoadBans();
+            LoadAdmins();
             SetupTCPServer();
             while (Server.serverRunning)
             {
@@ -491,6 +495,30 @@ namespace DarkMultiPlayerServer
             addClients.Enqueue(newClientObject);
         }
 
+        private static void SaveAdmins()
+        {
+            DarkLog.Debug("Saving admins");
+            try
+            {
+                if (File.Exists(adminsListFile))
+                {
+                    File.SetAttributes(adminsListFile, FileAttributes.Normal);
+                }
+
+                using (StreamWriter sw = new StreamWriter(adminsListFile))
+                {
+                    foreach (string admin in adminList)
+                    {
+                        sw.WriteLine(admin);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error saving admins!, Exception: " + e);
+            }
+        }
+
         private static void SaveBans()
         {
             try
@@ -528,6 +556,21 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 DarkLog.Error("Error saving bans!, Exception: " + e);
+            }
+        }
+
+        private static void LoadAdmins()
+        {
+            DarkLog.Debug("Loading admins");
+
+            if (File.Exists(adminsListFile))
+            {
+                adminList.Clear();
+                adminList.AddRange(File.ReadAllLines(adminsListFile));
+            }
+            else
+            {
+                SaveAdmins();
             }
         }
 
@@ -1035,7 +1078,7 @@ namespace DarkMultiPlayerServer
             {
                 //Protocol mismatch
                 handshakeReponse = 1;
-                reason = "Protocol mismatch";
+                reason = "Protocol mismatch (your version is outdated)";
             }
             if (handshakeReponse == 0)
             {
@@ -2400,6 +2443,12 @@ namespace DarkMultiPlayerServer
                 }
             }
         }
+
+        public static bool isAdmin(string playerName)
+        {
+            return adminList.Contains(playerName);
+        }
+
         #endregion
         #region Server commands
         public static void KickPlayer(string commandArgs)
@@ -2545,6 +2594,78 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal(guid + " is not a valid player token");
             }
         }
+
+        public static void AdminCommand(string commandArgs)
+        {
+            string func = "";
+            string playerName = "";
+
+            string[] parts = commandArgs.Split(' '); // apparently I needed to do this otherwise, if I typed the name of a player, it'd give me this "  playerName" and not "playerName".
+
+            func = parts[0];
+            playerName = parts[1];
+
+           // DarkLog.Debug("Func: " + func + "\nplayerName: " + playerName);
+
+            if (func.ToLowerInvariant() == "add")
+            {
+                if (playerName != "")
+                {
+                    ClientObject player = GetClientByName(playerName);
+                    if (player != null)
+                    {
+                        if (!isAdmin(playerName))
+                        {
+                            DarkLog.Debug("Set player '" + playerName + "' [" + player.GUID + "] as admin.");
+                            adminList.Add(playerName);
+                            SaveAdmins();
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Player '" + player.playerName + "' [" + player.GUID + "] is already an admin");
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Player '" + playerName + "' is not online");
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Invalid playername.");
+                }
+            }
+            else if (func.ToLowerInvariant() == "del")
+            {
+                if (playerName != "")
+                {
+                    ClientObject player = GetClientByName(playerName);
+
+                    if (player != null)
+                    {
+                        if (isAdmin(playerName))
+                        {
+                            DarkLog.Debug("Removed admin from '" + player.playerName + "' [" + player.GUID + "]");
+                            adminList.Remove(playerName);
+                            SaveAdmins();
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Player '" + player.playerName + "' [" + player.GUID + "] is not an admin");
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Player '" + playerName + "' is not online");
+                    }
+                }
+            }
+            else
+            {
+                DarkLog.Debug("Unrecognized function. Usage: /admin [add|del] <playername>");
+            }
+        }
+
         #endregion
     }
 
@@ -2552,7 +2673,7 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName;
-        public bool isBanned;
+        public bool isAdmin;
         public IPAddress ipAddress;
         public Guid GUID;
         //subspace tracking

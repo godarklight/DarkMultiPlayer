@@ -26,6 +26,8 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
             CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
             CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
+            CommandHandler.RegisterCommand("admin", ClientHandler.AdminCommand, "Adds a player to the admin list/removes a player from the admin list");
+
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             //Load settings

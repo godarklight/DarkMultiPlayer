@@ -15,6 +15,11 @@ namespace DarkMultiPlayerCommon
         //8kb
         public const int PROTOCOL_VERSION = 8;
 
+        // PLACEHOLDER
+        public const string CLIENT_VERSION = "", SERVER_VERSION = "";
+
+        public const string ADMIN_MARKER = "@";
+
         public static string CalculateSHA256Hash(string fileName)
         {
             return CalculateSHA256Hash(File.ReadAllBytes(fileName));
