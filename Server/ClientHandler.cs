@@ -2008,6 +2008,8 @@ namespace DarkMultiPlayerServer
             {
                 mw.Write<int>(response);
                 mw.Write<string>(reason);
+                mw.Write<int>(Common.PROTOCOL_VERSION);
+                mw.Write<string>(Common.PROGRAM_VERSION);
                 if (response == 0)
                 {
                     mw.Write<bool>(Settings.settingsStore.modControl);

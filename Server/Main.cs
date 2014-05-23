@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
@@ -18,6 +19,7 @@ namespace DarkMultiPlayerServer
             //Start the server clock
             serverClock = new Stopwatch();
             serverClock.Start();
+            DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
             //Register the exit/shutdown commands
             CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");

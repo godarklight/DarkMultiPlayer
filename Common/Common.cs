@@ -9,11 +9,14 @@ namespace DarkMultiPlayerCommon
     {
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long CONNECTION_TIMEOUT = 30000;
+        //Any message bigger than 5MB will be invalid
         public const int MAX_MESSAGE_SIZE = 5242880;
-        //5MB
+        //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
-        //8kb
-        public const int PROTOCOL_VERSION = 8;
+        //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
+        public const int PROTOCOL_VERSION = 9;
+        //Program version. This is written in the build scripts.
+        public const string PROGRAM_VERSION = "Custom";
 
         public static string CalculateSHA256Hash(string fileName)
         {
