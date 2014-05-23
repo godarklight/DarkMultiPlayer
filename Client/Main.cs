@@ -72,7 +72,7 @@ namespace DarkMultiPlayer
                 });
             }
             FireResetEvent();
-            DarkLog.Debug("DarkMultiPlayer Initialized!");
+            DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
         }
 
         public void Start()

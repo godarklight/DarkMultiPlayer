@@ -627,12 +627,24 @@ namespace DarkMultiPlayer
             int reply = 0;
             string reason = "";
             string modFileData = "";
+            int serverProtocolVersion = -1;
+            string serverVersion = "Unknown";
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
                     reason = mr.Read<string>();
+                    try
+                    {
+                        serverProtocolVersion = mr.Read<int>();
+                        serverVersion = mr.Read<string>();
+                    }
+                    catch
+                    {
+                        //We don't care about this throw on pre-protocol-9 servers.
+                    }
+                    //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
                         ModWorker.fetch.modControl = mr.Read<bool>();
@@ -666,8 +678,37 @@ namespace DarkMultiPlayer
                     }
                     break;
                 default:
-                    DarkLog.Debug("Handshake failed, response " + reply + ", reason: " + reason);
-                    Disconnect("Handshake failure: " + reason);
+                    string disconnectReason = "Handshake failure: " + reason;
+                    //If it's a protocol mismatch, append the client/server version.
+                    if (reply == 1)
+                    {
+                        string clientTrimmedVersion = Common.PROGRAM_VERSION;
+                        //Trim git tags
+                        if (Common.PROGRAM_VERSION.Length == 40)
+                        {
+                            clientTrimmedVersion = Common.PROGRAM_VERSION.Substring(0, 7);
+                        }
+                        string serverTrimmedVersion = serverVersion;
+                        if (serverVersion.Length == 40)
+                        {
+                            serverTrimmedVersion = serverVersion.Substring(0, 7);
+                        }
+                        disconnectReason += "\nClient: " + clientTrimmedVersion + ", Server: " + serverTrimmedVersion;
+                        //If they both aren't a release version, display the actual protocol version.
+                        if (!serverVersion.Contains("v") || !Common.PROGRAM_VERSION.Contains("v"))
+                        {
+                            if (serverProtocolVersion != -1)
+                            {
+                                disconnectReason += "\nClient protocol: " + Common.PROTOCOL_VERSION + ", Server: " + serverProtocolVersion;
+                            }
+                            else
+                            {
+                                disconnectReason += "\nClient protocol: " + Common.PROTOCOL_VERSION + ", Server: 8-";
+                            }
+                        }
+                    }
+                    DarkLog.Debug(disconnectReason);
+                    Disconnect(disconnectReason);
                     break;
             }
         }
