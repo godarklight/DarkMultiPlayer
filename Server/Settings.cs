@@ -153,6 +153,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
             descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
             descriptionList.Add("cheats", "Enable use of cheats ingame.");
+            descriptionList.Add("consoleName", "Changes the display name of the Console operator.");
             return descriptionList;
         }
     }
@@ -168,5 +169,6 @@ namespace DarkMultiPlayerServer
         public int screenshotsPerPlayer = 20;
         public int screenshotHeight = 720;
         public bool cheats = true;
+        public string consoleName = "[Server]";
     }
 }
