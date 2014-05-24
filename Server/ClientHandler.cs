@@ -47,48 +47,62 @@ namespace DarkMultiPlayerServer
             LoadBans();
             LoadAdmins();
             SetupTCPServer();
-            while (Server.serverRunning)
+            try
             {
-                //Add new clients
-                while (addClients.Count > 0)
+                while (Server.serverRunning)
                 {
-                    clients.Add(addClients.Dequeue());
-                }
-                //Process current clients
-                foreach (ClientObject client in clients)
-                {
-                    CheckHeartBeat(client);
-                    if (!client.isSendingToClient)
+                    //Add new clients
+                    while (addClients.Count > 0)
                     {
-                        SendOutgoingMessages(client);
+                        clients.Add(addClients.Dequeue());
                     }
-                }
-                //Delete old clients
-                while (deleteClients.Count > 0)
-                {
-                    clients.Remove(deleteClients.Dequeue());
-                }
-                Thread.Sleep(10);
-            }
-
-            bool sendingHighPriotityMessages = true;
-            while (sendingHighPriotityMessages)
-            {
-                sendingHighPriotityMessages = false;
-                foreach (ClientObject client in clients)
-                {
-                    if (client.authenticated)
+                    //Process current clients
+                    foreach (ClientObject client in clients)
                     {
-                        if (client.sendMessageQueueHigh != null ? client.sendMessageQueueHigh.Count > 0 : false)
+                        CheckHeartBeat(client);
+                        if (!client.isSendingToClient)
                         {
-                            SendOutgoingHighPriorityMessages(client);
-                            sendingHighPriotityMessages = true;
+                            SendOutgoingMessages(client);
                         }
                     }
+                    //Delete old clients
+                    while (deleteClients.Count > 0)
+                    {
+                        clients.Remove(deleteClients.Dequeue());
+                    }
+                    Thread.Sleep(10);
                 }
-                Thread.Sleep(10);
             }
-            ShutdownTCPServer();
+            catch (Exception e)
+            {
+                DarkLog.Fatal("Fatal error thrown, exception: " + e);
+                Server.ShutDown("Crashed!");
+            }
+            try
+            {
+                bool sendingHighPriotityMessages = true;
+                while (sendingHighPriotityMessages)
+                {
+                    sendingHighPriotityMessages = false;
+                    foreach (ClientObject client in clients)
+                    {
+                        if (client.authenticated)
+                        {
+                            if (client.sendMessageQueueHigh != null ? client.sendMessageQueueHigh.Count > 0 : false)
+                            {
+                                SendOutgoingHighPriorityMessages(client);
+                                sendingHighPriotityMessages = true;
+                            }
+                        }
+                    }
+                    Thread.Sleep(10);
+                }
+                ShutdownTCPServer();
+            }
+            catch (Exception e)
+            {
+                DarkLog.Fatal("Fatal error thrown during shutdown, exception: " + e);
+            }
         }
         #endregion
         #region Server setup
