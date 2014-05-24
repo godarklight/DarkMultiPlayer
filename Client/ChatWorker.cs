@@ -284,6 +284,10 @@ namespace DarkMultiPlayer
                             {
                                 leaveEventHandled = false;
                             }
+                            if (sendText == "/ping")
+                            {
+                                NetworkWorker.fetch.SendPingRequest();
+                            }
                         }
                     }
                     sendText = "";

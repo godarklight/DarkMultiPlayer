@@ -603,6 +603,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
                         break;
+                    case ServerMessageType.PING_REPLY:
+                        HandlePingReply(message.data);
+                        break;
                     case ServerMessageType.WARP_CONTROL:
                         HandleWarpControl(message.data);
                         break;
@@ -1148,6 +1151,16 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandlePingReply(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
+                ChatWorker.fetch.QueueChannelMessage("Server", "", "Ping: " + pingTime + "ms.");
+            }
+
+        }
+
         private void HandleWarpControl(byte[] messageData)
         {
             WarpWorker.fetch.QueueWarpMessage(messageData);
@@ -1439,7 +1452,19 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
             sendMessageQueueLow.Enqueue(newMessage);
         }
-        //Called fro warpWorker
+        //Called from chatWorker
+        public void SendPingRequest()
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PING_REQUEST;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<long>(DateTime.UtcNow.Ticks);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+        //Called from warpWorker
         public void SendWarpMessage(byte[] messageData)
         {
             ClientMessage newMessage = new ClientMessage();

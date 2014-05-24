@@ -999,6 +999,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.SEND_ACTIVE_VESSEL:
                         HandleSendActiveVessel(client, message.data);
                         break;
+                    case ClientMessageType.PING_REQUEST:
+                        HandlePingRequest(client, message.data);
+                        break;
                     case ClientMessageType.WARP_CONTROL:
                         HandleWarpControl(client, message.data);
                         break;
@@ -1776,6 +1779,14 @@ namespace DarkMultiPlayerServer
             }
             newMessage.data = messageData;
             SendToAll(client, newMessage, true);
+        }
+
+        private static void HandlePingRequest(ClientObject client, byte[] messageData)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.PING_REPLY;
+            newMessage.data = messageData;
+            SendToClient(client, newMessage, true);
         }
 
         private static void HandleWarpControl(ClientObject client, byte[] messageData)
