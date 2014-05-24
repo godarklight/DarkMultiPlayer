@@ -276,7 +276,6 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Disconnecting, reason: " + reason);
                     Client.fetch.status = reason;
-                    Client.fetch.displayDisconnectMessage = true;
                     state = ClientState.DISCONNECTED;
                     if (clientConnection != null)
                     {
@@ -286,6 +285,10 @@ namespace DarkMultiPlayer
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
                         Client.fetch.forceQuit = true;
+                    }
+                    else
+                    {
+                        Client.fetch.displayDisconnectMessage = true;
                     }
                 }
             }
