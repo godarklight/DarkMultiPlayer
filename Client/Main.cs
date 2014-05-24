@@ -206,6 +206,10 @@ namespace DarkMultiPlayer
             catch (Exception e)
             {
                 DarkLog.Debug("Threw in Update, exception" + e);
+                if (NetworkWorker.fetch.state != ClientState.DISCONNECTED && NetworkWorker.fetch.state < ClientState.RUNNING)
+                {
+                    NetworkWorker.fetch.SendDisconnect("Unhandled error during connection");
+                }
             }
         }
 
