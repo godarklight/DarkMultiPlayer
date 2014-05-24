@@ -9,12 +9,13 @@ namespace DarkMultiPlayerServer
         private static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
         private static object logLock = new object();
 
-        public enum LogLevels : int
+        public enum LogLevels
         {
-            DEBUG = 0,
-            INFO = 1,
-            ERROR = 2,
-            CHAT = 3,
+            DEBUG,
+            INFO,
+            CHAT,
+            ERROR,
+            FATAL
         }
 
         private static void WriteLog(LogLevels level, string message)
@@ -68,6 +69,13 @@ namespace DarkMultiPlayerServer
         {
             Console.ForegroundColor = ConsoleColor.DarkRed;
             WriteLog(LogLevels.ERROR, message);
+            Console.ForegroundColor = ConsoleColor.Gray;
+        }
+
+        public static void Fatal(string message)
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            WriteLog(LogLevels.FATAL, message);
             Console.ForegroundColor = ConsoleColor.Gray;
         }
 

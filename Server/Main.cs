@@ -95,7 +95,7 @@ namespace DarkMultiPlayerServer
 
         }
         //Shutdown
-        private static void ShutDown(string commandArgs)
+        public static void ShutDown(string commandArgs)
         {
             if (commandArgs != "")
             {
