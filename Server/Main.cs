@@ -10,6 +10,7 @@ namespace DarkMultiPlayerServer
     {
         public static bool serverRunning;
         public static bool serverStarting;
+        public static bool serverRestarting;
         public static string universeDirectory;
         public static Stopwatch serverClock;
         private static long ctrlCTime;
@@ -19,45 +20,52 @@ namespace DarkMultiPlayerServer
             //Start the server clock
             serverClock = new Stopwatch();
             serverClock.Start();
-            DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
-            //Register the exit/shutdown commands
+            //Register the server commands
             CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
             CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
+            CommandHandler.RegisterCommand("restart", Server.Restart, "Restarts the server");
             CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
             CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
             CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
             CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
-            //Load settings
-            DarkLog.Normal("Loading universe... ");
-            CheckUniverse();
-            DarkLog.Normal("Done!");
-
-            DarkLog.Normal("Loading settings... ");
-            Settings.Load();
-            DarkLog.Normal("Done!");
-
-            DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
             serverStarting = true;
-            serverRunning = true;
-            Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
-            Thread clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
-            commandThread.Start();
-            clientThread.Start();
-            while (serverStarting)
+            while (serverStarting || serverRestarting)
             {
-                Thread.Sleep(500);
-            }
-            DarkLog.Normal("Done!");
+                serverRestarting = false;
+                DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
 
-            while (serverRunning)
-            {
-                Thread.Sleep(500);
+                //Load settings
+                DarkLog.Normal("Loading universe... ");
+                CheckUniverse();
+                DarkLog.Normal("Done!");
+
+                DarkLog.Normal("Loading settings... ");
+                Settings.Load();
+                DarkLog.Normal("Done!");
+
+                DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
+
+                serverRunning = true;
+                Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
+                Thread clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
+                commandThread.Start();
+                clientThread.Start();
+                while (serverStarting)
+                {
+                    Thread.Sleep(500);
+                }
+                DarkLog.Normal("Done!");
+
+                while (serverRunning)
+                {
+                    Thread.Sleep(500);
+                }
+                commandThread.Abort();
+                clientThread.Join();
             }
-            commandThread.Abort();
-            clientThread.Join();
             DarkLog.Normal("Goodbye!");
         }
         //Create universe directories
@@ -107,6 +115,23 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("Shutting down");
                 ClientHandler.SendConnectionEndToAll("Server is shutting down");
             }
+            serverStarting = false;
+            serverRunning = false;
+        }
+        //Restart
+        private static void Restart(string commandArgs)
+        {
+            if (commandArgs != "")
+            {
+                DarkLog.Normal("Restarting - " + commandArgs);
+                ClientHandler.SendConnectionEndToAll("Server is restarting - " + commandArgs);
+            }
+            else
+            {
+                DarkLog.Normal("Restarting");
+                ClientHandler.SendConnectionEndToAll("Server is restarting");
+            }
+            serverRestarting = true;
             serverStarting = false;
             serverRunning = false;
         }

@@ -24,14 +24,14 @@ namespace DarkMultiPlayerServer
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
         private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
-        private static Dictionary<string, List<string>> playerChatChannels = new Dictionary<string, List<string>>();
-        private static List<string> bannedNames = new List<string>();
-        private static List<IPAddress> bannedIPs = new List<IPAddress>();
-        private static List<Guid> bannedGUIDs = new List<Guid>();
-        private static List<string> banReasons = new List<string>();
-        private static Dictionary<string, int> playerUploadedScreenshotIndex = new Dictionary<string, int>();
-        private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
-        private static Dictionary<string, string> playerWatchScreenshot = new Dictionary<string, string>();
+        private static Dictionary<string, List<string>> playerChatChannels;
+        private static List<string> bannedNames;
+        private static List<IPAddress> bannedIPs;
+        private static List<Guid> bannedGUIDs;
+        private static List<string> banReasons;
+        private static Dictionary<string, int> playerUploadedScreenshotIndex;
+        private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
+        private static Dictionary<string, string> playerWatchScreenshot;
         #region Main loop
         public static void ThreadMain()
         {
@@ -39,6 +39,14 @@ namespace DarkMultiPlayerServer
             clients = new List<ClientObject>();
             deleteClients = new Queue<ClientObject>();
             subspaces = new Dictionary<int, Subspace>();
+            playerChatChannels = new Dictionary<string, List<string>>();
+            bannedNames = new List<string>();
+            bannedIPs = new List<IPAddress>();
+            bannedGUIDs = new List<Guid>();
+            banReasons = new List<string>();
+            playerUploadedScreenshotIndex = new Dictionary<string, int>();
+            playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
+            playerWatchScreenshot = new Dictionary<string, string>();
             LoadSavedSubspace();
             LoadModFile();
             LoadBans();

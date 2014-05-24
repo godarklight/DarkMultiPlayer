@@ -64,7 +64,10 @@ namespace DarkMultiPlayerServer
         public static void RegisterCommand(string command, Action<string> func, string description)
         {
             Command cmd = new Command(command, func, description);
-            commands.Add(command, cmd);
+            if (!commands.ContainsKey(command))
+            {
+                commands.Add(command, cmd);
+            }
         }
 
         private static void DisplayHelp(string commandArgs)
