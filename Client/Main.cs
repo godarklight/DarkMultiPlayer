@@ -157,6 +157,7 @@ namespace DarkMultiPlayer
                 {
                     forceQuit = false;
                     gameRunning = false;
+                    displayDisconnectMessage = false;
                     FireResetEvent();
                     NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
