@@ -2042,15 +2042,32 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.CHAT_MESSAGE;
             using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                mw.Write<string>("Server");
+            { 
+                // CHANNEL_MESSAGE: fromPlayer, channel, message
+                mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE); 
+                mw.Write<string>(Settings.settingsStore.consoleName);
                 //Global channel
                 mw.Write<string>("");
                 mw.Write(messageText);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToAll(null, newMessage, true);
+        }
+
+        public static void SendChatMessageToClient(ClientObject client, string messageText)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                // PRIVATE_MESSAGE: fromPlayer, toPlayer, message
+                mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
+                mw.Write<string>(Settings.settingsStore.consoleName);
+                mw.Write<string>(client.playerName);
+                mw.Write(messageText);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
         }
 
         private static void SendServerSettings(ClientObject client)
@@ -2561,6 +2578,30 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal(guid + " is not a valid player token");
             }
         }
+
+        public static void WhisperCommand(string commandArgs)
+        {
+            string playerName = commandArgs;
+            string message = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                message = commandArgs.Substring(commandArgs.IndexOf(" "));
+            }
+
+            ClientObject player = GetClientByName(playerName);
+
+            if (player != null)
+            {
+                SendChatMessageToClient(player, message);
+            }
+            else
+            {
+                DarkLog.Debug(playerName + " is offline.");
+            }
+        }
+
         #endregion
     }
 
