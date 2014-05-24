@@ -1070,6 +1070,7 @@ namespace DarkMultiPlayerServer
             int protocolVersion;
             string playerName = "";
             string playerGuid = Guid.Empty.ToString();
+            bool isAdmin = false;
             string reason = "";
             //0 - Success
             int handshakeReponse = 0;            
@@ -2113,6 +2114,7 @@ namespace DarkMultiPlayerServer
                 mw.Write<int>(numberOfVessels);
                 //mw.Write<int>(numberOfScenarioModules);
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
+                mw.Write<List<string>>(adminList);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -2435,6 +2437,24 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_COMPLETE;
             SendToClient(client, newMessage, false);
+        }
+
+        private static void SendAdmins(ClientObject client)
+        {
+            List<string> cAdminList = new List<string>();
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)AdminRequestType.LIST);
+                foreach (string playerEntry in adminList)
+                {
+                    cAdminList.Add(playerEntry);
+                }
+                mw.Write<string[]>(cAdminList.ToArray());
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.ADMIN_REQUEST;
+                newMessage.data = mw.GetMessageBytes();
+                SendToClient(client, newMessage, true);
+            }
         }
 
         private static void SendConnectionEnd(ClientObject client, string reason)

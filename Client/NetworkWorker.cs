@@ -43,6 +43,7 @@ namespace DarkMultiPlayer
         private int numberOfKerbalsReceived = 0;
         private int numberOfVessels = 0;
         private int numberOfVesselsReceived = 0;
+        private List<string> serverAdmins = new List<string>();
         private object disconnectLock = new object();
 
         public NetworkWorker()

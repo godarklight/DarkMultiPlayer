@@ -17,10 +17,7 @@ namespace DarkMultiPlayerCommon
         public const int PROTOCOL_VERSION = 9;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
-
-        // PLACEHOLDER
-        public const string CLIENT_VERSION = "", SERVER_VERSION = "";
-
+        //Admin marker. Added to admins messages.
         public const string ADMIN_MARKER = "@";
 
         public static string CalculateSHA256Hash(string fileName)
@@ -98,6 +95,7 @@ namespace DarkMultiPlayerCommon
         PING_REPLY,
         WARP_CONTROL,
         SPLIT_MESSAGE,
+        ADMIN_REQUEST,
         CONNECTION_END
     }
 
@@ -180,6 +178,13 @@ namespace DarkMultiPlayerCommon
         LEAVE,
         CHANNEL_MESSAGE,
         PRIVATE_MESSAGE,
+    }
+
+    public enum AdminRequestType
+    {
+        LIST,
+        ADD,
+        REMOVE,
     }
 
     public class ClientMessage
