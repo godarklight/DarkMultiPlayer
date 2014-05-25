@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using System.Net;
+using System.Text;
 using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
@@ -13,7 +15,10 @@ namespace DarkMultiPlayerServer
         public static bool serverRestarting;
         public static string universeDirectory;
         public static Stopwatch serverClock;
+        public static HttpListener httpListener;
         private static long ctrlCTime;
+
+        public static int playerCount = 0;
 
         public static void Main()
         {
@@ -57,6 +62,10 @@ namespace DarkMultiPlayerServer
                 {
                     Thread.Sleep(500);
                 }
+                DarkLog.Normal("Done!");
+
+                DarkLog.Normal("Starting HTTP server...");
+                StartHTTPServer();
                 DarkLog.Normal("Done!");
 
                 while (serverRunning)
@@ -117,6 +126,7 @@ namespace DarkMultiPlayerServer
             }
             serverStarting = false;
             serverRunning = false;
+            StopHTTPServer();
         }
         //Restart
         private static void Restart(string commandArgs)
@@ -134,6 +144,7 @@ namespace DarkMultiPlayerServer
             serverRestarting = true;
             serverStarting = false;
             serverRunning = false;
+            ForceStopHTTPServer();
         }
         //Gracefully shut down
         private static void CatchExit(object sender, ConsoleCancelEventArgs args)
@@ -148,6 +159,61 @@ namespace DarkMultiPlayerServer
             else
             {
                 DarkLog.Debug("Terminating!");
+            }
+        }
+        private static void StartHTTPServer()
+        {
+            httpListener = new HttpListener();
+            try
+            {
+                httpListener.Prefixes.Add("http://*:" + Settings.settingsStore.httpPort + '/');
+                httpListener.Start();
+                httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+            }
+        }
+        private static void StopHTTPServer()
+        {
+            httpListener.Stop();
+        }
+        private static void ForceStopHTTPServer()
+        {
+            if (httpListener != null)
+            {
+                try
+                {
+                    httpListener.Stop();
+                    httpListener.Close();
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Fatal("Error trying to shutdown HTTP server: " + e);
+                }
+            }
+        }
+        private static void asyncHTTPCallback(IAsyncResult result)
+        {
+            try
+            {
+                HttpListener listener = (HttpListener)result.AsyncState;
+
+                HttpListenerContext context = listener.EndGetContext(result);
+
+                string responseText = new ServerInfo(Settings.settingsStore).GetJSON();
+
+                byte[] buffer = Encoding.UTF8.GetBytes(responseText);
+                context.Response.ContentLength64 = buffer.LongLength;
+                context.Response.OutputStream.Write(buffer, 0, buffer.Length);
+                context.Response.OutputStream.Close();
+
+                listener.BeginGetContext(asyncHTTPCallback, listener);
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Exception while listening to HTTP server!, Exception:\n" + e);
             }
         }
     }

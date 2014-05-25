@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using MessageStream;
+using System.Linq;
 using System.IO;
 using DarkMultiPlayerCommon;
 
@@ -35,9 +36,9 @@ namespace DarkMultiPlayerServer
         #region Main loop
         public static void ThreadMain()
         {
-            addClients = new Queue<ClientObject>();
-            clients = new List<ClientObject>();
-            deleteClients = new Queue<ClientObject>();
+            addClients = new Queue<ClientObject>(Settings.settingsStore.maxPlayers);
+            clients = new List<ClientObject>(Settings.settingsStore.maxPlayers);
+            deleteClients = new Queue<ClientObject>(Settings.settingsStore.maxPlayers);
             subspaces = new Dictionary<int, Subspace>();
             playerChatChannels = new Dictionary<string, List<string>>();
             bannedNames = new List<string>();
@@ -60,6 +61,7 @@ namespace DarkMultiPlayerServer
                     {
                         clients.Add(addClients.Dequeue());
                     }
+                    Server.playerCount = GetActiveClientCount();
                     //Process current clients
                     foreach (ClientObject client in clients)
                     {
@@ -623,6 +625,10 @@ namespace DarkMultiPlayerServer
                 File.Create(guidBanlistFile);
             }
         }
+        private static int GetActiveClientCount()
+        {
+            return clients.Where(c => c.authenticated).Count();
+        }
         #endregion
         #region Network related methods
         private static void CheckHeartBeat(ClientObject client)
@@ -1038,7 +1044,7 @@ namespace DarkMultiPlayerServer
             int protocolVersion;
             string playerName = "";
             string playerGuid = Guid.Empty.ToString();
-            string reason = "";
+            string reason = ""; 
             //0 - Success
             int handshakeReponse = 0;            
             try
@@ -1128,6 +1134,16 @@ namespace DarkMultiPlayerServer
 
             if (handshakeReponse == 0)
             {
+                if (GetActiveClientCount() >= Settings.settingsStore.maxPlayers)
+                {
+                    client.authenticated = false;
+                    handshakeReponse = 6;
+                    reason = "Server is full";
+                }
+            }
+
+            if (handshakeReponse == 0)
+            {
                 client.authenticated = true;
                 DarkLog.Normal("Client " + playerName + " handshook successfully!");
                 //SEND ALL THE THINGS!
@@ -1144,7 +1160,7 @@ namespace DarkMultiPlayerServer
             }
             else
             {
-                DarkLog.Normal("Client " + playerName + " failed to handshake, reason " + reason);
+                DarkLog.Normal("Client " + playerName + " failed to handshake: " + reason);
                 SendHandshakeReply(client, handshakeReponse, reason);
             }
 
