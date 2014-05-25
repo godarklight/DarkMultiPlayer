@@ -153,7 +153,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
             descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
             descriptionList.Add("cheats", "Enable use of cheats ingame.");
-            descriptionList.Add("httpPort", "HTTP port for server status.");
+            descriptionList.Add("httpPort", "HTTP port for server status. 0 = Disabled");
             descriptionList.Add("serverName", "Name of the server.");
             descriptionList.Add("maxPlayers", "Maximum amount of players that can join the server.");
             return descriptionList;

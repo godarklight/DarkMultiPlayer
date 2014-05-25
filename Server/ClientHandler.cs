@@ -33,12 +33,15 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string, int> playerUploadedScreenshotIndex;
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
+        private static object clientLock = new object();
         #region Main loop
         public static void ThreadMain()
         {
-            addClients = new Queue<ClientObject>(Settings.settingsStore.maxPlayers);
-            clients = new List<ClientObject>(Settings.settingsStore.maxPlayers);
-            deleteClients = new Queue<ClientObject>(Settings.settingsStore.maxPlayers);
+            try
+            {
+            addClients = new Queue<ClientObject>();
+            clients = new List<ClientObject>();
+            deleteClients = new Queue<ClientObject>();
             subspaces = new Dictionary<int, Subspace>();
             playerChatChannels = new Dictionary<string, List<string>>();
             bannedNames = new List<string>();
@@ -52,36 +55,41 @@ namespace DarkMultiPlayerServer
             LoadModFile();
             LoadBans();
             SetupTCPServer();
-            try
-            {
+
                 while (Server.serverRunning)
                 {
-                    //Add new clients
-                    while (addClients.Count > 0)
+                    lock (clientLock)
                     {
-                        clients.Add(addClients.Dequeue());
-                    }
-                    Server.playerCount = GetActiveClientCount();
-                    //Process current clients
-                    foreach (ClientObject client in clients)
-                    {
-                        CheckHeartBeat(client);
-                        if (!client.isSendingToClient)
+                        //Add new clients
+                        while (addClients.Count > 0)
                         {
-                            SendOutgoingMessages(client);
+                            clients.Add(addClients.Dequeue());
+                            Server.playerCount = GetActiveClientCount();
+                            Server.players = GetActivePlayerNames();
                         }
-                    }
-                    //Delete old clients
-                    while (deleteClients.Count > 0)
-                    {
-                        clients.Remove(deleteClients.Dequeue());
+                        //Process current clients
+                        foreach (ClientObject client in clients)
+                        {
+                            CheckHeartBeat(client);
+                            if (!client.isSendingToClient)
+                            {
+                                SendOutgoingMessages(client);
+                            }
+                        }
+                        //Delete old clients
+                        while (deleteClients.Count > 0)
+                        {
+                            clients.Remove(deleteClients.Dequeue());
+                            Server.playerCount = GetActiveClientCount();
+                            Server.players = GetActivePlayerNames();
+                        }
                     }
                     Thread.Sleep(10);
                 }
             }
             catch (Exception e)
             {
-                DarkLog.Fatal("Fatal error thrown, exception: " + e);
+                DarkLog.Error("Fatal error thrown, exception: " + e);
                 Server.ShutDown("Crashed!");
             }
             try
@@ -108,6 +116,7 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 DarkLog.Fatal("Fatal error thrown during shutdown, exception: " + e);
+                throw;
             }
         }
         #endregion
@@ -625,10 +634,35 @@ namespace DarkMultiPlayerServer
                 File.Create(guidBanlistFile);
             }
         }
+
         private static int GetActiveClientCount()
         {
-            return clients.Where(c => c.authenticated).Count();
+            lock (clientLock)
+            {
+                return clients.Where(c => c.authenticated).Count();
+            }
         }
+
+        private static string GetActivePlayerNames()
+        {
+            string playerString = "";
+            lock (clientLock)
+            {
+                foreach (ClientObject client in clients)
+                {
+                    if (client.authenticated)
+                    {
+                        if (playerString != "")
+                        {
+                            playerString += ", ";
+                        }
+                        playerString += client.playerName;
+                    }
+                }
+            }
+            return playerString;
+        }
+
         #endregion
         #region Network related methods
         private static void CheckHeartBeat(ClientObject client)
@@ -1044,9 +1078,9 @@ namespace DarkMultiPlayerServer
             int protocolVersion;
             string playerName = "";
             string playerGuid = Guid.Empty.ToString();
-            string reason = ""; 
+            string reason = "";
             //0 - Success
-            int handshakeReponse = 0;            
+            int handshakeReponse = 0;
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
@@ -1126,7 +1160,6 @@ namespace DarkMultiPlayerServer
             {
                 if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
                 {
-                    client.authenticated = false;
                     handshakeReponse = 5;
                     reason = "You were banned from the server!";
                 }
@@ -1136,7 +1169,6 @@ namespace DarkMultiPlayerServer
             {
                 if (GetActiveClientCount() >= Settings.settingsStore.maxPlayers)
                 {
-                    client.authenticated = false;
                     handshakeReponse = 6;
                     reason = "Server is full";
                 }
@@ -1157,6 +1189,8 @@ namespace DarkMultiPlayerServer
                     }
                 }
                 SendHandshakeReply(client, handshakeReponse, "success");
+                Server.playerCount = GetActiveClientCount();
+                Server.players = GetActivePlayerNames();
             }
             else
             {

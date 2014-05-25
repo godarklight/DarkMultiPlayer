@@ -10,54 +10,62 @@ namespace DarkMultiPlayerServer
 
         public static void ThreadMain()
         {
-            //Register commands
-            CommandHandler.RegisterCommand("help", CommandHandler.DisplayHelp, "Displays this help");
-            CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
-            CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
-
-            //Main loop
-            while (Server.serverRunning)
+            try
             {
-                string input = Console.ReadLine();
-                DarkLog.Normal("Command input: " + input);
-                if (input.StartsWith("/"))
+                //Register commands
+                CommandHandler.RegisterCommand("help", CommandHandler.DisplayHelp, "Displays this help");
+                CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
+                CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
+
+                //Main loop
+                while (Server.serverRunning)
                 {
-                    string commandPart = input.Substring(1);
-                    string argumentPart = "";
-                    if (commandPart.Contains(" "))
+                    string input = Console.ReadLine();
+                    DarkLog.Normal("Command input: " + input);
+                    if (input.StartsWith("/"))
                     {
-                        if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                        string commandPart = input.Substring(1);
+                        string argumentPart = "";
+                        if (commandPart.Contains(" "))
                         {
-                            argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                            if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                            {
+                                argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                            }
+                            commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
                         }
-                        commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
+                        if (commandPart.Length > 0)
+                        {
+                            if (commands.ContainsKey(commandPart))
+                            {
+                                try
+                                {
+                                    commands[commandPart].func(argumentPart);
+                                }
+                                catch (Exception e)
+                                {
+                                    DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
+                                }
+                            }
+                            else
+                            {
+                                DarkLog.Normal("Unknown command: " + commandPart);
+                            }
+                        }
                     }
-                    if (commandPart.Length > 0)
+                    else
                     {
-                        if (commands.ContainsKey(commandPart))
+                        if (input != "")
                         {
-                            try
-                            {
-                                commands[commandPart].func(argumentPart);
-                            }
-                            catch (Exception e)
-                            {
-                                DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
-                            }
-                        }
-                        else
-                        {
-                            DarkLog.Normal("Unknown command: " + commandPart);
+                            commands["say"].func(input);
                         }
                     }
                 }
-                else
-                {
-                    if (input != "")
-                    {
-                        commands["say"].func(input);
-                    }
-                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Fatal("Error in command handler thread, Exception: " + e);
+                throw;
             }
         }
 

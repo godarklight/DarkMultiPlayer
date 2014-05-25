@@ -17,10 +17,13 @@ namespace DarkMultiPlayerServer
         public string server_name;
 
         [DataMember]
+        public string players;
+
+        [DataMember]
         public int player_count;
 
         [DataMember]
-        public int max_players; // not yet implemented
+        public int max_players;
 
         [DataMember]
         public int port;
@@ -41,50 +44,13 @@ namespace DarkMultiPlayerServer
         {
             server_name = settings.serverName;
             player_count = Server.playerCount;
+            players = Server.players;
             max_players = settings.maxPlayers;
-
-            switch (settings.gameMode)
-            {
-                default:
-                case GameMode.SANDBOX:
-                    game_mode = "SANDBOX";
-                    break;
-                case GameMode.CAREER:
-                    game_mode = "CAREER";
-                    break;
-            }
-
-            switch (settings.warpMode)
-            {
-                default:
-                    warp_mode = "UNDEFINED";
-                    break;
-                case WarpMode.MCW_FORCE:
-                    warp_mode = "MCW_FORCE";
-                    break;
-                case WarpMode.MCW_VOTE:
-                    warp_mode = "MCW_VOTE";
-                    break;
-                case WarpMode.MCW_LOWEST:
-                    warp_mode = "MCW_LOWEST";
-                    break;
-                case WarpMode.SUBSPACE_SIMPLE:
-                    warp_mode = "SUBSPACE_SIMPLE";
-                    break;
-                case WarpMode.SUBSPACE:
-                    warp_mode = "SUBSPACE";
-                    break;
-                case WarpMode.NONE:
-                    warp_mode = "NONE";
-                    break;
-            }
-
+            game_mode = settings.gameMode.ToString();
+            warp_mode = settings.warpMode.ToString();
             port = settings.port;
-
             mod_control = settings.modControl;
-
             cheats = settings.cheats;
-            
         }
 
         public string GetJSON()

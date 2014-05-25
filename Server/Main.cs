@@ -17,65 +17,72 @@ namespace DarkMultiPlayerServer
         public static Stopwatch serverClock;
         public static HttpListener httpListener;
         private static long ctrlCTime;
-
         public static int playerCount = 0;
+        public static string players = "";
 
         public static void Main()
         {
-            //Start the server clock
-            serverClock = new Stopwatch();
-            serverClock.Start();
-            //Register the server commands
-            CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
-            CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
-            CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
-            CommandHandler.RegisterCommand("restart", Server.Restart, "Restarts the server");
-            CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
-            CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
-            CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
-            CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
-            //Register the ctrl+c event
-            Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
-            serverStarting = true;
-            while (serverStarting || serverRestarting)
+            try
             {
-                serverRestarting = false;
-                DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
-
-                //Load settings
-                DarkLog.Normal("Loading universe... ");
-                CheckUniverse();
-                DarkLog.Normal("Done!");
-
-                DarkLog.Normal("Loading settings... ");
-                Settings.Load();
-                DarkLog.Normal("Done!");
-
-                DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
-
-                serverRunning = true;
-                Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
-                Thread clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
-                commandThread.Start();
-                clientThread.Start();
-                while (serverStarting)
+                //Start the server clock
+                serverClock = new Stopwatch();
+                serverClock.Start();
+                //Register the server commands
+                CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
+                CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
+                CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
+                CommandHandler.RegisterCommand("restart", Server.Restart, "Restarts the server");
+                CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
+                CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
+                CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
+                CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
+                //Register the ctrl+c event
+                Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
+                serverStarting = true;
+                while (serverStarting || serverRestarting)
                 {
-                    Thread.Sleep(500);
-                }
-                DarkLog.Normal("Done!");
+                    serverRestarting = false;
+                    DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
 
-                DarkLog.Normal("Starting HTTP server...");
-                StartHTTPServer();
-                DarkLog.Normal("Done!");
+                    //Load settings
+                    DarkLog.Normal("Loading universe... ");
+                    CheckUniverse();
+                    DarkLog.Normal("Done!");
 
-                while (serverRunning)
-                {
-                    Thread.Sleep(500);
+                    DarkLog.Normal("Loading settings... ");
+                    Settings.Load();
+                    DarkLog.Normal("Done!");
+
+                    DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
+
+                    serverRunning = true;
+                    Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
+                    Thread clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
+                    commandThread.Start();
+                    clientThread.Start();
+                    while (serverStarting)
+                    {
+                        Thread.Sleep(500);
+                    }
+                    DarkLog.Normal("Done!");
+
+                    StartHTTPServer();
+                    DarkLog.Normal("Done!");
+
+                    while (serverRunning)
+                    {
+                        Thread.Sleep(500);
+                    }
+                    commandThread.Abort();
+                    clientThread.Join();
                 }
-                commandThread.Abort();
-                clientThread.Join();
+                DarkLog.Normal("Goodbye!");
             }
-            DarkLog.Normal("Goodbye!");
+            catch (Exception e)
+            {
+                DarkLog.Fatal("Error in main server thread, Exception: " + e);
+                throw;
+            }
         }
         //Create universe directories
         private static void CheckUniverse()
@@ -161,39 +168,56 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug("Terminating!");
             }
         }
+
         private static void StartHTTPServer()
         {
-            httpListener = new HttpListener();
-            try
+            if (Settings.settingsStore.httpPort > 0)
             {
-                httpListener.Prefixes.Add("http://*:" + Settings.settingsStore.httpPort + '/');
-                httpListener.Start();
-                httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
-            }
-            catch (Exception e)
-            {
-                DarkLog.Error("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
-            }
-        }
-        private static void StopHTTPServer()
-        {
-            httpListener.Stop();
-        }
-        private static void ForceStopHTTPServer()
-        {
-            if (httpListener != null)
-            {
+                DarkLog.Normal("Starting HTTP server...");
+                httpListener = new HttpListener();
                 try
                 {
-                    httpListener.Stop();
-                    httpListener.Close();
+                    httpListener.Prefixes.Add("http://*:" + Settings.settingsStore.httpPort + '/');
+                    httpListener.Start();
+                    httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Fatal("Error trying to shutdown HTTP server: " + e);
+                    DarkLog.Error("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
                 }
             }
         }
+
+        private static void StopHTTPServer()
+        {
+            if (Settings.settingsStore.httpPort > 0)
+            {
+                DarkLog.Normal("Stopping HTTP server...");
+                httpListener.Stop();
+            }
+        }
+
+        private static void ForceStopHTTPServer()
+        {
+            if (Settings.settingsStore.httpPort > 0)
+            {
+                DarkLog.Normal("Force stopping HTTP server...");
+                if (httpListener != null)
+                {
+                    try
+                    {
+                        httpListener.Stop();
+                        httpListener.Close();
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Fatal("Error trying to shutdown HTTP server: " + e);
+                        throw;
+                    }
+                }
+            }
+        }
+
         private static void asyncHTTPCallback(IAsyncResult result)
         {
             try
@@ -213,7 +237,11 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Error("Exception while listening to HTTP server!, Exception:\n" + e);
+                //Ignore the EngGetContext throw while shutting down the HTTP server.
+                if (Server.serverRunning)
+                {
+                    DarkLog.Error("Exception while listening to HTTP server!, Exception:\n" + e);
+                }
             }
         }
     }

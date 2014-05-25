@@ -36,6 +36,8 @@
     <Reference Include="MessageWriter">
       <HintPath>..\MessageWriter.dll</HintPath>
     </Reference>
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -44,6 +46,7 @@
     <Compile Include="Settings.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="Dekessler.cs" />
+    <Compile Include="ServerInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
