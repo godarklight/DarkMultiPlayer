@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.2.0.
+#DarkMultiPlayer 0.1.3.0.
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -34,7 +34,7 @@ To download a craft, press on the owning player's username and select one of the
 ###Screenshot sharing window
 To upload a screenshot, press 'Upload'.  
 To view a players screenshot, press on their player name.  
-If the server has screenshot saving enabled, The players name will go red when there is a new screenshot to view.
+If the server has screenshot saving enabled, The players name will go red when there is a new screenshot to view.  
   
 ###Mods
 If you try to connect to a modded server, DMP will tell you everything you are missing, and tell you everything you shouldn't have in order to connect. If there is any DLL's that need to be added, you will need to restart KSP.  
@@ -53,18 +53,22 @@ Option a) Extract the zip as above
 Option b) Place DMPUpdater next to DMPServer.exe and run it.  
   
 ###Server console commands
+ban       - Bans a player from the server  
+banguid   - Bans a Guid from the server  
+banip     - Bans an IP Address from the server  
 dekessler - Clears out debris from the server  
 exit      - Shuts down the server  
 help      - Displays this help  
 kick      - Kicks a player from the server  
 quit      - Shuts down the server  
 say       - Broadcasts a message to clients  
+restart   - Restarts the server  
 shutdown  - Shuts down the server  
-
+  
 ###Options
-The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.
-
-
+The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.  
+  
+  
 ####port
 The port to listen on, default 6702.  
   
@@ -86,9 +90,9 @@ The warp type.
 ####modcontrol
 Enables or disables modcontrol - Only turn this off if you are running a private server where everyone has the same mods.  
 - 0 : Off  
--1 : On  
+- 1 : On  
   
-
+  
 ####useutctimeinlog
 Use UTC instead of system time in the log. This is useful if you want to co-ordinate logging between the server and client.  
 
@@ -99,15 +103,30 @@ Minimum log level to display. While DMP is in alpha, it's recommended to leave t
   
 ####screenshotsperplayer
 Number of screenshots to save. You need to have a number higher than -1 in order for players to view screenshots for players they are not currently watching.  
-- -1 is disabled
+- -1 is disabled  
 - 0 is unlimited.  
   
-
-####screenshotheight:  
+  
+####screenshotheight
 The height of the screenshot in pixels.  
   
   
-
+####cheats
+Enable use of cheats ingame.
+- 0 : Off  
+- 1 : On  
+  
+####httpport
+HTTP port for server status. 0 = Disabled
+  
+####servername
+Name of the server. This is the name that shows up in the JSON output (and server list if added)  
+  
+####maxplayers
+Maximum amount of players that can join the server.  
+  
+  
+  
 ##Mods
 Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) - The file format is the same.  
   
