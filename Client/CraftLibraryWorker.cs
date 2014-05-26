@@ -272,7 +272,7 @@ namespace DarkMultiPlayer
         private void SaveCraftFile(CraftType craftType, string craftName, byte[] craftData)
         {
             string savePath = "";
-            switch (uploadCraftType)
+            switch (craftType)
             {
                 case CraftType.VAB:
                     savePath = vabPath;
