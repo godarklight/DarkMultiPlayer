@@ -64,8 +64,11 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Fatal("Error in command handler thread, Exception: " + e);
-                throw;
+                if (Server.serverRunning)
+                {
+                    DarkLog.Fatal("Error in command handler thread, Exception: " + e);
+                    throw;
+                }
             }
         }
 

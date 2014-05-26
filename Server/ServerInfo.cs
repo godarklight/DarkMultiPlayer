@@ -17,6 +17,12 @@ namespace DarkMultiPlayerServer
         public string server_name;
 
         [DataMember]
+        public string version;
+
+        [DataMember]
+        public int protocol_version;
+
+        [DataMember]
         public string players;
 
         [DataMember]
@@ -43,6 +49,8 @@ namespace DarkMultiPlayerServer
         public ServerInfo(SettingsStore settings)
         {
             server_name = settings.serverName;
+            version = Common.PROGRAM_VERSION;
+            protocol_version = Common.PROTOCOL_VERSION;
             player_count = Server.playerCount;
             players = Server.players;
             max_players = settings.maxPlayers;
