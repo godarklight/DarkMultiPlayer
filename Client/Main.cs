@@ -218,6 +218,7 @@ namespace DarkMultiPlayer
         {
             yield return new WaitForEndOfFrame();
             ScreenshotWorker.fetch.SendScreenshot();
+            ScreenshotWorker.fetch.screenshotTaken = true;
         }
 
         public void FixedUpdate()

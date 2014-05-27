@@ -43,6 +43,8 @@ namespace DarkMultiPlayer
         public bool finishedUploadingScreenshot = false;
         private float lastScreenshotMessageCheck;
         ScreenMessage screenshotUploadMessage;
+        //delay the screenshot message until we've taken a screenshot
+        public bool screenshotTaken;
 
         //const
         private const float MIN_WINDOW_HEIGHT = 200;
@@ -168,13 +170,14 @@ namespace DarkMultiPlayer
                     if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
                     {
                         lastScreenshotSend = UnityEngine.Time.realtimeSinceStartup;
-                        displayScreenshotUploadingMessage = true;
+                        screenshotTaken = false;
                         finishedUploadingScreenshot = false;
                         uploadScreenshot = true;
+                        displayScreenshotUploadingMessage = true;
                     }
                 }
 
-                if (displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
+                if (screenshotTaken && displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
                 {
                     lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
                     if (screenshotUploadMessage != null)
