@@ -17,6 +17,9 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
                 CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
                 CommandHandler.RegisterCommand("nukeksc", NukeKSC.RunNukeKSC, "Clears ALL vessels from KSC and the Runway");
+                CommandHandler.RegisterCommand("listclients", ListClients , "Clears out debris from the server");
+                CommandHandler.RegisterCommand("countclients", CountClients, "Clears out debris from the server");
+
                 //Main loop
                 while (Server.serverRunning)
                 {
@@ -115,6 +118,23 @@ namespace DarkMultiPlayerServer
         {
             DarkLog.Normal("Broadcasting " + sayText);
             ClientHandler.SendChatMessageToAll(sayText);
+        }
+
+        private static void ListClients(string commandArgs)
+        {
+            if (Server.players != "")
+            {
+                DarkLog.Normal("Online players: " + Server.players);
+            }
+            else
+            {
+                DarkLog.Normal("No clients connected");
+            }
+        }
+
+        private static void CountClients(string commandArgs)
+        {
+            DarkLog.Normal("Online players: " + Server.playerCount);
         }
 
         private class Command : IComparable

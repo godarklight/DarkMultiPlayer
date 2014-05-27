@@ -229,7 +229,8 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Error("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+                    DarkLog.Fatal("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+                    throw;
                 }
             }
         }
