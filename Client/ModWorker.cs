@@ -138,19 +138,28 @@ namespace DarkMultiPlayer
                                         string[] splitLine = lowerFixedLine.Split('=');
                                         if (splitLine.Length == 2)
                                         {
-                                            parseRequired.Add(splitLine[0], splitLine[1].ToLowerInvariant());
+                                            if (!parseRequired.ContainsKey(splitLine[0]))
+                                            {
+                                                parseRequired.Add(splitLine[0], splitLine[1].ToLowerInvariant());
+                                            }
                                         }
                                         else
                                         {
                                             if (splitLine.Length == 1)
                                             {
-                                                parseRequired.Add(splitLine[0], "");
+                                                if (!parseRequired.ContainsKey(splitLine[0]))
+                                                {
+                                                    parseRequired.Add(splitLine[0], "");
+                                                }
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        parseRequired.Add(lowerFixedLine, "");
+                                        if (!parseRequired.ContainsKey(lowerFixedLine))
+                                        {
+                                            parseRequired.Add(lowerFixedLine, "");
+                                        }
                                     }
                                 }
                                 break;
@@ -162,19 +171,28 @@ namespace DarkMultiPlayer
                                         string[] splitLine = lowerFixedLine.Split('=');
                                         if (splitLine.Length == 2)
                                         {
-                                            parseOptional.Add(splitLine[0], splitLine[1]);
+                                            if (!parseOptional.ContainsKey(splitLine[0]))
+                                            {
+                                                parseOptional.Add(splitLine[0], splitLine[1]);
+                                            }
                                         }
                                         else
                                         {
                                             if (splitLine.Length == 1)
                                             {
-                                                parseOptional.Add(splitLine[0], "");
+                                                if (!parseOptional.ContainsKey(splitLine[0]))
+                                                {
+                                                    parseOptional.Add(splitLine[0], "");
+                                                }
                                             }
                                         }
                                     }
                                     else
                                     {
-                                        parseOptional.Add(lowerFixedLine, "");
+                                        if (!parseOptional.ContainsKey(lowerFixedLine))
+                                        {
+                                            parseOptional.Add(lowerFixedLine, "");
+                                        }
                                     }
                                 }
                                 break;
@@ -185,12 +203,18 @@ namespace DarkMultiPlayer
                                     //Resource is dll's only.
                                     if (lowerFixedLine.ToLowerInvariant().EndsWith(".dll"))
                                     {
-                                        parseWhiteBlackList.Add(lowerFixedLine);
+                                        if (parseWhiteBlackList.Contains(lowerFixedLine))
+                                        {
+                                            parseWhiteBlackList.Add(lowerFixedLine);
+                                        }
                                     }
                                 }
                                 break;
                             case "partslist":
-                                parsePartsList.Add(trimmedLine);
+                                if (!parsePartsList.Contains(trimmedLine))
+                                {
+                                    parsePartsList.Add(trimmedLine);
+                                }
                                 break;
                         }
                     }
