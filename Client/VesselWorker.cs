@@ -342,6 +342,12 @@ namespace DarkMultiPlayer
                 {
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
+                        //When we change vessel, send the vessel as soon as possible.
+                        if (lastVessel != "" && inUse[lastVessel] == Settings.fetch.playerName)
+                        {
+                            DarkLog.Debug("Resetting last send time for " + lastVessel);
+                            serverVesselsProtoUpdate[lastVessel] = 0f;
+                        }
                         //Nobody else is flying the vessel - let's take it
                         PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
