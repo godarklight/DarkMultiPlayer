@@ -1631,6 +1631,13 @@ namespace DarkMultiPlayerServer
         private static void HandleScreenshotLibrary(ClientObject client, byte[] messageData)
         {
             string screenshotDirectory = Path.Combine(Server.universeDirectory, "Screenshots");
+            if (Settings.settingsStore.screenshotDirectory != "")
+            {
+                if (Directory.Exists(Settings.settingsStore.screenshotDirectory))
+                {
+                    screenshotDirectory = Settings.settingsStore.screenshotDirectory;
+                }
+            }
             if (!Directory.Exists(screenshotDirectory))
             {
                 Directory.CreateDirectory(screenshotDirectory);

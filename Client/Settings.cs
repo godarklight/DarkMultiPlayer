@@ -142,7 +142,7 @@ namespace DarkMultiPlayer
                     sw.WriteLine(playerGuid.ToString());
                 }
                 DarkLog.Debug("Backing up token file.");
-                File.Copy(tokenFile, backupTokenFile);
+                File.Copy(tokenFile, backupTokenFile, true);
             }
         }
 
@@ -179,7 +179,7 @@ namespace DarkMultiPlayer
                 serverNodeList.AppendChild(serverElement);
             }
             xmlDoc.Save(settingsFile);
-            File.Copy(settingsFile, backupSettingsFile);
+            File.Copy(settingsFile, backupSettingsFile, true);
         }
 
         private string newXMLString()
