@@ -85,6 +85,7 @@ namespace DarkMultiPlayer
                 GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
                 GameEvents.onFlightReady.Add(OnFlightReady);
                 GameEvents.onPartCouple.Add(OnVesselDock);
+                GameEvents.onCrewBoardVessel.Add(OnCrewBoard);
             }
             if (!workerEnabled && registered)
             {
@@ -348,6 +349,8 @@ namespace DarkMultiPlayer
                             DarkLog.Debug("Resetting last send time for " + lastVessel);
                             serverVesselsProtoUpdate[lastVessel] = 0f;
                         }
+                        //Reset the send time of the vessel we just switched to
+                        serverVesselsProtoUpdate[FlightGlobals.ActiveVessel.id.ToString()] = 0f;
                         //Nobody else is flying the vessel - let's take it
                         PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
@@ -590,10 +593,7 @@ namespace DarkMultiPlayer
                 //Check that is hasn't been recently sent
                 if (notRecentlySentProtoUpdate)
                 {
-                    //Send a protovessel update
-                    serverVesselsProtoUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                    //Also delay the position send
-                    serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+
                     ProtoVessel checkProto = new ProtoVessel(checkVessel);
                     //TODO: Fix sending of flying vessels.
                     if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING))
@@ -642,16 +642,16 @@ namespace DarkMultiPlayer
                             {
                                 serverVessels.Add(checkProto.vesselID.ToString());
                             }
+                            //Mark the update as sent
+                            serverVesselsProtoUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                            //Also delay the position send
+                            serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                             NetworkWorker.fetch.SendVesselProtoMessage(checkProto, false);
                         }
                         else
                         {
                             DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
                         }
-                    }
-                    else
-                    {
-                        DarkLog.Debug("Failed to send protovessel for " + checkVessel.id);
                     }
                 }
                 else if (notRecentlySentPositionUpdate)
@@ -1273,6 +1273,18 @@ namespace DarkMultiPlayer
                 {
                     HighLogic.LoadScene(GameScenes.TRACKSTATION);
                 }
+            }
+        }
+
+        private void OnCrewBoard(GameEvents.FromToAction<Part, Part> partAction)
+        {
+            DarkLog.Debug("Crew boarding detected!");
+            if (!isSpectating)
+            {
+                DarkLog.Debug("EVA Boarding, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
+                DarkLog.Debug("EVA Boarding, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
+                fromDockedVesselID = partAction.from.vessel.id.ToString();
+                toDockedVesselID = partAction.to.vessel.id.ToString();
             }
         }
 
