@@ -126,6 +126,9 @@ namespace DarkMultiPlayer
                     if (screenshotTexture.LoadImage(se.screenshotData))
                     {
                         screenshotTexture.Apply();
+                        //Make sure screenshots aren't bigger than 2/3rds of the screen.
+                        ResizeTextureIfNeeded(ref screenshotTexture);
+                        //Save the texture in memory
                         screenshots[se.fromPlayer] = screenshotTexture;
                         DarkLog.Debug("Loaded screenshot from " + se.fromPlayer);
                     }
@@ -195,6 +198,25 @@ namespace DarkMultiPlayer
                     }
                 }
 
+            }
+        }
+
+        private void ResizeTextureIfNeeded(ref Texture2D screenshotTexture)
+        {
+            //Make sure screenshots aren't bigger than 2/3rds of the screen.
+            int resizeWidth = (int)(Screen.width * .66);
+            int resizeHeight = (int)(Screen.height * .66);
+            if (screenshotTexture.width > resizeWidth || screenshotTexture.height > resizeHeight)
+            {
+                RenderTexture renderTexture = new RenderTexture(resizeWidth, resizeHeight, 24);
+                renderTexture.useMipMap = false;
+                Graphics.Blit(screenshotTexture, renderTexture);
+                RenderTexture.active = renderTexture;
+                Texture2D resizeTexture = new Texture2D(resizeWidth, resizeHeight, TextureFormat.RGB24, false);
+                resizeTexture.ReadPixels(new Rect(0, 0, resizeWidth, resizeHeight), 0, 0);
+                resizeTexture.Apply();
+                screenshotTexture = resizeTexture;
+                RenderTexture.active = null;
             }
         }
 
@@ -301,11 +323,17 @@ namespace DarkMultiPlayer
 
             //Read the pixels from the render texture into a Texture2D
             Texture2D resizedTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
+            Texture2D ourTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
             resizedTexture.ReadPixels(new Rect(0, 0, screenshotWidth, screenshotHeight), 0, 0);
             resizedTexture.Apply();
+            //Save a copy locally in case we need to resize it.
+            ourTexture.ReadPixels(new Rect(0, 0, screenshotWidth, screenshotHeight), 0, 0);
+            ourTexture.Apply();
+            ResizeTextureIfNeeded(ref ourTexture);
+            //Save our texture in memory.
+            screenshots[Settings.fetch.playerName] = ourTexture;
 
             RenderTexture.active = null;
-            screenshots[Settings.fetch.playerName] = resizedTexture;
             return resizedTexture.EncodeToPNG();
         }
 
