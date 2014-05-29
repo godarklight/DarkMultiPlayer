@@ -39,22 +39,22 @@ namespace DarkMultiPlayerServer
         {
             try
             {
-            addClients = new Queue<ClientObject>();
-            clients = new List<ClientObject>();
-            deleteClients = new Queue<ClientObject>();
-            subspaces = new Dictionary<int, Subspace>();
-            playerChatChannels = new Dictionary<string, List<string>>();
-            bannedNames = new List<string>();
-            bannedIPs = new List<IPAddress>();
-            bannedGUIDs = new List<Guid>();
-            banReasons = new List<string>();
-            playerUploadedScreenshotIndex = new Dictionary<string, int>();
-            playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
-            playerWatchScreenshot = new Dictionary<string, string>();
-            LoadSavedSubspace();
-            LoadModFile();
-            LoadBans();
-            SetupTCPServer();
+                addClients = new Queue<ClientObject>();
+                clients = new List<ClientObject>();
+                deleteClients = new Queue<ClientObject>();
+                subspaces = new Dictionary<int, Subspace>();
+                playerChatChannels = new Dictionary<string, List<string>>();
+                bannedNames = new List<string>();
+                bannedIPs = new List<IPAddress>();
+                bannedGUIDs = new List<Guid>();
+                banReasons = new List<string>();
+                playerUploadedScreenshotIndex = new Dictionary<string, int>();
+                playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
+                playerWatchScreenshot = new Dictionary<string, string>();
+                LoadSavedSubspace();
+                LoadModFile();
+                LoadBans();
+                SetupTCPServer();
 
                 while (Server.serverRunning)
                 {
@@ -662,7 +662,6 @@ namespace DarkMultiPlayerServer
             }
             return playerString;
         }
-
         #endregion
         #region Network related methods
         private static void CheckHeartBeat(ClientObject client)
@@ -1074,7 +1073,6 @@ namespace DarkMultiPlayerServer
 
         private static void HandleHandshakeRequest(ClientObject client, byte[] messageData)
         {
-
             int protocolVersion;
             string playerName = "";
             string playerGuid = Guid.Empty.ToString();
@@ -1105,13 +1103,16 @@ namespace DarkMultiPlayerServer
             if (handshakeReponse == 0)
             {
                 //Check client isn't already connected
-                foreach (ClientObject testClient in clients)
+                ClientObject testClient = GetClientByName(playerName);
+                if (testClient != null)
                 {
-                    if (client != testClient && testClient.playerName == playerName)
-                    {
-                        handshakeReponse = 2;
-                        reason = "Client already connected";
-                    }
+                    SendHeartBeat(testClient);
+                    Thread.Sleep(1000);
+                }
+                if (clients.Contains(testClient))
+                {
+                    handshakeReponse = 2;
+                    reason = "Client already connected";
                 }
             }
             if (handshakeReponse == 0)
