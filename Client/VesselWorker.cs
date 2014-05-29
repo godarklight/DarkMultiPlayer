@@ -40,7 +40,10 @@ namespace DarkMultiPlayer
         private List<string> serverVessels = new List<string>();
         private Dictionary<string, bool> vesselPartsOk = new Dictionary<string, bool>();
         //Vessel state tracking
-        private string lastVessel;
+        private string lastVesselID;
+        private string lastVesselName;
+        private VesselType lastVesselType;
+        private Vessel.Situations lastVesselSituation;
         private Dictionary <string, int> vesselPartCount = new Dictionary<string, int>();
         //Known kerbals
         private Dictionary<int, ProtoCrewMember> serverKerbals = new Dictionary<int, ProtoCrewMember>();
@@ -171,7 +174,7 @@ namespace DarkMultiPlayer
                     PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                     SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
                     NetworkWorker.fetch.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
-                    lastVessel = FlightGlobals.ActiveVessel.id.ToString();
+                    lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
                     //Send protovessel
                     NetworkWorker.fetch.SendVesselProtoMessage(new ProtoVessel(FlightGlobals.fetch.activeVessel), true);
                     fromDockedVesselID = null;
@@ -344,10 +347,10 @@ namespace DarkMultiPlayer
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
                         //When we change vessel, send the vessel as soon as possible.
-                        if (lastVessel != "" && inUse[lastVessel] == Settings.fetch.playerName)
+                        if (lastVesselID != "" && inUse[lastVesselID] == Settings.fetch.playerName)
                         {
-                            DarkLog.Debug("Resetting last send time for " + lastVessel);
-                            serverVesselsProtoUpdate[lastVessel] = 0f;
+                            DarkLog.Debug("Resetting last send time for " + lastVesselID);
+                            serverVesselsProtoUpdate[lastVesselID] = 0f;
                         }
                         //Reset the send time of the vessel we just switched to
                         serverVesselsProtoUpdate[FlightGlobals.ActiveVessel.id.ToString()] = 0f;
@@ -355,15 +358,18 @@ namespace DarkMultiPlayer
                         PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
                         NetworkWorker.fetch.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
-                        lastVessel = FlightGlobals.ActiveVessel.id.ToString();
+                        lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
+                        lastVesselName = FlightGlobals.fetch.activeVessel.vesselName;
+                        lastVesselType = FlightGlobals.fetch.activeVessel.vesselType;
+                        lastVesselSituation = FlightGlobals.fetch.activeVessel.situation;
                     }
                 }
                 else
                 {
-                    if (lastVessel != "")
+                    if (lastVesselID != "")
                     {
                         //We are still in flight, 
-                        lastVessel = "";
+                        lastVesselID = "";
                         NetworkWorker.fetch.SendActiveVessel("");
                         PlayerStatusWorker.fetch.myPlayerStatus.vesselText = "";
                         SetNotInUse(Settings.fetch.playerName);
@@ -373,9 +379,9 @@ namespace DarkMultiPlayer
             if (HighLogic.LoadedScene != GameScenes.FLIGHT)
             {
                 //Release the vessel if we aren't in flight anymore.
-                if (lastVessel != "")
+                if (lastVesselID != "")
                 {
-                    lastVessel = "";
+                    lastVesselID = "";
                     NetworkWorker.fetch.SendActiveVessel("");
                     PlayerStatusWorker.fetch.myPlayerStatus.vesselText = "";
                     SetNotInUse(Settings.fetch.playerName);
@@ -412,20 +418,38 @@ namespace DarkMultiPlayer
         {
             if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
             {
+                //Check all vessel for part count changes
                 foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
                 {
                     if (!isSpectating && checkVessel.loaded && !checkVessel.packed)
                     {
-                        if (vesselPartCount.ContainsKey(checkVessel.id.ToString()) ? checkVessel.parts.Count != vesselPartCount[checkVessel.id.ToString()] : true)
+                        bool partCountChanged = vesselPartCount.ContainsKey(checkVessel.id.ToString()) ? checkVessel.parts.Count != vesselPartCount[checkVessel.id.ToString()] : true;
+
+                        if (partCountChanged)
                         {
+                            serverVesselsProtoUpdate[checkVessel.id.ToString()] = 0f;
                             vesselPartCount[checkVessel.id.ToString()] = checkVessel.parts.Count;
-                            serverVesselsProtoUpdate[checkVessel.id.ToString()] = 0;
                             if (vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
                             {
                                 DarkLog.Debug("Forcing parts recheck on " + checkVessel.id.ToString());
                                 vesselPartsOk.Remove(checkVessel.id.ToString());
                             }
                         }
+                    }
+                }
+                //Check active vessel for situation/renames. Throttle send to 10 seconds.
+                bool activeVesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()]) > 10f) : true;
+                if (activeVesselNotRecentlyUpdated)
+                {
+                    bool nameChanged = (lastVesselName != FlightGlobals.fetch.activeVessel.vesselName);
+                    bool typeChanged = (lastVesselType != FlightGlobals.fetch.activeVessel.vesselType);
+                    bool situationChanged = (lastVesselSituation != FlightGlobals.fetch.activeVessel.situation);
+                    if (nameChanged || typeChanged || situationChanged)
+                    {
+                        lastVesselName = FlightGlobals.fetch.activeVessel.vesselName;
+                        lastVesselType = FlightGlobals.fetch.activeVessel.vesselType;
+                        lastVesselSituation = FlightGlobals.fetch.activeVessel.situation;
+                        serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = 0f;
                     }
                 }
             }
