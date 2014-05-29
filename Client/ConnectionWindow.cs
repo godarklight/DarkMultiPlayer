@@ -102,6 +102,10 @@ namespace DarkMultiPlayer
             GUILayout.Label("Player name:");
             string oldPlayerName = Settings.fetch.playerName;
             Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, textAreaStyle);
+            if (Settings.fetch.playerName.Length > 32)
+            {
+                Settings.fetch.playerName = Settings.fetch.playerName.Substring(0, 32);
+            }
             if (oldPlayerName != Settings.fetch.playerName)
             {
                 renameEventHandled = false;
