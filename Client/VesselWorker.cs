@@ -542,7 +542,10 @@ namespace DarkMultiPlayer
                             if (latestVesselUpdate.ContainsKey(checkVessel.id.ToString()) ? latestVesselUpdate[checkVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
                             {
                                 double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                                secondryVessels.Add(currentDistance, checkVessel);
+                                if (!secondryVessels.ContainsValue(checkVessel))
+                                {
+                                    secondryVessels.Add(currentDistance, checkVessel);
+                                }
                             }
                         }
                     }
@@ -590,7 +593,7 @@ namespace DarkMultiPlayer
                 }
             }
             DarkLog.Debug("Checked vessel " + checkVessel.id.ToString() + " for banned parts, is ok: " + (bannedParts.Count == 0));
-            vesselPartsOk.Add(checkVessel.id.ToString(), (bannedParts.Count == 0));
+            vesselPartsOk[checkVessel.id.ToString()] = (bannedParts.Count == 0);
         }
 
         private void SendVesselUpdateIfNeeded(Vessel checkVessel, double ourDistance)
