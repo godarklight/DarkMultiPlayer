@@ -41,10 +41,10 @@ namespace DarkMultiPlayer
         private Dictionary<string, bool> vesselPartsOk = new Dictionary<string, bool>();
         //Vessel state tracking
         private string lastVesselID;
-        private string lastVesselName;
-        private VesselType lastVesselType;
-        private Vessel.Situations lastVesselSituation;
         private Dictionary <string, int> vesselPartCount = new Dictionary<string, int>();
+        private Dictionary <string, string> vesselNames = new Dictionary<string, string>();
+        private Dictionary <string, VesselType> vesselTypes = new Dictionary<string, VesselType>();
+        private Dictionary <string, Vessel.Situations> vesselSituations = new Dictionary<string, Vessel.Situations>();
         //Known kerbals
         private Dictionary<int, ProtoCrewMember> serverKerbals = new Dictionary<int, ProtoCrewMember>();
         public Dictionary<int, string> assignedKerbals = new Dictionary<int, string>();
@@ -359,9 +359,6 @@ namespace DarkMultiPlayer
                         SetInUse(FlightGlobals.ActiveVessel.id.ToString(), Settings.fetch.playerName);
                         NetworkWorker.fetch.SendActiveVessel(FlightGlobals.ActiveVessel.id.ToString());
                         lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
-                        lastVesselName = FlightGlobals.fetch.activeVessel.vesselName;
-                        lastVesselType = FlightGlobals.fetch.activeVessel.vesselType;
-                        lastVesselSituation = FlightGlobals.fetch.activeVessel.situation;
                     }
                 }
                 else
@@ -435,23 +432,36 @@ namespace DarkMultiPlayer
                                 vesselPartsOk.Remove(checkVessel.id.ToString());
                             }
                         }
-                    }
-                }
-                //Check active vessel for situation/renames. Throttle send to 10 seconds.
-                bool activeVesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()]) > 10f) : true;
-                bool recentlyLanded = lastVesselSituation != Vessel.Situations.LANDED && FlightGlobals.fetch.activeVessel.situation == Vessel.Situations.LANDED;
-                bool recentlySplashed = lastVesselSituation != Vessel.Situations.SPLASHED && FlightGlobals.fetch.activeVessel.situation == Vessel.Situations.SPLASHED;
-                if (activeVesselNotRecentlyUpdated || recentlyLanded || recentlySplashed)
-                {
-                    bool nameChanged = (lastVesselName != FlightGlobals.fetch.activeVessel.vesselName);
-                    bool typeChanged = (lastVesselType != FlightGlobals.fetch.activeVessel.vesselType);
-                    bool situationChanged = (lastVesselSituation != FlightGlobals.fetch.activeVessel.situation);
-                    if (nameChanged || typeChanged || situationChanged)
-                    {
-                        lastVesselName = FlightGlobals.fetch.activeVessel.vesselName;
-                        lastVesselType = FlightGlobals.fetch.activeVessel.vesselType;
-                        lastVesselSituation = FlightGlobals.fetch.activeVessel.situation;
-                        serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = 0f;
+                        //Add entries to dictionaries if needed
+                        if (!vesselNames.ContainsKey(checkVessel.id.ToString()))
+                        {
+                            vesselNames.Add(checkVessel.id.ToString(), checkVessel.vesselName);
+                        }
+                        if (!vesselTypes.ContainsKey(checkVessel.id.ToString()))
+                        {
+                            vesselTypes.Add(checkVessel.id.ToString(), checkVessel.vesselType);
+                        }
+                        if (!vesselSituations.ContainsKey(checkVessel.id.ToString()))
+                        {
+                            vesselSituations.Add(checkVessel.id.ToString(), checkVessel.situation);
+                        }
+                        //Check active vessel for situation/renames. Throttle send to 10 seconds.
+                        bool vesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > 10f) : true;
+                        bool recentlyLanded = vesselSituations[checkVessel.id.ToString()] != Vessel.Situations.LANDED && checkVessel.situation == Vessel.Situations.LANDED;
+                        bool recentlySplashed = vesselSituations[checkVessel.id.ToString()] != Vessel.Situations.SPLASHED && checkVessel.situation == Vessel.Situations.SPLASHED;
+                        if (vesselNotRecentlyUpdated || recentlyLanded || recentlySplashed)
+                        {
+                            bool nameChanged = (vesselNames[checkVessel.id.ToString()] != checkVessel.vesselName);
+                            bool typeChanged = (vesselTypes[checkVessel.id.ToString()] != checkVessel.vesselType);
+                            bool situationChanged = (vesselSituations[checkVessel.id.ToString()] != checkVessel.situation);
+                            if (nameChanged || typeChanged || situationChanged)
+                            {
+                                vesselNames[checkVessel.id.ToString()] = checkVessel.vesselName;
+                                vesselTypes[checkVessel.id.ToString()] = checkVessel.vesselType;
+                                vesselSituations[checkVessel.id.ToString()] = checkVessel.situation;
+                                serverVesselsProtoUpdate[checkVessel.id.ToString()] = 0f;
+                            }
+                        }
                     }
                 }
             }
