@@ -44,6 +44,7 @@ namespace DarkMultiPlayer
         private int numberOfVessels = 0;
         private int numberOfVesselsReceived = 0;
         private object disconnectLock = new object();
+        private object sendLock = new object();
 
         public NetworkWorker()
         {
@@ -65,10 +66,7 @@ namespace DarkMultiPlayer
         {
             CheckDisconnection();
             SendHeartBeat();
-            if (!isSendingMessage)
-            {
-                SendOutgoingMessages();
-            }
+            SendOutgoingMessages();
             if (state == ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending handshake!");
@@ -404,39 +402,42 @@ namespace DarkMultiPlayer
 
         private void SendOutgoingMessages()
         {
-            if (!isSendingMessage && state >= ClientState.CONNECTED)
+            lock (sendLock)
             {
-                if (sendMessageQueueHigh.Count > 0)
+                if (!isSendingMessage && state >= ClientState.CONNECTED)
                 {
-                    ClientMessage message = sendMessageQueueHigh.Dequeue();
-                    SendNetworkMessage(message);
-                    return;
-                }
-                if (sendMessageQueueSplit.Count > 0)
-                {
-                    ClientMessage message = sendMessageQueueSplit.Dequeue();
-                    //We just sent the last piece of a split message
-                    if (sendMessageQueueSplit.Count == 0)
+                    if (sendMessageQueueHigh.Count > 0)
                     {
-                        if (lastSplitMessageType == ClientMessageType.CRAFT_LIBRARY)
-                        {
-                            CraftLibraryWorker.fetch.finishedUploadingCraft = true;
-                        }
-                        if (lastSplitMessageType == ClientMessageType.SCREENSHOT_LIBRARY)
-                        {
-                            ScreenshotWorker.fetch.finishedUploadingScreenshot = true;
-                        }
+                        ClientMessage message = sendMessageQueueHigh.Dequeue();
+                        SendNetworkMessage(message);
+                        return;
                     }
-                    SendNetworkMessage(message);
-                    return;
-                }
-                if (sendMessageQueueLow.Count > 0)
-                {
-                    ClientMessage message = sendMessageQueueLow.Dequeue();
-                    //Splits large messages to higher priority messages can get into the queue faster
-                    SplitAndRewriteMessage(ref message);
-                    SendNetworkMessage(message);
-                    return;
+                    if (sendMessageQueueSplit.Count > 0)
+                    {
+                        ClientMessage message = sendMessageQueueSplit.Dequeue();
+                        //We just sent the last piece of a split message
+                        if (sendMessageQueueSplit.Count == 0)
+                        {
+                            if (lastSplitMessageType == ClientMessageType.CRAFT_LIBRARY)
+                            {
+                                CraftLibraryWorker.fetch.finishedUploadingCraft = true;
+                            }
+                            if (lastSplitMessageType == ClientMessageType.SCREENSHOT_LIBRARY)
+                            {
+                                ScreenshotWorker.fetch.finishedUploadingScreenshot = true;
+                            }
+                        }
+                        SendNetworkMessage(message);
+                        return;
+                    }
+                    if (sendMessageQueueLow.Count > 0)
+                    {
+                        ClientMessage message = sendMessageQueueLow.Dequeue();
+                        //Splits large messages to higher priority messages can get into the queue faster
+                        SplitAndRewriteMessage(ref message);
+                        SendNetworkMessage(message);
+                        return;
+                    }
                 }
             }
         }

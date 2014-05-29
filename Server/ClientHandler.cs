@@ -71,10 +71,7 @@ namespace DarkMultiPlayerServer
                         foreach (ClientObject client in clients)
                         {
                             CheckHeartBeat(client);
-                            if (!client.isSendingToClient)
-                            {
-                                SendOutgoingMessages(client);
-                            }
+                            SendOutgoingMessages(client);
                         }
                         //Delete old clients
                         while (deleteClients.Count > 0)
@@ -520,6 +517,7 @@ namespace DarkMultiPlayerServer
             newClientObject.sendMessageQueueSplit = new Queue<ServerMessage>();
             newClientObject.sendMessageQueueLow = new Queue<ServerMessage>();
             newClientObject.receiveMessageQueue = new Queue<ClientMessage>();
+            newClientObject.sendLock = new object();
             StartReceivingIncomingMessages(newClientObject);
             addClients.Enqueue(newClientObject);
         }
@@ -678,26 +676,29 @@ namespace DarkMultiPlayerServer
 
         private static void SendOutgoingMessages(ClientObject client)
         {
-            if (!client.isSendingToClient)
+            lock (client.sendLock)
             {
-                ServerMessage message = null;
-                if (message == null && client.sendMessageQueueHigh.Count > 0)
+                if (!client.isSendingToClient)
                 {
-                    message = client.sendMessageQueueHigh.Dequeue();
-                }
-                if (message == null && client.sendMessageQueueSplit.Count > 0)
-                {
-                    message = client.sendMessageQueueSplit.Dequeue();
-                }
-                if (message == null && client.sendMessageQueueLow.Count > 0)
-                {
-                    message = client.sendMessageQueueLow.Dequeue();
-                    //Splits large messages to higher priority messages can get into the queue faster
-                    SplitAndRewriteMessage(client, ref message);
-                }
-                if (message != null)
-                {
-                    SendNetworkMessage(client, message);
+                    ServerMessage message = null;
+                    if (message == null && client.sendMessageQueueHigh.Count > 0)
+                    {
+                        message = client.sendMessageQueueHigh.Dequeue();
+                    }
+                    if (message == null && client.sendMessageQueueSplit.Count > 0)
+                    {
+                        message = client.sendMessageQueueSplit.Dequeue();
+                    }
+                    if (message == null && client.sendMessageQueueLow.Count > 0)
+                    {
+                        message = client.sendMessageQueueLow.Dequeue();
+                        //Splits large messages to higher priority messages can get into the queue faster
+                        SplitAndRewriteMessage(client, ref message);
+                    }
+                    if (message != null)
+                    {
+                        SendNetworkMessage(client, message);
+                    }
                 }
             }
         }
@@ -2675,6 +2676,8 @@ namespace DarkMultiPlayerServer
         //State tracking
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
+        //Send lock
+        public object sendLock;
     }
 }
 

@@ -269,10 +269,19 @@ namespace DarkMultiPlayer
             }
             foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vesselProtoSubspace in vesselProtoQueue)
             {
+                Dictionary<string, ConfigNode> protoUpdateDictionary = new Dictionary<string, ConfigNode>();
                 while (vesselProtoSubspace.Value.Count > 0 ? (vesselProtoSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
                     VesselProtoUpdate vpu = vesselProtoSubspace.Value.Dequeue();
-                    LoadVessel(vpu.vesselNode);
+                    if (vpu.vesselNode != null)
+                    {
+                        string protoVesselID = vpu.vesselNode.GetValue("pid");
+                        protoUpdateDictionary[protoVesselID] = vpu.vesselNode;
+                    }
+                }
+                foreach (KeyValuePair<string, ConfigNode> kvp in protoUpdateDictionary)
+                {
+                    LoadVessel(kvp.Value);
                 }
             }
             foreach (KeyValuePair<int, Queue<VesselUpdate>> vesselUpdateSubspace in vesselUpdateQueue)
