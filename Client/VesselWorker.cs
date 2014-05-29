@@ -439,7 +439,9 @@ namespace DarkMultiPlayer
                 }
                 //Check active vessel for situation/renames. Throttle send to 10 seconds.
                 bool activeVesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()]) > 10f) : true;
-                if (activeVesselNotRecentlyUpdated)
+                bool recentlyLanded = lastVesselSituation != Vessel.Situations.LANDED && FlightGlobals.fetch.activeVessel.situation == Vessel.Situations.LANDED;
+                bool recentlySplashed = lastVesselSituation != Vessel.Situations.SPLASHED && FlightGlobals.fetch.activeVessel.situation == Vessel.Situations.SPLASHED;
+                if (activeVesselNotRecentlyUpdated || recentlyLanded || recentlySplashed)
                 {
                     bool nameChanged = (lastVesselName != FlightGlobals.fetch.activeVessel.vesselName);
                     bool typeChanged = (lastVesselType != FlightGlobals.fetch.activeVessel.vesselType);
