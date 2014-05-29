@@ -20,7 +20,7 @@ namespace DarkMultiPlayer
         public ServerEntry addEntry = null;
         public ServerEntry editEntry = null;
         //private parts
-        private static ConnectionWindow singleton;
+        private static ConnectionWindow singleton = new ConnectionWindow();
         private bool initialized;
         //Add window
         private string serverName = "Local";
@@ -36,6 +36,15 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 200;
         private const float WINDOW_WIDTH = 400;
+
+        public ConnectionWindow()
+        {
+            lock (Client.eventLock)
+            {
+                Client.updateEvent.Add(this.Update);
+                Client.drawEvent.Add(this.Draw);
+            }
+        }
 
         public static ConnectionWindow fetch
         {
@@ -73,7 +82,7 @@ namespace DarkMultiPlayer
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
         }
 
-        public void Draw()
+        private void Draw()
         {
             if (!initialized)
             {
@@ -206,21 +215,6 @@ namespace DarkMultiPlayer
             //Draw status message
             GUILayout.Label(status, statusStyle);
             GUILayout.EndVertical();
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new ConnectionWindow();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
         }
     }
 }

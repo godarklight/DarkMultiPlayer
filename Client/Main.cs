@@ -50,7 +50,6 @@ namespace DarkMultiPlayer
             {
                 updateEvent.Add(DarkLog.Update);
                 resetEvent.Add(ChatWorker.Reset);
-                resetEvent.Add(ConnectionWindow.Reset);
                 resetEvent.Add(CraftLibraryWorker.Reset);
                 resetEvent.Add(DebugWindow.Reset);
                 resetEvent.Add(DynamicTickWorker.Reset);
@@ -150,6 +149,17 @@ namespace DarkMultiPlayer
                     catch (Exception e)
                     {
                         DarkLog.Debug("Threw in UpdateEvent, exception: " + e);
+                        if (NetworkWorker.fetch.state != ClientState.RUNNING)
+                        {
+                            if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                            {
+                                NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
+                            }
+                            else
+                            {
+                                NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
+                            }
+                        }
                     }
                 }
                 //Force quit
@@ -206,10 +216,17 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Threw in Update, exception" + e);
-                if (NetworkWorker.fetch.state != ClientState.DISCONNECTED && NetworkWorker.fetch.state < ClientState.RUNNING)
+                DarkLog.Debug("Threw in Update, state " + NetworkWorker.fetch.state.ToString() + ", exception" + e);
+                if (NetworkWorker.fetch.state != ClientState.RUNNING)
                 {
-                    NetworkWorker.fetch.SendDisconnect("Unhandled error during connection");
+                    if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                    {
+                        NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
+                    }
+                    else
+                    {
+                        NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
+                    }
                 }
             }
         }
@@ -232,6 +249,17 @@ namespace DarkMultiPlayer
                 catch (Exception e)
                 {
                     DarkLog.Debug("Threw in FixedUpdate event, exception: " + e);
+                    if (NetworkWorker.fetch.state != ClientState.RUNNING)
+                    {
+                        if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                        {
+                            NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
+                        }
+                        else
+                        {
+                            NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
+                        }
+                    }
                 }
             }
         }

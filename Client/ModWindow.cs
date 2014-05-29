@@ -23,8 +23,11 @@ namespace DarkMultiPlayer
 
         public ModWindow()
         {
-            Client.updateEvent.Add(this.Update);
-            Client.drawEvent.Add(this.Draw);
+            lock (Client.eventLock)
+            {
+                Client.updateEvent.Add(this.Update);
+                Client.drawEvent.Add(this.Draw);
+            }
         }
 
         public static ModWindow fetch

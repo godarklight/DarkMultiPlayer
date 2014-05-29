@@ -268,7 +268,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void Disconnect(string reason)
+        public void Disconnect(string reason)
         {
             lock (disconnectLock)
             {
