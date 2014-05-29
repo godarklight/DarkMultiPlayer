@@ -346,8 +346,8 @@ namespace DarkMultiPlayer
                 {
                     if (!inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
                     {
-                        //When we change vessel, send the vessel as soon as possible.
-                        if (lastVesselID != "" && inUse[lastVesselID] == Settings.fetch.playerName)
+                        //When we change vessel, send the previous flown vessel as soon as possible.
+                        if (lastVesselID != "" && (inUse.ContainsKey(lastVesselID) ? (inUse[lastVesselID] == Settings.fetch.playerName) : false))
                         {
                             DarkLog.Debug("Resetting last send time for " + lastVesselID);
                             serverVesselsProtoUpdate[lastVesselID] = 0f;
@@ -1361,6 +1361,10 @@ namespace DarkMultiPlayer
                     if (!killVessel.packed)
                     {
                         killVessel.GoOnRails();
+                    }
+                    if (killVessel.mainBody != null)
+                    {
+                        killVessel.SetPosition(killVessel.mainBody.position);
                     }
                     if (killVessel.loaded)
                     {
