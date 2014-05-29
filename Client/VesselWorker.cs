@@ -636,7 +636,7 @@ namespace DarkMultiPlayer
             if (!anotherPlayerCloser)
             {
                 //Check that is hasn't been recently sent
-                if (notRecentlySentProtoUpdate)
+                if (notRecentlySentProtoUpdate && (checkVessel.situation != Vessel.Situations.FLYING))
                 {
 
                     ProtoVessel checkProto = new ProtoVessel(checkVessel);
