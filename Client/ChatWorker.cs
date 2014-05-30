@@ -543,12 +543,13 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
+            bool wasKey = Event.current.isKey;
             GUI.SetNextControlName("SendTextArea");
             string tempSendText = GUILayout.TextArea(sendText, textAreaStyle);
             //Don't add the newline to the messages, queue a send
             if (!ignoreChatInput)
             {
-                if (tempSendText.Contains("\n"))
+                if (tempSendText.EndsWith("\n") && !Event.current.shift && wasKey)
                 {
                     sendEventHandled = false;
                 }
