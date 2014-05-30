@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 using MessageStream;
@@ -142,6 +143,8 @@ namespace DarkMultiPlayer
         {
             safeDisplay = display;
             ignoreChatInput = false;
+            // replaces newline with an empty string
+            sendText = Regex.Replace(sendText, @"\n?|\n", "");
             if (chatButtonHighlighted && display)
             {
                 chatButtonHighlighted = false;
@@ -288,6 +291,11 @@ namespace DarkMultiPlayer
                             {
                                 NetworkWorker.fetch.SendPingRequest();
                             }
+                            /*if (sendText == "/kick ")
+                            {
+
+                            }
+                            if (sendText.StartsWith("/ban "))*/
                         }
                     }
                     sendText = "";
@@ -437,7 +445,9 @@ namespace DarkMultiPlayer
 
         private void DrawContent(int windowID)
         {
-            bool pressedEnter = (Event.current.type == EventType.KeyDown && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter));
+           // bool pressedEnter = (Event.current.type == EventType.KeyDown && (Event.current.keyCode == KeyCode.Return || Event.current.keyCode == KeyCode.KeypadEnter));
+            Event e = Event.current;
+            bool pressedEnter = (e.type == EventType.KeyDown && (e.keyCode == KeyCode.Return || e.keyCode == KeyCode.KeypadEnter));
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
