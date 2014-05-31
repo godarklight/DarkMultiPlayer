@@ -609,6 +609,7 @@ namespace DarkMultiPlayer
                 }
                 selectedChannel = null;
                 selectedPMChannel = null;
+                chatScrollPos.y = float.PositiveInfinity;
             }
             GUI.enabled = true;
             foreach (string joinedChannel in joinedChannels)
@@ -633,6 +634,7 @@ namespace DarkMultiPlayer
                     }
                     selectedChannel = joinedChannel;
                     selectedPMChannel = null;
+                    chatScrollPos.y = float.PositiveInfinity;
                 }
                 GUI.enabled = true;
             }
@@ -659,6 +661,7 @@ namespace DarkMultiPlayer
                     }
                     selectedChannel = null;
                     selectedPMChannel = joinedPlayer;
+                    chatScrollPos.y = float.PositiveInfinity;
                 }
                 GUI.enabled = true;
             }
