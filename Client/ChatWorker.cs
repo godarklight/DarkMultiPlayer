@@ -437,6 +437,7 @@ namespace DarkMultiPlayer
 
         private void DrawContent(int windowID)
         {
+            bool pressedEnter = (Event.current.type == EventType.KeyDown && !Event.current.shift && Event.current.character == '\n');
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
@@ -543,13 +544,12 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
-            bool wasKey = Event.current.isKey;
             GUI.SetNextControlName("SendTextArea");
             string tempSendText = GUILayout.TextArea(sendText, textAreaStyle);
             //Don't add the newline to the messages, queue a send
             if (!ignoreChatInput)
             {
-                if (tempSendText.EndsWith("\n") && !Event.current.shift && wasKey)
+                if (pressedEnter)
                 {
                     sendEventHandled = false;
                 }
