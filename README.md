@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.3.0.
+#DarkMultiPlayer 0.1.3.1.
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -26,6 +26,7 @@ To PM a player, type /query playername or click on their player name in the glob
 To start a group chat, type /join groupname.  
 To leave a PM or group chat, type /part or /leave in the window you want to leave. You can also press the 'Leave' button.  
 Group chats are indicated by the '#' mark, player chats are indicated by the '@' mark.  
+Newlines can be entered in the chat window with shift+enter.  
   
 ###Craft sharing window
 To upload a craft, press on your user name and then click 'Upload'.  
@@ -124,6 +125,10 @@ Name of the server. This is the name that shows up in the JSON output (and serve
   
 ####maxplayers
 Maximum amount of players that can join the server.  
+  
+####screenshotdirectory
+Specify a custom screenshot directory.  
+This directory must exist in order to be used. Leave blank to store it in Universe.  
   
   
   
