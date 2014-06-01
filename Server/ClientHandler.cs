@@ -33,6 +33,7 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string, int> playerUploadedScreenshotIndex;
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
+        private static LockSystem lockSystem;
         private static object clientLock = new object();
         #region Main loop
         public static void ThreadMain()
@@ -51,6 +52,7 @@ namespace DarkMultiPlayerServer
                 playerUploadedScreenshotIndex = new Dictionary<string, int>();
                 playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
                 playerWatchScreenshot = new Dictionary<string, string>();
+                lockSystem = new LockSystem();
                 LoadSavedSubspace();
                 LoadModFile();
                 LoadBans();
@@ -982,6 +984,7 @@ namespace DarkMultiPlayerServer
                         newMessage.data = mw.GetMessageBytes();
                     }
                     SendToAll(client, newMessage, true);
+                    lockSystem.ReleasePlayerLocks(client.playerName);
                 }
                 deleteClients.Enqueue(client);
                 if (client.connection != null)
@@ -1047,14 +1050,14 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.SCREENSHOT_LIBRARY:
                         HandleScreenshotLibrary(client, message.data);
                         break;
-                    case ClientMessageType.SEND_ACTIVE_VESSEL:
-                        HandleSendActiveVessel(client, message.data);
-                        break;
                     case ClientMessageType.PING_REQUEST:
                         HandlePingRequest(client, message.data);
                         break;
                     case ClientMessageType.WARP_CONTROL:
                         HandleWarpControl(client, message.data);
+                        break;
+                    case ClientMessageType.LOCK_SYSTEM:
+                        HandleLockSystemMessage(client, message.data);
                         break;
                     case ClientMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(client, message.data);
@@ -1374,13 +1377,13 @@ namespace DarkMultiPlayerServer
             //The time sensitive SYNC_TIME is over by this point.
             SendServerSettings(client);
             SendSetSubspace(client);
-            SendAllActiveVessels(client);
             SendAllSubspaces(client);
             SendAllPlayerStatus(client);
             SendScenarioModules(client);
             SendAllReportedSkewRates(client);
             SendCraftList(client);
             SendPlayerChatChannels(client);
+            SendAllLocks(client);
             //Send kerbals
             int kerbalCount = 0;
             while (File.Exists(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
@@ -1836,21 +1839,6 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void HandleSendActiveVessel(ClientObject client, byte[] messageData)
-        {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-            using (MessageReader mr = new MessageReader(messageData, false))
-            {
-                //We don't care about the player name, just need to advance message reader past it.
-                mr.Read<string>();
-                string activeVessel = mr.Read<string>();
-                client.activeVessel = activeVessel;
-            }
-            newMessage.data = messageData;
-            SendToAll(client, newMessage, true);
-        }
-
         private static void HandlePingRequest(ClientObject client, byte[] messageData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -1957,6 +1945,87 @@ namespace DarkMultiPlayerServer
                 }
             }
             SendToAll(client, newMessage, true);
+        }
+
+        private static void HandleLockSystemMessage(ClientObject client, byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                //All of the messages need replies, let's create a message for it.
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.LOCK_SYSTEM;
+                //Read the lock-system message type
+                LockMessageType lockMessageType = (LockMessageType)mr.Read<int>();
+                switch (lockMessageType)
+                {
+                    case LockMessageType.ACQUIRE:
+                        {
+                            string playerName = mr.Read<string>();
+                            string lockName = mr.Read<string>();
+                            bool force = mr.Read<bool>();
+                            if (playerName != client.playerName)
+                            {
+                                SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                            }
+                            bool lockResult = lockSystem.AcquireLock(lockName, playerName, force);
+                            using (MessageWriter mw = new MessageWriter())
+                            {
+                                mw.Write((int)LockMessageType.ACQUIRE);
+                                mw.Write(playerName);
+                                mw.Write(lockName);
+                                mw.Write(lockResult);
+                                newMessage.data = mw.GetMessageBytes();
+                            }
+                            //Send to all clients
+                            SendToAll(null, newMessage, true);
+                            if (lockResult)
+                            {
+                                DarkLog.Debug(playerName + " acquired lock " + lockName);
+                            }
+                            else
+                            {
+                                DarkLog.Debug(playerName + " failed to acquire lock " + lockName);
+                            }
+                        }
+                        break;
+                    case LockMessageType.RELEASE:
+                        {
+                            string playerName = mr.Read<string>();
+                            string lockName = mr.Read<string>();
+                            if (playerName != client.playerName)
+                            {
+                                SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                            }
+                            bool lockResult = lockSystem.ReleaseLock(lockName, playerName);
+                            if (!lockResult)
+                            {
+                                SendConnectionEnd(client, "Kicked for releasing a lock you do not own");
+                            }
+                            else
+                            {
+                                using (MessageWriter mw = new MessageWriter())
+                                {
+                                    mw.Write((int)LockMessageType.RELEASE);
+                                    mw.Write(playerName);
+                                    mw.Write(lockName);
+                                    mw.Write(lockResult);
+                                    newMessage.data = mw.GetMessageBytes();
+                                }
+                                //Send to all clients
+                                SendToAll(null, newMessage, true);
+                            }
+                            if (lockResult)
+                            {
+                                DarkLog.Debug(playerName + " released lock " + lockName);
+                            }
+                            else
+                            {
+                                DarkLog.Debug(playerName + " failed to release lock " + lockName);
+                            }
+                        }
+                        break;
+                }
+            }
         }
 
         private static void HandleSplitMessage(ClientObject client, byte[] messageData)
@@ -2251,6 +2320,24 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void SendAllLocks(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.LOCK_SYSTEM;
+            //Send the dictionary as 2 string[]'s.
+            Dictionary<string,string> lockList = lockSystem.GetLockList();
+            List<string> lockKeys = new List<string>(lockList.Keys);
+            List<string> lockValues = new List<string>(lockList.Values);
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write((int)LockMessageType.LIST);
+                mw.Write<string[]>(lockKeys.ToArray());
+                mw.Write<string[]>(lockValues.ToArray());
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
         private static void SendAllPlayerStatus(ClientObject client)
         {
             foreach (ClientObject otherClient in clients)
@@ -2361,28 +2448,6 @@ namespace DarkMultiPlayerServer
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
-        }
-
-        private static void SendAllActiveVessels(ClientObject client)
-        {
-            foreach (ClientObject otherClient in clients)
-            {
-                if (otherClient.authenticated && otherClient.activeVessel != "")
-                {
-                    if (otherClient != client)
-                    {
-                        ServerMessage newMessage = new ServerMessage();
-                        newMessage.type = ServerMessageType.SET_ACTIVE_VESSEL;
-                        using (MessageWriter mw = new MessageWriter())
-                        {
-                            mw.Write<string>(otherClient.playerName);
-                            mw.Write<string>(otherClient.activeVessel);
-                            newMessage.data = mw.GetMessageBytes();
-                        }
-                        SendToClient(client, newMessage, true);
-                    }
-                }
-            }
         }
 
         private static void SendAllReportedSkewRates(ClientObject client)

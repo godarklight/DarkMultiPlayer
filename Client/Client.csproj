@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{7AD735F5-A076-44D2-97EC-02ECAD827001}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>Client</RootNamespace>
+    <RootNamespace>DarkMultiPlayer</RootNamespace>
     <AssemblyName>DarkMultiPlayer</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -66,6 +66,7 @@
     <Compile Include="ChatWorker.cs" />
     <Compile Include="UniverseSyncCache.cs" />
     <Compile Include="ScreenshotWorker.cs" />
+    <Compile Include="LockSystem.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

@@ -116,9 +116,9 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
-                                if (VesselWorker.fetch.inUse.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()))
+                                if (LockSystem.fetch.LockExists("control-"+FlightGlobals.ActiveVessel.id.ToString()))
                                 {
-                                    myPlayerStatus.statusText = "Spectating " + VesselWorker.fetch.inUse[FlightGlobals.ActiveVessel.id.ToString()];
+                                    myPlayerStatus.statusText = "Spectating " + LockSystem.fetch.LockOwner("control-"+FlightGlobals.ActiveVessel.id.ToString());
                                 }
                                 else
                                 {

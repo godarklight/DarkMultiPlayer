@@ -598,9 +598,6 @@ namespace DarkMultiPlayer
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
                         break;
-                    case ServerMessageType.SET_ACTIVE_VESSEL:
-                        HandleSetActiveVessel(message.data);
-                        break;
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
                         break;
@@ -609,6 +606,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.WARP_CONTROL:
                         HandleWarpControl(message.data);
+                        break;
+                    case ServerMessageType.LOCK_SYSTEM:
+                        LockSystem.fetch.HandleLockMessage(message.data);
                         break;
                     case ServerMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(message.data);
@@ -813,8 +813,8 @@ namespace DarkMultiPlayer
                 string playerName = mr.Read<string>();
                 WarpWorker.fetch.RemovePlayer(playerName);
                 PlayerStatusWorker.fetch.RemovePlayerStatus(playerName);
-                VesselWorker.fetch.SetNotInUse(playerName);
                 ChatWorker.fetch.QueueRemovePlayer(playerName);
+                LockSystem.fetch.ReleasePlayerLocks(playerName);
             }
         }
 
@@ -1395,27 +1395,6 @@ namespace DarkMultiPlayer
             sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from vesselWorker
-        public void SendActiveVessel(string activeVessel)
-        {
-            if (activeVessel != "")
-            {
-                DarkLog.Debug("Sending " + activeVessel + " as my active vessel");
-            }
-            else
-            {
-                DarkLog.Debug("Sending vessel release");
-            }
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.SEND_ACTIVE_VESSEL;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<string>(Settings.fetch.playerName);
-                mw.Write<string>(activeVessel);
-                newMessage.data = mw.GetMessageBytes();
-            }
-            sendMessageQueueHigh.Enqueue(newMessage);
-        }
-        //Called from vesselWorker
         public void SendScenarioModuleData(string[] scenarioNames, string[] scenarioData)
         {
             ClientMessage newMessage = new ClientMessage();
@@ -1472,6 +1451,14 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.WARP_CONTROL;
             newMessage.data = messageData;
             sendMessageQueueLow.Enqueue(newMessage);
+        }
+        //Called from lockSystem
+        public void SendLockSystemMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.LOCK_SYSTEM;
+            newMessage.data = messageData;
+            sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from main
         public void SendDisconnect(string disconnectReason = "Unknown")
