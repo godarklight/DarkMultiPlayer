@@ -47,6 +47,7 @@
     <Compile Include="Log.cs" />
     <Compile Include="Dekessler.cs" />
     <Compile Include="ServerInfo.cs" />
+    <Compile Include="NukeKSC.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
