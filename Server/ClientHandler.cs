@@ -2006,8 +2006,8 @@ namespace DarkMultiPlayerServer
         }
         #endregion
         #region Message sending
-        //Call with null client to send to all clients
-        private static void SendToAll(ClientObject ourClient, ServerMessage message, bool highPriority)
+        //Call with null client to send to all clients. Also called from Dekessler and NukeKSC.
+        public static void SendToAll(ClientObject ourClient, ServerMessage message, bool highPriority)
         {
             foreach (ClientObject otherClient in clients)
             {
