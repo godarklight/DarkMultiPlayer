@@ -157,6 +157,8 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("serverName", "Name of the server.");
             descriptionList.Add("maxPlayers", "Maximum amount of players that can join the server.");
             descriptionList.Add("screenshotDirectory", "Specify a custom screenshot directory.\n#This directory must exist in order to be used. Leave blank to store it in Universe.");
+            descriptionList.Add("autoNuke", "Specify in minutes how often /nukeksc automatically runs. 0 = Disabled");
+            descriptionList.Add("autoDekessler", "Specify in minutes how often /dekessler automatically runs. 0 = Disabled");
             return descriptionList;
         }
     }
@@ -176,5 +178,7 @@ namespace DarkMultiPlayerServer
         public string serverName = "DMP Server";
         public int maxPlayers = 20;
         public string screenshotDirectory = "";
+        public int autoNuke = 0;
+        public int autoDekessler = 30;
     }
 }

@@ -73,6 +73,9 @@ namespace DarkMultiPlayerServer
                             CheckHeartBeat(client);
                             SendOutgoingMessages(client);
                         }
+                        //Check timers
+                        NukeKSC.CheckTimer();
+                        Dekessler.CheckTimer();
                         //Delete old clients
                         while (deleteClients.Count > 0)
                         {

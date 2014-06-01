@@ -7,6 +7,8 @@ namespace DarkMultiPlayerServer
 {
     public class NukeKSC
     {
+        private static long lastNukeTime = 0;
+
         public static void RunNukeKSC(string commandText)
         {
             string[] vesselList = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
@@ -59,6 +61,20 @@ namespace DarkMultiPlayerServer
                 }
             }
             DarkLog.Normal("Nuked " + numberOfRemovals + " vessels around the KSC");
+        }
+
+        public static void CheckTimer()
+        {
+            //0 or less is disabled.
+            if (Settings.settingsStore.autoNuke > 0)
+            {
+                //Run it on server start or if the nuke time has elapsed.
+                if (((Server.serverClock.ElapsedMilliseconds - lastNukeTime) > (Settings.settingsStore.autoNuke * 60 * 1000)) || lastNukeTime == 0)
+                {
+                    lastNukeTime = Server.serverClock.ElapsedMilliseconds;
+                    RunNukeKSC("");
+                }
+            }
         }
     }
 }

@@ -7,6 +7,8 @@ namespace DarkMultiPlayerServer
 {
     public class Dekessler
     {
+        public static long lastDekesslerTime = 0;
+
         public static void RunDekessler(string commandText)
         {
             string[] vesselList = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
@@ -54,6 +56,20 @@ namespace DarkMultiPlayerServer
                 }
             }
             DarkLog.Normal("Removed " + numberOfRemovals + " debris");
+        }
+
+        public static void CheckTimer()
+        {
+            //0 or less is disabled.
+            if (Settings.settingsStore.autoDekessler > 0)
+            {
+                //Run it on server start or if the nuke time has elapsed.
+                if (((Server.serverClock.ElapsedMilliseconds - lastDekesslerTime) > (Settings.settingsStore.autoDekessler * 60 * 1000)) || lastDekesslerTime == 0)
+                {
+                    lastDekesslerTime = Server.serverClock.ElapsedMilliseconds;
+                    RunDekessler("");
+                }
+            }
         }
     }
 }
