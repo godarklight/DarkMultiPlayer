@@ -67,6 +67,7 @@
     <Compile Include="UniverseSyncCache.cs" />
     <Compile Include="ScreenshotWorker.cs" />
     <Compile Include="LockSystem.cs" />
+    <Compile Include="AsteroidWorker.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

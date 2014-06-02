@@ -26,7 +26,6 @@ namespace DarkMultiPlayer
         public static List<Action> fixedUpdateEvent = new List<Action>();
         public static List<Action> drawEvent = new List<Action>();
         public static List<Action> resetEvent = new List<Action>();
-
         public static object eventLock = new object();
 
         public Client()
@@ -51,6 +50,7 @@ namespace DarkMultiPlayer
             {
                 updateEvent.Add(DarkLog.Update);
                 resetEvent.Add(LockSystem.Reset);
+                resetEvent.Add(AsteroidWorker.Reset);
                 resetEvent.Add(ChatWorker.Reset);
                 resetEvent.Add(CraftLibraryWorker.Reset);
                 resetEvent.Add(DebugWindow.Reset);
@@ -311,6 +311,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
             SetGameMode();
             ScenarioWorker.fetch.LoadScenarioDataIntoGame();
+            AsteroidWorker.fetch.LoadAsteroidScenario();
             VesselWorker.fetch.LoadKerbalsIntoGame();
             VesselWorker.fetch.LoadVesselsIntoGame();
             DarkLog.Debug("Starting " + gameMode + " game...");

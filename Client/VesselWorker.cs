@@ -1081,6 +1081,21 @@ namespace DarkMultiPlayer
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
                 if (currentProto != null)
                 {
+                    if (currentProto.vesselType == VesselType.SpaceObject)
+                    {
+                        if (currentProto.protoPartSnapshots != null)
+                        {
+                            if (currentProto.protoPartSnapshots.Count == 1)
+                            {
+                                if (currentProto.protoPartSnapshots[0].partName == "PotatoRoid")
+                                {
+                                    DarkLog.Debug("Registering remote server asteroid");
+                                    AsteroidWorker.fetch.RegisterServerAsteroid(currentProto.vesselID.ToString());
+                                }
+                            }
+                        }
+                    }
+
                     if (isProtoVesselInSafetyBubble(currentProto))
                     {
                         DarkLog.Debug("Removing protovessel " + currentProto.vesselID.ToString() + ", name: " + currentProto.vesselName + " from server - In safety bubble!");

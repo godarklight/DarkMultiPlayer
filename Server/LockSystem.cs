@@ -10,6 +10,7 @@ namespace DarkMultiPlayerServer
         //Lock types
         //control-vessel-(vesselid) - Replaces the old "inUse" messages, the active pilot will have the control-vessel lock.
         //update-vessel-(vesselid) - Replaces the "only the closest player can update a vessel" code, Now you acquire locks to update crafts around you.
+        //asteroid-spawn - Held by the player that can spawn asteroids into the game.
 
         public bool AcquireLock(string lockName, string playerName, bool force)
         {

@@ -2220,6 +2220,7 @@ namespace DarkMultiPlayerServer
                 mw.Write<int>(numberOfVessels);
                 //mw.Write<int>(numberOfScenarioModules);
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
+                mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);

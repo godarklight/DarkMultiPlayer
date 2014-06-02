@@ -104,6 +104,7 @@ namespace DarkMultiPlayer
                 WarpWorker.fetch.ProcessWarpMessages();
                 TimeSyncer.fetch.workerEnabled = true;
                 ChatWorker.fetch.workerEnabled = true;
+                ScenarioWorker.fetch.workerEnabled = true;
             }
             if (state == ClientState.TIME_LOCKING)
             {
@@ -121,6 +122,7 @@ namespace DarkMultiPlayer
                 state = ClientState.RUNNING;
                 Client.fetch.status = "Running";
                 Client.fetch.gameRunning = true;
+                AsteroidWorker.fetch.workerEnabled = true;
                 VesselWorker.fetch.workerEnabled = true;
                 PlayerStatusWorker.fetch.workerEnabled = true;
                 ScenarioWorker.fetch.workerEnabled = true;
@@ -788,6 +790,7 @@ namespace DarkMultiPlayer
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
                 ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
+                AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
             }
         }
 

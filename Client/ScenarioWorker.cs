@@ -45,7 +45,8 @@ namespace DarkMultiPlayer
                 //Skip sending science data in sandbox mode (If this can even happen?)
                 if (psm != null ? (psm.moduleName != null && psm.moduleRef != null) : false)
                 {
-                    if (!(psm.moduleName == "ResearchAndDevelopment" && Client.fetch.gameMode == GameMode.SANDBOX))
+                    //Don't send research and develpoment to sandbox servers. Also don't send asteroid data.
+                    if (!(psm.moduleName == "ResearchAndDevelopment" && Client.fetch.gameMode == GameMode.SANDBOX) && psm.moduleName != "ScenarioDiscoverableObjects")
                     {
                         ConfigNode scenarioNode = new ConfigNode();
                         psm.moduleRef.Save(scenarioNode);
@@ -113,6 +114,11 @@ namespace DarkMultiPlayer
 
         public void LoadScenarioData(ScenarioEntry entry)
         {
+            if (entry.scenarioName == "ScenarioDiscoverableObjects")
+            {
+                DarkLog.Debug("Skipping loading asteroid data - It is created locally");
+                return;
+            }
             if (entry.scenarioName == "ResearchAndDevelopment" && Client.fetch.gameMode != GameMode.CAREER)
             {
                 DarkLog.Debug("Skipping loading career mode data in sandbox");
