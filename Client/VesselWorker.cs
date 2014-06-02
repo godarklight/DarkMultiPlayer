@@ -511,18 +511,19 @@ namespace DarkMultiPlayer
                     //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
                     CheckVesselParts(FlightGlobals.fetch.activeVessel);
                 }
-            }
+            
 
-            if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
-            {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
                 {
-                    lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
-                    if (bannedPartsMessage != null)
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
                     {
-                        bannedPartsMessage.duration = 0;
+                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        if (bannedPartsMessage != null)
+                        {
+                            bannedPartsMessage.duration = 0;
+                        }
+                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
                     }
-                    bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
 
