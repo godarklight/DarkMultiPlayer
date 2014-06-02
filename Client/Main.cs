@@ -323,6 +323,7 @@ namespace DarkMultiPlayer
 
         private void StopGame()
         {
+            HighLogic.SaveFolder = "DarkMultiPlayer";
             GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             if (HighLogic.LoadedScene != GameScenes.MAINMENU)
             {
