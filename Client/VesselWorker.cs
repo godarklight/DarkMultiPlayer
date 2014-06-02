@@ -504,11 +504,13 @@ namespace DarkMultiPlayer
                 //Don't send updates in spectate mode
                 return;
             }
-
-            if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+            if (ModWorker.fetch.modControl)
             {
-                //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
-                CheckVesselParts(FlightGlobals.fetch.activeVessel);
+                if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+                {
+                    //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
+                    CheckVesselParts(FlightGlobals.fetch.activeVessel);
+                }
             }
 
             if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
@@ -575,7 +577,6 @@ namespace DarkMultiPlayer
 
         private void CheckVesselParts(Vessel checkVessel)
         {
-
             List<string> allowedParts = ModWorker.fetch.GetAllowedPartsList();
             List<string> bannedParts = new List<string>();
             ProtoVessel checkProto = checkVessel.protoVessel;
