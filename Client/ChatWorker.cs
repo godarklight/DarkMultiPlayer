@@ -117,6 +117,14 @@ namespace DarkMultiPlayer
             if (!display)
             {
                 chatButtonHighlighted = true;
+                if (ce.channel != "")
+                {
+                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                }
+                else
+                {
+                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #Global : " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                }
             }
         }
 
@@ -130,6 +138,10 @@ namespace DarkMultiPlayer
             if (!display)
             {
                 chatButtonHighlighted = true;
+                if (pe.fromPlayer != Settings.fetch.playerName)
+                {
+                    ScreenMessages.PostScreenMessage(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                }
             }
         }
 
