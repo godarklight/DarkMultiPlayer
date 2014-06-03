@@ -201,6 +201,7 @@ namespace DarkMultiPlayer
                     if (removeStatus != null)
                     {
                         playerStatusList.Remove(removeStatus);
+
                         DarkLog.Debug("Removed " + removeStatusString + " from status list");
                     }
                     else

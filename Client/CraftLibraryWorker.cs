@@ -14,8 +14,8 @@ namespace DarkMultiPlayer
         public bool display;
         public bool workerEnabled;
         //Private
-        private Queue<CraftAddEntry> craftAddQueue = new Queue<CraftAddEntry>();
-        private Queue<CraftDeleteEntry> craftDeleteQueue = new Queue<CraftDeleteEntry>();
+        private Queue<CraftChangeEntry> craftAddQueue = new Queue<CraftChangeEntry>();
+        private Queue<CraftChangeEntry> craftDeleteQueue = new Queue<CraftChangeEntry>();
         private Queue<CraftResponseEntry> craftResponseQueue = new Queue<CraftResponseEntry>();
         private bool safeDisplay;
         private bool initialized;
@@ -88,14 +88,14 @@ namespace DarkMultiPlayer
             {
                 while (craftAddQueue.Count > 0)
                 {
-                    CraftAddEntry cae = craftAddQueue.Dequeue();
-                    AddCraftEntry(cae.playerName, cae.craftType, cae.craftName);
+                    CraftChangeEntry cce = craftAddQueue.Dequeue();
+                    AddCraftEntry(cce.playerName, cce.craftType, cce.craftName);
                 }
 
                 while (craftDeleteQueue.Count > 0)
                 {
-                    CraftDeleteEntry cde = craftDeleteQueue.Dequeue();
-                    DeleteCraftEntry(cde.playerName, cde.craftType, cde.craftName);
+                    CraftChangeEntry cce = craftDeleteQueue.Dequeue();
+                    DeleteCraftEntry(cce.playerName, cce.craftType, cce.craftName);
                 }
 
                 while (craftResponseQueue.Count > 0)
@@ -338,7 +338,7 @@ namespace DarkMultiPlayer
             if (safeDisplay && selectedPlayer != null)
             {
                 //Sanity check
-                if (playersWithCrafts.Contains(selectedPlayer))
+                if (playersWithCrafts.Contains(selectedPlayer) || selectedPlayer == Settings.fetch.playerName)
                 {
                     libraryWindowRect = GUILayout.Window(GUIUtility.GetControlID(6708, FocusType.Passive), libraryWindowRect, DrawLibraryContent, "DarkMultiPlayer - " + selectedPlayer + " Craft Library", windowStyle, libraryLayoutOptions);
                 }
@@ -355,9 +355,13 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             //Draw the player buttons
             playerScrollPos = GUILayout.BeginScrollView(playerScrollPos, scrollStyle);
+            DrawPlayerButton(Settings.fetch.playerName);
             foreach (string playerName in playersWithCrafts)
             {
-                DrawPlayerButton(playerName);
+                if (playerName != Settings.fetch.playerName)
+                {
+                    DrawPlayerButton(playerName);
+                }
             }
             GUILayout.EndScrollView();
             GUILayout.EndVertical();
@@ -508,12 +512,12 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void QueueCraftAdd(CraftAddEntry entry)
+        public void QueueCraftAdd(CraftChangeEntry entry)
         {
             craftAddQueue.Enqueue(entry);
         }
 
-        public void QueueCraftDelete(CraftDeleteEntry entry)
+        public void QueueCraftDelete(CraftChangeEntry entry)
         {
             craftDeleteQueue.Enqueue(entry);
         }
@@ -533,7 +537,6 @@ namespace DarkMultiPlayer
                     Client.drawEvent.Remove(singleton.Draw);
                 }
                 singleton = new CraftLibraryWorker();
-                singleton.playersWithCrafts.Add(Settings.fetch.playerName);
                 singleton.BuildUploadList();
                 Client.updateEvent.Add(singleton.Update);
                 Client.drawEvent.Add(singleton.Draw);
@@ -541,14 +544,7 @@ namespace DarkMultiPlayer
         }
     }
 
-    public class CraftAddEntry
-    {
-        public string playerName;
-        public CraftType craftType;
-        public string craftName;
-    }
-
-    public class CraftDeleteEntry
+    public class CraftChangeEntry
     {
         public string playerName;
         public CraftType craftType;

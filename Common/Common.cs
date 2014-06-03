@@ -14,7 +14,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 12;
+        public const int PROTOCOL_VERSION = 13;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -76,6 +76,7 @@ namespace DarkMultiPlayerCommon
         SERVER_SETTINGS,
         CHAT_MESSAGE,
         PLAYER_STATUS,
+        PLAYER_JOIN,
         PLAYER_DISCONNECT,
         SCENARIO_DATA,
         KERBAL_REPLY,

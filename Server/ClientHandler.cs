@@ -1375,6 +1375,14 @@ namespace DarkMultiPlayerServer
         private static void HandleKerbalsRequest(ClientObject client)
         {
             //The time sensitive SYNC_TIME is over by this point.
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string>(client.playerName);
+                ServerMessage joinMessage = new ServerMessage();
+                joinMessage.type = ServerMessageType.PLAYER_JOIN;
+                joinMessage.data = mw.GetMessageBytes();
+                SendToAll(client, joinMessage, true);
+            }
             SendServerSettings(client);
             SendSetSubspace(client);
             SendAllSubspaces(client);
@@ -1545,17 +1553,17 @@ namespace DarkMultiPlayerServer
                             string craftFile = Path.Combine(typePath, uploadName + ".craft");
                             File.WriteAllBytes(craftFile, uploadData);
                             DarkLog.Debug("Saving " + uploadName + ", type: " + uploadType.ToString() + " from " + fromPlayer);
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.CRAFT_LIBRARY;
                             using (MessageWriter mw = new MessageWriter())
                             {
+                                ServerMessage newMessage = new ServerMessage();
+                                newMessage.type = ServerMessageType.CRAFT_LIBRARY;
                                 mw.Write<int>((int)CraftMessageType.ADD_FILE);
                                 mw.Write<string>(fromPlayer);
                                 mw.Write<int>((int)uploadType);
                                 mw.Write<string>(uploadName);
                                 newMessage.data = mw.GetMessageBytes();
+                                SendToAll(client, newMessage, false);
                             }
-                            SendToAll(client, newMessage, false);
                         }
                         break;
                     case CraftMessageType.REQUEST_FILE:

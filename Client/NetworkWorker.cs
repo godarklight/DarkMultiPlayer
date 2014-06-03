@@ -564,6 +564,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(message.data);
                         break;
+                    case ServerMessageType.PLAYER_JOIN:
+                        HandlePlayerJoin(message.data);
+                        break;
                     case ServerMessageType.PLAYER_DISCONNECT:
                         HandlePlayerDisconnect(message.data);
                         break;
@@ -809,6 +812,15 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandlePlayerJoin(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string playerName = mr.Read<string>();
+                ChatWorker.fetch.QueueChannelMessage("Server", "", playerName + " has joined the server");
+            }
+        }
+
         private void HandlePlayerDisconnect(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -818,6 +830,7 @@ namespace DarkMultiPlayer
                 PlayerStatusWorker.fetch.RemovePlayerStatus(playerName);
                 ChatWorker.fetch.QueueRemovePlayer(playerName);
                 LockSystem.fetch.ReleasePlayerLocks(playerName);
+                ChatWorker.fetch.QueueChannelMessage("Server", "", playerName + " has left the server");
             }
         }
 
@@ -1041,11 +1054,11 @@ namespace DarkMultiPlayer
                                     string[] vabCrafts = mr.Read<string[]>();
                                     foreach (string vabCraft in vabCrafts)
                                     {
-                                        CraftAddEntry cae = new CraftAddEntry();
-                                        cae.playerName = player;
-                                        cae.craftType = CraftType.VAB;
-                                        cae.craftName = vabCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cae);
+                                        CraftChangeEntry cce = new CraftChangeEntry();
+                                        cce.playerName = player;
+                                        cce.craftType = CraftType.VAB;
+                                        cce.craftName = vabCraft;
+                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
                                     }
                                 }
                                 if (sphExists)
@@ -1053,11 +1066,11 @@ namespace DarkMultiPlayer
                                     string[] sphCrafts = mr.Read<string[]>();
                                     foreach (string sphCraft in sphCrafts)
                                     {
-                                        CraftAddEntry cae = new CraftAddEntry();
-                                        cae.playerName = player;
-                                        cae.craftType = CraftType.SPH;
-                                        cae.craftName = sphCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cae);
+                                        CraftChangeEntry cce = new CraftChangeEntry();
+                                        cce.playerName = player;
+                                        cce.craftType = CraftType.SPH;
+                                        cce.craftName = sphCraft;
+                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
                                     }
                                 }
                                 if (subassemblyExists)
@@ -1065,11 +1078,11 @@ namespace DarkMultiPlayer
                                     string[] subassemblyCrafts = mr.Read<string[]>();
                                     foreach (string subassemblyCraft in subassemblyCrafts)
                                     {
-                                        CraftAddEntry cae = new CraftAddEntry();
-                                        cae.playerName = player;
-                                        cae.craftType = CraftType.SUBASSEMBLY;
-                                        cae.craftName = subassemblyCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cae);
+                                        CraftChangeEntry cce = new CraftChangeEntry();
+                                        cce.playerName = player;
+                                        cce.craftType = CraftType.SUBASSEMBLY;
+                                        cce.craftName = subassemblyCraft;
+                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
                                     }
                                 }
                             }
@@ -1077,20 +1090,21 @@ namespace DarkMultiPlayer
                         break;
                     case CraftMessageType.ADD_FILE:
                         {
-                            CraftAddEntry cae = new CraftAddEntry();
-                            cae.playerName = mr.Read<string>();
-                            cae.craftType = (CraftType)mr.Read<int>();
-                            cae.craftName = mr.Read<string>();
-                            CraftLibraryWorker.fetch.QueueCraftAdd(cae);
+                            CraftChangeEntry cce = new CraftChangeEntry();
+                            cce.playerName = mr.Read<string>();
+                            cce.craftType = (CraftType)mr.Read<int>();
+                            cce.craftName = mr.Read<string>();
+                            CraftLibraryWorker.fetch.QueueCraftAdd(cce);
+                            ChatWorker.fetch.QueueChannelMessage("Server", "", cce.playerName + " shared " + cce.craftName + " (" + cce.craftType + ")");
                         }
                         break;
                     case CraftMessageType.DELETE_FILE:
                         {
-                            CraftDeleteEntry cde = new CraftDeleteEntry();
-                            cde.playerName = mr.Read<string>();
-                            cde.craftType = (CraftType)mr.Read<int>();
-                            cde.craftName = mr.Read<string>();
-                            CraftLibraryWorker.fetch.QueueCraftDelete(cde);
+                            CraftChangeEntry cce = new CraftChangeEntry();
+                            cce.playerName = mr.Read<string>();
+                            cce.craftType = (CraftType)mr.Read<int>();
+                            cce.craftName = mr.Read<string>();
+                            CraftLibraryWorker.fetch.QueueCraftDelete(cce);
                         }
                         break;
                     case CraftMessageType.RESPOND_FILE:

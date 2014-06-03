@@ -104,7 +104,7 @@ namespace DarkMultiPlayer
                             highlightedPlayers.Add(notifyPlayer);
                         }
                     }
-
+                    ChatWorker.fetch.QueueChannelMessage("Server", "", notifyPlayer + " shared screenshot");
                 }
 
                 //Update highlights
@@ -237,20 +237,14 @@ namespace DarkMultiPlayer
         {
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
-            if (safeSelectedPlayer != "")
-            {
-                if (screenshots.ContainsKey(safeSelectedPlayer))
-                {
-                    GUILayout.Box(screenshots[safeSelectedPlayer]);
-                }
-            }
-            scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle, fixedButtonSizeOption);
             GUILayout.BeginVertical();
+            scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle, fixedButtonSizeOption);
             DrawPlayerButton(Settings.fetch.playerName);
             foreach (PlayerStatus player in PlayerStatusWorker.fetch.playerStatusList)
             {
                 DrawPlayerButton(player.playerName);
             }
+            GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
             if (GUILayout.Button("Upload (F8)", buttonStyle))
@@ -259,7 +253,13 @@ namespace DarkMultiPlayer
             }
             GUI.enabled = true;
             GUILayout.EndVertical();
-            GUILayout.EndScrollView();
+            if (safeSelectedPlayer != "")
+            {
+                if (screenshots.ContainsKey(safeSelectedPlayer))
+                {
+                    GUILayout.Box(screenshots[safeSelectedPlayer]);
+                }
+            }
             GUILayout.EndHorizontal();
         }
 
