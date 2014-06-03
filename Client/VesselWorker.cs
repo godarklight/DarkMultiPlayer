@@ -61,7 +61,7 @@ namespace DarkMultiPlayer
         private bool wasSpectating;
         private int spectateType;
         private bool destroyIsValid;
-        private int reenableDestroyInFixedUpdates;
+        private Dictionary<string, double> lastKillVesselDestroy = new Dictionary<string, double>();
         private Vessel switchActiveVesselOnNextUpdate;
         private string fromDockedVesselID;
         private string toDockedVesselID;
@@ -120,17 +120,6 @@ namespace DarkMultiPlayer
                 if (isSpectatorDocking)
                 {
                     HandleSpectatorDocking();
-                }
-
-
-                if (reenableDestroyInFixedUpdates > 1)
-                {
-                    reenableDestroyInFixedUpdates--;
-                    if (reenableDestroyInFixedUpdates == 0)
-                    {
-                        DarkLog.Debug("Destroy is valid");
-                        destroyIsValid = true;
-                    }
                 }
 
                 //Process new messages
@@ -1191,71 +1180,80 @@ namespace DarkMultiPlayer
 
         public void OnVesselDestroyed(Vessel dyingVessel)
         {
+            string dyingVesselID = dyingVessel.id.ToString();
             //Docking destructions
-            DarkLog.Debug("OnVesselDestroyed called for " + dyingVessel.id.ToString());
-            if (dyingVessel.id.ToString() == fromDockedVesselID || dyingVessel.id.ToString() == toDockedVesselID)
+            if (dyingVesselID == fromDockedVesselID || dyingVesselID == toDockedVesselID)
             {
-                DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Docked");
-                unassignKerbals(dyingVessel.id.ToString());
-                if (serverVessels.Contains(dyingVessel.id.ToString()))
+                DarkLog.Debug("Removing vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + " from the server: Docked");
+                unassignKerbals(dyingVesselID);
+                if (serverVessels.Contains(dyingVesselID))
                 {
-                    serverVessels.Remove(dyingVessel.id.ToString());
+                    serverVessels.Remove(dyingVesselID);
                 }
-                NetworkWorker.fetch.SendVesselRemove(dyingVessel.id.ToString(), true);
+                NetworkWorker.fetch.SendVesselRemove(dyingVesselID, true);
                 sentDockingDestroyUpdate = true;
                 return;
             }
             //Normal destructions
             if (destroyIsValid)
             {
-                if (latestVesselUpdate.ContainsKey(dyingVessel.id.ToString()) ? latestVesselUpdate[dyingVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
+                if (!VesselRecentlyKilled(dyingVesselID))
                 {
-                    //Remove the vessel from the server if it's not owned by another player.
-                    if (!LockSystem.fetch.LockExists("update-" + dyingVessel.id.ToString()) || LockSystem.fetch.LockIsOurs("update-" + dyingVessel.id.ToString()))
+                    if (VesselUpdatedInFuture(dyingVesselID))
                     {
-                        if (serverVessels.Contains(dyingVessel.id.ToString()))
+                        //Remove the vessel from the server if it's not owned by another player.
+                        if (!LockSystem.fetch.LockExists("update-" + dyingVesselID) || LockSystem.fetch.LockIsOurs("update-" + dyingVesselID))
                         {
-                            DarkLog.Debug("Removing vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
-                            unassignKerbals(dyingVessel.id.ToString());
-                            serverVessels.Remove(dyingVessel.id.ToString());
-                            NetworkWorker.fetch.SendVesselRemove(dyingVessel.id.ToString(), false);
+                            if (serverVessels.Contains(dyingVessel.id.ToString()))
+                            {
+                                DarkLog.Debug("Removing vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
+                                unassignKerbals(dyingVesselID);
+                                serverVessels.Remove(dyingVesselID);
+                                NetworkWorker.fetch.SendVesselRemove(dyingVesselID, false);
+                            }
+                            else
+                            {
+                                DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", not a server vessel.");
+                            }
                         }
                         else
                         {
-                            DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", not a server vessel.");
+                            DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", update lock owned by another player.");
                         }
                     }
                     else
                     {
-                        DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", owned by another player.");
+                        DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", vessel has been changed in the future.");
                     }
                 }
                 else
                 {
-                    DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", vessel has been changed in the future.");
+                    DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", vessel has been recently killed.");
                 }
+
             }
             else
             {
-                DarkLog.Debug("Skipping the removal of vessel " + dyingVessel.id.ToString() + ", name: " + dyingVessel.vesselName + ", destructions are not valid.");
+                DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", destructions are not valid.");
             }
         }
 
         public void OnVesselRecovered(ProtoVessel recoveredVessel)
         {
+            string recoveredVesselID = recoveredVessel.vesselID.ToString();
             //Check the vessel hasn't been changed in the future
-            if (latestVesselUpdate.ContainsKey(recoveredVessel.vesselID.ToString()) ? latestVesselUpdate[recoveredVessel.vesselID.ToString()] < Planetarium.GetUniversalTime() : true)
+            if (VesselUpdatedInFuture(recoveredVesselID))
             {
                 //Remove the vessel from the server if it's not owned by another player.
-                if (!LockSystem.fetch.LockExists("update-" + recoveredVessel.vesselID.ToString()) || LockSystem.fetch.LockIsOurs("update-" + recoveredVessel.vesselID.ToString()))
+                if (!LockSystem.fetch.LockExists("update-" + recoveredVesselID) || LockSystem.fetch.LockIsOurs("update-" + recoveredVesselID))
                 {
                     //Check that it's a server vessel
-                    if (serverVessels.Contains(recoveredVessel.vesselID.ToString()))
+                    if (serverVessels.Contains(recoveredVesselID))
                     {
-                        DarkLog.Debug("Removing vessel " + recoveredVessel.vesselID.ToString() + ", name: " + recoveredVessel.vesselName + " from the server: Recovered");
-                        unassignKerbals(recoveredVessel.vesselID.ToString());
-                        serverVessels.Remove(recoveredVessel.vesselID.ToString());
-                        NetworkWorker.fetch.SendVesselRemove(recoveredVessel.vesselID.ToString(), false);
+                        DarkLog.Debug("Removing vessel " + recoveredVesselID + ", name: " + recoveredVessel.vesselName + " from the server: Recovered");
+                        unassignKerbals(recoveredVesselID);
+                        serverVessels.Remove(recoveredVesselID);
+                        NetworkWorker.fetch.SendVesselRemove(recoveredVesselID, false);
                     }
                     else
                     {
@@ -1275,18 +1273,19 @@ namespace DarkMultiPlayer
 
         public void OnVesselTerminated(ProtoVessel terminatedVessel)
         {
+            string terminatedVesselID = terminatedVessel.vesselID.ToString();
             //Check the vessel hasn't been changed in the future
-            if (latestVesselUpdate.ContainsKey(terminatedVessel.vesselID.ToString()) ? latestVesselUpdate[terminatedVessel.vesselID.ToString()] < Planetarium.GetUniversalTime() : true)
+            if (VesselUpdatedInFuture(terminatedVesselID))
             {
                 //Remove the vessel from the server if it's not owned by another player.
-                if (!LockSystem.fetch.LockExists("update-" + terminatedVessel.vesselID.ToString()) || LockSystem.fetch.LockIsOurs("update-" + terminatedVessel.vesselID.ToString()))
+                if (!LockSystem.fetch.LockExists("update-" + terminatedVesselID) || LockSystem.fetch.LockIsOurs("update-" + terminatedVesselID))
                 {
-                    if (serverVessels.Contains(terminatedVessel.vesselID.ToString()))
+                    if (serverVessels.Contains(terminatedVesselID))
                     {
-                        DarkLog.Debug("Removing vessel " + terminatedVessel.vesselID.ToString() + ", name: " + terminatedVessel.vesselName + " from the server: Terminated");
-                        unassignKerbals(terminatedVessel.vesselID.ToString());
-                        serverVessels.Remove(terminatedVessel.vesselID.ToString());
-                        NetworkWorker.fetch.SendVesselRemove(terminatedVessel.vesselID.ToString(), false);
+                        DarkLog.Debug("Removing vessel " + terminatedVesselID + ", name: " + terminatedVessel.vesselName + " from the server: Terminated");
+                        unassignKerbals(terminatedVesselID);
+                        serverVessels.Remove(terminatedVesselID);
+                        NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
                     }
                     else
                     {
@@ -1302,6 +1301,16 @@ namespace DarkMultiPlayer
             {
                 ScreenMessages.PostScreenMessage("Cannot terminate vessel, the vessel been changed in the future.", 5f, ScreenMessageStyle.UPPER_CENTER);
             }
+        }
+
+        private bool VesselRecentlyKilled(string vesselID)
+        {
+            return lastKillVesselDestroy.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f) : false;
+        }
+
+        private bool VesselUpdatedInFuture(string vesselID)
+        {
+            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 10f) > Planetarium.GetUniversalTime()) : false;
         }
 
         public void OnGameSceneLoadRequested(GameScenes scene)
@@ -1395,13 +1404,8 @@ namespace DarkMultiPlayer
         {
             if (killVessel != null)
             {
-                bool oldDestroyIsValid = destroyIsValid;
-                destroyIsValid = false;
-                if (oldDestroyIsValid)
-                {
-                    DarkLog.Debug("Disabling vessel destroy for vessel killing");
-                }
                 DarkLog.Debug("Killing vessel: " + killVessel.id.ToString());
+                lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 try
                 {
                     if (!killVessel.packed)
@@ -1425,10 +1429,6 @@ namespace DarkMultiPlayer
                 catch (Exception e)
                 {
                     DarkLog.Debug("Error destroying vessel: " + e);
-                }
-                if (oldDestroyIsValid)
-                {
-                    reenableDestroyInFixedUpdates = 5;
                 }
             }
         }
