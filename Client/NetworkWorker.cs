@@ -854,13 +854,10 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 int kerbalID = mr.Read<int>();
                 byte[] kerbalData = mr.Read<byte[]>();
-                string tempFile = Path.GetTempFileName();
-                File.WriteAllBytes(tempFile, kerbalData);
-                ConfigNode vesselNode = ConfigNode.Load(tempFile);
-                File.Delete(tempFile);
-                if (vesselNode != null)
+                ConfigNode kerbalNode = ConvertByteArrayToConfigNode(kerbalData);
+                if (kerbalNode != null)
                 {
-                    VesselWorker.fetch.QueueKerbal(subspaceID, planetTime, kerbalID, vesselNode);
+                    VesselWorker.fetch.QueueKerbal(subspaceID, planetTime, kerbalID, kerbalNode);
                 }
                 else
                 {
@@ -901,8 +898,15 @@ namespace DarkMultiPlayer
                     else
                     {
                         numberOfVesselsReceived++;
-                        ConfigNode vesselNode = ConfigNode.Load(Path.Combine(UniverseSyncCache.fetch.cacheDirectory, serverVessel + ".txt"));
-                        VesselWorker.fetch.QueueVesselProto(0, 0, vesselNode);
+                        ConfigNode vesselNode = ConvertByteArrayToConfigNode(UniverseSyncCache.fetch.GetFromCache(serverVessel));
+                        if (vesselNode != null)
+                        {
+                            VesselWorker.fetch.QueueVesselProto(0, 0, vesselNode);
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Cached object " + serverVessel + " is damaged!");
+                        }
                     }
                 }
                 if (numberOfVessels != 0)
@@ -927,10 +931,7 @@ namespace DarkMultiPlayer
                 }
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
-                string tempFile = Path.GetTempFileName();
-                File.WriteAllBytes(tempFile, vesselData);
-                ConfigNode vesselNode = ConfigNode.Load(tempFile);
-                File.Delete(tempFile);
+                ConfigNode vesselNode = ConvertByteArrayToConfigNode(vesselData);
                 if (vesselNode != null)
                 {
                     VesselWorker.fetch.QueueVesselProto(subspaceID, planetTime, vesselNode);
@@ -1301,13 +1302,12 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate)
         {
-            ConfigNode currentNode = new ConfigNode();
+            ConfigNode vesselNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
-            vessel.Save(currentNode);
-            string tempFile = Path.GetTempFileName();
-            currentNode.Save(tempFile);
-            using (StreamReader sr = new StreamReader(tempFile))
+            vessel.Save(vesselNode);
+            byte[] vesselBytes = ConvertConfigNodeToByteArray(vesselNode);
+            if (vesselBytes != null)
             {
                 using (MessageWriter mw = new MessageWriter())
                 {
@@ -1315,13 +1315,16 @@ namespace DarkMultiPlayer
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<bool>(isDockingUpdate);
-                    mw.Write<byte[]>(File.ReadAllBytes(tempFile));
+                    mw.Write<byte[]>(vesselBytes);
                     newMessage.data = mw.GetMessageBytes();
                 }
+                DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
+                sendMessageQueueLow.Enqueue(newMessage);
             }
-            File.Delete(tempFile);
-            DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
-            sendMessageQueueLow.Enqueue(newMessage);
+            else
+            {
+                DarkLog.Debug("Failed to create byte[] data for " + vessel.vesselID);
+            }
         }
         //Called from vesselWorker
         public void SendVesselUpdate(VesselUpdate update)
@@ -1414,26 +1417,28 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {
-            ConfigNode currentNode = new ConfigNode();
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.KERBAL_PROTO;
-            kerbal.Save(currentNode);
-            string tempFile = Path.GetTempFileName();
-            currentNode.Save(tempFile);
-            using (StreamReader sr = new StreamReader(tempFile))
+            ConfigNode kerbalNode = new ConfigNode();
+            kerbal.Save(kerbalNode);
+            byte[] kerbalBytes = ConvertConfigNodeToByteArray(kerbalNode);
+            if (kerbalBytes != null)
             {
+                ClientMessage newMessage = new ClientMessage();
+                newMessage.type = ClientMessageType.KERBAL_PROTO;
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<int>(kerbalID);
-                    mw.Write<byte[]>(File.ReadAllBytes(tempFile));
+                    mw.Write<byte[]>(kerbalBytes);
                     newMessage.data = mw.GetMessageBytes();
                 }
+                DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
+                sendMessageQueueLow.Enqueue(newMessage);
             }
-            File.Delete(tempFile);
-            DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
-            sendMessageQueueLow.Enqueue(newMessage);
+            else
+            {
+                DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbalID);
+            }
         }
         //Called from chatWorker
         public void SendPingRequest()
@@ -1502,6 +1507,62 @@ namespace DarkMultiPlayer
             return 0;
         }
         #endregion
+        //Welcome to the world of beyond-dodgy. KSP: Expose either these methods or the string data please!
+        private static ConfigNode ConvertByteArrayToConfigNode(byte[] configData)
+        {
+            string tempFile = null;
+            ConfigNode returnNode = null;
+            if (configData != null)
+            {
+                try
+                {
+                    tempFile = Path.GetTempFileName();
+                    File.WriteAllBytes(tempFile, configData);
+                    returnNode = ConfigNode.Load(tempFile);
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Failed to convert byte[] to ConfigNode, Exception " + e);
+                    returnNode = null;
+                }
+                finally
+                {
+                    if (File.Exists(tempFile))
+                    {
+                        File.Delete(tempFile);
+                    }
+                }
+            }
+            return returnNode;
+        }
+
+        private static byte[] ConvertConfigNodeToByteArray(ConfigNode configData)
+        {
+            string tempFile = null;
+            byte[] returnByteArray = null;
+            if (configData != null)
+            {
+                try
+                {
+                    tempFile = Path.GetTempFileName();
+                    configData.Save(tempFile);
+                    returnByteArray = File.ReadAllBytes(tempFile);
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Failed to convert byte[] to ConfigNode, Exception " + e);
+                    returnByteArray = null;
+                }
+                finally
+                {
+                    if (File.Exists(tempFile))
+                    {
+                        File.Delete(tempFile);
+                    }
+                }
+            }
+            return returnByteArray;
+        }
     }
 }
 
