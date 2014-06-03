@@ -33,6 +33,7 @@ namespace DarkMultiPlayer
         private bool ignoreChatInput = false;
         private bool selectTextBox = false;
         private string sendText = "";
+        ScreenMessage message;
         //event handling
         private bool leaveEventHandled = true;
         private bool sendEventHandled = true;
@@ -117,6 +118,7 @@ namespace DarkMultiPlayer
             if (!display)
             {
                 chatButtonHighlighted = true;
+                message = ScreenMessages.PostScreenMessage("[" + DateTime.Now.ToString("HH:mm:ss") + "] " + ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
             }
         }
 
