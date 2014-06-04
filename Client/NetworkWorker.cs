@@ -794,6 +794,7 @@ namespace DarkMultiPlayer
                 numberOfVessels = mr.Read<int>();
                 ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
                 AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
+                ChatWorker.fetch.consoleIdentifier = mr.Read<string>();
             }
         }
 
@@ -817,7 +818,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 string playerName = mr.Read<string>();
-                ChatWorker.fetch.QueueChannelMessage("Server", "", playerName + " has joined the server");
+                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has joined the server");
             }
         }
 
@@ -830,7 +831,7 @@ namespace DarkMultiPlayer
                 PlayerStatusWorker.fetch.RemovePlayerStatus(playerName);
                 ChatWorker.fetch.QueueRemovePlayer(playerName);
                 LockSystem.fetch.ReleasePlayerLocks(playerName);
-                ChatWorker.fetch.QueueChannelMessage("Server", "", playerName + " has left the server");
+                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has left the server");
             }
         }
 
@@ -1114,7 +1115,7 @@ namespace DarkMultiPlayer
                             cce.craftType = (CraftType)mr.Read<int>();
                             cce.craftName = mr.Read<string>();
                             CraftLibraryWorker.fetch.QueueCraftAdd(cce);
-                            ChatWorker.fetch.QueueChannelMessage("Server", "", cce.playerName + " shared " + cce.craftName + " (" + cce.craftType + ")");
+                            ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", cce.playerName + " shared " + cce.craftName + " (" + cce.craftType + ")");
                         }
                         break;
                     case CraftMessageType.DELETE_FILE:
@@ -1156,10 +1157,10 @@ namespace DarkMultiPlayer
                 switch (messageType)
                 {
                     case ScreenshotMessageType.SEND_START_NOTIFY:
-                    {
-                        string fromPlayer = mr.Read<string>();
-                        ScreenshotWorker.fetch.downloadingScreenshotFromPlayer = fromPlayer;
-                    }
+                        {
+                            string fromPlayer = mr.Read<string>();
+                            ScreenshotWorker.fetch.downloadingScreenshotFromPlayer = fromPlayer;
+                        }
                         break;
                     case ScreenshotMessageType.NOTIFY:
                         {
@@ -1200,7 +1201,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
-                ChatWorker.fetch.QueueChannelMessage("Server", "", "Ping: " + pingTime + "ms.");
+                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
             }
 
         }

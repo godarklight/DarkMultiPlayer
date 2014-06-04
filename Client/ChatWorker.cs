@@ -33,6 +33,7 @@ namespace DarkMultiPlayer
         private bool ignoreChatInput = false;
         private bool selectTextBox = false;
         private string sendText = "";
+        public string consoleIdentifier = "";
         //event handling
         private bool leaveEventHandled = true;
         private bool sendEventHandled = true;
@@ -271,7 +272,7 @@ namespace DarkMultiPlayer
                             {
                                 string playerName = sendText.Substring(7);
                                 bool playerFound = false;
-                                if (playerName != "Server")
+                                if (playerName != consoleIdentifier)
                                 {
                                     foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
                                     {

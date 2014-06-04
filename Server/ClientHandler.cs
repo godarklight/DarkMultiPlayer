@@ -1124,14 +1124,20 @@ namespace DarkMultiPlayerServer
             }
             if (handshakeReponse == 0)
             {
+                bool reserveKick = false;
                 //Check the client isn't using a reserved name
-                switch (playerName)
+                if (playerName == "Initial")
                 {
-                    case "Server":
-                    case "Initial":
-                        handshakeReponse = 3;
-                        reason = "Kicked for using a reserved name";
-                        break;
+                    reserveKick = true;
+                }
+                if (playerName == Settings.settingsStore.consoleIdentifier)
+                {
+                    reserveKick = true;
+                }
+                if (reserveKick)
+                {
+                    handshakeReponse = 3;
+                    reason = "Kicked for using a reserved name";
                 }
             }
             if (handshakeReponse == 0)
@@ -1289,7 +1295,7 @@ namespace DarkMultiPlayerServer
                         {
                             string toPlayer = mr.Read<string>();
                             string message = mr.Read<string>();
-                            if (toPlayer != "Server")
+                            if (toPlayer != Settings.settingsStore.consoleIdentifier)
                             {
                                 ClientObject findClient = GetClientByName(toPlayer);
                                 if (findClient != null)
@@ -1641,7 +1647,7 @@ namespace DarkMultiPlayerServer
                             {
                                 Directory.Delete(playerPath);
                             }
-                        //Relay the delete message to other clients
+                            //Relay the delete message to other clients
                             ServerMessage newMessage = new ServerMessage();
                             newMessage.type = ServerMessageType.CRAFT_LIBRARY;
                             newMessage.data = messageData;
@@ -1695,7 +1701,7 @@ namespace DarkMultiPlayerServer
                                     {
                                         string[] currentFiles = Directory.GetFiles(playerScreenshotDirectory);
                                         string deleteFile = currentFiles[0];
-                                    //Find oldest file
+                                        //Find oldest file
                                         foreach (string testFile in currentFiles)
                                         {
                                             if (File.GetCreationTime(testFile) < File.GetCreationTime(deleteFile))
@@ -1955,7 +1961,7 @@ namespace DarkMultiPlayerServer
                                 using (MessageWriter mw = new MessageWriter())
                                 {
                                     mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
-                                    mw.Write<string>("Server");
+                                    mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                                     mw.Write<int>(client.subspace);
                                     mw.Write<long>(DateTime.UtcNow.Ticks);
                                     mw.Write<double>(newPlanetariumTime);
@@ -2227,7 +2233,7 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
-                mw.Write<string>("Server");
+                mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 mw.Write<string>(client.playerName);
                 mw.Write(messageText);
                 newMessage.data = mw.GetMessageBytes();
@@ -2242,7 +2248,7 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                mw.Write<string>("Server");
+                mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 //Global channel
                 mw.Write<string>("");
                 mw.Write(messageText);
@@ -2269,6 +2275,7 @@ namespace DarkMultiPlayerServer
                 //mw.Write<int>(numberOfScenarioModules);
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
                 mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
+                mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
