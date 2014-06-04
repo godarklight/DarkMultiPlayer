@@ -612,6 +612,12 @@ namespace DarkMultiPlayer
                 }
             }
 
+            if (checkVessel.vesselType == VesselType.Flag && checkVessel.id == Guid.Empty && checkVessel.vesselName != "Flag")
+            {
+                DarkLog.Debug("Fixing flag GUID for " + checkVessel.vesselName);
+                checkVessel.id = Guid.NewGuid();
+            }
+
             //Only send updates for craft we have update locks for. Request the lock if it's not taken.
             if (!LockSystem.fetch.LockExists("update-" + checkVessel.id.ToString()))
             {
