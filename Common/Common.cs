@@ -14,7 +14,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 13;
+        public const int PROTOCOL_VERSION = 14;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -165,6 +165,7 @@ namespace DarkMultiPlayerCommon
     public enum ScreenshotMessageType
     {
         NOTIFY,
+        SEND_START_NOTIFY,
         WATCH,
         SCREENSHOT,
     }

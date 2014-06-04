@@ -540,7 +540,7 @@ namespace DarkMultiPlayer
                         if ((updateLockIsFree || updateLockIsOurs) && !controlledByPlayer)
                         {
                             //Dont update vessels manipulated in the future
-                            if (latestVesselUpdate.ContainsKey(checkVessel.id.ToString()) ? latestVesselUpdate[checkVessel.id.ToString()] < Planetarium.GetUniversalTime() : true)
+                            if (!VesselUpdatedInFuture(checkVessel.id.ToString()))
                             {
                                 double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
                                 if (!secondryVessels.ContainsValue(checkVessel))
@@ -714,9 +714,9 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            else if (notRecentlySentPositionUpdate)
+            else if (notRecentlySentPositionUpdate && checkVessel.vesselType != VesselType.Flag)
             {
-                //Send a position update
+                //Send a position update - Except for flags. They aren't exactly known for their mobility.
                 serverVesselsPositionUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 latestUpdateSent[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 VesselUpdate update = GetVesselUpdate(checkVessel);
@@ -745,13 +745,10 @@ namespace DarkMultiPlayer
                             spectateType = 1;
                             return true;
                         }
-                        if (latestVesselUpdate.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+                        if (VesselUpdatedInFuture(FlightGlobals.fetch.activeVessel.id.ToString()))
                         {
-                            if (latestVesselUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] > Planetarium.GetUniversalTime())
-                            {
-                                spectateType = 2;
-                                return true;
-                            }
+                            spectateType = 2;
+                            return true;
                         }
                     }
                 }
@@ -1205,7 +1202,7 @@ namespace DarkMultiPlayer
             {
                 if (!VesselRecentlyKilled(dyingVesselID))
                 {
-                    if (VesselUpdatedInFuture(dyingVesselID))
+                    if (!VesselUpdatedInFuture(dyingVesselID))
                     {
                         //Remove the vessel from the server if it's not owned by another player.
                         if (!LockSystem.fetch.LockExists("update-" + dyingVesselID) || LockSystem.fetch.LockIsOurs("update-" + dyingVesselID))
@@ -1248,7 +1245,7 @@ namespace DarkMultiPlayer
         {
             string recoveredVesselID = recoveredVessel.vesselID.ToString();
             //Check the vessel hasn't been changed in the future
-            if (VesselUpdatedInFuture(recoveredVesselID))
+            if (!VesselUpdatedInFuture(recoveredVesselID))
             {
                 //Remove the vessel from the server if it's not owned by another player.
                 if (!LockSystem.fetch.LockExists("update-" + recoveredVesselID) || LockSystem.fetch.LockIsOurs("update-" + recoveredVesselID))
@@ -1281,7 +1278,7 @@ namespace DarkMultiPlayer
         {
             string terminatedVesselID = terminatedVessel.vesselID.ToString();
             //Check the vessel hasn't been changed in the future
-            if (VesselUpdatedInFuture(terminatedVesselID))
+            if (!VesselUpdatedInFuture(terminatedVesselID))
             {
                 //Remove the vessel from the server if it's not owned by another player.
                 if (!LockSystem.fetch.LockExists("update-" + terminatedVesselID) || LockSystem.fetch.LockIsOurs("update-" + terminatedVesselID))

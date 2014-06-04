@@ -1136,6 +1136,12 @@ namespace DarkMultiPlayer
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 switch (messageType)
                 {
+                    case ScreenshotMessageType.SEND_START_NOTIFY:
+                    {
+                        string fromPlayer = mr.Read<string>();
+                        ScreenshotWorker.fetch.downloadingScreenshotFromPlayer = fromPlayer;
+                    }
+                        break;
                     case ScreenshotMessageType.NOTIFY:
                         {
                             string fromPlayer = mr.Read<string>();

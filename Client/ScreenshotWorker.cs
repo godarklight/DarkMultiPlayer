@@ -41,11 +41,12 @@ namespace DarkMultiPlayer
         //Screenshot uploading message
         private bool displayScreenshotUploadingMessage = false;
         public bool finishedUploadingScreenshot = false;
+        public string downloadingScreenshotFromPlayer;
         private float lastScreenshotMessageCheck;
         ScreenMessage screenshotUploadMessage;
+        ScreenMessage screenshotDownloadMessage;
         //delay the screenshot message until we've taken a screenshot
         public bool screenshotTaken;
-
         //const
         private const float MIN_WINDOW_HEIGHT = 200;
         private const float MIN_WINDOW_WIDTH = 150;
@@ -89,7 +90,6 @@ namespace DarkMultiPlayer
 
             if (workerEnabled)
             {
-
                 while (newScreenshotNotifiyQueue.Count > 0)
                 {
                     string notifyPlayer = newScreenshotNotifiyQueue.Dequeue();
@@ -122,7 +122,7 @@ namespace DarkMultiPlayer
                 while (newScreenshotQueue.Count > 0)
                 {
                     ScreenshotEntry se = newScreenshotQueue.Dequeue();
-                    Texture2D screenshotTexture = new Texture2D(4,4,TextureFormat.RGB24, false, true);
+                    Texture2D screenshotTexture = new Texture2D(4, 4, TextureFormat.RGB24, false, true);
                     if (screenshotTexture.LoadImage(se.screenshotData))
                     {
                         screenshotTexture.Apply();
@@ -180,24 +180,41 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                if (screenshotTaken && displayScreenshotUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL))
+                if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL)
                 {
-                    lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
-                    if (screenshotUploadMessage != null)
+                    if (screenshotTaken && displayScreenshotUploadingMessage)
                     {
-                        screenshotUploadMessage.duration = 0f;
+                        lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                        if (screenshotUploadMessage != null)
+                        {
+                            screenshotUploadMessage.duration = 0f;
+                        }
+                        if (finishedUploadingScreenshot)
+                        {
+                            displayScreenshotUploadingMessage = false;
+                            screenshotUploadMessage = ScreenMessages.PostScreenMessage("Screenshot uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                        else
+                        {
+                            screenshotUploadMessage = ScreenMessages.PostScreenMessage("Uploading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                        }
                     }
-                    if (finishedUploadingScreenshot)
+
+                    if (downloadingScreenshotFromPlayer != null)
                     {
-                        displayScreenshotUploadingMessage = false;
-                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Screenshot uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
-                    }
-                    else
-                    {
-                        screenshotUploadMessage = ScreenMessages.PostScreenMessage("Uploading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                        if (screenshotDownloadMessage != null)
+                        {
+                            screenshotDownloadMessage.duration = 0f;
+                        }
+                        screenshotDownloadMessage = ScreenMessages.PostScreenMessage("Downloading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
                     }
                 }
 
+                if (downloadingScreenshotFromPlayer == null && screenshotDownloadMessage != null)
+                {
+                    screenshotDownloadMessage.duration = 0f;
+                    screenshotDownloadMessage = null;
+                }
             }
         }
 
@@ -291,7 +308,6 @@ namespace DarkMultiPlayer
                 NetworkWorker.fetch.SendScreenshotMessage(mw.GetMessageBytes());
             }
         }
-
         //Called from main due to WaitForEndOfFrame timing.
         public void SendScreenshot()
         {
@@ -339,6 +355,7 @@ namespace DarkMultiPlayer
 
         public void QueueNewScreenshot(string fromPlayer, byte[] screenshotData)
         {
+            downloadingScreenshotFromPlayer = null;
             ScreenshotEntry se = new ScreenshotEntry();
             se.fromPlayer = fromPlayer;
             se.screenshotData = screenshotData;

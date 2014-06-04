@@ -1752,6 +1752,15 @@ namespace DarkMultiPlayerServer
                                             }
                                             playerDownloadedScreenshotIndex[entry.Key][fromPlayer] = playerUploadedScreenshotIndex[fromPlayer];
                                             DarkLog.Debug("Sending screenshot from " + fromPlayer + " to " + entry.Key);
+                                            using (MessageWriter mw = new MessageWriter())
+                                            {
+                                                ServerMessage sendStartMessage = new ServerMessage();
+                                                sendStartMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+                                                mw.Write<int>((int)ScreenshotMessageType.SEND_START_NOTIFY);
+                                                mw.Write<string>(fromPlayer);
+                                                sendStartMessage.data = mw.GetMessageBytes();
+                                                SendToClient(toClient, sendStartMessage, true);
+                                            }
                                             SendToClient(toClient, newMessage, false);
                                         }
                                     }
@@ -1820,7 +1829,14 @@ namespace DarkMultiPlayerServer
                                     }
                                     if (sendScreenshot)
                                     {
-                                        
+                                        ServerMessage sendStartMessage = new ServerMessage();
+                                        sendStartMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
+                                        using (MessageWriter mw = new MessageWriter())
+                                        {
+                                            mw.Write<int>((int)ScreenshotMessageType.SEND_START_NOTIFY);
+                                            mw.Write<string>(fromPlayer);
+                                            sendStartMessage.data = mw.GetMessageBytes();
+                                        }
                                         ServerMessage screenshotMessage = new ServerMessage();
                                         screenshotMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
                                         using (MessageWriter mw = new MessageWriter())
@@ -1834,6 +1850,7 @@ namespace DarkMultiPlayerServer
                                         if (toClient != null)
                                         {
                                             DarkLog.Debug("Sending saved screenshot from " + watchPlayer + " to " + fromPlayer);
+                                            SendToClient(toClient, sendStartMessage, false);
                                             SendToClient(toClient, screenshotMessage, false);
                                         }
                                     }
