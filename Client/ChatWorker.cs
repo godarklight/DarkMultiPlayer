@@ -33,6 +33,7 @@ namespace DarkMultiPlayer
         private bool ignoreChatInput = false;
         private bool selectTextBox = false;
         private string sendText = "";
+        public string consoleIdentifier = "";
         //event handling
         private bool leaveEventHandled = true;
         private bool sendEventHandled = true;

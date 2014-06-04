@@ -1127,7 +1127,8 @@ namespace DarkMultiPlayerServer
                 //Check the client isn't using a reserved name
                 switch (playerName)
                 {
-                    case "Server":
+					case "Server":
+					case Settings.settingsStore.consoleIdentifier:
                     case "Initial":
                         handshakeReponse = 3;
                         reason = "Kicked for using a reserved name";
@@ -1947,7 +1948,7 @@ namespace DarkMultiPlayerServer
                                 using (MessageWriter mw = new MessageWriter())
                                 {
                                     mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
-                                    mw.Write<string>("Server");
+									mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                                     mw.Write<int>(client.subspace);
                                     mw.Write<long>(DateTime.UtcNow.Ticks);
                                     mw.Write<double>(newPlanetariumTime);
@@ -2219,7 +2220,7 @@ namespace DarkMultiPlayerServer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                mw.Write<string>("Server");
+				mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 //Global channel
                 mw.Write<string>("");
                 mw.Write(messageText);
@@ -2246,6 +2247,7 @@ namespace DarkMultiPlayerServer
                 //mw.Write<int>(numberOfScenarioModules);
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
                 mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
+				mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -2566,7 +2568,7 @@ namespace DarkMultiPlayerServer
 			using (MessageWriter mw = new MessageWriter())
 			{
 				mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-				mw.Write<string>("Server");
+				mw.Write<string>(Settings.settingsStore.consoleIdentifier);
 				//Global channel
 				mw.Write<string>("");
 				mw.Write(messageText);
@@ -2582,7 +2584,7 @@ namespace DarkMultiPlayerServer
 			using (MessageWriter mw = new MessageWriter())
 			{
 				mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
-				mw.Write<string>("Server");
+				mw.Write<string>(Settings.settingsStore.consoleIdentifier);
 				mw.Write<string>(client.playerName);
 				mw.Write(messageText);
 				newMessage.data = mw.GetMessageBytes();
