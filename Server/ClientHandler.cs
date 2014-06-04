@@ -1009,7 +1009,7 @@ namespace DarkMultiPlayerServer
                 switch (message.type)
                 {
                     case ClientMessageType.HEARTBEAT:
-                    //Don't do anything for heartbeats, they just keep the connection alive
+                        //Don't do anything for heartbeats, they just keep the connection alive
                         break;
                     case ClientMessageType.HANDSHAKE_REQUEST:
                         HandleHandshakeRequest(client, message.data);
@@ -1289,15 +1289,23 @@ namespace DarkMultiPlayerServer
                         {
                             string toPlayer = mr.Read<string>();
                             string message = mr.Read<string>();
-                            ClientObject findClient = GetClientByName(toPlayer);
-                            if (findClient != null)
+                            if (toPlayer != "Server")
+                            {
+                                ClientObject findClient = GetClientByName(toPlayer);
+                                if (findClient != null)
+                                {
+                                    SendToClient(client, newMessage, true);
+                                    SendToClient(findClient, newMessage, true);
+                                    DarkLog.ChatMessage(fromPlayer + " -> @" + toPlayer + ": " + message);
+                                }
+                                {
+                                    DarkLog.ChatMessage(fromPlayer + " -X-> @" + toPlayer + ": " + message);
+                                }
+                            }
+                            else
                             {
                                 SendToClient(client, newMessage, true);
-                                SendToClient(findClient, newMessage, true);
                                 DarkLog.ChatMessage(fromPlayer + " -> @" + toPlayer + ": " + message);
-                            }
-                            {
-                                DarkLog.ChatMessage(fromPlayer + " -X-> @" + toPlayer + ": " + message);
                             }
                         }
                         break;
@@ -1633,7 +1641,7 @@ namespace DarkMultiPlayerServer
                             {
                                 Directory.Delete(playerPath);
                             }
-                            //Relay the delete message to other clients
+                        //Relay the delete message to other clients
                             ServerMessage newMessage = new ServerMessage();
                             newMessage.type = ServerMessageType.CRAFT_LIBRARY;
                             newMessage.data = messageData;
@@ -1677,9 +1685,9 @@ namespace DarkMultiPlayerServer
                                 }
                                 string screenshotFile = Path.Combine(playerScreenshotDirectory, DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".png");
                                 DarkLog.Debug("Saving screenshot from " + fromPlayer);
-                            
+
                                 byte[] screenshotData = mr.Read<byte[]>();
-                            
+
                                 File.WriteAllBytes(screenshotFile, screenshotData);
                                 if (Settings.settingsStore.screenshotsPerPlayer != 0)
                                 {
@@ -1687,7 +1695,7 @@ namespace DarkMultiPlayerServer
                                     {
                                         string[] currentFiles = Directory.GetFiles(playerScreenshotDirectory);
                                         string deleteFile = currentFiles[0];
-                                        //Find oldest file
+                                    //Find oldest file
                                         foreach (string testFile in currentFiles)
                                         {
                                             if (File.GetCreationTime(testFile) < File.GetCreationTime(deleteFile))
@@ -2212,6 +2220,21 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
+        private static void SendChatMessageToClient(ClientObject client, string messageText)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
+                mw.Write<string>("Server");
+                mw.Write<string>(client.playerName);
+                mw.Write(messageText);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
         public static void SendChatMessageToAll(string messageText)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -2731,6 +2754,41 @@ namespace DarkMultiPlayerServer
             else
             {
                 DarkLog.Normal(guid + " is not a valid player token");
+            }
+        }
+
+        public static void PMCommand(string commandArgs)
+        {
+            ClientObject pmPlayer = null;
+            int matchedLength = 0;
+            lock (clientLock)
+            {
+                foreach (ClientObject testPlayer in clients)
+                {
+                    //Only search authenticated players
+                    if (testPlayer.authenticated)
+                    {
+                        //Try to match the longest player name
+                        if (commandArgs.StartsWith(testPlayer.playerName) && testPlayer.playerName.Length > matchedLength)
+                        {
+                            //Double check there is a space after the player name
+                            if ((commandArgs.Length > (testPlayer.playerName.Length + 1)) ? commandArgs[testPlayer.playerName.Length] == ' ' : false)
+                            {
+                                pmPlayer = testPlayer;
+                                matchedLength = testPlayer.playerName.Length;
+                            }
+                        }
+                    }
+                }
+            }
+            if (pmPlayer != null)
+            {
+                string messageText = commandArgs.Substring(pmPlayer.playerName.Length + 1);
+                SendChatMessageToClient(pmPlayer, messageText);
+            }
+            else
+            {
+                DarkLog.Normal("Player not found!");
             }
         }
         #endregion

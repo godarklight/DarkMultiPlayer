@@ -271,12 +271,20 @@ namespace DarkMultiPlayer
                             {
                                 string playerName = sendText.Substring(7);
                                 bool playerFound = false;
-                                foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
+                                if (playerName != "Server")
                                 {
-                                    if (ps.playerName == playerName)
+                                    foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
                                     {
-                                        playerFound = true;
+                                        if (ps.playerName == playerName)
+                                        {
+                                            playerFound = true;
+                                        }
                                     }
+                                }
+                                else
+                                {
+                                    //Make sure we can always query the server.
+                                    playerFound = true;
                                 }
                                 if (playerFound)
                                 {

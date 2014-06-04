@@ -36,6 +36,7 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
                 CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
                 CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
+                CommandHandler.RegisterCommand("pm", ClientHandler.PMCommand, "Sends a message to a player");
                 //Register the ctrl+c event
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
