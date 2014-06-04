@@ -83,24 +83,11 @@ namespace DarkMultiPlayer
             //GameEvents.debugEvents = true;
             if (workerEnabled && !registered)
             {
-                registered = true;
-                GameEvents.onVesselRecovered.Add(OnVesselRecovered);
-                GameEvents.onVesselTerminated.Add(OnVesselTerminated);
-                GameEvents.onVesselDestroy.Add(OnVesselDestroyed);
-                GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
-                GameEvents.onFlightReady.Add(OnFlightReady);
-                GameEvents.onPartCouple.Add(OnVesselDock);
-                GameEvents.onCrewBoardVessel.Add(OnCrewBoard);
+                RegisterGameHooks();
             }
             if (!workerEnabled && registered)
             {
-                registered = false;
-                GameEvents.onVesselRecovered.Remove(OnVesselRecovered);
-                GameEvents.onVesselTerminated.Remove(OnVesselTerminated);
-                GameEvents.onVesselDestroy.Remove(OnVesselDestroyed);
-                GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
-                GameEvents.onFlightReady.Remove(OnFlightReady);
-                GameEvents.onPartCouple.Remove(OnVesselDock);
+                UnregisterGameHooks();
             }
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
@@ -148,38 +135,98 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void RegisterGameHooks()
+        {
+            registered = true;
+            GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
+            GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
+            GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
+            GameEvents.onGameSceneLoadRequested.Add(this.OnGameSceneLoadRequested);
+            GameEvents.onFlightReady.Add(this.OnFlightReady);
+            GameEvents.onPartCouple.Add(this.OnVesselDock);
+            GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
+        }
+
+        private void UnregisterGameHooks()
+        {
+            registered = false;
+            GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
+            GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
+            GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
+            GameEvents.onGameSceneLoadRequested.Remove(this.OnGameSceneLoadRequested);
+            GameEvents.onFlightReady.Remove(this.OnFlightReady);
+            GameEvents.onPartCouple.Remove(this.OnVesselDock);
+        }
+
         private void HandleDocking()
         {
-            if (sentDockingDestroyUpdate && FlightGlobals.fetch.activeVessel != null)
+            if (sentDockingDestroyUpdate)
             {
-                if (!FlightGlobals.fetch.activeVessel.packed)
+                //One of them will be null, the other one will be the docked craft.
+                string dockedID = fromDockedVesselID != null ? fromDockedVesselID : toDockedVesselID;
+                //Find the docked craft
+                Vessel dockedVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == dockedID);
+                if (dockedVessel != null ? !dockedVessel.packed : false)
                 {
-                    serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                    serverVesselsPositionUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                    RegisterServerVessel(FlightGlobals.fetch.activeVessel.id.ToString());
-                    vesselPartCount[FlightGlobals.fetch.activeVessel.id.ToString()] = FlightGlobals.fetch.activeVessel.parts.Count;
-                    //Resend active vessel id so spectators can catch which vessel is used.
-                    PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
-                    latestControlLockRequest[FlightGlobals.ActiveVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                    LockSystem.fetch.AcquireLock("control-" + FlightGlobals.ActiveVessel.id.ToString(), true);
-                    lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
-                    fromDockedVesselID = null;
-                    toDockedVesselID = null;
-                    sentDockingDestroyUpdate = false;
-                    DarkLog.Debug("Docking event over!");
-                }
-                else
-                {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
+                    ProtoVessel sendProto = new ProtoVessel(dockedVessel);
+                    if (sendProto != null)
                     {
-                        lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        DarkLog.Debug("Sending docked protovessel " + dockedID);
+                        //Mark the vessel as sent
+                        serverVesselsProtoUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                        serverVesselsPositionUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                        RegisterServerVessel(dockedID);
+                        vesselPartCount[dockedID] = dockedVessel.parts.Count;
+                        latestControlLockRequest[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                        vesselNames[dockedID] = dockedVessel.vesselName;
+                        vesselTypes[dockedID] = dockedVessel.vesselType;
+                        vesselSituations[dockedID] = dockedVessel.situation;
+                        //Update status if it's us.
+                        if (dockedVessel == FlightGlobals.fetch.activeVessel)
+                        {
+                            //Force the control lock off any other player
+                            LockSystem.fetch.AcquireLock("control-" + dockedID, true);
+                            PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
+                            lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
+                        }
+                        fromDockedVesselID = null;
+                        toDockedVesselID = null;
+                        sentDockingDestroyUpdate = false;
+                        NetworkWorker.fetch.SendVesselProtoMessage(sendProto, true);
                         if (dockingMessage != null)
                         {
                             dockingMessage.duration = 0f;
                         }
-                        dockingMessage = ScreenMessages.PostScreenMessage("Docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
+                        dockingMessage = ScreenMessages.PostScreenMessage("Docked!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                        DarkLog.Debug("Docking event over!");
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Error sending protovessel!");
+                        PrintDockingInProgress();
                     }
                 }
+                else
+                {
+                    PrintDockingInProgress();
+                }
+            }
+            else
+            {
+                PrintDockingInProgress();
+            }
+        }
+
+        private void PrintDockingInProgress()
+        {
+            if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
+            {
+                lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                if (dockingMessage != null)
+                {
+                    dockingMessage.duration = 0f;
+                }
+                dockingMessage = ScreenMessages.PostScreenMessage("Docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
 
@@ -488,8 +535,31 @@ namespace DarkMultiPlayer
             if (isSpectating)
             {
                 //Don't send updates in spectate mode
+                if (spectateType == 2)
+                {
+                    //We may be able to take the control lock.
+                    if (!LockSystem.fetch.LockExists("control-" + FlightGlobals.ActiveVessel.id.ToString()))
+                    {
+                        if (latestUpdateLockRequest.ContainsKey(FlightGlobals.ActiveVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - latestUpdateLockRequest[FlightGlobals.ActiveVessel.id.ToString()]) > 5f) : true)
+                        {
+                            latestUpdateLockRequest[FlightGlobals.ActiveVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                            LockSystem.fetch.AcquireLock("control-" + FlightGlobals.ActiveVessel.id.ToString(), false);
+                        }
+                    }
+                }
                 return;
             }
+            if (fromDockedVesselID != null || toDockedVesselID != null)
+            {
+                //Don't send updates while docking
+                return;
+            }
+            if (isSpectatorDocking)
+            {
+                //Definitely dont send updates while spectating a docking
+                return;
+            }
+
             if (ModWorker.fetch.modControl)
             {
                 if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
@@ -1126,8 +1196,6 @@ namespace DarkMultiPlayer
                         }
                     }
 
-                    //Kill old vessels, temporarily turning off destruction notifications to the server.
-
                     for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
                     {
                         Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
@@ -1185,6 +1253,22 @@ namespace DarkMultiPlayer
                     serverVessels.Remove(dyingVesselID);
                 }
                 NetworkWorker.fetch.SendVesselRemove(dyingVesselID, true);
+                if (serverVesselsProtoUpdate.ContainsKey(dyingVesselID))
+                {
+                    serverVesselsProtoUpdate.Remove(dyingVesselID);
+                }
+                if (serverVesselsPositionUpdate.ContainsKey(dyingVesselID))
+                {
+                    serverVesselsPositionUpdate.Remove(dyingVesselID);
+                }
+                if (fromDockedVesselID == dyingVesselID)
+                {
+                    fromDockedVesselID = null;
+                }
+                if (toDockedVesselID == dyingVesselID)
+                {
+                    toDockedVesselID = null;
+                }
                 sentDockingDestroyUpdate = true;
                 return;
             }
@@ -1203,6 +1287,14 @@ namespace DarkMultiPlayer
                                 DarkLog.Debug("Removing vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + " from the server: Destroyed");
                                 unassignKerbals(dyingVesselID);
                                 serverVessels.Remove(dyingVesselID);
+                                if (serverVesselsProtoUpdate.ContainsKey(dyingVesselID))
+                                {
+                                    serverVesselsProtoUpdate.Remove(dyingVesselID);
+                                }
+                                if (serverVesselsPositionUpdate.ContainsKey(dyingVesselID))
+                                {
+                                    serverVesselsPositionUpdate.Remove(dyingVesselID);
+                                }
                                 NetworkWorker.fetch.SendVesselRemove(dyingVesselID, false);
                             }
                             else
@@ -1342,6 +1434,7 @@ namespace DarkMultiPlayer
                         }
                         fromDockedVesselID = partAction.from.vessel.id.ToString();
                         toDockedVesselID = partAction.to.vessel.id.ToString();
+                        PrintDockingInProgress();
                     }
                 }
             }
@@ -1672,6 +1765,10 @@ namespace DarkMultiPlayer
                 {
                     singleton.workerEnabled = false;
                     Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
+                    if (singleton.registered)
+                    {
+                        singleton.UnregisterGameHooks();
+                    }
                 }
                 singleton = new VesselWorker();
                 Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
