@@ -156,10 +156,7 @@ namespace DarkMultiPlayer
                 {
                     serverVesselsProtoUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     serverVesselsPositionUpdate[FlightGlobals.fetch.activeVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
-                    if (!serverVessels.Contains(FlightGlobals.fetch.activeVessel.id.ToString()))
-                    {
-                        serverVessels.Add(FlightGlobals.fetch.activeVessel.id.ToString());
-                    }
+                    RegisterServerVessel(FlightGlobals.fetch.activeVessel.id.ToString());
                     vesselPartCount[FlightGlobals.fetch.activeVessel.id.ToString()] = FlightGlobals.fetch.activeVessel.parts.Count;
                     //Resend active vessel id so spectators can catch which vessel is used.
                     PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
@@ -697,10 +694,7 @@ namespace DarkMultiPlayer
                                 }
                             }
                         }
-                        if (!serverVessels.Contains(checkProto.vesselID.ToString()))
-                        {
-                            serverVessels.Add(checkProto.vesselID.ToString());
-                        }
+                        RegisterServerVessel(checkProto.vesselID.ToString());
                         //Mark the update as sent
                         serverVesselsProtoUpdate[checkVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                         //Also delay the position send
@@ -1094,10 +1088,7 @@ namespace DarkMultiPlayer
                         NetworkWorker.fetch.SendVesselRemove(currentProto.vesselID.ToString(), false);
                         return;
                     }
-                    if (!serverVessels.Contains(currentProto.vesselID.ToString()))
-                    {
-                        serverVessels.Add(currentProto.vesselID.ToString());
-                    }
+                    RegisterServerVessel(currentProto.vesselID.ToString());
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
 
                     foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
@@ -1654,6 +1645,14 @@ namespace DarkMultiPlayer
             newActiveVessels.Enqueue(ave);
         }
 
+        public void RegisterServerVessel(string vesselID)
+        {
+            if (!serverVessels.Contains(vesselID))
+            {
+                serverVessels.Add(vesselID);
+            }
+        }
+
         private void SetupSubspace(int subspaceID)
         {
             lock (createSubspaceLock)
@@ -1671,6 +1670,7 @@ namespace DarkMultiPlayer
             {
                 if (singleton != null)
                 {
+                    singleton.workerEnabled = false;
                     Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
                 }
                 singleton = new VesselWorker();

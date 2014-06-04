@@ -438,6 +438,7 @@ namespace DarkMultiPlayer
             {
                 if (singleton != null)
                 {
+                    singleton.workerEnabled = false;
                     Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
                 }
                 singleton = new TimeSyncer();

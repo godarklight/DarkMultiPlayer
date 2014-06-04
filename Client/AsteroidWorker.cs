@@ -88,6 +88,7 @@ namespace DarkMultiPlayer
                                     {
                                         DarkLog.Debug("Spawned in new server asteroid!");
                                         serverAsteroids.Add(asteroid.id.ToString());
+                                        VesselWorker.fetch.RegisterServerVessel(asteroid.id.ToString());
                                         NetworkWorker.fetch.SendVesselProtoMessage(asteroid.protoVessel, false);
                                     }
                                 }
@@ -181,6 +182,7 @@ namespace DarkMultiPlayer
             {
                 if (singleton != null)
                 {
+                    singleton.workerEnabled = false;
                     Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
                 }
                 singleton = new AsteroidWorker();

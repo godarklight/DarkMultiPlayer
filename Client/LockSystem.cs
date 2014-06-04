@@ -9,7 +9,7 @@ namespace DarkMultiPlayer
     public delegate void ReleaseEvent(string playerName,string lockName);
     public class LockSystem
     {
-        private static LockSystem singleton = new LockSystem();
+        private static LockSystem singleton;
         private Dictionary<string, string> serverLocks = new Dictionary<string, string>();
         private List<AcquireEvent> lockAcquireEvents = new List<AcquireEvent>();
         private List<ReleaseEvent> lockReleaseEvents = new List<ReleaseEvent>();

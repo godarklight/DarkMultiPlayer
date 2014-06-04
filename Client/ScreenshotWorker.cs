@@ -381,6 +381,7 @@ namespace DarkMultiPlayer
             {
                 if (singleton != null)
                 {
+                    singleton.workerEnabled = false;
                     Client.updateEvent.Remove(singleton.Update);
                     Client.drawEvent.Remove(singleton.Draw);
                 }
