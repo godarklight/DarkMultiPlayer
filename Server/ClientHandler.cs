@@ -2559,6 +2559,37 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, false);
         }
 
+		public static void SendChatMessageToAll(string messageText)
+		{
+			ServerMessage newMessage = new ServerMessage();
+			newMessage.type = ServerMessageType.CHAT_MESSAGE;
+			using (MessageWriter mw = new MessageWriter())
+			{
+				mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
+				mw.Write<string>("Server");
+				//Global channel
+				mw.Write<string>("");
+				mw.Write(messageText);
+				newMessage.data = mw.GetMessageBytes();
+			}
+			SendToAll(null, newMessage, true);
+		}
+
+		private static void SendChatMessageToClient(ClientObject client, string messageText)
+		{
+			ServerMessage newMessage = new ServerMessage();
+			newMessage.type = ServerMessageType.CHAT_MESSAGE;
+			using (MessageWriter mw = new MessageWriter())
+			{
+				mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
+				mw.Write<string>("Server");
+				mw.Write<string>(client.playerName);
+				mw.Write(messageText);
+				newMessage.data = mw.GetMessageBytes();
+			}
+			SendToClient(client, newMessage, true);
+		}
+
         private static void SendVesselsComplete(ClientObject client)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -2733,6 +2764,33 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal(guid + " is not a valid player token");
             }
         }
+
+		public static void PMCommand(string commandArgs)
+		{
+			string playerName = commandArgs;
+			string messageText = "";
+
+			if (commandArgs.Contains(" "))
+			{
+				playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+				messageText = commandArgs.Substring(commandArgs.IndexOf(" "));
+			}
+
+			if (playerName != null)
+			{
+				ClientObject findPlayer = GetClientByName(playerName);
+
+				if (findPlayer != null)
+				{
+					SendChatMessageToClient(findPlayer, messageText);
+				}
+				else
+				{
+					DarkLog.Normal(findPlayer.playerName " is not online!");
+				}
+			}
+		}
+
         #endregion
     }
 
