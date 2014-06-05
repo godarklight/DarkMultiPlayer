@@ -309,6 +309,10 @@ namespace DarkMultiPlayer
                             {
                                 NetworkWorker.fetch.SendPingRequest();
                             }
+                            if (sendText == "/motd")
+                            {
+                                NetworkWorker.fetch.SendMotdRequest();
+                            }
                         }
                     }
                     sendText = "";
