@@ -37,6 +37,16 @@ namespace DarkMultiPlayerCommon
             }
             return sb.ToString();
         }
+
+        public static string ConvertConfigStringToGUIDString(string configNodeString)
+        {
+            string[] returnString = new string[4];
+            returnString[0] = configNodeString.Substring(0, 8);
+            returnString[1] = configNodeString.Substring(8, 4);
+            returnString[2] = configNodeString.Substring(12, 4);
+            returnString[3] = configNodeString.Substring(16);
+            return String.Join("-", returnString);
+        }
     }
 
     public enum CraftType

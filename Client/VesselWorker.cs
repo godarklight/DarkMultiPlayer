@@ -31,10 +31,10 @@ namespace DarkMultiPlayer
         private float lastDockingMessageUpdate;
         private ScreenMessage dockingMessage;
         //Incoming queue
-        private object createSubspaceLock = new object();
-        private Dictionary<int, Queue<VesselRemoveEntry>> vesselRemoveQueue = new Dictionary<int, Queue<VesselRemoveEntry>>();
-        private Dictionary<int, Queue<VesselProtoUpdate>> vesselProtoQueue = new Dictionary<int, Queue<VesselProtoUpdate>>();
-        private Dictionary<int, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<int, Queue<VesselUpdate>>();
+        private object updateQueueLock = new object();
+        private Dictionary<string, Queue<VesselRemoveEntry>> vesselRemoveQueue = new Dictionary<string, Queue<VesselRemoveEntry>>();
+        private Dictionary<string, Queue<VesselProtoUpdate>> vesselProtoQueue = new Dictionary<string, Queue<VesselProtoUpdate>>();
+        private Dictionary<string, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<string, Queue<VesselUpdate>>();
         private Dictionary<int, Queue<KerbalEntry>> kerbalProtoQueue = new Dictionary<int, Queue<KerbalEntry>>();
         private Queue<ActiveVesselEntry> newActiveVessels = new Queue<ActiveVesselEntry>();
         private List<string> serverVessels = new List<string>();
@@ -110,7 +110,7 @@ namespace DarkMultiPlayer
                 }
 
                 //Process new messages
-                lock (createSubspaceLock)
+                lock (updateQueueLock)
                 {
                     ProcessNewVesselMessages();
                 }
@@ -187,7 +187,14 @@ namespace DarkMultiPlayer
                             //Force the control lock off any other player
                             LockSystem.fetch.AcquireLock("control-" + dockedID, true);
                             PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
-                            lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
+                            if (lastVesselID != FlightGlobals.fetch.activeVessel.id.ToString())
+                            {
+                                if (LockSystem.fetch.LockIsOurs("control-" + lastVesselID))
+                                {
+                                    LockSystem.fetch.ReleaseLock("control-" + lastVesselID);
+                                }
+                                lastVesselID = FlightGlobals.ActiveVessel.id.ToString();
+                            }
                         }
                         fromDockedVesselID = null;
                         toDockedVesselID = null;
@@ -290,15 +297,17 @@ namespace DarkMultiPlayer
 
         private void ProcessNewVesselMessages()
         {
-            
-            foreach (KeyValuePair<int, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
+            Dictionary<string, double> removeList = new Dictionary<string, double>();
+            foreach (KeyValuePair<string, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
             {
                 while (vesselRemoveSubspace.Value.Count > 0 ? (vesselRemoveSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
                     VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
                     RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
+                    removeList[removeVessel.vesselID] = removeVessel.planetTime;
                 }
             }
+
             foreach (KeyValuePair<int, Queue<KerbalEntry>> kerbalProtoSubspace in kerbalProtoQueue)
             {
                 while (kerbalProtoSubspace.Value.Count > 0 ? (kerbalProtoSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
@@ -307,29 +316,41 @@ namespace DarkMultiPlayer
                     LoadKerbal(kerbalEntry.kerbalID, kerbalEntry.kerbalNode);
                 }
             }
-            foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vesselProtoSubspace in vesselProtoQueue)
+
+            foreach (KeyValuePair<string, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
             {
-                Dictionary<string, ConfigNode> protoUpdateDictionary = new Dictionary<string, ConfigNode>();
-                while (vesselProtoSubspace.Value.Count > 0 ? (vesselProtoSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
+                VesselProtoUpdate vpu = null;
+                //Get the latest proto update
+                while (vesselQueue.Value.Count > 0 ? (vesselQueue.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
-                    VesselProtoUpdate vpu = vesselProtoSubspace.Value.Dequeue();
-                    if (vpu.vesselNode != null)
+                    VesselProtoUpdate newVpu = vesselQueue.Value.Dequeue();
+                    if (newVpu != null)
                     {
-                        string protoVesselID = vpu.vesselNode.GetValue("pid");
-                        protoUpdateDictionary[protoVesselID] = vpu.vesselNode;
+                        //Skip any protovessels that have been removed in the future
+                        if (removeList.ContainsKey(vesselQueue.Key) ? removeList[vesselQueue.Key] < vpu.planetTime : true)
+                        {
+                            vpu = newVpu;
+                        }
                     }
                 }
-                foreach (KeyValuePair<string, ConfigNode> kvp in protoUpdateDictionary)
+                //Apply it if there is any
+                if (vpu != null ? vpu.vesselNode != null : false)
                 {
-                    LoadVessel(kvp.Value);
+                    LoadVessel(vpu.vesselNode);
                 }
             }
-            foreach (KeyValuePair<int, Queue<VesselUpdate>> vesselUpdateSubspace in vesselUpdateQueue)
+            foreach (KeyValuePair<string, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
             {
-                while (vesselUpdateSubspace.Value.Count > 0 ? (vesselUpdateSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
+                VesselUpdate vu = null;
+                //Get the latest position update
+                while (vesselQueue.Value.Count > 0 ? (vesselQueue.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
                 {
-                    VesselUpdate vesselUpdate = vesselUpdateSubspace.Value.Dequeue();
-                    ApplyVesselUpdate(vesselUpdate);
+                    vu = vesselQueue.Value.Dequeue();
+                }
+                //Apply it if there is any
+                if (vu != null)
+                {
+                    ApplyVesselUpdate(vu);
                 }
             }
         }
@@ -932,30 +953,7 @@ namespace DarkMultiPlayer
             }
             return returnUpdate;
         }
-        //Also called from network worker
-        /*
-        public void SetNotInUse(string player)
-        {
-            string deleteKey = "";
-            foreach (KeyValuePair<string, string> inUseEntry in inUse)
-            {
-                if (inUseEntry.Value == player)
-                {
-                    deleteKey = inUseEntry.Key;
-                }
-            }
-            if (deleteKey != "")
-            {
-                inUse.Remove(deleteKey);
-            }
-        }
 
-        private void SetInUse(string vesselID, string player)
-        {
-            SetNotInUse(player);
-            inUse[vesselID] = player;
-        }
-        */
         //Called from main
         public void LoadKerbalsIntoGame()
         {
@@ -1044,13 +1042,15 @@ namespace DarkMultiPlayer
         //Called from main
         public void LoadVesselsIntoGame()
         {
-            foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
+            foreach (KeyValuePair<string, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
             {
-                DarkLog.Debug("Loading " + vesselQueue.Value.Count + " vessels from subspace " + vesselQueue.Key);
                 while (vesselQueue.Value.Count > 0)
                 {
                     ConfigNode currentNode = vesselQueue.Value.Dequeue().vesselNode;
-                    LoadVessel(currentNode);
+                    if (currentNode != null)
+                    {
+                        LoadVessel(currentNode);
+                    }
                 }
             }
         }
@@ -1680,53 +1680,76 @@ namespace DarkMultiPlayer
             newEntry.kerbalID = kerbalID;
             newEntry.planetTime = planetTime;
             newEntry.kerbalNode = kerbalNode;
-            if (!vesselRemoveQueue.ContainsKey(subspace))
+            if (!kerbalProtoQueue.ContainsKey(subspace))
             {
-                SetupSubspace(subspace);
+                kerbalProtoQueue.Add(subspace, new Queue<KerbalEntry>());
             }
             kerbalProtoQueue[subspace].Enqueue(newEntry);
         }
         //Called from networkWorker
-        public void QueueVesselRemove(int subspace, double planetTime, string vesselID, bool isDockingUpdate, string dockingPlayer)
+        public void QueueVesselRemove(string vesselID, double planetTime, bool isDockingUpdate, string dockingPlayer)
         {
-            if (!vesselRemoveQueue.ContainsKey(subspace))
+            lock (updateQueueLock)
             {
-                SetupSubspace(subspace);
-            }
-            VesselRemoveEntry vre = new VesselRemoveEntry();
-            vre.planetTime = planetTime;
-            vre.vesselID = vesselID;
-            vre.isDockingUpdate = isDockingUpdate;
-            vre.dockingPlayer = dockingPlayer;
-            vesselRemoveQueue[subspace].Enqueue(vre);
-            if (latestVesselUpdate.ContainsKey(vesselID) ? latestVesselUpdate[vesselID] < planetTime : true)
-            {
-                latestVesselUpdate[vesselID] = planetTime;
+                if (!vesselRemoveQueue.ContainsKey(vesselID))
+                {
+                    vesselRemoveQueue.Add(vesselID, new Queue<VesselRemoveEntry>());
+                }
+                VesselRemoveEntry vre = new VesselRemoveEntry();
+                vre.planetTime = planetTime;
+                vre.vesselID = vesselID;
+                vre.isDockingUpdate = isDockingUpdate;
+                vre.dockingPlayer = dockingPlayer;
+                vesselRemoveQueue[vesselID].Enqueue(vre);
+                if (latestVesselUpdate.ContainsKey(vesselID) ? latestVesselUpdate[vesselID] < planetTime : true)
+                {
+                    latestVesselUpdate[vesselID] = planetTime;
+                }
             }
         }
 
-        public void QueueVesselProto(int subspace, double planetTime, ConfigNode vesselNode)
+        public void QueueVesselProto(string vesselID, double planetTime, ConfigNode vesselNode)
         {
-            if (!vesselProtoQueue.ContainsKey(subspace))
+            if (vesselNode != null)
             {
-                SetupSubspace(subspace);
+                lock (updateQueueLock)
+                {
+                    DarkLog.Debug("Queueing proto for " + vesselID);
+                    DarkLog.Debug("ProtoQueue is ok: " + (vesselProtoQueue != null));
+                    if (vesselProtoQueue != null)
+                    {
+                        DarkLog.Debug("ProtoQueue contains key: " + vesselProtoQueue.ContainsKey(vesselID));
+                    }
+                    if (!vesselProtoQueue.ContainsKey(vesselID))
+                    {
+                        DarkLog.Debug("Adding queue for " + vesselID);
+                        vesselProtoQueue.Add(vesselID, new Queue<VesselProtoUpdate>());
+                    }
+                    VesselProtoUpdate vpu = new VesselProtoUpdate();
+                    vpu.planetTime = planetTime;
+                    vpu.vesselNode = vesselNode;
+                    vesselProtoQueue[vesselID].Enqueue(vpu);
+                }
             }
-            VesselProtoUpdate vpu = new VesselProtoUpdate();
-            vpu.planetTime = planetTime;
-            vpu.vesselNode = vesselNode;
-            vesselProtoQueue[subspace].Enqueue(vpu);
+            else
+            {
+                DarkLog.Debug("Refusing to queue proto for " + vesselID + ", it has a null config node");
+            }
         }
 
-        public void QueueVesselUpdate(int subspace, VesselUpdate update)
+        public void QueueVesselUpdate(VesselUpdate update)
         {
-            if (!vesselUpdateQueue.ContainsKey(subspace))
+            lock (updateQueueLock)
             {
-                SetupSubspace(subspace);
-            }
-            vesselUpdateQueue[subspace].Enqueue(update);
-            if (latestVesselUpdate.ContainsKey(update.vesselID) ? latestVesselUpdate[update.vesselID] < update.planetTime : true)
-            {
-                latestVesselUpdate[update.vesselID] = update.planetTime;
+                if (!vesselUpdateQueue.ContainsKey(update.vesselID))
+                {
+                    vesselUpdateQueue.Add(update.vesselID, new Queue<VesselUpdate>());
+                }
+                vesselUpdateQueue[update.vesselID].Enqueue(update);
+                if (latestVesselUpdate.ContainsKey(update.vesselID) ? latestVesselUpdate[update.vesselID] < update.planetTime : true)
+                {
+                    latestVesselUpdate[update.vesselID] = update.planetTime;
+                }
             }
         }
 
@@ -1743,17 +1766,6 @@ namespace DarkMultiPlayer
             if (!serverVessels.Contains(vesselID))
             {
                 serverVessels.Add(vesselID);
-            }
-        }
-
-        private void SetupSubspace(int subspaceID)
-        {
-            lock (createSubspaceLock)
-            {
-                kerbalProtoQueue.Add(subspaceID, new Queue<KerbalEntry>());
-                vesselRemoveQueue.Add(subspaceID, new Queue<VesselRemoveEntry>());
-                vesselProtoQueue.Add(subspaceID, new Queue<VesselProtoUpdate>());
-                vesselUpdateQueue.Add(subspaceID, new Queue<VesselUpdate>());
             }
         }
 
@@ -1783,7 +1795,7 @@ namespace DarkMultiPlayer
                 case "StoredFutureUpdates":
                     {
                         int futureUpdates = 0;
-                        foreach (KeyValuePair<int, Queue<VesselUpdate>> vUQ in vesselUpdateQueue)
+                        foreach (KeyValuePair<string, Queue<VesselUpdate>> vUQ in vesselUpdateQueue)
                         {
                             futureUpdates += vUQ.Value.Count;
                         }
@@ -1792,7 +1804,7 @@ namespace DarkMultiPlayer
                 case "StoredFutureProtoUpdates":
                     {
                         int futureProtoUpdates = 0;
-                        foreach (KeyValuePair<int, Queue<VesselProtoUpdate>> vPQ in vesselProtoQueue)
+                        foreach (KeyValuePair<string, Queue<VesselProtoUpdate>> vPQ in vesselProtoQueue)
                         {
                             futureProtoUpdates += vPQ.Value.Count;
                         }

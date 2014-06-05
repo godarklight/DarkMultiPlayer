@@ -914,11 +914,19 @@ namespace DarkMultiPlayer
                         ConfigNode vesselNode = ConvertByteArrayToConfigNode(UniverseSyncCache.fetch.GetFromCache(serverVessel));
                         if (vesselNode != null)
                         {
-                            VesselWorker.fetch.QueueVesselProto(0, 0, vesselNode);
+                            string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                            if (vesselID != null)
+                            {
+                                VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                            }
+                            else
+                            {
+                                DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to get vessel ID");
+                            }
                         }
                         else
                         {
-                            DarkLog.Debug("Cached object " + serverVessel + " is damaged!");
+                            DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to create a config node");
                         }
                     }
                 }
@@ -935,7 +943,8 @@ namespace DarkMultiPlayer
             numberOfVesselsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                int subspaceID = mr.Read<int>();
+                //We don't care about the subspace anymore
+                mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 bool isDockingUpdate = mr.Read<bool>();
                 if (isDockingUpdate)
@@ -947,7 +956,15 @@ namespace DarkMultiPlayer
                 ConfigNode vesselNode = ConvertByteArrayToConfigNode(vesselData);
                 if (vesselNode != null)
                 {
-                    VesselWorker.fetch.QueueVesselProto(subspaceID, planetTime, vesselNode);
+                    string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                    if (vesselID != null)
+                    {
+                        VesselWorker.fetch.QueueVesselProto(vesselID, planetTime, vesselNode);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Failed to load vessel!");
+                    }
                 }
                 else
                 {
@@ -968,7 +985,8 @@ namespace DarkMultiPlayer
             VesselUpdate update = new VesselUpdate();
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                int subspaceID = mr.Read<int>();
+                //We don't care about the subspace value anymore.
+                mr.Read<int>();
                 update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
@@ -996,7 +1014,7 @@ namespace DarkMultiPlayer
                 {
                     update.orbit = mr.Read<double[]>();
                 }
-                VesselWorker.fetch.QueueVesselUpdate(subspaceID, update);
+                VesselWorker.fetch.QueueVesselUpdate(update);
             }
         }
 
@@ -1019,7 +1037,8 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                int subspaceID = mr.Read<int>();
+                //We don't care about the subspace ID anymore.
+                mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();
@@ -1029,7 +1048,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Got a docking update!");
                     dockingPlayer = mr.Read<string>();
                 }
-                VesselWorker.fetch.QueueVesselRemove(subspaceID, planetTime, vesselID, isDockingUpdate, dockingPlayer);
+                VesselWorker.fetch.QueueVesselRemove(vesselID, planetTime, isDockingUpdate, dockingPlayer);
             }
         }
 

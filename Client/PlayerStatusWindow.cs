@@ -204,7 +204,8 @@ namespace DarkMultiPlayer
                 if ((activeSubspace != TimeSyncer.fetch.currentSubspace) && (activeSubspace != -1))
                 {
                     GUILayout.FlexibleSpace();
-                    if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
+                    //Only draw the subspace button in subspace mode, and only to the future.
+                    if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE && (diffTime > 0))
                     {
                         if (GUILayout.Button("Sync", buttonStyle))
                         {
