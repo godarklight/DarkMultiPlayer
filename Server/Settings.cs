@@ -160,7 +160,9 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("autoNuke", "Specify in minutes how often /nukeksc automatically runs. 0 = Disabled");
             descriptionList.Add("autoDekessler", "Specify in minutes how often /dekessler automatically runs. 0 = Disabled");
             descriptionList.Add("numberOfAsteroids", "How many untracked asteroids to spawn into the universe. 0 = Disabled");
-            descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console. Default: Server");
+            descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console.");
+            descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
+            descriptionList.Add("shortname", "Specify the server's 'short' name.");
             return descriptionList;
         }
     }
@@ -184,5 +186,7 @@ namespace DarkMultiPlayerServer
         public int autoDekessler = 30;
         public int numberOfAsteroids = 30;
         public string consoleIdentifier = "Server";
+        public string serverMotd = "Welcome, %name%, to %servername%!";
+        public string shortname = "DMP Server";
     }
 }

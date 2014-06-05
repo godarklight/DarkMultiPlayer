@@ -1053,6 +1053,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.PING_REQUEST:
                         HandlePingRequest(client, message.data);
                         break;
+                    case ClientMessageType.MOTD_REQUEST:
+                        HandleMotdRequest(client);  
+                        break;
                     case ClientMessageType.WARP_CONTROL:
                         HandleWarpControl(client, message.data);
                         break;
@@ -1886,6 +1889,11 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
+        private static void HandleMotdRequest(ClientObject client)
+        {
+            SendMotdReply(client);
+        }
+
         private static void HandleWarpControl(ClientObject client, byte[] messageData)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -2594,6 +2602,23 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_COMPLETE;
             SendToClient(client, newMessage, false);
+        }
+
+        private static void SendMotdReply(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.MOTD_REPLY;
+
+            string newMotd = Settings.settingsStore.serverMotd;
+            newMotd = newMotd.Replace("%name%", client.playerName);
+            newMotd = newMotd.Replace("%servername%", Settings.settingsStore.shortname);
+
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string>(newMotd);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
         }
 
         private static void SendConnectionEnd(ClientObject client, string reason)
