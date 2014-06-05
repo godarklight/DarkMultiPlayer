@@ -20,7 +20,16 @@ namespace DarkMultiPlayerServer
                 //Main loop
                 while (Server.serverRunning)
                 {
-                    string input = Console.ReadLine();
+                    string input = "";
+                    try
+                    {
+                        input = Console.ReadLine();
+                    }
+                    catch
+                    {
+                        DarkLog.Debug("Ignored mono Console.ReadLine() bug");
+                        Thread.Sleep(500);
+                    }
                     DarkLog.Normal("Command input: " + input);
                     if (input.StartsWith("/"))
                     {
