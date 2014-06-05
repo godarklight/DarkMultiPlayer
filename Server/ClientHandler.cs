@@ -1125,15 +1125,15 @@ namespace DarkMultiPlayerServer
             if (handshakeReponse == 0)
             {
                 //Check the client isn't using a reserved name
-                switch (playerName)
-                {
-					case "Server":
+				switch (playerName)
+				{
 					case Settings.settingsStore.consoleIdentifier:
-                    case "Initial":
-                        handshakeReponse = 3;
-                        reason = "Kicked for using a reserved name";
-                        break;
-                }
+					case "Server":
+					case "Initial":
+						handshakeReponse = 3;
+						reason = "Kicked for using a reserved name";
+						break;
+				}
             }
             if (handshakeReponse == 0)
             {
