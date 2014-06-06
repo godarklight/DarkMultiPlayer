@@ -1476,31 +1476,21 @@ namespace DarkMultiPlayerServer
                 double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();
-                bool isFlyingUpdate = mr.Read<bool>();
-                byte[] vesselData = mr.Read<byte[]>();
-                if (!isFlyingUpdate)
+                if (!isDockingUpdate)
                 {
-                    if (!isDockingUpdate)
-                    {
-
-                        DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
-                    }
-                    else
-                    {
-                        DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
-                    }
-                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
+                    DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
                 }
                 else
                 {
-                    DarkLog.Debug("Relaying flying vessel " + vesselGuid + " from " + client.playerName);
+                    DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
                 }
+                byte[] vesselData = mr.Read<byte[]>();
+                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>(subspaceID);
                     mw.Write<double>(planetTime);
                     mw.Write<bool>(isDockingUpdate);
-                    mw.Write<bool>(isFlyingUpdate);
                     mw.Write<byte[]>(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
@@ -2600,7 +2590,6 @@ namespace DarkMultiPlayerServer
                 mw.Write<int>(GetLatestSubspace());
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
-                mw.Write<bool>(false);
                 mw.Write<bool>(false);
                 mw.Write<byte[]>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
