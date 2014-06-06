@@ -2601,6 +2601,7 @@ namespace DarkMultiPlayerServer
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
                 mw.Write<bool>(false);
+                mw.Write<bool>(false);
                 mw.Write<byte[]>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }
