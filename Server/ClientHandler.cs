@@ -1476,21 +1476,31 @@ namespace DarkMultiPlayerServer
                 double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();
-                if (!isDockingUpdate)
+                bool isFlyingUpdate = mr.Read<bool>();
+                byte[] vesselData = mr.Read<byte[]>();
+                if (!isFlyingUpdate)
                 {
-                    DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
+                    if (!isDockingUpdate)
+                    {
+
+                        DarkLog.Debug("Saving vessel " + vesselGuid + " from " + client.playerName);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
+                    }
+                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                 }
                 else
                 {
-                    DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
+                    DarkLog.Debug("Relaying flying vessel " + vesselGuid + " from " + client.playerName);
                 }
-                byte[] vesselData = mr.Read<byte[]>();
-                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>(subspaceID);
                     mw.Write<double>(planetTime);
                     mw.Write<bool>(isDockingUpdate);
+                    mw.Write<bool>(isFlyingUpdate);
                     mw.Write<byte[]>(vesselData);
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_PROTO;
