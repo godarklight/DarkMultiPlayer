@@ -130,6 +130,7 @@ namespace DarkMultiPlayer
                 WarpWorker.fetch.workerEnabled = true;
                 CraftLibraryWorker.fetch.workerEnabled = true;
                 ScreenshotWorker.fetch.workerEnabled = true;
+                SendMotdRequest();
             }
         }
         #region Connecting to server
@@ -608,6 +609,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.PING_REPLY:
                         HandlePingReply(message.data);
+                        break;
+                    case ServerMessageType.MOTD_REPLY:
+                        HandleMotdReply(message.data);
                         break;
                     case ServerMessageType.WARP_CONTROL:
                         HandleWarpControl(message.data);
@@ -1206,6 +1210,15 @@ namespace DarkMultiPlayer
 
         }
 
+        private void HandleMotdReply(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string serverMotd = mr.Read<string>();
+                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", serverMotd);
+            }
+        }
+
         private void HandleWarpControl(byte[] messageData)
         {
             WarpWorker.fetch.QueueWarpMessage(messageData);
@@ -1490,6 +1503,13 @@ namespace DarkMultiPlayer
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 newMessage.data = mw.GetMessageBytes();
             }
+            sendMessageQueueHigh.Enqueue(newMessage);
+        }
+        //Called from networkWorker
+        public void SendMotdRequest()
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.MOTD_REQUEST;
             sendMessageQueueHigh.Enqueue(newMessage);
         }
         //Called from warpWorker
