@@ -132,11 +132,12 @@ namespace DarkMultiPlayer
                     case PlayerColorMessageType.LIST:
                         {
                             int numOfEntries = mr.Read<int>();
-                            for (int i = 0; i < numOfEntries; i++)
+                            lock (playerColorLock)
                             {
-                                lock (playerColorLock)
+                                playerColors = new Dictionary<string, Color>();
+                                for (int i = 0; i < numOfEntries; i++)
                                 {
-                                    playerColors = new Dictionary<string, Color>();
+
                                     string playerName = mr.Read<string>();
                                     Color playerColor = ConvertFloatArrayToColor(mr.Read<float[]>());
                                     playerColors.Add(playerName, playerColor);
@@ -172,7 +173,6 @@ namespace DarkMultiPlayer
                 NetworkWorker.fetch.SendPlayerColorMessage(mw.GetMessageBytes());
             }
         }
-
         //Helpers
         public static float[] ConvertColorToFloatArray(Color convertColour)
         {
