@@ -178,7 +178,14 @@ namespace DarkMultiPlayerServer
                 httpListener = new HttpListener();
                 try
                 {
-                    httpListener.Prefixes.Add("http://*:" + Settings.settingsStore.httpPort + '/');
+                    if (Settings.settingsStore.address != "0.0.0.0")
+                    {
+                        httpListener.Prefixes.Add("http://" + Settings.settingsStore.address + ":" + Settings.settingsStore.httpPort + '/');
+                    }
+                    else
+                    {
+                        httpListener.Prefixes.Add("http://*:" + Settings.settingsStore.httpPort + '/');
+                    }
                     httpListener.Start();
                     httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
                 }

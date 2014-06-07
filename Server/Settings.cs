@@ -101,6 +101,7 @@ namespace DarkMultiPlayerServer
                 {
                     sw.WriteLine("#Setting file format: (key),(value)");
                     sw.WriteLine("#This file will be re-written every time the server is started. Only known keys will be saved.");
+                    sw.WriteLine("");
                     foreach (FieldInfo settingField in settingFields)
                     {
                         if (settingDescriptions.ContainsKey(settingField.Name))
@@ -144,6 +145,7 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string,string> GetSettingsDescriptions()
         {
             Dictionary<string, string> descriptionList = new Dictionary<string, string>();
+            descriptionList.Add("address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.");
             descriptionList.Add("port", "The port the server listens on");
             descriptionList.Add("warpMode", "Specify the warp type");
             descriptionList.Add("gameMode", "Specify the game type");
@@ -169,6 +171,7 @@ namespace DarkMultiPlayerServer
 
     public class SettingsStore
     {
+        public string address = "0.0.0.0";
         public int port = 6702;
         public WarpMode warpMode = WarpMode.SUBSPACE;
         public GameMode gameMode = GameMode.SANDBOX;

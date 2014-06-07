@@ -468,7 +468,8 @@ namespace DarkMultiPlayerServer
         {
             try
             {
-                TCPServer = new TcpListener(new IPEndPoint(IPAddress.Any, Settings.settingsStore.port));
+                IPAddress bindAddress = IPAddress.Parse(Settings.settingsStore.address);
+                TCPServer = new TcpListener(new IPEndPoint(bindAddress, Settings.settingsStore.port));
                 TCPServer.Start(4);
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }
