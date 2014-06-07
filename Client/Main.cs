@@ -55,6 +55,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(CraftLibraryWorker.Reset);
                 resetEvent.Add(DebugWindow.Reset);
                 resetEvent.Add(DynamicTickWorker.Reset);
+                resetEvent.Add(PlayerColorWorker.Reset);
                 resetEvent.Add(PlayerStatusWindow.Reset);
                 resetEvent.Add(PlayerStatusWorker.Reset);
                 resetEvent.Add(QuickSaveLoader.Reset);

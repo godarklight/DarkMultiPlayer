@@ -105,6 +105,8 @@ namespace DarkMultiPlayer
                 TimeSyncer.fetch.workerEnabled = true;
                 ChatWorker.fetch.workerEnabled = true;
                 ScenarioWorker.fetch.workerEnabled = true;
+                PlayerColorWorker.fetch.workerEnabled = true;
+                PlayerColorWorker.fetch.SendPlayerColorToServer();
             }
             if (state == ClientState.TIME_LOCKING)
             {
@@ -564,6 +566,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(message.data);
+                        break;
+                    case ServerMessageType.PLAYER_COLOR:
+                        PlayerColorWorker.fetch.HandlePlayerColorMessage(message.data);
                         break;
                     case ServerMessageType.PLAYER_JOIN:
                         HandlePlayerJoin(message.data);
@@ -1318,6 +1323,14 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.PLAYER_STATUS;
             newMessage.data = messageBytes;
             sendMessageQueueHigh.Enqueue(newMessage);
+        }
+        //Called from PlayerColorWorker
+        public void SendPlayerColorMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PLAYER_COLOR;
+            newMessage.data = messageData;
+            sendMessageQueueLow.Enqueue(newMessage);
         }
         //Called from timeSyncer
         public void SendTimeSync()

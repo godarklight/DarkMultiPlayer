@@ -9,6 +9,7 @@ namespace DarkMultiPlayer
     {
         public bool display = false;
         public bool disconnectEventHandled = true;
+        public bool colorEventHandled = true;
         //private parts
         private static PlayerStatusWindow singleton;
         private bool initialized;
@@ -28,7 +29,7 @@ namespace DarkMultiPlayer
         private GUIStyle buttonStyle;
         private GUIStyle highlightStyle;
         private GUIStyle scrollStyle;
-        private GUIStyle playerNameStyle;
+        private Dictionary<string, GUIStyle> playerNameStyle;
         private GUIStyle vesselNameStyle;
         private GUIStyle stateTextStyle;
         //Player status dictionaries
@@ -79,13 +80,7 @@ namespace DarkMultiPlayer
             minLayoutOptions[3] = GUILayout.ExpandWidth(true);
 
             //Adapted from KMP.
-            playerNameStyle = new GUIStyle(GUI.skin.label);
-            playerNameStyle.normal.textColor = Color.white;
-            playerNameStyle.hover.textColor = Color.white;
-            playerNameStyle.active.textColor = Color.white;
-            playerNameStyle.fontStyle = FontStyle.Bold;
-            playerNameStyle.stretchWidth = true;
-            playerNameStyle.wordWrap = false;
+            playerNameStyle = new Dictionary<string, GUIStyle>();
 
             vesselNameStyle = new GUIStyle(GUI.skin.label);
             vesselNameStyle.normal.textColor = Color.white;
@@ -132,6 +127,11 @@ namespace DarkMultiPlayer
 
         private void Draw()
         {
+            if (!colorEventHandled)
+            {
+                playerNameStyle = new Dictionary<string, GUIStyle>();
+                colorEventHandled = true;
+            }
             if (!initialized)
             {
                 initialized = true;
@@ -537,7 +537,17 @@ namespace DarkMultiPlayer
                 return;
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label(playerStatus.playerName, playerNameStyle);
+            if (!playerNameStyle.ContainsKey(playerStatus.playerName))
+            {
+                playerNameStyle[playerStatus.playerName] = new GUIStyle(GUI.skin.label);
+                playerNameStyle[playerStatus.playerName].normal.textColor = PlayerColorWorker.fetch.GetPlayerColor(playerStatus.playerName);
+                playerNameStyle[playerStatus.playerName].hover.textColor = PlayerColorWorker.fetch.GetPlayerColor(playerStatus.playerName);
+                playerNameStyle[playerStatus.playerName].active.textColor = PlayerColorWorker.fetch.GetPlayerColor(playerStatus.playerName);
+                playerNameStyle[playerStatus.playerName].fontStyle = FontStyle.Bold;
+                playerNameStyle[playerStatus.playerName].stretchWidth = true;
+                playerNameStyle[playerStatus.playerName].wordWrap = false;
+            }
+            GUILayout.Label(playerStatus.playerName, playerNameStyle[playerStatus.playerName]);
             GUILayout.FlexibleSpace();
             GUILayout.Label(playerStatus.statusText, stateTextStyle);
             GUILayout.EndHorizontal();

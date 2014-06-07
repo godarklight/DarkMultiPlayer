@@ -27,7 +27,9 @@ namespace DarkMultiPlayerServer
                     }
                     catch
                     {
-                        DarkLog.Debug("Ignored mono Console.ReadLine() bug");
+                        if (Server.serverRunning) {
+                            DarkLog.Debug("Ignored mono Console.ReadLine() bug");
+                        }
                         Thread.Sleep(500);
                     }
                     DarkLog.Normal("Command input: " + input);

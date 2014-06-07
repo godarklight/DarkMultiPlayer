@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
@@ -13,6 +14,7 @@ namespace DarkMultiPlayer
         public Guid playerGuid;
         public int cacheSize;
         public List<ServerEntry> servers;
+        public Color playerColor;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string TOKEN_FILE = "token.txt";
@@ -77,6 +79,46 @@ namespace DarkMultiPlayer
                     saveXMLAfterLoad = true;
                     cacheSize = DEFAULT_CACHE_SIZE;
                 }
+                try
+                {
+                    string floatArrayString = xmlDoc.SelectSingleNode("/settings/global/@player-color").Value;
+                    string[] floatArrayStringSplit = floatArrayString.Split(',');
+                    float redColor = float.Parse(floatArrayStringSplit[0]);
+                    float greenColor = float.Parse(floatArrayStringSplit[1]);
+                    float blueColor = float.Parse(floatArrayStringSplit[2]);
+                    //Bounds checking - Gotta check up on those players :)
+                    if (redColor < 0f)
+                    {
+                        redColor = 0f;
+                    }
+                    if (redColor > 1f)
+                    {
+                        redColor = 1f;
+                    }
+                    if (greenColor < 0f)
+                    {
+                        greenColor = 0f;
+                    }
+                    if (greenColor > 1f)
+                    {
+                        greenColor = 1f;
+                    }
+                    if (blueColor < 0f)
+                    {
+                        blueColor = 0f;
+                    }
+                    if (blueColor > 1f)
+                    {
+                        blueColor = 1f;
+                    }
+                    playerColor = new Color(redColor, greenColor, blueColor);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding player color to settings file");
+                    saveXMLAfterLoad = true;
+                    playerColor = PlayerColorWorker.GenerateRandomColor();
+                }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
                 foreach (XmlNode xmlNode in serverNodeList)
@@ -124,7 +166,8 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Save backup token file if needed
-                if (!File.Exists(backupTokenFile)) {
+                if (!File.Exists(backupTokenFile))
+                {
                     DarkLog.Debug("Backing up token file.");
                     File.Copy(tokenFile, backupTokenFile);
                 }
@@ -167,6 +210,16 @@ namespace DarkMultiPlayer
                 XmlAttribute cacheAttribute = xmlDoc.CreateAttribute("cache-size");
                 cacheAttribute.Value = DEFAULT_CACHE_SIZE.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(cacheAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@player-color").Value = playerColor.r.ToString() + ", " + playerColor.g.ToString() + ", " + playerColor.b.ToString();
+            }
+            catch
+            {
+                XmlAttribute colorAttribute = xmlDoc.CreateAttribute("player-color");
+                colorAttribute.Value = playerColor.r.ToString() + ", " + playerColor.g.ToString() + ", " + playerColor.b.ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(colorAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();

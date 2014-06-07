@@ -1020,6 +1020,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(client, message.data);
                         break;
+                    case ClientMessageType.PLAYER_COLOR:
+                        HandlePlayerColor(client, message.data);
+                        break;
                     case ClientMessageType.SCENARIO_DATA:
                         HandleScenarioModuleData(client, message.data);
                         break;
@@ -1370,6 +1373,35 @@ namespace DarkMultiPlayerServer
             SendToAll(client, newMessage, false);
         }
 
+        private static void HandlePlayerColor(ClientObject client, byte[] messageData)
+        {
+
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
+                switch (messageType)
+                {
+                    case PlayerColorMessageType.SET:
+                        {
+                            string playerName = mr.Read<string>();
+                            if (playerName != client.playerName)
+                            {
+                                DarkLog.Debug(client.playerName + " tried to send a color update for " + playerName + ", kicking.");
+                                SendConnectionEnd(client, "Kicked for sending a color update for another player");
+                                return;
+                            }
+                            client.playerColor = mr.Read<float[]>();
+                            //Relay the message
+                            ServerMessage newMessage = new ServerMessage();
+                            newMessage.type = ServerMessageType.PLAYER_COLOR;
+                            newMessage.data = messageData;
+                            SendToAll(client, newMessage, true);
+                        }
+                        break;
+                }
+            }
+        }
+
         private static void HandleScenarioModuleData(ClientObject client, byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData, false))
@@ -1403,6 +1435,7 @@ namespace DarkMultiPlayerServer
             SendServerSettings(client);
             SendSetSubspace(client);
             SendAllSubspaces(client);
+            SendAllPlayerColors(client);
             SendAllPlayerStatus(client);
             SendScenarioModules(client);
             SendAllReportedSkewRates(client);
@@ -2402,6 +2435,35 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
+        private static void SendAllPlayerColors(ClientObject client)
+        {
+            Dictionary<string,float[]> sendColors = new Dictionary<string, float[]>();
+            foreach (ClientObject otherClient in clients)
+            {
+                if (otherClient.authenticated && otherClient.playerColor != null)
+                {
+                    if (otherClient != client)
+                    {
+                        sendColors[otherClient.playerName] = otherClient.playerColor;
+                    }
+                }
+            }
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.PLAYER_COLOR;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)PlayerColorMessageType.LIST);
+                mw.Write<int>(sendColors.Count);
+                foreach (KeyValuePair<string, float[]> kvp in sendColors)
+                {
+                    mw.Write<string>(kvp.Key);
+                    mw.Write<float[]>(kvp.Value);
+                }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
         private static void SendAllPlayerStatus(ClientObject client)
         {
             foreach (ClientObject otherClient in clients)
@@ -2860,6 +2922,7 @@ namespace DarkMultiPlayerServer
         //State tracking
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
+        public float[] playerColor;
         //Send lock
         public object sendLock;
     }
