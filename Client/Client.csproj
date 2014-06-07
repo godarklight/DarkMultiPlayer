@@ -69,6 +69,7 @@
     <Compile Include="LockSystem.cs" />
     <Compile Include="AsteroidWorker.cs" />
     <Compile Include="PlayerColorWorker.cs" />
+    <Compile Include="OptionsWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

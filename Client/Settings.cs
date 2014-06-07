@@ -15,6 +15,8 @@ namespace DarkMultiPlayer
         public int cacheSize;
         public List<ServerEntry> servers;
         public Color playerColor;
+        public KeyCode screenshotKey;
+        public KeyCode chatKey;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string TOKEN_FILE = "token.txt";
@@ -83,9 +85,9 @@ namespace DarkMultiPlayer
                 {
                     string floatArrayString = xmlDoc.SelectSingleNode("/settings/global/@player-color").Value;
                     string[] floatArrayStringSplit = floatArrayString.Split(',');
-                    float redColor = float.Parse(floatArrayStringSplit[0]);
-                    float greenColor = float.Parse(floatArrayStringSplit[1]);
-                    float blueColor = float.Parse(floatArrayStringSplit[2]);
+                    float redColor = float.Parse(floatArrayStringSplit[0].Trim());
+                    float greenColor = float.Parse(floatArrayStringSplit[1].Trim());
+                    float blueColor = float.Parse(floatArrayStringSplit[2].Trim());
                     //Bounds checking - Gotta check up on those players :)
                     if (redColor < 0f)
                     {
@@ -111,13 +113,34 @@ namespace DarkMultiPlayer
                     {
                         blueColor = 1f;
                     }
-                    playerColor = new Color(redColor, greenColor, blueColor);
+                    playerColor = new Color(redColor, greenColor, blueColor, 1f);
+                    OptionsWindow.fetch.loadEventHandled = false;
                 }
                 catch
                 {
                     DarkLog.Debug("Adding player color to settings file");
                     saveXMLAfterLoad = true;
                     playerColor = PlayerColorWorker.GenerateRandomColor();
+                }
+                try
+                {
+                    chatKey = (KeyCode)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@chat-key").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding chat key to settings file");
+                    saveXMLAfterLoad = true;
+                    chatKey = KeyCode.BackQuote;
+                }
+                try
+                {
+                    screenshotKey = (KeyCode)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@screenshot-key").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding screenshot key to settings file");
+                    saveXMLAfterLoad = true;
+                    chatKey = KeyCode.F8;
                 }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
@@ -220,6 +243,26 @@ namespace DarkMultiPlayer
                 XmlAttribute colorAttribute = xmlDoc.CreateAttribute("player-color");
                 colorAttribute.Value = playerColor.r.ToString() + ", " + playerColor.g.ToString() + ", " + playerColor.b.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(colorAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@chat-key").Value = ((int)chatKey).ToString();
+            }
+            catch
+            {
+                XmlAttribute chatKeyAttribute = xmlDoc.CreateAttribute("chat-key");
+                chatKeyAttribute.Value = ((int)chatKey).ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(chatKeyAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@screenshot-key").Value = ((int)screenshotKey).ToString();
+            }
+            catch
+            {
+                XmlAttribute screenshotKeyAttribute = xmlDoc.CreateAttribute("screenshot-key");
+                screenshotKeyAttribute.Value = ((int)screenshotKey).ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(screenshotKeyAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();

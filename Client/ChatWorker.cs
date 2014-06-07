@@ -450,7 +450,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                bool pressedChatShortcutKey = (Event.current.type == EventType.KeyDown && Event.current.keyCode == KeyCode.BackQuote);
+                bool pressedChatShortcutKey = (Event.current.type == EventType.KeyDown && Event.current.keyCode == Settings.fetch.chatKey);
                 if (pressedChatShortcutKey)
                 {
                     ignoreChatInput = true;

@@ -18,7 +18,11 @@ namespace DarkMultiPlayer
         }
         private Dictionary<string, long> fileLengths = new Dictionary<string, long>();
         private Dictionary<string, DateTime> fileCreationTimes = new Dictionary<string, DateTime>();
-        private long currentCacheSize = 0;
+        public long currentCacheSize
+        {
+            get;
+            private set;
+        }
 
         public UniverseSyncCache()
         {
@@ -52,6 +56,7 @@ namespace DarkMultiPlayer
         public void ExpireCache()
         {
             string[] cacheObjects = GetCachedObjects();
+            currentCacheSize = 0;
             foreach (string cacheObject in cacheObjects)
             {
                 string cacheFile = Path.Combine(cacheDirectory, cacheObject + ".txt");
@@ -129,6 +134,17 @@ namespace DarkMultiPlayer
             {
                 throw new IOException("Cached object " + objectName + " does not exist");
             }
+        }
+
+        public void DeleteCache()
+        {
+            foreach (string cacheFile in GetCachedFiles())
+            {
+                File.Delete(cacheFile);
+            }
+            fileLengths = new Dictionary<string, long>();
+            fileCreationTimes = new Dictionary<string, DateTime>();
+            currentCacheSize = 0;
         }
     }
 }

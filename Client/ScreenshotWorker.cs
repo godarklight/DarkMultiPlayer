@@ -162,7 +162,7 @@ namespace DarkMultiPlayer
                     WatchPlayer(selectedPlayer);
                 }
 
-                if (Input.GetKey(KeyCode.F8))
+                if (Input.GetKey(Settings.fetch.screenshotKey))
                 {
                     uploadEventHandled = false;
                 }
@@ -264,7 +264,7 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
-            if (GUILayout.Button("Upload (F8)", buttonStyle))
+            if (GUILayout.Button("Upload (" + Settings.fetch.screenshotKey.ToString() + ")", buttonStyle))
             {
                 uploadEventHandled = false;
             }

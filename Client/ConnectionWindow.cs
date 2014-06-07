@@ -151,6 +151,7 @@ namespace DarkMultiPlayer
                 }
             }
             GUI.enabled = true;
+            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "Options", buttonStyle);
             GUILayout.EndHorizontal();
             if (addingServerSafe)
             {

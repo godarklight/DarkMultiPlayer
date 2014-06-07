@@ -228,11 +228,13 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
- 
+            GUILayout.BeginHorizontal();
             if (GUILayout.Button("Disconnect", buttonStyle))
             {
                 disconnectEventHandled = false;
             }
+            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "Options", buttonStyle);
+            GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
 
@@ -514,9 +516,20 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             GUILayout.BeginVertical();
             GUILayout.BeginHorizontal();
-            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "C", buttonStyle);
+            GUIStyle chatButtonStyle = buttonStyle;
+            if (ChatWorker.fetch.chatButtonHighlighted)
+            {
+                chatButtonStyle = highlightStyle;
+            }
+            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "C", chatButtonStyle);
             DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "D", buttonStyle);
-            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "S", buttonStyle);
+            GUIStyle screenshotButtonStyle = buttonStyle;
+            if (ScreenshotWorker.fetch.screenshotButtonHighlighted)
+            {
+                screenshotButtonStyle = highlightStyle;
+            }
+            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "S", screenshotButtonStyle);
+            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "O", buttonStyle);
             if (GUILayout.Button("+", buttonStyle))
             {
                 windowRect.xMax = minWindowRect.xMax;
