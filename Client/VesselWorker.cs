@@ -62,6 +62,7 @@ namespace DarkMultiPlayer
         private int spectateType;
         private bool destroyIsValid;
         private Dictionary<string, double> lastKillVesselDestroy = new Dictionary<string, double>();
+        private List<Vessel> killVessels = new List<Vessel>();
         private Vessel switchActiveVesselOnNextUpdate;
         private string fromDockedVesselID;
         private string toDockedVesselID;
@@ -92,6 +93,25 @@ namespace DarkMultiPlayer
             //If we aren't in a DMP game don't do anything.
             if (workerEnabled)
             {
+                List<Vessel> deleteList = new List<Vessel>();
+                foreach (Vessel dyingVessel in killVessels)
+                {
+                    if (FlightGlobals.fetch.vessels.Contains(dyingVessel))
+                    {
+                        DarkLog.Debug("Trying to kill " + dyingVessel.id.ToString() + " because of KSP's stupidity!");
+                        KillVessel(dyingVessel);
+                    }
+                    else
+                    {
+                        deleteList.Add(dyingVessel);
+                    }
+                }
+                foreach (Vessel deadVessel in deleteList)
+                {
+                    killVessels.Remove(deadVessel);
+                }
+
+
                 //Switch to a new active vessel if needed.
                 if (switchActiveVesselOnNextUpdate != null)
                 {
@@ -1492,6 +1512,10 @@ namespace DarkMultiPlayer
             if (killVessel != null)
             {
                 DarkLog.Debug("Killing vessel: " + killVessel.id.ToString());
+                if (!killVessels.Contains(killVessel))
+                {
+                    killVessels.Add(killVessel);
+                }
                 lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 try
                 {
@@ -1534,7 +1558,7 @@ namespace DarkMultiPlayer
                             Vessel dockingPlayerVessel = null;
                             foreach (Vessel findVessel in FlightGlobals.fetch.vessels)
                             {
-                                if (LockSystem.fetch.LockOwner(findVessel.id.ToString()) == dockingPlayer)
+                                if (LockSystem.fetch.LockOwner("control-" + findVessel.id.ToString()) == dockingPlayer)
                                 {
                                     dockingPlayerVessel = findVessel;
                                 }
