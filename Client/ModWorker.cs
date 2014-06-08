@@ -391,6 +391,108 @@ namespace DarkMultiPlayer
             //Return a copy
             return new List<string>(allowedParts);
         }
+
+        public void GenerateModControlFile(bool whitelistMode)
+        {
+            string gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            string[] topLevelFiles = Directory.GetFiles(gameDataDir);
+            string[] modDirectories = Directory.GetDirectories(gameDataDir);
+
+            List<string> requiredFiles = new List<string>();
+            List<string> optionalFiles = new List<string>();
+            List<string> partsList = Common.GetStockParts();
+             //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
+            foreach (string dllFile in topLevelFiles)
+            {
+                if (Path.GetExtension(dllFile).ToLower() == ".dll")
+                {
+                    requiredFiles.Add(Path.GetFileName(dllFile));
+                }
+            }
+
+            foreach (string modDirectory in modDirectories)
+            {
+                string lowerDirectoryName = modDirectory.Substring(modDirectory.ToLower().IndexOf("gamedata") + 9).ToLower();
+                if (lowerDirectoryName.StartsWith("squad"))
+                {
+                    continue;
+                }
+                if (lowerDirectoryName.StartsWith("nasamission"))
+                {
+                    continue;
+                }
+                if (lowerDirectoryName.StartsWith("darkmultiplayer"))
+                {
+                    continue;
+                }
+                bool modIsRequired = false;
+                string[] partFiles = Directory.GetFiles(Path.Combine(gameDataDir, modDirectory), "*", SearchOption.AllDirectories);
+                List<string> modDllFiles = new List<string>();
+                List<string> modPartCfgFiles = new List<string>();
+                foreach (string partFile in partFiles)
+                {
+                    bool fileIsPartFile = false;
+                    string relativeFileName = partFile.Substring(partFile.ToLower().IndexOf("gamedata") + 9).Replace(@"\", "/");
+                    if (Path.GetExtension(partFile).ToLower() == ".cfg")
+                    {
+                        ConfigNode cn = ConfigNode.Load(partFile);
+                        if (cn == null)
+                        {
+                            continue;
+                        }
+                        foreach (ConfigNode partNode in cn.GetNodes("PART"))
+                        {
+                            string partName = partNode.GetValue("name");
+                            if (partName != null)
+                            {
+                                DarkLog.Debug("Part detected in " + relativeFileName + " , name: " + partName);
+                                partName = partName.Replace('_', '.');
+                                modIsRequired = true;
+                                fileIsPartFile = true;
+                                partsList.Add(partName);
+                            }
+                        }
+                        
+                    }
+                    if (fileIsPartFile)
+                    {
+                        modPartCfgFiles.Add(relativeFileName);
+                    }
+                    if (Path.GetExtension(partFile).ToLower() == ".dll")
+                    {
+                        modDllFiles.Add(relativeFileName);
+                    }
+                }
+
+                if (modIsRequired)
+                {
+                    if (modDllFiles.Count > 0)
+                    {
+                        //If the mod as a plugin, just require that. It's clear enough.
+                        requiredFiles.AddRange(modDllFiles);
+                    }
+                    else
+                    {
+                        //If the mod does *not* have a plugin (Scoop-o-matic is an example), add the part files to required instead.
+                        requiredFiles.AddRange(modPartCfgFiles);
+                    }
+                }
+                else
+                {
+                    if (whitelistMode)
+                    {
+                        optionalFiles.AddRange(modDllFiles);
+                    }
+                }
+            }
+            string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
+            string saveModFile = Path.Combine(KSPUtil.ApplicationRootPath, "DMPModControl.txt");
+            using (StreamWriter sw = new StreamWriter(saveModFile, false))
+            {
+                sw.Write(modFileData);
+            }
+            ScreenMessages.PostScreenMessage("DMPModFile.txt file generated in your KSP folder", 5f, ScreenMessageStyle.UPPER_CENTER);
+        }
     }
 }
 

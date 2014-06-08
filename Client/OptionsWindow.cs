@@ -211,6 +211,21 @@ namespace DarkMultiPlayer
             {
                 settingScreenshot = !settingScreenshot;
             }
+            GUILayout.Space(10);
+            GUILayout.Label("Generate a server DMPModControl:");
+            if (GUILayout.Button("Generate blacklist DMPModControl.txt"))
+            {
+                ModWorker.fetch.GenerateModControlFile(false);
+            }
+            if (GUILayout.Button("Generate whitelist DMPModControl.txt"))
+            {
+                ModWorker.fetch.GenerateModControlFile(true);
+            }
+            GUILayout.FlexibleSpace();
+            if (GUILayout.Button("Close", buttonStyle))
+            {
+                display = false;
+            }
             GUILayout.EndVertical();
         }
     }
