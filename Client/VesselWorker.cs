@@ -1519,6 +1519,7 @@ namespace DarkMultiPlayer
                 lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 try
                 {
+                    /*
                     if (!killVessel.packed)
                     {
                         try
@@ -1535,6 +1536,7 @@ namespace DarkMultiPlayer
                     {
                         killVessel.Unload();
                     }
+                    */
                     killVessel.Die();
                 }
                 catch (Exception e)
@@ -1738,15 +1740,8 @@ namespace DarkMultiPlayer
             {
                 lock (updateQueueLock)
                 {
-                    DarkLog.Debug("Queueing proto for " + vesselID);
-                    DarkLog.Debug("ProtoQueue is ok: " + (vesselProtoQueue != null));
-                    if (vesselProtoQueue != null)
-                    {
-                        DarkLog.Debug("ProtoQueue contains key: " + vesselProtoQueue.ContainsKey(vesselID));
-                    }
                     if (!vesselProtoQueue.ContainsKey(vesselID))
                     {
-                        DarkLog.Debug("Adding queue for " + vesselID);
                         vesselProtoQueue.Add(vesselID, new Queue<VesselProtoUpdate>());
                     }
                     VesselProtoUpdate vpu = new VesselProtoUpdate();
