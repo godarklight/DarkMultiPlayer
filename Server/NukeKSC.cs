@@ -43,7 +43,10 @@ namespace DarkMultiPlayerServer
                 {
                     DarkLog.Normal("Removing vessel: " + vesselID);
                     //Delete it from the universe
-                    File.Delete(vesselFile);
+                    if (File.Exists(vesselFile))
+                    {
+                        File.Delete(vesselFile);
+                    }
                     //Send a vessel remove message
                     ServerMessage newMessage = new ServerMessage();
                     newMessage.type = ServerMessageType.VESSEL_REMOVE;
