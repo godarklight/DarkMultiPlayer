@@ -183,15 +183,32 @@ namespace DarkMultiPlayer
                 }
                 foreach (Vessel v in FlightGlobals.fetch.vessels)
                 {
-                    if (v != FlightGlobals.fetch.activeVessel && !v.packed)
+                    if (!v.packed)
                     {
-                        v.GoOnRails();
-                    }
-                    if (v == FlightGlobals.fetch.activeVessel)
-                    {
-                        if (SafeToStepClock(v, targetTick))
+                        if (v != FlightGlobals.fetch.activeVessel)
                         {
-                            v.GoOnRails();
+                            try
+                            {
+                                v.GoOnRails();
+                            }
+                            catch
+                            {
+                                DarkLog.Debug("Error packing vessel " + v.id.ToString());
+                            }
+                        }
+                        if (v == FlightGlobals.fetch.activeVessel)
+                        {
+                            if (SafeToStepClock(v, targetTick))
+                            {
+                                try
+                                {
+                                    v.GoOnRails();
+                                }
+                                catch
+                                {
+                                    DarkLog.Debug("Error packing active vessel " + v.id.ToString());
+                                }
+                            }
                         }
                     }
                 }
