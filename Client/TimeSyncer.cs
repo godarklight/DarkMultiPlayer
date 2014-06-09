@@ -152,11 +152,29 @@ namespace DarkMultiPlayer
 
         private void StepClock(double targetTick)
         {
+            if (HighLogic.LoadedScene == GameScenes.LOADING)
+            {
+                DarkLog.Debug("Skipping StepClock in loading screen");
+                return;
+            }
             if (HighLogic.LoadedSceneIsFlight)
             {
+                if (FlightGlobals.fetch.activeVessel != null)
+                {
+                    if (FlightGlobals.fetch.activeVessel.patchedConicRenderer == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver.maneuverNodes == null)
+                    {
+                        DarkLog.Debug("Skipping StepClock (standalone map viewer workaround)");
+                        return;
+                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Skipping StepClock (active vessel is null)");
+                    return;
+                }
                 try
                 {
-                    OrbitPhysicsManager.HoldVesselUnpack(1);
+                    OrbitPhysicsManager.HoldVesselUnpack(5);
                 }
                 catch
                 {
@@ -165,7 +183,7 @@ namespace DarkMultiPlayer
                 }
                 foreach (Vessel v in FlightGlobals.fetch.vessels)
                 {
-                    if (v != FlightGlobals.fetch.activeVessel && v.packed)
+                    if (v != FlightGlobals.fetch.activeVessel && !v.packed)
                     {
                         v.GoOnRails();
                     }

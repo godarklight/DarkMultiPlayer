@@ -60,9 +60,13 @@ namespace DarkMultiPlayer
         //Track spectating state
         private bool wasSpectating;
         private int spectateType;
+        //Scene tracking
+        private float lastGameSceneLoadRequestedTime;
         private bool destroyIsValid;
+        //KillVessel tracking
         private Dictionary<string, double> lastKillVesselDestroy = new Dictionary<string, double>();
         private List<Vessel> killVessels = new List<Vessel>();
+        //Docking related
         private Vessel switchActiveVesselOnNextUpdate;
         private string fromDockedVesselID;
         private string toDockedVesselID;
@@ -81,6 +85,14 @@ namespace DarkMultiPlayer
         //Called from main
         public void FixedUpdate()
         {
+            if (HighLogic.LoadedScene == GameScenes.LOADING)
+            {
+                return;
+            }
+            if ((UnityEngine.Time.realtimeSinceStartup - lastGameSceneLoadRequestedTime) < 10f)
+            {
+                return;
+            }
             //GameEvents.debugEvents = true;
             if (workerEnabled && !registered)
             {
@@ -1421,6 +1433,7 @@ namespace DarkMultiPlayer
 
         public void OnGameSceneLoadRequested(GameScenes scene)
         {
+            lastGameSceneLoadRequestedTime = UnityEngine.Time.realtimeSinceStartup;
             if (destroyIsValid)
             {
                 DarkLog.Debug("Vessel destructions are now invalid");
