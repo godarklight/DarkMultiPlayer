@@ -66,6 +66,7 @@ namespace DarkMultiPlayer
             subspaceStyle = new GUIStyle();
             subspaceStyle.normal.background = new Texture2D(1, 1);
             subspaceStyle.normal.background.SetPixel(0, 0, Color.black);
+            subspaceStyle.normal.background.Apply();
 
             layoutOptions = new GUILayoutOption[4];
             layoutOptions[0] = GUILayout.MinWidth(WINDOW_WIDTH);
