@@ -193,6 +193,13 @@ namespace DarkMultiPlayer
                         StartCoroutine(UploadScreenshot());
                     }
 
+                    if (HighLogic.CurrentGame.flagURL != Settings.fetch.selectedFlag)
+                    {
+                        DarkLog.Debug("Saving selected flag");
+                        Settings.fetch.selectedFlag = HighLogic.CurrentGame.flagURL;
+                        Settings.fetch.SaveSettings();
+                    }
+
                     //handle use of cheats
                     if (!serverAllowCheats)
                     {
@@ -307,6 +314,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.CrewRoster = new CrewRoster();
             HighLogic.CurrentGame.scenarios = new List<ProtoScenarioModule>();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
+            HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";

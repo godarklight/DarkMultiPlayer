@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         public Color playerColor;
         public KeyCode screenshotKey;
         public KeyCode chatKey;
+        public string selectedFlag;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string TOKEN_FILE = "token.txt";
@@ -142,6 +143,16 @@ namespace DarkMultiPlayer
                     saveXMLAfterLoad = true;
                     chatKey = KeyCode.F8;
                 }
+                try
+                {
+                    selectedFlag = xmlDoc.SelectSingleNode("/settings/global/@selected-flag").Value;
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding selected flag to settings file");
+                    saveXMLAfterLoad = true;
+                    selectedFlag = "Squad/Flags/default";
+                }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
                 foreach (XmlNode xmlNode in serverNodeList)
@@ -263,6 +274,16 @@ namespace DarkMultiPlayer
                 XmlAttribute screenshotKeyAttribute = xmlDoc.CreateAttribute("screenshot-key");
                 screenshotKeyAttribute.Value = ((int)screenshotKey).ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(screenshotKeyAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@selected-flag").Value = selectedFlag;
+            }
+            catch
+            {
+                XmlAttribute selectedFlagAttribute = xmlDoc.CreateAttribute("selected-flag");
+                selectedFlagAttribute.Value = selectedFlag;
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(selectedFlagAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();

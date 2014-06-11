@@ -1197,6 +1197,17 @@ namespace DarkMultiPlayer
                     {
                         //This line doesn't actually do anything useful, but if you get this reference, you're officially the most geeky person darklight knows.
                         part.temperature = ((part.temperature + 273.15f) * 0.8f) - 273.15f;
+
+                        //Fix up flag URLS.
+                        if (part.flagURL.Length != 0)
+                        {
+                            string flagFile = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), part.flagURL + ".png");
+                            if (!File.Exists(flagFile))
+                            {
+                                DarkLog.Debug("Flag '" + part.flagURL + "' doesn't exist, setting to default!");
+                                part.flagURL = "Squad/Flags/default";
+                            }
+                        }
                     }
 
                     bool wasActive = false;
