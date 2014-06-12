@@ -798,7 +798,6 @@ namespace DarkMultiPlayer
                                     kerbalDifferent = (pcm.name != serverKerbals[kerbalID].name) || kerbalDifferent;
                                     kerbalDifferent = (pcm.courage != serverKerbals[kerbalID].courage) || kerbalDifferent;
                                     kerbalDifferent = (pcm.isBadass != serverKerbals[kerbalID].isBadass) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.rosterStatus != serverKerbals[kerbalID].rosterStatus) || kerbalDifferent;
                                     kerbalDifferent = (pcm.seatIdx != serverKerbals[kerbalID].seatIdx) || kerbalDifferent;
                                     kerbalDifferent = (pcm.stupidity != serverKerbals[kerbalID].stupidity) || kerbalDifferent;
                                     kerbalDifferent = (pcm.UTaR != serverKerbals[kerbalID].UTaR) || kerbalDifferent;
@@ -1027,6 +1026,7 @@ namespace DarkMultiPlayer
                 ProtoCrewMember protoCrew = new ProtoCrewMember(crewNode);
                 if (protoCrew != null)
                 {
+                    protoCrew.rosterStatus = ProtoCrewMember.RosterStatus.AVAILABLE;
                     if (!String.IsNullOrEmpty(protoCrew.name))
                     {
                         //Welcome to the world of kludges.
@@ -1042,7 +1042,7 @@ namespace DarkMultiPlayer
                         if (!existsInRoster)
                         {
                             HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoCrew);
-                            DarkLog.Debug("Loaded kerbal " + kerbalID + ", name: " + protoCrew.name + ", state " + protoCrew.rosterStatus);
+                            DarkLog.Debug("Loaded kerbal " + kerbalID + ", name: " + protoCrew.name);
                             serverKerbals[kerbalID] = (new ProtoCrewMember(protoCrew));
                         }
                         else

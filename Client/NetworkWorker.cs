@@ -1484,6 +1484,8 @@ namespace DarkMultiPlayer
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
         {
             ConfigNode kerbalNode = new ConfigNode();
+            //Dodge the available status - Too many kerbals are getting created.
+            kerbal.rosterStatus = ProtoCrewMember.RosterStatus.AVAILABLE;
             kerbal.Save(kerbalNode);
             byte[] kerbalBytes = ConvertConfigNodeToByteArray(kerbalNode);
             if (kerbalBytes != null)
