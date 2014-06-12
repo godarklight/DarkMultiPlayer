@@ -99,6 +99,12 @@ namespace DarkMultiPlayerServer
                 bool sendingHighPriotityMessages = true;
                 while (sendingHighPriotityMessages)
                 {
+                    while (deleteClients.Count > 0)
+                    {
+                        clients.Remove(deleteClients.Dequeue());
+                        Server.playerCount = GetActiveClientCount();
+                        Server.players = GetActivePlayerNames();
+                    }
                     sendingHighPriotityMessages = false;
                     foreach (ClientObject client in clients)
                     {
@@ -434,6 +440,12 @@ namespace DarkMultiPlayerServer
                 {
                     SendHeartBeat(client);
                 }
+                if ((currentTime - client.lastReceiveTime) > Common.CONNECTION_TIMEOUT)
+                {
+                    //Heartbeat timeout
+                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + ", Connection timed out");
+                    DisconnectClient(client);
+                }
             }
         }
 
@@ -571,14 +583,14 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + " error: " + e.Message);
+                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
                     DisconnectClient(client);
                 }
             }
             if (message.type == ServerMessageType.CONNECTION_END)
             {
-                DarkLog.Normal("Client " + client.playerName + " disconnected, sent CONNECTION_END to endpoint " + client.endpoint);
-                DisconnectClient(client);
+                DarkLog.Normal("Disconnecting client " + client.playerName + ", sent CONNECTION_END to endpoint " + client.endpoint);
+                client.disconnectClient = true;
             }
             if (message.type == ServerMessageType.HANDSHAKE_REPLY)
             {
@@ -588,8 +600,8 @@ namespace DarkMultiPlayerServer
                     string reason = mr.Read<string>();
                     if (response != 0)
                     {
-                        DarkLog.Normal("Client " + client.playerName + " disconnected, sent HANDSHAKE REPLY (" + reason + ") to endpoint " + client.endpoint);
-                        DisconnectClient(client);
+                        DarkLog.Normal("Disconnecting client " + client.playerName + ", sent HANDSHAKE REPLY (" + reason + ") to endpoint " + client.endpoint);
+                        client.disconnectClient = true;
                     }
                 }
             }
@@ -608,7 +620,16 @@ namespace DarkMultiPlayerServer
                 DisconnectClient(client);
             }
             client.isSendingToClient = false;
-            SendOutgoingMessages(client);
+            if (client.disconnectClient)
+            {
+                //Disconnect client
+                DisconnectClient(client);
+            }
+            else
+            {
+                //Send another message
+                SendOutgoingMessages(client);
+            }
         }
 
         private static void StartReceivingIncomingMessages(ClientObject client)
@@ -624,7 +645,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error: " + e.Message);
+                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
                 DisconnectClient(client);
             }
         }
@@ -703,7 +724,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error: " + e.Message);
+                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
                 DisconnectClient(client);
             }
         }
@@ -956,7 +977,6 @@ namespace DarkMultiPlayerServer
             {
                 client.authenticated = true;
                 DarkLog.Normal("Client " + playerName + " handshook successfully!");
-                //SEND ALL THE THINGS!
 
                 if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
                 {
@@ -1085,29 +1105,20 @@ namespace DarkMultiPlayerServer
 
         private static void HandleSyncTimeRequest(ClientObject client, byte[] messageData)
         {
-            try
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SYNC_TIME_REPLY;
+            using (MessageWriter mw = new MessageWriter())
             {
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.SYNC_TIME_REPLY;
-                using (MessageWriter mw = new MessageWriter())
+                using (MessageReader mr = new MessageReader(messageData, false))
                 {
-                    using (MessageReader mr = new MessageReader(messageData, false))
-                    {
-                        //Client send time
-                        mw.Write<long>(mr.Read<long>());
-                        //Server receive time
-                        mw.Write<long>(DateTime.UtcNow.Ticks);
-                        newMessage.data = mw.GetMessageBytes();
-                    }
+                    //Client send time
+                    mw.Write<long>(mr.Read<long>());
+                    //Server receive time
+                    mw.Write<long>(DateTime.UtcNow.Ticks);
+                    newMessage.data = mw.GetMessageBytes();
                 }
-                SendToClient(client, newMessage, true);
-
             }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error in SYNC_TIME_REQUEST from " + client.playerName + ": " + e);
-                DisconnectClient(client);
-            }
+            SendToClient(client, newMessage, true);
         }
 
         private static void HandlePlayerStatus(ClientObject client, byte[] messageData)
@@ -2670,6 +2681,7 @@ namespace DarkMultiPlayerServer
         public Queue<ServerMessage> sendMessageQueueLow;
         public Queue<ClientMessage> receiveMessageQueue;
         public long lastReceiveTime;
+        public bool disconnectClient;
         //Receive buffer
         public bool isReceivingMessage;
         public int receiveMessageBytesLeft;

@@ -12,8 +12,6 @@ namespace DarkMultiPlayer
 {
     public class NetworkWorker
     {
-        private const float CONNECTION_TIMEOUT = 10;
-        private const float HEARTBEAT_INTERVAL = 5;
         //Read from ConnectionWindow
         public ClientState state
         {
@@ -223,7 +221,7 @@ namespace DarkMultiPlayer
             try
             {
                 clientConnection.EndConnect(ar);
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) < CONNECTION_TIMEOUT)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) < (Common.CONNECTION_TIMEOUT / 1000))
                 {
                     //Timeout didn't expire.
                     DarkLog.Debug("Connected!");
@@ -256,7 +254,7 @@ namespace DarkMultiPlayer
         {
             if (state == ClientState.CONNECTING)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > CONNECTION_TIMEOUT)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Failed to connect!");
                     Client.fetch.status = "Failed to connect - no reply";
@@ -264,7 +262,7 @@ namespace DarkMultiPlayer
             }
             if (state >= ClientState.CONNECTED)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > CONNECTION_TIMEOUT)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
                 {
                     SendDisconnect("Connection timeout");
                 }
@@ -327,7 +325,12 @@ namespace DarkMultiPlayer
         {
             try
             {
-                receiveMessageBytesLeft -= clientConnection.GetStream().EndRead(ar);
+                int bytesRead = clientConnection.GetStream().EndRead(ar);
+                receiveMessageBytesLeft -= bytesRead;
+                if (bytesRead > 0)
+                {
+                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                }
                 if (receiveMessageBytesLeft == 0)
                 {
                     //We either have the header or the message data, let's do something
@@ -388,7 +391,6 @@ namespace DarkMultiPlayer
                 }
                 if (state >= ClientState.CONNECTED && state != ClientState.DISCONNECTING)
                 {
-                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
                     clientConnection.GetStream().BeginRead(receiveMessage.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), null);
                 }
             }
@@ -1275,7 +1277,7 @@ namespace DarkMultiPlayer
         {
             if (state >= ClientState.CONNECTED && sendMessageQueueHigh.Count == 0)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) > HEARTBEAT_INTERVAL)
+                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
                 {
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
                     ClientMessage newMessage = new ClientMessage();
