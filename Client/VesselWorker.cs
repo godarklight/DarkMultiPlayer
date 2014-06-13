@@ -811,12 +811,12 @@ namespace DarkMultiPlayer
             bool isServerEVAKerbal = checkVessel.vesselType == VesselType.EVA && serverVessels.Contains(checkVessel.id.ToString());
 
             //Check that is hasn't been recently sent
-            if (notRecentlySentProtoUpdate && (checkVessel.situation != Vessel.Situations.FLYING))
+            if (notRecentlySentProtoUpdate && (checkVessel.situation != Vessel.Situations.FLYING) && !isServerEVAKerbal)
             {
 
                 ProtoVessel checkProto = new ProtoVessel(checkVessel);
                 //TODO: Fix sending of flying vessels.
-                if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING) && !isServerEVAKerbal)
+                if (checkProto != null && (checkProto.situation != Vessel.Situations.FLYING))
                 {
                     if (checkProto.vesselID != Guid.Empty)
                     {
