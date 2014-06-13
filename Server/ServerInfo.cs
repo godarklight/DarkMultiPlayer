@@ -65,7 +65,8 @@ namespace DarkMultiPlayerServer
             port = settings.port;
             mod_control = settings.modControl;
             cheats = settings.cheats;
-            universeSize = Server.directorySize + " MB";
+            universeSize = Server.directorySize.ToString("F2") + " MB";
+            universeSize = universeSize.Replace(",", ".");
             lastPlayerActivity = (Server.lastPlayerActivity - new DateTime(1970, 1, 1).ToLocalTime()).TotalSeconds;
         }
 

@@ -18,7 +18,7 @@ namespace DarkMultiPlayerServer
         public static HttpListener httpListener;
         private static long ctrlCTime;
         public static int playerCount = 0;
-        public static long directorySize;
+        public static double directorySize;
         public static string players = "";
         public static DateTime lastPlayerActivity;
 
@@ -98,16 +98,18 @@ namespace DarkMultiPlayerServer
             long size = 0;
 
             foreach (string kerbal in kerbals)
-            foreach (string vessel in vessels)
             {
-                FileInfo vesselInfo = new FileInfo(vessel);
-                FileInfo kerbalInfo = new FileInfo(kerbal);
-
-                size += vesselInfo.Length;
-                size += kerbalInfo.Length;
+                FileInfo kInfo = new FileInfo(kerbal);
+                size += kInfo.Length;
             }
 
-            directorySize = size / 1048576;
+            foreach (string vessel in vessels)
+            {
+                FileInfo vInfo = new FileInfo(vessel);
+                size += vInfo.Length;
+            }
+
+            directorySize = size / 1048576f;
             stopwatch.Stop();
         }
         //Create universe directories
