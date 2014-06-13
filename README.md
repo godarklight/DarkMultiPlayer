@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.3.1.
+#DarkMultiPlayer 0.1.4.0.
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -61,6 +61,8 @@ dekessler - Clears out debris from the server
 exit      - Shuts down the server  
 help      - Displays this help  
 kick      - Kicks a player from the server  
+nukeksc   - Clears ALL vessels from KSC and the Runway  
+pm        - Sends a message to a player  
 quit      - Shuts down the server  
 say       - Broadcasts a message to clients  
 restart   - Restarts the server  
@@ -69,6 +71,10 @@ shutdown  - Shuts down the server
 ###Options
 The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.  
   
+###address
+address - The address the server listens on  
+WARNING: You do not need to change this unless you are running 2 servers on the same port.  
+Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.  
   
 ####port
 The port to listen on, default 6702.  
@@ -130,6 +136,20 @@ Maximum amount of players that can join the server.
 Specify a custom screenshot directory.  
 This directory must exist in order to be used. Leave blank to store it in Universe.  
   
+####autonuke
+Specify in minutes how often /nukeksc automatically runs. 0 = Disabled  
+  
+####autodekessler
+Specify in minutes how often /dekessler automatically runs. 0 = Disabled  
+  
+####numberofasteroids
+How many untracked asteroids to spawn into the universe. 0 = Disabled  
+  
+####consoleidentifier
+Specify the name that will appear when you send a message using the server's console.  
+  
+####servermotd
+Specify the server's MOTD (message of the day).  
   
   
 ##Mods
