@@ -1055,6 +1055,7 @@ namespace DarkMultiPlayer
                 else
                 {
                     update.orbit = mr.Read<double[]>();
+                    update.orbitalPositionDelta = mr.Read<double[]>();
                 }
                 VesselWorker.fetch.QueueVesselUpdate(update);
             }
@@ -1457,6 +1458,7 @@ namespace DarkMultiPlayer
                 else
                 {
                     mw.Write<double[]>(update.orbit);
+                    mw.Write<double[]>(update.orbitalPositionDelta);
                 }
                 newMessage.data = mw.GetMessageBytes();
             }

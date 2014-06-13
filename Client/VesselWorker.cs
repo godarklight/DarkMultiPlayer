@@ -1015,6 +1015,15 @@ namespace DarkMultiPlayer
                     returnUpdate.orbit[4] = updateVessel.orbit.argumentOfPeriapsis;
                     returnUpdate.orbit[5] = updateVessel.orbit.meanAnomalyAtEpoch;
                     returnUpdate.orbit[6] = updateVessel.orbit.epoch;
+                    //KSP tells us a bunch of lies, there's a ~40 meter error between our actual position and the orbital position
+                    Vector3d vesselPos = updateVessel.GetWorldPos3D();
+                    Vector3d orbitPos = updateVessel.orbitDriver.orbit.getPositionAtUT(Planetarium.GetUniversalTime());
+                    Vector3d positionDelta = vesselPos - orbitPos;
+                    returnUpdate.orbitalPositionDelta = new double[3];
+                    returnUpdate.orbitalPositionDelta[0] = positionDelta.x;
+                    returnUpdate.orbitalPositionDelta[1] = positionDelta.y;
+                    returnUpdate.orbitalPositionDelta[2] = positionDelta.z;
+
                 }
 
             }
@@ -1682,7 +1691,9 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    updateVessel.SetPosition(updateOrbit.getPositionAtUT(Planetarium.GetUniversalTime()));
+                    //KSP's inaccuracy hurts me.
+                    Vector3d orbitalPositionDelta = new Vector3d(update.orbitalPositionDelta[0], update.orbitalPositionDelta[1], update.orbitalPositionDelta[2]);
+                    updateVessel.SetPosition(updateOrbit.getPositionAtUT(Planetarium.GetUniversalTime()) + orbitalPositionDelta);
                     Vector3d velocityOffset = updateOrbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy - updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy;
                     updateVessel.ChangeWorldVelocity(velocityOffset);
                 }
@@ -1909,6 +1920,8 @@ namespace DarkMultiPlayer
         //Position = lat,long,alt.
         public double[] position;
         public double[] velocity;
+        //KSP tells us a bunch of fibs. Lets keep it honest.
+        public double[] orbitalPositionDelta;
     }
 }
 
