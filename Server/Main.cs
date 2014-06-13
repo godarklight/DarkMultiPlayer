@@ -18,7 +18,9 @@ namespace DarkMultiPlayerServer
         public static HttpListener httpListener;
         private static long ctrlCTime;
         public static int playerCount = 0;
+        public static long directorySize;
         public static string players = "";
+        public static DateTime lastPlayerActivity;
 
         public static void Main()
         {
@@ -84,6 +86,29 @@ namespace DarkMultiPlayerServer
                 DarkLog.Fatal("Error in main server thread, Exception: " + e);
                 throw;
             }
+        }
+        // Check universe folder size
+        private static void GetUniverseSize()
+        {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+            string[] kerbals = Directory.GetFiles(Path.Combine(universeDirectory, "Kerbals"), "*.*");
+            string[] vessels = Directory.GetFiles(Path.Combine(universeDirectory, "Vessels"), "*.*");
+
+            long size = 0;
+
+            foreach (string kerbal in kerbals)
+            foreach (string vessel in vessels)
+            {
+                FileInfo vesselInfo = new FileInfo(vessel);
+                FileInfo kerbalInfo = new FileInfo(kerbal);
+
+                size += vesselInfo.Length;
+                size += kerbalInfo.Length;
+            }
+
+            directorySize = size / 1048576;
+            stopwatch.Stop();
         }
         //Create universe directories
         private static void CheckUniverse()
@@ -234,6 +259,7 @@ namespace DarkMultiPlayerServer
 
                 HttpListenerContext context = listener.EndGetContext(result);
 
+                GetUniverseSize(); // gets the universe size in megabytes
                 string responseText = new ServerInfo(Settings.settingsStore).GetJSON();
 
                 byte[] buffer = Encoding.UTF8.GetBytes(responseText);
