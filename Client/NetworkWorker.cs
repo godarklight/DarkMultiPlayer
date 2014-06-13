@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Threading;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 using MessageStream;
@@ -42,7 +43,9 @@ namespace DarkMultiPlayer
         private int numberOfVessels = 0;
         private int numberOfVesselsReceived = 0;
         private object disconnectLock = new object();
-        private object sendLock = new object();
+        private object messageEnqueueLock = new object();
+        private object messageDequeueLock = new object();
+        private Thread sendThread;
 
         public NetworkWorker()
         {
@@ -50,6 +53,8 @@ namespace DarkMultiPlayer
             {
                 Client.updateEvent.Add(this.Update);
             }
+            sendThread = new Thread(new ThreadStart(SendThreadMain));
+            sendThread.Start();
         }
 
         public static NetworkWorker fetch
@@ -62,9 +67,6 @@ namespace DarkMultiPlayer
         //Called from main
         private void Update()
         {
-            CheckDisconnection();
-            SendHeartBeat();
-            SendOutgoingMessages();
             if (state == ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending handshake!");
@@ -133,6 +135,18 @@ namespace DarkMultiPlayer
                 SendMotdRequest();
             }
         }
+        //This isn't tied to frame rate, During the loading screen Update doesn't fire.
+        public void SendThreadMain()
+        {
+            while (true)
+            {
+                CheckDisconnection();
+                SendHeartBeat();
+                SendOutgoingMessages();
+                Thread.Sleep(10);
+            }
+        }
+
         #region Connecting to server
         //Called from main
         public void ConnectToServer(string address, int port)
@@ -407,9 +421,25 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void QueueOutgoingMessage(ClientMessage message, bool highPriority)
+        {
+            lock (messageEnqueueLock)
+            {
+                if (highPriority)
+                {
+                    sendMessageQueueHigh.Enqueue(message);
+                }
+                else
+                {
+                    sendMessageQueueLow.Enqueue(message);
+                }
+            }
+            SendOutgoingMessages();
+        }
+
         private void SendOutgoingMessages()
         {
-            lock (sendLock)
+            lock (messageDequeueLock)
             {
                 if (!isSendingMessage && state >= ClientState.CONNECTED)
                 {
@@ -1282,7 +1312,7 @@ namespace DarkMultiPlayer
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
                     ClientMessage newMessage = new ClientMessage();
                     newMessage.type = ClientMessageType.HEARTBEAT;
-                    sendMessageQueueHigh.Enqueue(newMessage);
+                    QueueOutgoingMessage(newMessage, true);
                 }
             }
         }
@@ -1300,7 +1330,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.HANDSHAKE_REQUEST;
             newMessage.data = messageBytes;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from ChatWindow
         public void SendChatMessage(byte[] messageData)
@@ -1308,7 +1338,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CHAT_MESSAGE;
             newMessage.data = messageData;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from PlayerStatusWorker
         public void SendPlayerStatus(PlayerStatus playerStatus)
@@ -1324,7 +1354,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PLAYER_STATUS;
             newMessage.data = messageBytes;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from PlayerColorWorker
         public void SendPlayerColorMessage(byte[] messageData)
@@ -1332,7 +1362,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PLAYER_COLOR;
             newMessage.data = messageData;
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from timeSyncer
         public void SendTimeSync()
@@ -1346,14 +1376,14 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SYNC_TIME_REQUEST;
             newMessage.data = messageBytes;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendKerbalsRequest()
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.KERBALS_REQUEST;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendVesselsRequest(string[] requestList)
@@ -1365,7 +1395,7 @@ namespace DarkMultiPlayer
                 mw.Write<string[]>(requestList);
                 newMessage.data = mw.GetMessageBytes();
             }
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate)
@@ -1387,7 +1417,7 @@ namespace DarkMultiPlayer
                     newMessage.data = mw.GetMessageBytes();
                 }
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
-                sendMessageQueueLow.Enqueue(newMessage);
+                QueueOutgoingMessage(newMessage, false);
             }
             else
             {
@@ -1430,7 +1460,7 @@ namespace DarkMultiPlayer
                 }
                 newMessage.data = mw.GetMessageBytes();
             }
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
         public void SendVesselRemove(string vesselID, bool isDockingUpdate)
@@ -1450,7 +1480,7 @@ namespace DarkMultiPlayer
                 }
                 newMessage.data = mw.GetMessageBytes();
             }
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called fro craftLibraryWorker
         public void SendCraftLibraryMessage(byte[] messageData)
@@ -1458,7 +1488,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CRAFT_LIBRARY;
             newMessage.data = messageData;
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from ScreenshotWorker
         public void SendScreenshotMessage(byte[] messageData)
@@ -1466,7 +1496,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCREENSHOT_LIBRARY;
             newMessage.data = messageData;
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
         public void SendScenarioModuleData(string[] scenarioNames, string[] scenarioData)
@@ -1480,7 +1510,7 @@ namespace DarkMultiPlayer
                 newMessage.data = mw.GetMessageBytes();
             }
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
         public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
@@ -1503,7 +1533,7 @@ namespace DarkMultiPlayer
                     newMessage.data = mw.GetMessageBytes();
                 }
                 DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
-                sendMessageQueueLow.Enqueue(newMessage);
+                QueueOutgoingMessage(newMessage, false);
             }
             else
             {
@@ -1520,14 +1550,14 @@ namespace DarkMultiPlayer
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 newMessage.data = mw.GetMessageBytes();
             }
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from networkWorker
         public void SendMotdRequest()
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MOTD_REQUEST;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from warpWorker
         public void SendWarpMessage(byte[] messageData)
@@ -1535,7 +1565,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.WARP_CONTROL;
             newMessage.data = messageData;
-            sendMessageQueueLow.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from lockSystem
         public void SendLockSystemMessage(byte[] messageData)
@@ -1543,7 +1573,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.LOCK_SYSTEM;
             newMessage.data = messageData;
-            sendMessageQueueHigh.Enqueue(newMessage);
+            QueueOutgoingMessage(newMessage, true);
         }
         //Called from main
         public void SendDisconnect(string disconnectReason = "Unknown")
@@ -1562,7 +1592,7 @@ namespace DarkMultiPlayer
                 ClientMessage newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.CONNECTION_END;
                 newMessage.data = messageBytes;
-                sendMessageQueueHigh.Enqueue(newMessage);
+                QueueOutgoingMessage(newMessage, true);
             }
         }
 

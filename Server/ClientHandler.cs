@@ -1961,6 +1961,7 @@ namespace DarkMultiPlayerServer
                 {
                     client.sendMessageQueueLow.Enqueue(message);
                 }
+                SendOutgoingMessages(client);
             }
         }
 
