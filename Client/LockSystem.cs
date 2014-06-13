@@ -78,6 +78,7 @@ namespace DarkMultiPlayer
 
         public void ReleasePlayerLocksWithPrefix(string playerName, string prefix)
         {
+            DarkLog.Debug("Releasing lock with prefix " + prefix + " for " + playerName);
             lock (lockObject)
             {
                 List<string> removeList = new List<string>();
@@ -92,6 +93,7 @@ namespace DarkMultiPlayer
                 {
                     if (playerName == Settings.fetch.playerName)
                     {
+                        DarkLog.Debug("Releasing lock " + removeValue);
                         ReleaseLock(removeValue);
                     }
                     else
