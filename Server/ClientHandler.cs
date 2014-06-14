@@ -770,6 +770,7 @@ namespace DarkMultiPlayerServer
                 {
                     client.connection.Close();
                 }
+                Server.lastPlayerActivity = DateTime.Now;
             }
         }
         #endregion
@@ -989,6 +990,7 @@ namespace DarkMultiPlayerServer
                 SendHandshakeReply(client, handshakeReponse, "success");
                 Server.playerCount = GetActiveClientCount();
                 Server.players = GetActivePlayerNames();
+                Server.lastPlayerActivity = DateTime.Now;
             }
             else
             {
