@@ -64,8 +64,8 @@ namespace DarkMultiPlayer
         private Dictionary<string, double> lastKillVesselDestroy = new Dictionary<string, double>();
         private List<Vessel> delayKillVessels = new List<Vessel>();
         //Docking related
-        private Vessel switchActiveVesselOnNextUpdate;
-        private int activeVesselOkUpdates;
+        private Vessel newActiveVessel;
+        private int activeVesselLoadUpdates;
         private string fromDockedVesselID;
         private string toDockedVesselID;
         private bool sentDockingDestroyUpdate;
@@ -100,58 +100,53 @@ namespace DarkMultiPlayer
             if (workerEnabled)
             {
                 //As per the original comment in standalone viewer, KSP is really odd.
-                /*
-                if (HighLogic.LoadedSceneIsFlight)
-                {
-                    if (FlightGlobals.fetch.activeVessel != null)
-                    {
-                        if (FlightGlobals.fetch.activeVessel.patchedConicRenderer == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver.maneuverNodes == null)
-                        {
-                            DarkLog.Debug("Skipping VesselWorker update (standalone map viewer workaround)");
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        DarkLog.Debug("Skipping VesselWorker update (active vessel is null)");
-                        return;
-                    }
-                }
-                */
 
                 //Switch to a new active vessel if needed.
-                if (switchActiveVesselOnNextUpdate != null)
+                if (newActiveVessel != null)
                 {
-                    if (FlightGlobals.fetch.vessels.Contains(switchActiveVesselOnNextUpdate))
+                    if (FlightGlobals.fetch.vessels.Contains(newActiveVessel))
                     {
-                        if (!switchActiveVesselOnNextUpdate.loaded)
+                        //Hold unpack so we don't collide with the old copy
+                        try
                         {
-                            DarkLog.Debug("Waiting for new active vessel to load");
+                            OrbitPhysicsManager.HoldVesselUnpack(2);
+                        }
+                        catch
+                        {
+                        }
+                        //If the vessel failed to load in a reasonable time, go through the loading screen
+                        if (activeVesselLoadUpdates > 100)
+                        {
+                            DarkLog.Debug("Active vessel must not be within load distance, go through the loading screen method");
+                            activeVesselLoadUpdates = 0;
+                            FlightGlobals.ForceSetActiveVessel(newActiveVessel);
+                            newActiveVessel = null;
+                        }
+                        if (!newActiveVessel.loaded)
+                        {
+                            activeVesselLoadUpdates++;
                             return;
                         }
-                        if (switchActiveVesselOnNextUpdate.packed)
+                        activeVesselLoadUpdates = 0;
+                        if (FlightGlobals.fetch.activeVessel.patchedConicRenderer == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver.maneuverNodes == null)
                         {
-                            DarkLog.Debug("Waiting for new active vessel to unpack");
+                            DarkLog.Debug("Waiting for new active vessel to be sane");
                             return;
                         }
-                        if (activeVesselOkUpdates < 5)
-                        {
-                            DarkLog.Debug("Waiting for updates...");
-                            activeVesselOkUpdates++;
-                            return;
-                        }
-                        activeVesselOkUpdates = 0;
                         DarkLog.Debug("Switching to active vessel!");
-                        FlightGlobals.ForceSetActiveVessel(switchActiveVesselOnNextUpdate);
-                        switchActiveVesselOnNextUpdate = null;
+                        FlightGlobals.ForceSetActiveVessel(newActiveVessel);
+                        newActiveVessel = null;
                         return;
                     }
                     else
                     {
                         DarkLog.Debug("switchActiveVesselOnNextUpdate Vessel failed to spawn into game!");
+                        ScreenMessages.PostScreenMessage("Active vessel update failed to load into the game!", 5, ScreenMessageStyle.UPPER_CENTER);
+                        HighLogic.LoadScene(GameScenes.TRACKSTATION);
                     }
                 }
 
+                //Kill any queued vessels
                 List<Vessel> deleteList = new List<Vessel>();
                 foreach (Vessel dyingVessel in delayKillVessels)
                 {
@@ -1273,18 +1268,6 @@ namespace DarkMultiPlayer
                             DarkLog.Debug("ProtoVessel update for target vessel!");
                         }
                         wasActive = (FlightGlobals.ActiveVessel != null) ? (FlightGlobals.ActiveVessel.id == currentProto.vesselID) : false;
-                        if (wasActive)
-                        {
-                            DarkLog.Debug("ProtoVessel update for active vessel!");
-                            try
-                            {
-                                OrbitPhysicsManager.HoldVesselUnpack(100);
-                            }
-                            catch
-                            {
-                                //Don't care.
-                            }
-                        }
                     }
 
                     for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
@@ -1292,7 +1275,16 @@ namespace DarkMultiPlayer
                         Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
                         if (oldVessel.id.ToString() == currentProto.vesselID.ToString())
                         {
-                            KillVessel(oldVessel);
+                            //Don't kill the active vessel - Kill it after we switch.
+                            //Killing the active vessel causes all sorts of crazy problems.
+                            if (wasActive)
+                            {
+                                delayKillVessels.Add(oldVessel);
+                            }
+                            else
+                            {
+                                KillVessel(oldVessel);
+                            }
                         }
                     }
 
@@ -1304,8 +1296,19 @@ namespace DarkMultiPlayer
                         UpdatePackDistance(currentProto.vesselRef.id.ToString());
                         if (wasActive)
                         {
-                            DarkLog.Debug("Set active vessel");
-                            switchActiveVesselOnNextUpdate = currentProto.vesselRef;
+                            DarkLog.Debug("ProtoVessel update for active vessel!");
+                            try
+                            {
+                                OrbitPhysicsManager.HoldVesselUnpack(5);
+                                FlightGlobals.fetch.activeVessel.GoOnRails();
+                                //Put our vessel on rails so we don't collide with the new copy
+                            }
+                            catch
+                            {
+                                DarkLog.Debug("WARNING: Something very bad happened trying to replace the vessel, skipping update!");
+                                return;
+                            }
+                            newActiveVessel = currentProto.vesselRef;
                         }
                         if (wasTarget)
                         {
@@ -1569,8 +1572,10 @@ namespace DarkMultiPlayer
                 lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 try
                 {
-                    if (!killVessel.packed) {
-                        for (int partID = killVessel.parts.Count - 1; partID >= 0; partID--) {
+                    if (killVessel.parts != null)
+                    {
+                        for (int partID = killVessel.parts.Count - 1; partID >= 0; partID--)
+                        {
                             Part killPart = killVessel.parts[partID];
                             killPart.explosionPotential = 0f;
                             killPart.Die();
