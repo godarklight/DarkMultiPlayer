@@ -122,6 +122,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Adding player color to settings file");
                     saveXMLAfterLoad = true;
                     playerColor = PlayerColorWorker.GenerateRandomColor();
+                    OptionsWindow.fetch.loadEventHandled = false;
                 }
                 try
                 {
