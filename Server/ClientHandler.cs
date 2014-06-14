@@ -183,7 +183,7 @@ namespace DarkMultiPlayerServer
             {
                 File.Move(modFile, modFile + ".bak");
             }
-            string modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
+            modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
             using (StreamWriter sw = new StreamWriter(modFile))
             {
                 sw.Write(modFileData);
