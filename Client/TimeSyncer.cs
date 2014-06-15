@@ -52,45 +52,16 @@ namespace DarkMultiPlayer
             private set;
         }
 
-        public float averageSkewRate
+        public float requestedRate
         {
             get;
             private set;
         }
 
-        public float requestedRate
-        {
-            get
-            {
-                if (locked)
-                {
-                    if (!atMaxSkew)
-                    {
-
-                        float tempRate = subspaces[currentSubspace].subspaceSpeed * (1 / averageSkewRate);
-                        //Request 0.5-1x speed.
-                        if (tempRate < 0.5)
-                        {
-                            tempRate = 0.5f;
-                        }
-                        if (tempRate > 1f)
-                        {
-                            tempRate = 1f;
-                        }
-                        return tempRate;
-                    }
-                    else
-                    {
-                        //Request 0.3x at max skew error
-                        return 0.3f;
-                    }
-                }
-                return 1f;
-            }
-        }
-
         private const float MAX_CLOCK_SKEW = 5f;
-        private const float MIN_CLOCK_RATE = 0.5f;
+        private const float MAX_SUBSPACE_RATE = 1f;
+        private const float MIN_SUBSPACE_RATE = 0.3f;
+        private const float MIN_CLOCK_RATE = 0.3f;
         private const float MAX_CLOCK_RATE = 1.5f;
         private const float SYNC_TIME_INTERVAL = 30f;
         private const float CLOCK_SET_INTERVAL = .1f;
@@ -100,14 +71,13 @@ namespace DarkMultiPlayer
         private float lastClockSkew = 0f;
         private List<long> clockOffset = new List<long>();
         private List<long> networkLatency = new List<long>();
-        private List<float> skewList = new List<float>();
+        private List<float> requestedRatesList = new List<float>();
         private Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
         public static TimeSyncer singleton;
 
         public TimeSyncer()
         {
             currentSubspace = -1;
-            averageSkewRate = 1f;
         }
 
         public static TimeSyncer fetch
@@ -252,36 +222,50 @@ namespace DarkMultiPlayer
 
         private void SkewClock(double currentError)
         {
-            //Same code from KMP.
             float timeWarpRate = (float)Math.Pow(2, -currentError);
-            if (timeWarpRate > 1.5f)
+            if (timeWarpRate > MAX_CLOCK_RATE)
             {
                 atMaxSkew = true;
-                timeWarpRate = 1.5f;
+                timeWarpRate = MAX_CLOCK_RATE;
             }
             else
             {
                 atMaxSkew = false;
             }
-            if (timeWarpRate < 0.5f)
+            if (timeWarpRate < MIN_CLOCK_RATE)
             {
-                timeWarpRate = 0.5f;
+                timeWarpRate = MIN_CLOCK_RATE;
             }
+            if (!atMaxSkew)
+            {
+                //Request how fast we *think* we can run (The reciporical of the current warp rate)
+                float tempRequestedRate = subspaces[currentSubspace].subspaceSpeed * (1 / timeWarpRate);
+                if (tempRequestedRate > MAX_SUBSPACE_RATE)
+                {
+                    tempRequestedRate = MAX_SUBSPACE_RATE;
+                }
+                requestedRatesList.Add(tempRequestedRate);
+            }
+            else
+            {
+                //Request the slowest rate if we are "lagging to the max"
+                requestedRatesList.Add(MIN_SUBSPACE_RATE);
+            }
+            //Delete entries if there are too many
+            while (requestedRatesList.Count > 50)
+            {
+                requestedRatesList.RemoveAt(0);
+            }
+            //Set the average requested rate
+            float requestedRateTotal = 0f;
+            foreach (float requestedRateEntry in requestedRatesList)
+            {
+                requestedRateTotal += requestedRateEntry;
+            }
+            requestedRate = requestedRateTotal / requestedRatesList.Count;
+
+            //Set the physwarp rate
             Time.timeScale = timeWarpRate;
-            skewList.Add(timeWarpRate);
-            while (skewList.Count > 300)
-            {
-                skewList.RemoveAt(0);
-            }
-            //Set the average
-            float totalSkew = 0f;
-            int totalCount = 0;
-            foreach (float currentSkew in skewList)
-            {
-                totalSkew += currentSkew;
-                totalCount++;
-            }
-            averageSkewRate = totalSkew / (float)totalCount;
         }
 
         private bool SituationIsGrounded(Vessel.Situations situation)

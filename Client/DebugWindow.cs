@@ -114,7 +114,6 @@ namespace DarkMultiPlayer
                     lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
-                    ntpText += "Average Warp rate: " + Math.Round(TimeSyncer.fetch.averageSkewRate, 3) + "x.\n";
                     ntpText += "Current subspace: " + TimeSyncer.fetch.currentSubspace + ".\n";
                     ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.GetSubspace(TimeSyncer.fetch.currentSubspace).subspaceSpeed, 3) + "x.\n";
                     ntpText += "Current Error: " + Math.Round((TimeSyncer.fetch.GetCurrentError() * 1000), 0) + " ms.\n";
