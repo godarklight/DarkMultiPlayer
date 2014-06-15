@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         private Dictionary<string, string> serverLocks = new Dictionary<string, string>();
         private List<AcquireEvent> lockAcquireEvents = new List<AcquireEvent>();
         private List<ReleaseEvent> lockReleaseEvents = new List<ReleaseEvent>();
+        private Dictionary<string, double> lastAcquireTime = new Dictionary<string, double>();
         private object lockObject = new object();
 
         public static LockSystem fetch
@@ -20,6 +21,15 @@ namespace DarkMultiPlayer
             get
             {
                 return singleton;
+            }
+        }
+
+        public void ThrottledAcquireLock(string lockname)
+        {
+            if (lastAcquireTime.ContainsKey(lockname) ? ((UnityEngine.Time.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
+            {
+                lastAcquireTime[lockname] = UnityEngine.Time.realtimeSinceStartup;
+                AcquireLock(lockname, false);
             }
         }
 
