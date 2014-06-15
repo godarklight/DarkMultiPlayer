@@ -1736,55 +1736,52 @@ namespace DarkMultiPlayerServer
                     if (warpType == WarpMessageType.REPORT_RATE)
                     {
                         int reportedSubspace = mr.Read<int>();
-                        if (reportedSubspace == client.subspace)
+                        float newSubspaceRate = mr.Read<float>();
+                        foreach (ClientObject otherClient in clients)
                         {
-                            float newSubspaceRateTotal = mr.Read<float>();
-                            int newSubspaceRateCount = 1;
-                            foreach (ClientObject otherClient in clients)
+                            if (otherClient.authenticated && otherClient.subspace == reportedSubspace)
                             {
-                                if (otherClient.authenticated && otherClient.subspace == reportedSubspace)
+                                if (newSubspaceRate > otherClient.subspaceRate)
                                 {
-                                    newSubspaceRateTotal += otherClient.subspaceRate;
-                                    newSubspaceRateCount++;
+                                    newSubspaceRate = otherClient.subspaceRate;
                                 }
                             }
-                            float newAverageRate = newSubspaceRateTotal / (float)newSubspaceRateCount;
-                            if (newAverageRate < 0.5f)
+                        }
+                        if (newSubspaceRate < 0.3f)
+                        {
+                            newSubspaceRate = 0.3f;
+                        }
+                        if (newSubspaceRate > 1f)
+                        {
+                            newSubspaceRate = 1f;
+                        }
+                        //Relock the subspace if the rate is more than 3% out of the average
+                        //DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
+                        if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newSubspaceRate) > 0.03f)
+                        {
+                            //New time = Old time + (seconds since lock * subspace rate)
+                            long newServerClockTime = DateTime.UtcNow.Ticks;
+                            float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[client.subspace].serverClock) / 10000000f;
+                            double newPlanetariumTime = subspaces[client.subspace].planetTime + (timeSinceLock * subspaces[client.subspace].subspaceSpeed);
+                            subspaces[client.subspace].serverClock = newServerClockTime;
+                            subspaces[client.subspace].planetTime = newPlanetariumTime;
+                            subspaces[client.subspace].subspaceSpeed = newSubspaceRate;
+                            ServerMessage relockMessage = new ServerMessage();
+                            relockMessage.type = ServerMessageType.WARP_CONTROL;
+                            using (MessageWriter mw = new MessageWriter())
                             {
-                                newAverageRate = 0.5f;
+                                mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
+                                mw.Write<string>(Settings.settingsStore.consoleIdentifier);
+                                mw.Write<int>(client.subspace);
+                                mw.Write<long>(DateTime.UtcNow.Ticks);
+                                mw.Write<double>(newPlanetariumTime);
+                                mw.Write<float>(newSubspaceRate);
+                                relockMessage.data = mw.GetMessageBytes();
                             }
-                            if (newAverageRate > 1f)
-                            {
-                                newAverageRate = 1f;
-                            }
-                            //Relock the subspace if the rate is more than 3% out of the average
-                            //DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
-                            if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newAverageRate) > 0.03f)
-                            {
-                                //New time = Old time + (seconds since lock * subspace rate)
-                                long newServerClockTime = DateTime.UtcNow.Ticks;
-                                float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[client.subspace].serverClock) / 10000000f;
-                                double newPlanetariumTime = subspaces[client.subspace].planetTime + (timeSinceLock * subspaces[client.subspace].subspaceSpeed);
-                                subspaces[client.subspace].serverClock = newServerClockTime;
-                                subspaces[client.subspace].planetTime = newPlanetariumTime;
-                                subspaces[client.subspace].subspaceSpeed = newAverageRate;
-                                ServerMessage relockMessage = new ServerMessage();
-                                relockMessage.type = ServerMessageType.WARP_CONTROL;
-                                using (MessageWriter mw = new MessageWriter())
-                                {
-                                    mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
-                                    mw.Write<string>(Settings.settingsStore.consoleIdentifier);
-                                    mw.Write<int>(client.subspace);
-                                    mw.Write<long>(DateTime.UtcNow.Ticks);
-                                    mw.Write<double>(newPlanetariumTime);
-                                    mw.Write<float>(newAverageRate);
-                                    relockMessage.data = mw.GetMessageBytes();
-                                }
-                                SaveLatestSubspace();
-                                DarkLog.Debug("Subspace " + client.subspace + " locked to " + newAverageRate + "x speed.");
-                                SendToClient(client, relockMessage, true);
-                                SendToAll(client, relockMessage, true);
-                            }
+                            SaveLatestSubspace();
+                            DarkLog.Debug("Subspace " + client.subspace + " locked to " + newSubspaceRate + "x speed.");
+                            SendToClient(client, relockMessage, true);
+                            SendToAll(client, relockMessage, true);
                         }
                     }
                 }

@@ -46,6 +46,12 @@ namespace DarkMultiPlayer
             private set;
         }
 
+        public bool atMaxSkew
+        {
+            get;
+            private set;
+        }
+
         public float averageSkewRate
         {
             get;
@@ -58,17 +64,26 @@ namespace DarkMultiPlayer
             {
                 if (locked)
                 {
-                    float tempRate = subspaces[currentSubspace].subspaceSpeed * (1 / averageSkewRate);
-                    //Request 0.5-1x speed.
-                    if (tempRate < 0.5)
+                    if (!atMaxSkew)
                     {
-                        tempRate = 0.5f;
+
+                        float tempRate = subspaces[currentSubspace].subspaceSpeed * (1 / averageSkewRate);
+                        //Request 0.5-1x speed.
+                        if (tempRate < 0.5)
+                        {
+                            tempRate = 0.5f;
+                        }
+                        if (tempRate > 1f)
+                        {
+                            tempRate = 1f;
+                        }
+                        return tempRate;
                     }
-                    if (tempRate > 1f)
+                    else
                     {
-                        tempRate = 1f;
+                        //Request 0.3x at max skew error
+                        return 0.3f;
                     }
-                    return tempRate;
                 }
                 return 1f;
             }
@@ -240,9 +255,18 @@ namespace DarkMultiPlayer
             //Same code from KMP.
             float timeWarpRate = (float)Math.Pow(2, -currentError);
             if (timeWarpRate > 1.5f)
+            {
+                atMaxSkew = true;
                 timeWarpRate = 1.5f;
+            }
+            else
+            {
+                atMaxSkew = false;
+            }
             if (timeWarpRate < 0.5f)
+            {
                 timeWarpRate = 0.5f;
+            }
             Time.timeScale = timeWarpRate;
             skewList.Add(timeWarpRate);
             while (skewList.Count > 300)
