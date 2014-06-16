@@ -14,6 +14,7 @@ namespace DarkMultiPlayerServer
         public static bool serverStarting;
         public static bool serverRestarting;
         public static string universeDirectory;
+        public static string pluginDirectory;
         public static Stopwatch serverClock;
         public static HttpListener httpListener;
         private static long ctrlCTime;
@@ -53,6 +54,9 @@ namespace DarkMultiPlayerServer
                     CheckUniverse();
                     DarkLog.Normal("Done!");
 
+                    //Load plugins
+                    DMPPluginHandler.LoadPlugins();
+
                     DarkLog.Normal("Loading settings... ");
                     Settings.Load();
                     DarkLog.Normal("Done!");
@@ -72,11 +76,12 @@ namespace DarkMultiPlayerServer
 
                     StartHTTPServer();
                     DarkLog.Normal("Done!");
-
+                    DMPPluginHandler.FireOnServerStart();
                     while (serverRunning)
                     {
                         Thread.Sleep(500);
                     }
+                    DMPPluginHandler.FireOnServerStop();
                     commandThread.Abort();
                     clientThread.Join();
                 }
@@ -117,6 +122,11 @@ namespace DarkMultiPlayerServer
         private static void CheckUniverse()
         {
             universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
+            pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+            if (!Directory.Exists(pluginDirectory))
+            {
+                Directory.CreateDirectory(pluginDirectory);
+            }
             if (!Directory.Exists(universeDirectory))
             {
                 Directory.CreateDirectory(universeDirectory);

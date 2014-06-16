@@ -49,6 +49,8 @@
     <Compile Include="ServerInfo.cs" />
     <Compile Include="NukeKSC.cs" />
     <Compile Include="LockSystem.cs" />
+    <Compile Include="DMPPlugin.cs" />
+    <Compile Include="DMPPluginHandler.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

@@ -78,6 +78,8 @@ namespace DarkMultiPlayerServer
                         //Check timers
                         NukeKSC.CheckTimer();
                         Dekessler.CheckTimer();
+                        //Run plugin update
+                        DMPPluginHandler.FireUpdate();
                         //Delete old clients
                         while (deleteClients.Count > 0)
                         {
@@ -288,6 +290,7 @@ namespace DarkMultiPlayerServer
             newClientObject.receiveMessageQueue = new Queue<ClientMessage>();
             newClientObject.sendLock = new object();
             StartReceivingIncomingMessages(newClientObject);
+            DMPPluginHandler.FireOnClientConnect(newClientObject);
             addClients.Enqueue(newClientObject);
         }
 
@@ -733,6 +736,7 @@ namespace DarkMultiPlayerServer
         {
             if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
             {
+                DMPPluginHandler.FireOnClientDisconnect(client);
                 if (client.playerName != null)
                 {
                     if (playerChatChannels.ContainsKey(client.playerName))
@@ -777,6 +781,7 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
+            DMPPluginHandler.FireOnMessageReceived(client, message);
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
             if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))
             {
@@ -977,6 +982,7 @@ namespace DarkMultiPlayerServer
             if (handshakeReponse == 0)
             {
                 client.authenticated = true;
+                DMPPluginHandler.FireOnClientAuthenticated(client);
                 DarkLog.Normal("Client " + playerName + " handshook successfully!");
 
                 if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
