@@ -2076,6 +2076,22 @@ namespace DarkMultiPlayerServer
             SendToAll(null, newMessage, true);
         }
 
+        public static void SendChatMessageToChannel(string channel, string messageText)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
+                mw.Write<string>(Settings.settingsStore.consoleIdentifier);
+                // Channel
+                mw.Write<string>(channel);
+                mw.Write(messageText);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToAll(null, newMessage, true);
+        }
+
         private static void SendServerSettings(ClientObject client)
         {
             int numberOfKerbals = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals")).Length;
