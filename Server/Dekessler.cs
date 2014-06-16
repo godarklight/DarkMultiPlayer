@@ -11,54 +11,57 @@ namespace DarkMultiPlayerServer
 
         public static void RunDekessler(string commandText)
         {
-            string[] vesselList = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
-            int numberOfRemovals = 0;
-            foreach (string vesselFile in vesselList)
+            lock (Server.universeSizeLock)
             {
-                string vesselID = Path.GetFileNameWithoutExtension(vesselFile);
-                bool vesselIsDebris = false;
-                using (StreamReader sr = new StreamReader(vesselFile))
+                string[] vesselList = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
+                int numberOfRemovals = 0;
+                foreach (string vesselFile in vesselList)
                 {
-                    string currentLine = sr.ReadLine();
-                    while (currentLine != null && !vesselIsDebris)
+                    string vesselID = Path.GetFileNameWithoutExtension(vesselFile);
+                    bool vesselIsDebris = false;
+                    using (StreamReader sr = new StreamReader(vesselFile))
                     {
-                        string trimmedLine = currentLine.Trim();
-                        if (trimmedLine.StartsWith("type = "))
+                        string currentLine = sr.ReadLine();
+                        while (currentLine != null && !vesselIsDebris)
                         {
-                            string vesselType = trimmedLine.Substring(trimmedLine.IndexOf("=") + 2);
-                            if (vesselType == "Debris")
+                            string trimmedLine = currentLine.Trim();
+                            if (trimmedLine.StartsWith("type = "))
                             {
-                                vesselIsDebris = true;
+                                string vesselType = trimmedLine.Substring(trimmedLine.IndexOf("=") + 2);
+                                if (vesselType == "Debris")
+                                {
+                                    vesselIsDebris = true;
+                                }
                             }
+                            currentLine = sr.ReadLine();
                         }
-                        currentLine = sr.ReadLine();
+                    }
+                    if (vesselIsDebris)
+                    {
+                        DarkLog.Normal("Removing vessel: " + vesselID);
+                        //Delete it from the universe
+                        if (File.Exists(vesselFile))
+                        {
+                            File.Delete(vesselFile);
+                        }
+                        //Send a vessel remove message
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.VESSEL_REMOVE;
+                        using (MessageWriter mw = new MessageWriter())
+                        {
+                            //Send it with a delete time of 0 so it shows up for all players.
+                            mw.Write<int>(0);
+                            mw.Write<double>(0);
+                            mw.Write<string>(vesselID);
+                            mw.Write<bool>(false);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        ClientHandler.SendToAll(null, newMessage, false);
+                        numberOfRemovals++;
                     }
                 }
-                if (vesselIsDebris)
-                {
-                    DarkLog.Normal("Removing vessel: " + vesselID);
-                    //Delete it from the universe
-                    if (File.Exists(vesselFile))
-                    {
-                        File.Delete(vesselFile);
-                    }
-                    //Send a vessel remove message
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.VESSEL_REMOVE;
-                    using (MessageWriter mw = new MessageWriter())
-                    {
-                        //Send it with a delete time of 0 so it shows up for all players.
-                        mw.Write<int>(0);
-                        mw.Write<double>(0);
-                        mw.Write<string>(vesselID);
-                        mw.Write<bool>(false);
-                        newMessage.data = mw.GetMessageBytes();
-                    }
-                    ClientHandler.SendToAll(null, newMessage, false);
-                    numberOfRemovals++;
-                }
+                DarkLog.Normal("Removed " + numberOfRemovals + " debris");
             }
-            DarkLog.Normal("Removed " + numberOfRemovals + " debris");
         }
 
         public static void CheckTimer()

@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
         public static double directorySize;
         public static string players = "";
         public static DateTime lastPlayerActivity;
+        public static object universeSizeLock = new object();
 
         public static void Main()
         {
@@ -90,27 +91,27 @@ namespace DarkMultiPlayerServer
         // Check universe folder size
         private static void GetUniverseSize()
         {
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            string[] kerbals = Directory.GetFiles(Path.Combine(universeDirectory, "Kerbals"), "*.*");
-            string[] vessels = Directory.GetFiles(Path.Combine(universeDirectory, "Vessels"), "*.*");
-
-            long size = 0;
-
-            foreach (string kerbal in kerbals)
+            lock (universeSizeLock)
             {
-                FileInfo kInfo = new FileInfo(kerbal);
-                size += kInfo.Length;
-            }
+                string[] kerbals = Directory.GetFiles(Path.Combine(universeDirectory, "Kerbals"), "*.*");
+                string[] vessels = Directory.GetFiles(Path.Combine(universeDirectory, "Vessels"), "*.*");
 
-            foreach (string vessel in vessels)
-            {
-                FileInfo vInfo = new FileInfo(vessel);
-                size += vInfo.Length;
-            }
+                long size = 0;
 
-            directorySize = size / 1048576f;
-            stopwatch.Stop();
+                foreach (string kerbal in kerbals)
+                {
+                    FileInfo kInfo = new FileInfo(kerbal);
+                    size += kInfo.Length;
+                }
+
+                foreach (string vessel in vessels)
+                {
+                    FileInfo vInfo = new FileInfo(vessel);
+                    size += vInfo.Length;
+                }
+
+                directorySize = size / 1048576f;
+            }
         }
         //Create universe directories
         private static void CheckUniverse()

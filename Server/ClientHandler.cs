@@ -1332,7 +1332,10 @@ namespace DarkMultiPlayerServer
                 }
                 if (File.Exists(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt")))
                 {
-                    File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
+                    lock (Server.universeSizeLock)
+                    {
+                        File.Delete(Path.Combine(Server.universeDirectory, "Vessels", vesselID + ".txt"));
+                    }
                 }
                 //Relay the message.
                 ServerMessage newMessage = new ServerMessage();
