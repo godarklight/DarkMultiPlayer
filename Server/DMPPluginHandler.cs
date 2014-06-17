@@ -56,78 +56,18 @@ namespace DarkMultiPlayerServer
                         {
                             try
                             {
-                                switch (methodInfo.Name)
+                                foreach (Type evT in pluginEvents.Keys)
                                 {
-                                    case "Update":
-                                        {
-                                            DMPUpdate updateDelegate = (DMPUpdate)Delegate.CreateDelegate(typeof(DMPUpdate), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(updateDelegate, info);
-                                            pluginEvents[typeof(DMPUpdate)].Add(updateDelegate);
-                                        }
-                                        break;
-                                    case "OnServerStart":
-                                        {
-                                            DMPOnServerStart onServerStartDelegate = (DMPOnServerStart)Delegate.CreateDelegate(typeof(DMPOnServerStart), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onServerStartDelegate, info);
-                                            pluginEvents[typeof(DMPOnServerStart)].Add(onServerStartDelegate);
-                                        }
-                                        break;
-                                    case "OnServerStop":
-                                        {
-                                            DMPOnServerStop onServerStopDelegate = (DMPOnServerStop)Delegate.CreateDelegate(typeof(DMPOnServerStop), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onServerStopDelegate, info);
-                                            pluginEvents[typeof(DMPOnServerStop)].Add(onServerStopDelegate);
-                                        }
-                                        break;
-                                    case "OnClientConnect":
-                                        {
-                                            DMPOnClientConnect onClientConnectDelegate = (DMPOnClientConnect)Delegate.CreateDelegate(typeof(DMPOnClientConnect), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onClientConnectDelegate, info);
-                                            pluginEvents[typeof(DMPOnClientConnect)].Add(onClientConnectDelegate);
-                                        }
-                                        break;
-                                    case "OnClientAuthenticated":
-                                        {
-                                            DMPOnClientConnect onClientAuthenticatedDelegate = (DMPOnClientConnect)Delegate.CreateDelegate(typeof(DMPOnClientConnect), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onClientAuthenticatedDelegate, info);
-                                            pluginEvents[typeof(DMPOnClientAuthenticated)].Add(onClientAuthenticatedDelegate);
-                                        }
-                                        break;
-                                    case "OnClientDisconnect":
-                                        {
-                                            DMPOnClientDisconnect onClientDisconnectDelegate = (DMPOnClientDisconnect)Delegate.CreateDelegate(typeof(DMPOnClientDisconnect), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onClientDisconnectDelegate, info);
-                                            pluginEvents[typeof(DMPOnClientDisconnect)].Add(onClientDisconnectDelegate);
-                                        }
-                                        break;
-                                    case "OnMessageReceived":
-                                        {
-                                            DMPOnMessageReceived onMessageReceivedDelegate = (DMPOnMessageReceived)Delegate.CreateDelegate(typeof(DMPOnMessageReceived), pluginInstance, methodInfo);
-                                            DMPEventInfo info = new DMPEventInfo();
-                                            info.loadedAssembly = loadedAssembly.FullName;
-                                            info.loadedType = loadedType.Name;
-                                            delegateInfo.Add(onMessageReceivedDelegate, info);
-                                            pluginEvents[typeof(DMPOnMessageReceived)].Add(onMessageReceivedDelegate);
-                                        }
-                                        break;
+                                    if (evT.Name.Substring(3) == methodInfo.Name)
+                                    {
+                                        DarkLog.Debug("Event registered : " + evT.Name);
+                                        Delegate deg = Delegate.CreateDelegate(evT, pluginInstance, methodInfo);
+                                        DMPEventInfo info = new DMPEventInfo();
+                                        info.loadedAssembly = loadedAssembly.FullName;
+                                        info.loadedType = loadedType.Name;
+                                        delegateInfo.Add(deg, info);
+                                        pluginEvents[evT].Add(deg);
+                                    }
                                 }
                             }
                             catch (Exception e)
