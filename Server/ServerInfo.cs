@@ -47,7 +47,7 @@ namespace DarkMultiPlayerServer
         public bool cheats;
 
         [DataMember]
-        public string universeSize;
+        public long universeSize;
 
         [DataMember]
         public double lastPlayerActivity;
@@ -65,8 +65,7 @@ namespace DarkMultiPlayerServer
             port = settings.port;
             mod_control = settings.modControl;
             cheats = settings.cheats;
-            universeSize = Server.directorySize.ToString("F2") + " MB";
-            universeSize = universeSize.Replace(",", ".");
+            universeSize = Server.GetUniverseSize();
             lastPlayerActivity = (Server.lastPlayerActivity - new DateTime(1970, 1, 1).ToLocalTime()).TotalSeconds;
         }
 
