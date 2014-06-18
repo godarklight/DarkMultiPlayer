@@ -17,8 +17,8 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
                 CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
                 CommandHandler.RegisterCommand("nukeksc", NukeKSC.RunNukeKSC, "Clears ALL vessels from KSC and the Runway");
-                CommandHandler.RegisterCommand("listclients", ListClients , "Clears out debris from the server");
-                CommandHandler.RegisterCommand("countclients", CountClients, "Clears out debris from the server");
+                CommandHandler.RegisterCommand("listclients", ListClients , "Lists connected clients");
+                CommandHandler.RegisterCommand("countclients", CountClients, "Counts connected clients");
 
                 //Main loop
                 while (Server.serverRunning)
