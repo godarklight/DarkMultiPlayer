@@ -151,7 +151,7 @@ namespace DarkMultiPlayerServer
         //Fire OnClientConnect
         public static void FireOnClientAuthenticated(ClientObject client)
         {
-            foreach (DMPOnClientConnect pluginEvent in pluginEvents[typeof(DMPOnClientAuthenticated)])
+            foreach (DMPOnClientAuthenticated pluginEvent in pluginEvents[typeof(DMPOnClientAuthenticated)])
             {
                 try
                 {
