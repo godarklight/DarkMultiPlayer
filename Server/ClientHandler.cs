@@ -25,11 +25,13 @@ namespace DarkMultiPlayerServer
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
         private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
+        private static string adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
         private static Dictionary<string, List<string>> playerChatChannels;
         private static List<string> bannedNames;
         private static List<IPAddress> bannedIPs;
         private static List<Guid> bannedGUIDs;
         private static List<string> banReasons;
+        private static List<string> serverAdmins;
         private static Dictionary<string, int> playerUploadedScreenshotIndex;
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
@@ -49,6 +51,7 @@ namespace DarkMultiPlayerServer
                 bannedIPs = new List<IPAddress>();
                 bannedGUIDs = new List<Guid>();
                 banReasons = new List<string>();
+                serverAdmins = new List<string>();
                 playerUploadedScreenshotIndex = new Dictionary<string, int>();
                 playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
                 playerWatchScreenshot = new Dictionary<string, string>();
@@ -56,6 +59,7 @@ namespace DarkMultiPlayerServer
                 LoadSavedSubspace();
                 LoadModFile();
                 LoadBans();
+                LoadAdmins();
                 SetupTCPServer();
 
                 while (Server.serverRunning)
@@ -294,8 +298,33 @@ namespace DarkMultiPlayerServer
             addClients.Enqueue(newClientObject);
         }
 
+        private static void SaveAdmins()
+        {
+            DarkLog.Debug("Saving admin list");
+            try
+            {
+                if (File.Exists(adminListFile))
+                {
+                    File.SetAttributes(adminListFile, FileAttributes.Normal);
+                }
+
+                using (StreamWriter sw = new StreamWriter(adminListFile))
+                {
+                    foreach (string user in serverAdmins)
+                    {
+                        sw.WriteLine(user);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error saving admin list!, Exception: " + e);
+            }
+        }
+
         private static void SaveBans()
         {
+            DarkLog.Debug("Saving bans");
             try
             {
                 if (File.Exists(banlistFile))
@@ -331,6 +360,22 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 DarkLog.Error("Error saving bans!, Exception: " + e);
+            }
+        }
+
+        private static void LoadAdmins()
+        {
+            DarkLog.Debug("Loading admin list");
+
+            serverAdmins.Clear();
+
+            if (File.Exists(adminListFile))
+            {
+                serverAdmins.AddRange(File.ReadAllLines(adminListFile));
+            }
+            else
+            {
+                SaveAdmins();
             }
         }
 
@@ -2677,6 +2722,60 @@ namespace DarkMultiPlayerServer
             else
             {
                 DarkLog.Normal("Player not found!");
+            }
+        }
+
+        public static void AdminCommand(string commandArgs)
+        {
+            string func = "";
+            string playerName = "";
+
+            if (commandArgs.Contains(" "))
+            {
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                if (commandArgs.Substring(func.Length).Contains(" "))
+                {
+                    playerName = commandArgs.Substring(func.Length + 1);
+                }
+            }
+
+            switch (func)
+            {
+                default:
+                    DarkLog.Debug("Undefined function. Usage: /admin [add|del] playername");
+                    break;
+                case "add":
+                    if (File.Exists(Path.Combine(Server.universeDirectory, "Players", playerName + ".txt")))
+                    {
+                        if (!serverAdmins.Contains(playerName))
+                        {
+                            DarkLog.Debug("Added '" + playerName + "' to admin list.");
+                            serverAdmins.Add(playerName);
+                            SaveAdmins();
+                        }
+                        else
+                        {
+                            DarkLog.Debug("'" + playerName + "' is already an admin.");
+                        }
+
+                    }
+                    else
+                    {
+                        DarkLog.Debug("'" + playerName + "' does not exist.");
+                    }
+                    break;
+                case "del":
+                    if (serverAdmins.Contains(playerName))
+                    {
+                        DarkLog.Debug("Removed '" + playerName + "' from the admin list.");
+                        serverAdmins.Remove(playerName);
+                        SaveAdmins();
+                    }
+                    else
+                    {
+                        DarkLog.Debug("'" + playerName + "' is not an admin.");
+                    }
+                    break;
             }
         }
         #endregion

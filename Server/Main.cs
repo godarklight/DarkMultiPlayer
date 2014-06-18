@@ -19,7 +19,6 @@ namespace DarkMultiPlayerServer
         public static HttpListener httpListener;
         private static long ctrlCTime;
         public static int playerCount = 0;
-        public static double directorySize;
         public static string players = "";
         public static DateTime lastPlayerActivity;
         public static object universeSizeLock = new object();
@@ -41,6 +40,7 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
                 CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
                 CommandHandler.RegisterCommand("pm", ClientHandler.PMCommand, "Sends a message to a player");
+                CommandHandler.RegisterCommand("admin", ClientHandler.AdminCommand, "Sets a player as admin/removes admin from the player");
                 //Register the ctrl+c event
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
@@ -94,28 +94,27 @@ namespace DarkMultiPlayerServer
             }
         }
         // Check universe folder size
-        private static void GetUniverseSize()
+        public static long GetUniverseSize()
         {
             lock (universeSizeLock)
             {
+                long directorySize = 0;
                 string[] kerbals = Directory.GetFiles(Path.Combine(universeDirectory, "Kerbals"), "*.*");
                 string[] vessels = Directory.GetFiles(Path.Combine(universeDirectory, "Vessels"), "*.*");
-
-                long size = 0;
 
                 foreach (string kerbal in kerbals)
                 {
                     FileInfo kInfo = new FileInfo(kerbal);
-                    size += kInfo.Length;
+                    directorySize += kInfo.Length;
                 }
 
                 foreach (string vessel in vessels)
                 {
                     FileInfo vInfo = new FileInfo(vessel);
-                    size += vInfo.Length;
+                    directorySize += vInfo.Length;
                 }
 
-                directorySize = size / 1048576f;
+                return directorySize;
             }
         }
         //Create universe directories
@@ -229,7 +228,8 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Error("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+                    DarkLog.Fatal("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+                    throw;
                 }
             }
         }
@@ -272,7 +272,6 @@ namespace DarkMultiPlayerServer
 
                 HttpListenerContext context = listener.EndGetContext(result);
 
-                GetUniverseSize(); // gets the universe size in megabytes
                 string responseText = new ServerInfo(Settings.settingsStore).GetJSON();
 
                 byte[] buffer = Encoding.UTF8.GetBytes(responseText);
@@ -288,6 +287,8 @@ namespace DarkMultiPlayerServer
                 if (Server.serverRunning)
                 {
                     DarkLog.Error("Exception while listening to HTTP server!, Exception:\n" + e);
+                    Thread.Sleep(1000);
+                    httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
                 }
             }
         }

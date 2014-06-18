@@ -58,7 +58,7 @@ namespace DarkMultiPlayerServer
                             {
                                 foreach (Type evT in pluginEvents.Keys)
                                 {
-                                    if (evT.Name.IndexOf(methodInfo.Name) == 3)
+                                    if (evT.Name.Substring(3) == methodInfo.Name)
                                     {
                                         DarkLog.Debug("Event registered : " + evT.Name);
                                         Delegate deg = Delegate.CreateDelegate(evT, pluginInstance, methodInfo);
@@ -151,7 +151,7 @@ namespace DarkMultiPlayerServer
         //Fire OnClientConnect
         public static void FireOnClientAuthenticated(ClientObject client)
         {
-            foreach (DMPOnClientConnect pluginEvent in pluginEvents[typeof(DMPOnClientAuthenticated)])
+            foreach (DMPOnClientAuthenticated pluginEvent in pluginEvents[typeof(DMPOnClientAuthenticated)])
             {
                 try
                 {
