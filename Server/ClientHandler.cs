@@ -1791,6 +1791,7 @@ namespace DarkMultiPlayerServer
                     {
                         int reportedSubspace = mr.Read<int>();
                         float newSubspaceRate = mr.Read<float>();
+                        client.subspaceRate = newSubspaceRate;
                         foreach (ClientObject otherClient in clients)
                         {
                             if (otherClient.authenticated && otherClient.subspace == reportedSubspace)
