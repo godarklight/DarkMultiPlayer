@@ -903,22 +903,29 @@ namespace DarkMultiPlayer
         //Adapted from KMP.
         private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
         {
-            if (protovessel != null)
+            CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
+            if (kerbinBody == null)
             {
-                //If not kerbin, we aren't in the safety bubble.
-                if (protovessel.orbitSnapShot.ReferenceBodyIndex != FlightGlobals.Bodies.FindIndex(body => body.bodyName == "Kerbin"))
-                {
-                    return false;
-                }
-                CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
-                Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
-                return isInSafetyBubble(protoVesselPosition, kerbinBody);
+                //We don't know where the safety bubble is if kerbin doesn't exist, let's just disable it.
+                return false;
             }
-            else
+            if (protovessel == null)
             {
                 DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel is null!");
                 return true;
             }
+            if (protovessel.orbitSnapShot == null)
+            {
+                DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel has no orbit snapshot!");
+                return true;
+            }
+            //If not kerbin, we aren't in the safety bubble.
+            if (protovessel.orbitSnapShot.ReferenceBodyIndex != FlightGlobals.Bodies.IndexOf(kerbinBody))
+            {
+                return false;
+            }
+            Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
+            return isInSafetyBubble(protoVesselPosition, kerbinBody);
         }
 
         private VesselUpdate GetVesselUpdate(Vessel updateVessel)
@@ -1185,10 +1192,12 @@ namespace DarkMultiPlayer
             {
                 //Fix the kerbals (Tracking station bug)
                 checkProtoNodeCrew(ref vesselNode);
+                DodgeVesselActionGroups(ref vesselNode);
 
                 //Can be used for debugging incoming vessel config nodes.
                 //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
                 ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
+
                 if (currentProto != null)
                 {
                     if (currentProto.vesselType == VesselType.SpaceObject)
@@ -1309,6 +1318,40 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("vesselNode is null!");
             }
+        }
+
+        private void DodgeVesselActionGroups(ref ConfigNode vesselNode)
+        {
+            if (vesselNode != null)
+            {
+                ConfigNode actiongroupNode = vesselNode.GetNode("ACTIONGROUPS");
+                if (actiongroupNode != null)
+                {
+                    foreach (string keyName in actiongroupNode.values.DistinctNames())
+                    {
+                        string valueCurrent = actiongroupNode.GetValue(keyName);
+                        string valueDodge = DodgeValueIfNeeded(valueCurrent);
+                        if (valueCurrent != valueDodge)
+                        {
+                            DarkLog.Debug("Dodged actiongroup " + keyName);
+                            actiongroupNode.SetValue(keyName, valueDodge);
+                        }
+                    }
+                }
+            }
+        }
+
+        private string DodgeValueIfNeeded(string input)
+        {
+            string boolValue = input.Substring(0, input.IndexOf(", "));
+            string timeValue = input.Substring(input.IndexOf(", ") + 1);
+            double vesselPlanetTime = Double.Parse(timeValue);
+            double currentPlanetTime = Planetarium.GetUniversalTime();
+            if (vesselPlanetTime > currentPlanetTime)
+            {
+                return boolValue + ", " + currentPlanetTime;
+            }
+            return input;
         }
 
         public void OnVesselDestroyed(Vessel dyingVessel)

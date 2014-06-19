@@ -819,7 +819,7 @@ namespace DarkMultiPlayerServer
                 {
                     client.connection.Close();
                 }
-                Server.lastPlayerActivity = DateTime.Now;
+                Server.lastPlayerActivity = Server.serverClock.ElapsedTicks;
             }
         }
         #endregion
@@ -1041,7 +1041,6 @@ namespace DarkMultiPlayerServer
                 SendHandshakeReply(client, handshakeReponse, "success");
                 Server.playerCount = GetActiveClientCount();
                 Server.players = GetActivePlayerNames();
-                Server.lastPlayerActivity = DateTime.Now;
             }
             else
             {
@@ -1791,6 +1790,7 @@ namespace DarkMultiPlayerServer
                     {
                         int reportedSubspace = mr.Read<int>();
                         float newSubspaceRate = mr.Read<float>();
+                        client.subspaceRate = newSubspaceRate;
                         foreach (ClientObject otherClient in clients)
                         {
                             if (otherClient.authenticated && otherClient.subspace == reportedSubspace)

@@ -116,6 +116,16 @@ namespace DarkMultiPlayer
         //Skew or set the clock
         private void SyncTime()
         {
+            if (HighLogic.LoadedScene == GameScenes.SPH || HighLogic.LoadedScene == GameScenes.EDITOR)
+            {
+                if (requestedRatesList.Count > 0)
+                {
+                    requestedRatesList.Clear();
+                    Time.timeScale = 1f;
+                    requestedRate = 1f;
+                }
+                return;
+            }
             if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
                 lastClockSkew = UnityEngine.Time.realtimeSinceStartup;

@@ -20,7 +20,7 @@ namespace DarkMultiPlayerServer
         private static long ctrlCTime;
         public static int playerCount = 0;
         public static string players = "";
-        public static DateTime lastPlayerActivity;
+        public static long lastPlayerActivity;
         public static object universeSizeLock = new object();
 
         public static void Main()
@@ -30,6 +30,7 @@ namespace DarkMultiPlayerServer
                 //Start the server clock
                 serverClock = new Stopwatch();
                 serverClock.Start();
+                lastPlayerActivity = serverClock.ElapsedTicks;
                 //Register the server commands
                 CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
                 CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
@@ -117,6 +118,16 @@ namespace DarkMultiPlayerServer
                 return directorySize;
             }
         }
+        //Get last disconnect time
+        public static long GetLastPlayerActivity()
+        {
+            if (playerCount > 0)
+            {
+                return 0;
+            }
+            return (serverClock.ElapsedTicks - lastPlayerActivity) / 10000000;
+        }
+
         //Create universe directories
         private static void CheckUniverse()
         {
