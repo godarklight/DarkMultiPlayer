@@ -903,6 +903,12 @@ namespace DarkMultiPlayer
         //Adapted from KMP.
         private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
         {
+            CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
+            if (kerbinBody == null)
+            {
+                //We don't know where the safety bubble is if kerbin doesn't exist, let's just disable it.
+                return false;
+            }
             if (protovessel == null)
             {
                 DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel is null!");
@@ -911,12 +917,6 @@ namespace DarkMultiPlayer
             if (protovessel.orbitSnapShot == null)
             {
                 DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel has no orbit snapshot!");
-                return true;
-            }
-            CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
-            if (kerbinBody == null)
-            {
-                DarkLog.Debug("isProtoVesselInSafetyBubble: kerbin does not exist!");
                 return true;
             }
             //If not kerbin, we aren't in the safety bubble.
