@@ -903,22 +903,29 @@ namespace DarkMultiPlayer
         //Adapted from KMP.
         private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
         {
-            if (protovessel != null)
-            {
-                //If not kerbin, we aren't in the safety bubble.
-                if (protovessel.orbitSnapShot.ReferenceBodyIndex != FlightGlobals.Bodies.FindIndex(body => body.bodyName == "Kerbin"))
-                {
-                    return false;
-                }
-                CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
-                Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
-                return isInSafetyBubble(protoVesselPosition, kerbinBody);
-            }
-            else
+            if (protovessel == null)
             {
                 DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel is null!");
                 return true;
             }
+            if (protovessel.orbitSnapShot == null)
+            {
+                DarkLog.Debug("isProtoVesselInSafetyBubble: protovessel has no orbit snapshot!");
+                return true;
+            }
+            CelestialBody kerbinBody = FlightGlobals.Bodies.Find(b => b.name == "Kerbin");
+            if (kerbinBody == null)
+            {
+                DarkLog.Debug("isProtoVesselInSafetyBubble: kerbin does not exist!");
+                return true;
+            }
+            //If not kerbin, we aren't in the safety bubble.
+            if (protovessel.orbitSnapShot.ReferenceBodyIndex != FlightGlobals.Bodies.IndexOf(kerbinBody))
+            {
+                return false;
+            }
+            Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
+            return isInSafetyBubble(protoVesselPosition, kerbinBody);
         }
 
         private VesselUpdate GetVesselUpdate(Vessel updateVessel)
