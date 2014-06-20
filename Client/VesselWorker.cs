@@ -13,11 +13,6 @@ namespace DarkMultiPlayer
         private static VesselWorker singleton;
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
-        //Pack distances
-        private const float PLAYER_UNPACK_THRESHOLD = 9000;
-        private const float PLAYER_PACK_THRESHOLD = 10000;
-        private const float NORMAL_UNPACK_THRESHOLD = 300;
-        private const float NORMAL_PACK_THRESHOLD = 600;
         private const float SAFETY_BUBBLE_DISTANCE = 100;
         //Spectate stuff
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
@@ -511,31 +506,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void UpdatePackDistance(string vesselID)
-        {
-            foreach (Vessel v in FlightGlobals.fetch.vessels)
-            {
-                if (v.id.ToString() == vesselID)
-                {
-                    //Bump other players active vessels
-                    if (LockSystem.fetch.LockExists("control-" + vesselID) && !LockSystem.fetch.LockIsOurs("control-" + vesselID))
-                    {
-                        v.distanceLandedUnpackThreshold = PLAYER_UNPACK_THRESHOLD;
-                        v.distanceLandedPackThreshold = PLAYER_PACK_THRESHOLD;
-                        v.distanceUnpackThreshold = PLAYER_UNPACK_THRESHOLD;
-                        v.distancePackThreshold = PLAYER_PACK_THRESHOLD;
-                    }
-                    else
-                    {
-                        v.distanceLandedUnpackThreshold = NORMAL_UNPACK_THRESHOLD;
-                        v.distanceLandedPackThreshold = NORMAL_PACK_THRESHOLD;
-                        v.distanceUnpackThreshold = NORMAL_UNPACK_THRESHOLD;
-                        v.distancePackThreshold = NORMAL_PACK_THRESHOLD;
-                    }
-                }
-            }
-        }
-
         private void CheckVesselHasChanged()
         {
             if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
@@ -781,10 +751,9 @@ namespace DarkMultiPlayer
             //Send updates for unpacked vessels that aren't being flown by other players
             bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id.ToString()]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
             bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id.ToString()) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id.ToString()]) > (1f / (float)DynamicTickWorker.fetch.sendTickRate)) : true;
-            bool isServerEVAKerbal = checkVessel.vesselType == VesselType.EVA && serverVessels.Contains(checkVessel.id.ToString());
 
             //Check that is hasn't been recently sent
-            if (notRecentlySentProtoUpdate && (checkVessel.situation != Vessel.Situations.FLYING) && !isServerEVAKerbal)
+            if (notRecentlySentProtoUpdate && (checkVessel.situation != Vessel.Situations.FLYING))
             {
 
                 ProtoVessel checkProto = new ProtoVessel(checkVessel);
@@ -1200,6 +1169,13 @@ namespace DarkMultiPlayer
 
                 if (currentProto != null)
                 {
+                    //Skip already loaded EVA's
+                    if ((currentProto.vesselType == VesselType.EVA) && (FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null))
+                    {
+                        return;
+                    }
+
+                    //Register asteroids from other players
                     if (currentProto.vesselType == VesselType.SpaceObject)
                     {
                         if (currentProto.protoPartSnapshots != null)
@@ -1215,12 +1191,14 @@ namespace DarkMultiPlayer
                         }
                     }
 
+                    //Skip vessels that try to load in the safety bubble
                     if (isProtoVesselInSafetyBubble(currentProto))
                     {
                         DarkLog.Debug("Removing protovessel " + currentProto.vesselID.ToString() + ", name: " + currentProto.vesselName + " from server - In safety bubble!");
-                        NetworkWorker.fetch.SendVesselRemove(currentProto.vesselID.ToString(), false);
+                        //NetworkWorker.fetch.SendVesselRemove(currentProto.vesselID.ToString(), false);
                         return;
                     }
+
                     RegisterServerVessel(currentProto.vesselID.ToString());
                     DarkLog.Debug("Loading " + currentProto.vesselID + ", name: " + currentProto.vesselName + ", type: " + currentProto.vesselType);
 
@@ -1262,6 +1240,14 @@ namespace DarkMultiPlayer
                         Vessel oldVessel = FlightGlobals.fetch.vessels[vesselID];
                         if (oldVessel.id.ToString() == currentProto.vesselID.ToString())
                         {
+                            //Don't replace the vessel if it's unpacked, not landed, close to the ground, and has the same amount of parts.
+                            double hft = oldVessel.GetHeightFromTerrain();
+                            double hfs = oldVessel.GetHeightFromSurface();
+                            DarkLog.Debug("Replacement may be incorrectly killed (HFS: " + hfs + ", HFT: " + hft);
+                            if (!oldVessel.packed && !oldVessel.Landed && (hft < 1000) && (currentProto.protoPartSnapshots.Count == oldVessel.parts.Count))
+                            {
+                                return;
+                            }
                             //Don't kill the active vessel - Kill it after we switch.
                             //Killing the active vessel causes all sorts of crazy problems.
                             if (wasActive)
@@ -1280,7 +1266,6 @@ namespace DarkMultiPlayer
 
                     if (currentProto.vesselRef != null)
                     {
-                        UpdatePackDistance(currentProto.vesselRef.id.ToString());
                         if (wasActive)
                         {
                             DarkLog.Debug("ProtoVessel update for active vessel!");
@@ -1672,8 +1657,8 @@ namespace DarkMultiPlayer
             }
             //Get updating player
             string updatePlayer = LockSystem.fetch.LockExists(update.vesselID) ? LockSystem.fetch.LockOwner(update.vesselID) : "Unknown";
-            //Ignore updates to our own vessel
-            if (!isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == update.vesselID : false))
+            //Ignore updates to our own vessel if we are in flight and we aren't spectating
+            if (!isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == update.vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 DarkLog.Debug("ApplyVesselUpdate - Ignoring update for active vessel from " + updatePlayer);
                 return;
@@ -1692,16 +1677,42 @@ namespace DarkMultiPlayer
             }
             if (update.isSurfaceUpdate)
             {
+                //Get the new position/velocity
+                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(update.position[0], update.position[1], update.position[2]);
+                Vector3d updateVelocity = new Vector3d(update.velocity[0], update.velocity[1], update.velocity[2]);
+                //Figure out how far away we are if we can
                 double updateDistance = Double.PositiveInfinity;
                 if ((HighLogic.LoadedScene == GameScenes.FLIGHT) && (FlightGlobals.fetch.activeVessel != null))
                 {
-                    updateDistance = Vector3.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), updateVessel.GetWorldPos3D());
+                    Vector3d ourPos = FlightGlobals.fetch.activeVessel.mainBody.GetWorldSurfacePosition(FlightGlobals.fetch.activeVessel.latitude, FlightGlobals.fetch.activeVessel.longitude, FlightGlobals.fetch.activeVessel.altitude);
+                    Vector3d theirPos = updateVessel.mainBody.GetWorldSurfacePosition(updateVessel.latitude, updateVessel.longitude, updateVessel.altitude);
+                    updateDistance = Vector3.Distance(ourPos, theirPos);
+                    DarkLog.Debug("PosDiff: " + updateDistance);
                 }
-                bool isUnpacking = (updateDistance < updateVessel.distanceUnpackThreshold) && updateVessel.packed;
-                if (!updateVessel.packed && !isUnpacking)
+                bool isLoading = (updateDistance < Vessel.loadDistance) && !updateVessel.loaded;
+                bool isUnpacking = (updateDistance < updateVessel.distanceUnpackThreshold) && updateVessel.packed && updateVessel.loaded;
+                //Don't set the position while the vessel is unpacking / loading.
+                if (isUnpacking || isLoading)
                 {
-                    Vector3d updatePostion = updateBody.GetWorldSurfacePosition(update.position[0], update.position[1], update.position[2]);
-                    Vector3d updateVelocity = new Vector3d(update.velocity[0], update.velocity[1], update.velocity[2]);
+                    DarkLog.Debug("Skipping update, isUnpacking: " + isUnpacking + " isLoading: " + isLoading);
+                    return;
+                }
+                if (updateVessel.packed)
+                {
+                    updateVessel.latitude = update.position[0];
+                    updateVessel.longitude = update.position[1];
+                    updateVessel.altitude = update.position[2];
+                    Vector3d orbitalPos = updatePostion - updateBody.position;
+                    Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(updatePostion);
+                    Vector3d orbitalVel = updateVelocity + surfaceOrbitVelDiff;
+                    //Vector3d oldPos = updateVessel.orbitDriver.orbit.pos;
+                    //Vector3d oldVel = updateVessel.orbitDriver.orbit.vel;
+                    updateVessel.orbitDriver.orbit.UpdateFromStateVectors(orbitalPos.xzy, orbitalVel.xzy, updateBody, update.planetTime);
+                    //DarkLog.Debug("oldPos: " + (Vector3)oldPos + ", newPos: " + (Vector3)updateVessel.orbitDriver.orbit.pos + "oP: " + (Vector3)orbitalPos);
+                    //DarkLog.Debug("oldVel: " + (Vector3)oldVel + ", newVel: " + (Vector3)updateVessel.orbitDriver.orbit.vel + "oV: " + (Vector3)orbitalVel + " sOVD:" + (Vector3)surfaceOrbitVelDiff);
+                }
+                else
+                {
                     Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
                     updateVessel.SetPosition(updatePostion);
                     updateVessel.ChangeWorldVelocity(velocityOffset);
