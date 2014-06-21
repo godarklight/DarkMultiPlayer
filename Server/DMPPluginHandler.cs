@@ -13,10 +13,15 @@ namespace DarkMultiPlayerServer
 
         public static void LoadPlugins()
         {
+            string pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
+            if (!Directory.Exists(pluginDirectory))
+            {
+                Directory.CreateDirectory(pluginDirectory);
+            }
             DarkLog.Debug("Loading plugins!");
             //Load all the assemblies just in case they depend on each other during instantation
             List<Assembly> loadedAssemblies = new List<Assembly>();
-            string[] pluginFiles = Directory.GetFiles(Server.pluginDirectory, "*", SearchOption.AllDirectories);
+            string[] pluginFiles = Directory.GetFiles(pluginDirectory, "*", SearchOption.AllDirectories);
             foreach (string pluginFile in pluginFiles)
             {
                 if (Path.GetExtension(pluginFile).ToLower() == ".dll")
