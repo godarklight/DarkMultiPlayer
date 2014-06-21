@@ -19,9 +19,7 @@ namespace DarkMultiPlayerServer
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
-        private static string modFileData;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
-        private static string modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPModControl.txt");
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
         private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
@@ -57,7 +55,6 @@ namespace DarkMultiPlayerServer
                 playerWatchScreenshot = new Dictionary<string, string>();
                 lockSystem = new LockSystem();
                 LoadSavedSubspace();
-                LoadModFile();
                 LoadBans();
                 LoadAdmins();
                 SetupTCPServer();
@@ -164,35 +161,6 @@ namespace DarkMultiPlayerServer
                 newSubspace.subspaceSpeed = 1f;
                 subspaces.Add(0, newSubspace);
                 SaveSubspace(0, newSubspace);
-            }
-        }
-
-        private static void LoadModFile()
-        {
-            try
-            {
-                using (StreamReader sr = new StreamReader(modFile))
-                {
-                    modFileData = sr.ReadToEnd();
-                }
-            }
-            catch
-            {
-                DarkLog.Debug("Creating new mod control file");
-                GenerateNewModFile();
-            }
-        }
-
-        private static void GenerateNewModFile()
-        {
-            if (File.Exists(modFile))
-            {
-                File.Move(modFile, modFile + ".bak");
-            }
-            modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
-            using (StreamWriter sw = new StreamWriter(modFile))
-            {
-                sw.Write(modFileData);
             }
         }
 
@@ -2082,6 +2050,11 @@ namespace DarkMultiPlayerServer
                     mw.Write<bool>(Settings.settingsStore.modControl);
                     if (Settings.settingsStore.modControl)
                     {
+                        if (!File.Exists(Server.modFile))
+                        {
+                            Server.GenerateNewModFile();
+                        }
+                        string modFileData = File.ReadAllText(Server.modFile);
                         mw.Write<string>(modFileData);
                     }
                 }

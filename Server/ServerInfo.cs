@@ -52,6 +52,9 @@ namespace DarkMultiPlayerServer
         [DataMember]
         public long lastPlayerActivity;
 
+        [DataMember]
+        public string modControlSha;
+
         public ServerInfo(SettingsStore settings)
         {
             server_name = settings.serverName;
@@ -67,6 +70,7 @@ namespace DarkMultiPlayerServer
             cheats = settings.cheats;
             universeSize = Server.GetUniverseSize();
             lastPlayerActivity = Server.GetLastPlayerActivity();
+            modControlSha = Server.GetModControlSHA();
         }
 
         public string GetJSON()

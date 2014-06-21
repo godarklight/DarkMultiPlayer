@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
         public static string players = "";
         public static long lastPlayerActivity;
         public static object universeSizeLock = new object();
+        public static string modFile;
 
         public static void Main()
         {
@@ -127,10 +128,14 @@ namespace DarkMultiPlayerServer
             }
             return (serverClock.ElapsedTicks - lastPlayerActivity) / 10000000;
         }
-
         //Create universe directories
         private static void CheckUniverse()
         {
+            modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+            if (!File.Exists(modFile))
+            {
+                GenerateNewModFile();
+            }
             universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
             if (!Directory.Exists(universeDirectory))
             {
@@ -160,7 +165,24 @@ namespace DarkMultiPlayerServer
             {
                 Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios", "Initial"));
             }
+        }
+        //Get mod file SHA
+        public static string GetModControlSHA()
+        {
+            return Common.CalculateSHA256Hash(modFile);
+        }
 
+        public static void GenerateNewModFile()
+        {
+            if (File.Exists(modFile))
+            {
+                File.Move(modFile, modFile + ".bak");
+            }
+            string modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
+            using (StreamWriter sw = new StreamWriter(modFile))
+            {
+                sw.Write(modFileData);
+            }
         }
         //Shutdown
         public static void ShutDown(string commandArgs)
@@ -277,8 +299,22 @@ namespace DarkMultiPlayerServer
                 HttpListener listener = (HttpListener)result.AsyncState;
 
                 HttpListenerContext context = listener.EndGetContext(result);
+                string responseText = "";
+                bool handled = false;
 
-                string responseText = new ServerInfo(Settings.settingsStore).GetJSON();
+                if (context.Request.Url.PathAndQuery.StartsWith("/modcontrol"))
+                {
+                    if (!File.Exists(modFile))
+                    {
+                        GenerateNewModFile();
+                    }
+                    responseText = File.ReadAllText(modFile);
+                    handled = true;
+                }
+                if (!handled)
+                {
+                    responseText = new ServerInfo(Settings.settingsStore).GetJSON();
+                }
 
                 byte[] buffer = Encoding.UTF8.GetBytes(responseText);
                 context.Response.ContentLength64 = buffer.LongLength;
