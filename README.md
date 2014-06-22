@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.4.0.
+#DarkMultiPlayer 0.1.5.0.
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -97,7 +97,8 @@ The warp type.
 ####modcontrol
 Enables or disables modcontrol - Only turn this off if you are running a private server where everyone has the same mods.  
 - 0 : Off  
-- 1 : On  
+- 1 : On (Don't sync vessels with invalid parts)  
+- 2 : On (Prevent vessels with invalid parts from launching)  
   
   
 ####useutctimeinlog
@@ -156,3 +157,7 @@ Specify the server's MOTD (message of the day).
 Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) - The file format is the same.  
   
 If you are running a private server, it's safe enough to just add the missing parts.  
+  
+You can get the DMP client to make a DMPModControl.txt file specific for your gamedata directory by pressing Options -> Generate DMPModControl.txt file.
+The whitelist option will only allow you to connect with the mods in your gamedata directory.
+The blacklist option will allow you to connect with any mods.

@@ -9,7 +9,7 @@ namespace DarkMultiPlayer
     public class ModWorker
     {
         private static ModWorker singleton = new ModWorker();
-        public bool modControl = true;
+        public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool dllListBuilt = false;
         //Dll files, built at startup
         private Dictionary<string, string> dllList;
@@ -67,7 +67,7 @@ namespace DarkMultiPlayer
 
         public bool ParseModFile(string modFileData)
         {
-            if (!modControl)
+            if (modControl == ModControlMode.DISABLED)
             {
                 return true;
             }

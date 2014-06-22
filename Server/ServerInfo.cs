@@ -41,7 +41,7 @@ namespace DarkMultiPlayerServer
         public string warp_mode;
 
         [DataMember]
-        public bool mod_control;
+        public int mod_control;
 
         [DataMember]
         public bool cheats;
@@ -66,7 +66,7 @@ namespace DarkMultiPlayerServer
             game_mode = settings.gameMode.ToString();
             warp_mode = settings.warpMode.ToString();
             port = settings.port;
-            mod_control = settings.modControl;
+            mod_control = (int)settings.modControl;
             cheats = settings.cheats;
             universeSize = Server.GetUniverseSize();
             lastPlayerActivity = Server.GetLastPlayerActivity();

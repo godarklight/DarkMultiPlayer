@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -579,6 +580,37 @@ namespace DarkMultiPlayer
                 //We haven't loaded into the game yet
                 return;
             }
+
+            if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+            {
+                if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
+                {
+                    //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
+                    CheckVesselParts(FlightGlobals.fetch.activeVessel);
+                }
+
+
+                if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                    {
+                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        if (bannedPartsMessage != null)
+                        {
+                            bannedPartsMessage.duration = 0;
+                        }
+                        if (ModWorker.fetch.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_SYNC)
+                        {
+                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                        if (ModWorker.fetch.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_LAUNCH)
+                        {
+                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, you will be unable to launch on this server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                    }
+                }
+            }
+
             if (isSpectating)
             {
                 //Don't send updates in spectate mode
@@ -593,29 +625,6 @@ namespace DarkMultiPlayer
             {
                 //Definitely dont send updates while spectating a docking
                 return;
-            }
-
-            if (ModWorker.fetch.modControl)
-            {
-                if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()))
-                {
-                    //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
-                    CheckVesselParts(FlightGlobals.fetch.activeVessel);
-                }
-            
-
-                if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()])
-                {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
-                    {
-                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
-                        if (bannedPartsMessage != null)
-                        {
-                            bannedPartsMessage.duration = 0;
-                        }
-                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
-                    }
-                }
             }
 
             if (isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
@@ -704,7 +713,7 @@ namespace DarkMultiPlayer
         private void SendVesselUpdateIfNeeded(Vessel checkVessel)
         {
             //Check vessel parts
-            if (ModWorker.fetch.modControl)
+            if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
             {
                 if (!vesselPartsOk.ContainsKey(checkVessel.id.ToString()))
                 {
@@ -848,6 +857,15 @@ namespace DarkMultiPlayer
                         {
                             spectateType = 2;
                             return true;
+                        }
+                        if (ModWorker.fetch.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_LAUNCH)
+                        {
+                            if (vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id.ToString()) ? !vesselPartsOk[FlightGlobals.fetch.activeVessel.id.ToString()] : true)
+                            {
+                                //If mod control prevents invalid launches and our vessel has invalid parts, go into spectate mode.
+                                spectateType = 3;
+                                return true;
+                            }
                         }
                     }
                 }
@@ -1877,6 +1895,10 @@ namespace DarkMultiPlayer
                     if (singleton.registered)
                     {
                         singleton.UnregisterGameHooks();
+                        if (singleton.wasSpectating)
+                        {
+                            InputLockManager.RemoveControlLock(DARK_SPECTATE_LOCK);
+                        }
                     }
                 }
                 singleton = new VesselWorker();

@@ -701,6 +701,11 @@ namespace DarkMultiPlayer
                     singleton.workerEnabled = false;
                     Client.updateEvent.Remove(singleton.Update);
                     Client.drawEvent.Remove(singleton.Draw);
+                    if (singleton.chatLocked)
+                    {
+                        singleton.chatLocked = false;
+                        InputLockManager.RemoveControlLock(DMP_CHAT_LOCK);
+                    }
                 }
                 singleton = new ChatWorker();
                 Client.updateEvent.Add(singleton.Update);

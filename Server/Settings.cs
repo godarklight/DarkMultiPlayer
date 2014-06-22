@@ -174,7 +174,7 @@ namespace DarkMultiPlayerServer
         public int port = 6702;
         public WarpMode warpMode = WarpMode.SUBSPACE;
         public GameMode gameMode = GameMode.SANDBOX;
-        public bool modControl = true;
+        public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool useUTCTimeInLog = false;
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
         public int screenshotsPerPlayer = 20;

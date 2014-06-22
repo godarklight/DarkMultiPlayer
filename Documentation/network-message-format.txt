@@ -7,7 +7,9 @@ All DMP messsage are built without a MessageWriter header, it gets added during 
 HEARTBEAT: null - Just sends some data over the wire to keep the connection alive.
 
 CHAT_MESSAGE:
-string - name
+int - chat message type (CHANNEL/PRIVATE)
+string - senders name
+string - CHANNEL: Channel, PRIVATE: PM player
 string - message.
 
 PLAYER_STATUS:
@@ -23,7 +25,9 @@ int - subspace id
 double - planetarium clock.
 string - Vessel GUID.
 string - Vessel reference body name.
-float[4] - Rotation Quat.
+//float[4] - Rotation Quat. - Replaced with KMP's method
+float[3] - vesselForward vector
+float[3] - vesselUp vector
 float[3] - Angular velocity.
 byte[] - Serialised vessel flightState.
 bool[5] - Actiongroup controls (gear,lights,brakes,sas,rcs)
@@ -33,6 +37,7 @@ double[3] - Surface position (lat,long,alt)
 double[3] - Surface velocity vector.
 (orbital type)
 double[7] - Orbital parameters, matches the order of the Orbit constructor.
+double[3] - Position delta between orbital parameters and actual position
 
 VESSEL_REMOVE:
 int subspace
@@ -79,7 +84,7 @@ float - subspace rate.
 int - subspace ID.
 
 
-(NOT IMPLEMENTED) SPLIT_MESSAGE: This message comes in 2 formats, it's state tracked on the server and clients. When we fill the buffer, we unencapsulate it and handle it as another message type.
+SPLIT_MESSAGE: This message comes in 2 formats, it's state tracked on the server and clients. When we fill the buffer, we unencapsulate it and handle it as another message type.
 --New split message--
 int - full message length, byte[] - First chunk.
 --Continuing split message--

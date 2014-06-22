@@ -700,8 +700,8 @@ namespace DarkMultiPlayer
                     //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
-                        ModWorker.fetch.modControl = mr.Read<bool>();
-                        if (ModWorker.fetch.modControl)
+                        ModWorker.fetch.modControl = (ModControlMode)mr.Read<int>();
+                        if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
                         {
                             modFileData = mr.Read<string>();
                         }

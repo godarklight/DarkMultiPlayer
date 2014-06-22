@@ -2047,8 +2047,8 @@ namespace DarkMultiPlayerServer
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 if (response == 0)
                 {
-                    mw.Write<bool>(Settings.settingsStore.modControl);
-                    if (Settings.settingsStore.modControl)
+                    mw.Write<int>((int)Settings.settingsStore.modControl);
+                    if (Settings.settingsStore.modControl != ModControlMode.DISABLED)
                     {
                         if (!File.Exists(Server.modFile))
                         {

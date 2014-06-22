@@ -16,7 +16,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 18;
+        public const int PROTOCOL_VERSION = 19;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -425,6 +425,13 @@ namespace DarkMultiPlayerCommon
     {
         SANDBOX,
         CAREER
+    }
+
+    public enum ModControlMode
+    {
+        DISABLED,
+        ENABLED_STOP_INVALID_PART_SYNC,
+        ENABLED_STOP_INVALID_PART_LAUNCH
     }
 
     public enum WarpMessageType
