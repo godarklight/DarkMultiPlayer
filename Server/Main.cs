@@ -47,6 +47,9 @@ namespace DarkMultiPlayerServer
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
 
+                //Compile scripts
+                scriptMgr.CompileScripts("Scripts", "DMPScripts.dll");
+
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
 
@@ -54,9 +57,6 @@ namespace DarkMultiPlayerServer
                 {
                     serverRestarting = false;
                     DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
-
-                    //Compile scripts
-                    scriptMgr.CompileScripts("Scripts", "DMPScripts.dll");
 
                     //Load settings
                     DarkLog.Normal("Loading universe... ");

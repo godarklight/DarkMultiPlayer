@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DMPScripts\ExampleEvent.cs" />
     <Compile Include="DMPScripts\Commands\Shutdown.cs" />
   </ItemGroup>
   <ItemGroup>
