@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
         public static string players = "";
         public static long lastPlayerActivity;
         public static object universeSizeLock = new object();
+        public static ScriptManager scriptMgr = new ScriptManager();
 
         public static void Main()
         {
@@ -52,6 +53,9 @@ namespace DarkMultiPlayerServer
                 {
                     serverRestarting = false;
                     DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
+
+                    //Compile scripts
+                    scriptMgr.CompileScripts("Scripts", "DMPScripts.dll");
 
                     //Load settings
                     DarkLog.Normal("Loading universe... ");
@@ -240,7 +244,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void StopHTTPServer()
+        public static void StopHTTPServer()
         {
             if (Settings.settingsStore.httpPort > 0)
             {
