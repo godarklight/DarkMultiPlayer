@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
         public static string players = "";
         public static long lastPlayerActivity;
         public static object universeSizeLock = new object();
+        public static ScriptManager scriptMgr = new ScriptManager();
         public static string modFile;
 
         public static void Main()
@@ -45,6 +46,9 @@ namespace DarkMultiPlayerServer
                 //Register the ctrl+c event
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
+
+                //Compile scripts
+                scriptMgr.CompileScripts("Scripts", "DMPScripts.dll");
 
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
@@ -262,7 +266,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void StopHTTPServer()
+        public static void StopHTTPServer()
         {
             if (Settings.settingsStore.httpPort > 0)
             {

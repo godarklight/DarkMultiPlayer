@@ -38,6 +38,8 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
+            // We load the script part too
+            loadedAssemblies.Add((Assembly)ScriptManager.CompiledAssemblies[0]);
             //Add all the event types
             pluginEvents.Add(typeof(DMPUpdate), new List<Delegate>());
             pluginEvents.Add(typeof(DMPOnServerStart), new List<Delegate>());
