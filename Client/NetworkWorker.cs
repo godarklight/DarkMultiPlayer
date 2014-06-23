@@ -987,14 +987,7 @@ namespace DarkMultiPlayer
             numberOfVesselsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                //We don't care about the subspace anymore
-                mr.Read<int>();
                 double planetTime = mr.Read<double>();
-                bool isDockingUpdate = mr.Read<bool>();
-                if (isDockingUpdate)
-                {
-                    DarkLog.Debug("Got a docking update!");
-                }
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
                 ConfigNode vesselNode = nodeSerializer.Deserialize(vesselData);
@@ -1401,7 +1394,7 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from vesselWorker
-        public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate)
+        public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate, bool isFlyingUpdate)
         {
             ConfigNode vesselNode = new ConfigNode();
             ClientMessage newMessage = new ClientMessage();
@@ -1412,12 +1405,13 @@ namespace DarkMultiPlayer
 
             if (vesselBytes != null)
             {
+                UniverseSyncCache.fetch.SaveToCache(vesselBytes);
                 using (MessageWriter mw = new MessageWriter())
                 {
-                    mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<bool>(isDockingUpdate);
+                    mw.Write<bool>(isFlyingUpdate);
                     mw.Write<byte[]>(vesselBytes);
                     newMessage.data = mw.GetMessageBytes();
                 }
