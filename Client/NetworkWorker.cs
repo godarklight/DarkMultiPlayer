@@ -47,6 +47,8 @@ namespace DarkMultiPlayer
         private object messageDequeueLock = new object();
         private Thread sendThread;
 
+        private ConfigNodeSerializer nodeSerializer = new ConfigNodeSerializer();
+
         public NetworkWorker()
         {
             lock (Client.eventLock)
@@ -909,7 +911,7 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 int kerbalID = mr.Read<int>();
                 byte[] kerbalData = mr.Read<byte[]>();
-                ConfigNode kerbalNode = ConvertByteArrayToConfigNode(kerbalData);
+                ConfigNode kerbalNode = nodeSerializer.Deserialize(kerbalData);
                 if (kerbalNode != null)
                 {
                     VesselWorker.fetch.QueueKerbal(subspaceID, planetTime, kerbalID, kerbalNode);
@@ -953,7 +955,7 @@ namespace DarkMultiPlayer
                     else
                     {
                         numberOfVesselsReceived++;
-                        ConfigNode vesselNode = ConvertByteArrayToConfigNode(UniverseSyncCache.fetch.GetFromCache(serverVessel));
+                        ConfigNode vesselNode = nodeSerializer.Deserialize(UniverseSyncCache.fetch.GetFromCache(serverVessel));
                         if (vesselNode != null)
                         {
                             string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
@@ -995,7 +997,7 @@ namespace DarkMultiPlayer
                 }
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
-                ConfigNode vesselNode = ConvertByteArrayToConfigNode(vesselData);
+                ConfigNode vesselNode = nodeSerializer.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
                     string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
@@ -1405,7 +1407,9 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             vessel.Save(vesselNode);
-            byte[] vesselBytes = ConvertConfigNodeToByteArray(vesselNode);
+
+            byte[] vesselBytes = nodeSerializer.Serialize(vesselNode);
+
             if (vesselBytes != null)
             {
                 using (MessageWriter mw = new MessageWriter())
@@ -1521,7 +1525,7 @@ namespace DarkMultiPlayer
             //Dodge the available status - Too many kerbals are getting created.
             kerbal.rosterStatus = ProtoCrewMember.RosterStatus.AVAILABLE;
             kerbal.Save(kerbalNode);
-            byte[] kerbalBytes = ConvertConfigNodeToByteArray(kerbalNode);
+            byte[] kerbalBytes = nodeSerializer.Serialize(kerbalNode);
             if (kerbalBytes != null)
             {
                 ClientMessage newMessage = new ClientMessage();
@@ -1616,62 +1620,7 @@ namespace DarkMultiPlayer
             return 0;
         }
         #endregion
-        //Welcome to the world of beyond-dodgy. KSP: Expose either these methods or the string data please!
-        private static ConfigNode ConvertByteArrayToConfigNode(byte[] configData)
-        {
-            string tempFile = null;
-            ConfigNode returnNode = null;
-            if (configData != null)
-            {
-                try
-                {
-                    tempFile = Path.GetTempFileName();
-                    File.WriteAllBytes(tempFile, configData);
-                    returnNode = ConfigNode.Load(tempFile);
-                }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Failed to convert byte[] to ConfigNode, Exception " + e);
-                    returnNode = null;
-                }
-                finally
-                {
-                    if (File.Exists(tempFile))
-                    {
-                        File.Delete(tempFile);
-                    }
-                }
-            }
-            return returnNode;
-        }
 
-        private static byte[] ConvertConfigNodeToByteArray(ConfigNode configData)
-        {
-            string tempFile = null;
-            byte[] returnByteArray = null;
-            if (configData != null)
-            {
-                try
-                {
-                    tempFile = Path.GetTempFileName();
-                    configData.Save(tempFile);
-                    returnByteArray = File.ReadAllBytes(tempFile);
-                }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Failed to convert byte[] to ConfigNode, Exception " + e);
-                    returnByteArray = null;
-                }
-                finally
-                {
-                    if (File.Exists(tempFile))
-                    {
-                        File.Delete(tempFile);
-                    }
-                }
-            }
-            return returnByteArray;
-        }
     }
 }
 
