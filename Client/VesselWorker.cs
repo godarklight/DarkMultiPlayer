@@ -1269,6 +1269,7 @@ namespace DarkMultiPlayer
                     }
 
                     //Skip flying vessel that are too far away
+                    bool usingHackyAtmoLoad = false;
                     if (currentProto.situation == Vessel.Situations.FLYING)
                     {
                         DarkLog.Debug("Got a flying update for " + currentProto.vesselID + ", name: " + currentProto.vesselName);
@@ -1321,6 +1322,7 @@ namespace DarkMultiPlayer
                                     DarkLog.Debug("Enabling FLYING vessel load!");
                                     //If the vessel is landed it won't be killed by the atmosphere
                                     currentProto.landed = true;
+                                    usingHackyAtmoLoad = true;
                                 }
                             }
                             else
@@ -1397,7 +1399,7 @@ namespace DarkMultiPlayer
 
                     if (currentProto.vesselRef != null)
                     {
-                        if (currentProto.situation == Vessel.Situations.FLYING)
+                        if (usingHackyAtmoLoad)
                         {
                             HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
                             hfvl.flyingVessel = currentProto.vesselRef;
