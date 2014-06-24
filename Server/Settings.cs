@@ -180,7 +180,7 @@ namespace DarkMultiPlayerServer
         public int screenshotsPerPlayer = 20;
         public int screenshotHeight = 720;
         public bool cheats = true;
-        public int httpPort = 8081;
+        public int httpPort = 0;
         public string serverName = "DMP Server";
         public int maxPlayers = 20;
         public string screenshotDirectory = "";

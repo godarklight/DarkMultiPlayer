@@ -49,6 +49,8 @@ namespace DarkMultiPlayerServer
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
 
+                Console.Title = "DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION;
+
                 while (serverStarting || serverRestarting)
                 {
                     serverRestarting = false;
@@ -237,6 +239,7 @@ namespace DarkMultiPlayerServer
 
         private static void StartHTTPServer()
         {
+            string OS = Environment.OSVersion.Platform.ToString();
             if (Settings.settingsStore.httpPort > 0)
             {
                 DarkLog.Normal("Starting HTTP server...");
@@ -254,9 +257,25 @@ namespace DarkMultiPlayerServer
                     httpListener.Start();
                     httpListener.BeginGetContext(asyncHTTPCallback, httpListener);
                 }
-                catch (Exception e)
+                catch (HttpListenerException e)
                 {
-                    DarkLog.Fatal("Error while starting HTTP server: " + e + "\nPlease try running the server as an administrator.");
+                    if (OS == "Win32NT" || OS == "Win32S" || OS == "Win32Windows" || OS == "WinCE") // if OS is Windows
+                    {
+                        if (e.ErrorCode == 5) // Access Denied
+                        {
+                            DarkLog.Debug("HTTP Server: access denied.");
+                            DarkLog.Debug("Prompting user to switch to administrator mode.");
+
+                            ProcessStartInfo startInfo = new ProcessStartInfo("DMPServer.exe") { Verb = "runas" };
+                            Process.Start(startInfo);
+
+                            Environment.Exit(0);
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Fatal("Error while starting HTTP server.\n" + e);
+                    }
                     throw;
                 }
             }
