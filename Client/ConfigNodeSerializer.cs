@@ -26,18 +26,23 @@ namespace DarkMultiPlayer
         {
             try
             {
+                DarkLog.Debug("ConfigNodeSerializer creating delegates...WriteNode...");
                 Type configNodeType = typeof(ConfigNode);
                 var writeNodeMethodInfo = configNodeType.GetMethod("WriteNode", BindingFlags.NonPublic | BindingFlags.Instance);
                 
                 //pass null for instance so we only do the slower reflection part once ever, then provide the instance at runtime
-                WriteNodeThunk = (WriteNodeDelegate)Delegate.CreateDelegate(configNodeType, null, writeNodeMethodInfo);
+                WriteNodeThunk = (WriteNodeDelegate)Delegate.CreateDelegate(typeof(WriteNodeDelegate), null, writeNodeMethodInfo);
 
+                DarkLog.Debug("ConfigNodeSerializer creating delegates...PreFormatConfig...");
                 //these ones really are static and won't have a instance first parameter 
                 var preFormatConfigMethodInfo = configNodeType.GetMethod("PreFormatConfig", BindingFlags.NonPublic | BindingFlags.Static);
-                PreFormatConfigThunk = (PreFormatConfigDelegate)Delegate.CreateDelegate(configNodeType, null, preFormatConfigMethodInfo);
+                PreFormatConfigThunk = (PreFormatConfigDelegate)Delegate.CreateDelegate(typeof(PreFormatConfigDelegate), null, preFormatConfigMethodInfo);
 
-                var recurseFormatMethodInfo = configNodeType.GetMethod("RecurseFormat", BindingFlags.NonPublic | BindingFlags.Static);
-                RecurseFormatThunk = (RecurseFormatDelegate)Delegate.CreateDelegate(configNodeType, null, recurseFormatMethodInfo);
+                DarkLog.Debug("ConfigNodeSerializer creating delegates...RecurseFormat...");
+                var recurseFormatMethodInfo = configNodeType.GetMethod("RecurseFormat", BindingFlags.NonPublic | BindingFlags.Static, null, new[] { typeof(List<string[]>) }, null);
+                RecurseFormatThunk = (RecurseFormatDelegate)Delegate.CreateDelegate(typeof(RecurseFormatDelegate), null, recurseFormatMethodInfo);
+
+                DarkLog.Debug("ConfigNodeSerializer delegates ready!");
             }
             catch (Exception ex)
             {
