@@ -46,7 +46,6 @@ namespace DarkMultiPlayer
         private object messageEnqueueLock = new object();
         private object messageDequeueLock = new object();
         private Thread sendThread;
-
         private ConfigNodeSerializer nodeSerializer = new ConfigNodeSerializer();
 
         public NetworkWorker()
@@ -148,7 +147,6 @@ namespace DarkMultiPlayer
                 Thread.Sleep(10);
             }
         }
-
         #region Connecting to server
         //Called from main
         public void ConnectToServer(string address, int port)
@@ -1022,25 +1020,35 @@ namespace DarkMultiPlayer
             VesselUpdate update = new VesselUpdate();
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                //We don't care about the subspace value anymore.
-                mr.Read<int>();
                 update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
-                //update.rotation = mr.Read<float[]>();
-                update.vesselForward = mr.Read<float[]>();
-                update.vesselUp = mr.Read<float[]>();
+                update.rotation = mr.Read<float[]>();
                 update.angularVelocity = mr.Read<float[]>();
+                //FlightState variables
                 update.flightState = new FlightCtrlState();
-                byte[] flightData = mr.Read<byte[]>();
-                using (MemoryStream ms = new MemoryStream(flightData))
-                {
-                    ConfigNode flightNode;
-                    BinaryFormatter bf = new BinaryFormatter();
-                    flightNode = (ConfigNode)bf.Deserialize(ms);
-                    update.flightState.Load(flightNode);
-                }
+                update.flightState.mainThrottle = mr.Read<float>();
+                update.flightState.wheelThrottleTrim = mr.Read<float>();
+                update.flightState.X = mr.Read<float>();
+                update.flightState.Y = mr.Read<float>();
+                update.flightState.Z = mr.Read<float>();
+                update.flightState.killRot = mr.Read<bool>();
+                update.flightState.gearUp = mr.Read<bool>();
+                update.flightState.gearDown = mr.Read<bool>();
+                update.flightState.headlight = mr.Read<bool>();
+                update.flightState.wheelThrottle = mr.Read<float>();
+                update.flightState.fastThrottle = mr.Read<float>();
+                update.flightState.roll = mr.Read<float>();
+                update.flightState.yaw = mr.Read<float>();
+                update.flightState.pitch = mr.Read<float>();
+                update.flightState.rollTrim = mr.Read<float>();
+                update.flightState.yawTrim = mr.Read<float>();
+                update.flightState.pitchTrim = mr.Read<float>();
+                update.flightState.wheelSteer = mr.Read<float>();
+                update.flightState.wheelSteerTrim = mr.Read<float>();
+                //Action group controls
                 update.actiongroupControls = mr.Read<bool[]>();
+                //Position/velocity
                 update.isSurfaceUpdate = mr.Read<bool>();
                 if (update.isSurfaceUpdate)
                 {
@@ -1430,23 +1438,36 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(update.planetTime);
                 mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
-                //mw.Write<float[]>(update.rotation);
-                mw.Write<float[]>(update.vesselForward);
-                mw.Write<float[]>(update.vesselUp);
+                mw.Write<float[]>(update.rotation);
+                //mw.Write<float[]>(update.vesselForward);
+                //mw.Write<float[]>(update.vesselUp);
                 mw.Write<float[]>(update.angularVelocity);
-                using (MemoryStream ms = new MemoryStream())
-                {
-                    ConfigNode flightNode = new ConfigNode();
-                    update.flightState.Save(flightNode);
-                    BinaryFormatter bf = new BinaryFormatter();
-                    bf.Serialize(ms, flightNode);
-                    mw.Write<byte[]>(ms.ToArray());
-                }
+                //FlightState variables
+                mw.Write<float>(update.flightState.mainThrottle);
+                mw.Write<float>(update.flightState.wheelThrottleTrim);
+                mw.Write<float>(update.flightState.X);
+                mw.Write<float>(update.flightState.Y);
+                mw.Write<float>(update.flightState.Z);
+                mw.Write<bool>(update.flightState.killRot);
+                mw.Write<bool>(update.flightState.gearUp);
+                mw.Write<bool>(update.flightState.gearDown);
+                mw.Write<bool>(update.flightState.headlight);
+                mw.Write<float>(update.flightState.wheelThrottle);
+                mw.Write<float>(update.flightState.fastThrottle);
+                mw.Write<float>(update.flightState.roll);
+                mw.Write<float>(update.flightState.yaw);
+                mw.Write<float>(update.flightState.pitch);
+                mw.Write<float>(update.flightState.rollTrim);
+                mw.Write<float>(update.flightState.yawTrim);
+                mw.Write<float>(update.flightState.pitchTrim);
+                mw.Write<float>(update.flightState.wheelSteer);
+                mw.Write<float>(update.flightState.wheelSteerTrim);
+                //Action group controls
                 mw.Write<bool[]>(update.actiongroupControls);
+                //Position/velocity
                 mw.Write<bool>(update.isSurfaceUpdate);
                 if (update.isSurfaceUpdate)
                 {
@@ -1614,7 +1635,6 @@ namespace DarkMultiPlayer
             return 0;
         }
         #endregion
-
     }
 }
 
