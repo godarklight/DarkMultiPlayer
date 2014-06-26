@@ -76,7 +76,6 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                //Calculate the minimum size of the minimize window by drawing it off the screen
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6711, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Options", windowStyle, layoutOptions);
             }
         }
@@ -221,6 +220,7 @@ namespace DarkMultiPlayer
             {
                 ModWorker.fetch.GenerateModControlFile(true);
             }
+            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, "Generate Universe from saved game", buttonStyle);
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

@@ -287,6 +287,7 @@ namespace DarkMultiPlayer
             //Craft download window: 6709
             //Screenshot window: 6710
             //Options window: 6711
+            //Converter window: 6712
             if (showGUI)
             {
                 foreach (Action drawAction in drawEvent)
