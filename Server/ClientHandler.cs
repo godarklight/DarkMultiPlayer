@@ -24,12 +24,14 @@ namespace DarkMultiPlayerServer
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
         private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
         private static string adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
+        private static string whitelistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPWhitelist.txt");
         private static Dictionary<string, List<string>> playerChatChannels;
         private static List<string> bannedNames;
         private static List<IPAddress> bannedIPs;
         private static List<Guid> bannedGUIDs;
         private static List<string> banReasons;
         private static List<string> serverAdmins;
+        private static List<string> serverWhitelist;
         private static Dictionary<string, int> playerUploadedScreenshotIndex;
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
@@ -50,6 +52,7 @@ namespace DarkMultiPlayerServer
                 bannedGUIDs = new List<Guid>();
                 banReasons = new List<string>();
                 serverAdmins = new List<string>();
+                serverWhitelist = new List<string>();
                 playerUploadedScreenshotIndex = new Dictionary<string, int>();
                 playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary <string, int>>();
                 playerWatchScreenshot = new Dictionary<string, string>();
@@ -57,6 +60,7 @@ namespace DarkMultiPlayerServer
                 LoadSavedSubspace();
                 LoadBans();
                 LoadAdmins();
+                LoadWhitelist();
                 SetupTCPServer();
 
                 while (Server.serverRunning)
@@ -290,6 +294,30 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void SaveWhitelist()
+        {
+            DarkLog.Debug("Saving whitelist");
+            try
+            {
+                if (File.Exists(whitelistFile))
+                {
+                    File.SetAttributes(whitelistFile, FileAttributes.Normal);
+                }
+
+                using (StreamWriter sw = new StreamWriter(whitelistFile))
+                {
+                    foreach (string user in serverWhitelist)
+                    {
+                        sw.WriteLine(user);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Error saving whitelist!, Exception: " + e);
+            }
+        }
+
         private static void SaveBans()
         {
             DarkLog.Debug("Saving bans");
@@ -344,6 +372,22 @@ namespace DarkMultiPlayerServer
             else
             {
                 SaveAdmins();
+            }
+        }
+
+        private static void LoadWhitelist()
+        {
+            DarkLog.Debug("Loading whitelist");
+
+            serverWhitelist.Clear();
+
+            if (File.Exists(whitelistFile))
+            {
+                serverWhitelist.AddRange(File.ReadAllLines(whitelistFile));
+            }
+            else
+            {
+                SaveWhitelist();
             }
         }
 
@@ -989,6 +1033,15 @@ namespace DarkMultiPlayerServer
                 {
                     handshakeReponse = 6;
                     reason = "Server is full";
+                }
+            }
+
+            if (handshakeReponse == 0)
+            {
+                if (Settings.settingsStore.whitelisted && !serverWhitelist.Contains(client.playerName))
+                {
+                    handshakeReponse = 7;
+                    reason = "You are not on the whitelist";
                 }
             }
 
@@ -2705,6 +2758,7 @@ namespace DarkMultiPlayerServer
             string func = "";
             string playerName = "";
 
+            func = commandArgs;
             if (commandArgs.Contains(" "))
             {
                 func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
@@ -2717,7 +2771,7 @@ namespace DarkMultiPlayerServer
             switch (func)
             {
                 default:
-                    DarkLog.Debug("Undefined function. Usage: /admin [add|del] playername");
+                    DarkLog.Normal("Undefined function. Usage: /admin [add|del] playername or /admin show");
                     break;
                 case "add":
                     if (File.Exists(Path.Combine(Server.universeDirectory, "Players", playerName + ".txt")))
@@ -2730,25 +2784,84 @@ namespace DarkMultiPlayerServer
                         }
                         else
                         {
-                            DarkLog.Debug("'" + playerName + "' is already an admin.");
+                            DarkLog.Normal("'" + playerName + "' is already an admin.");
                         }
 
                     }
                     else
                     {
-                        DarkLog.Debug("'" + playerName + "' does not exist.");
+                        DarkLog.Normal("'" + playerName + "' does not exist.");
                     }
                     break;
                 case "del":
                     if (serverAdmins.Contains(playerName))
                     {
-                        DarkLog.Debug("Removed '" + playerName + "' from the admin list.");
+                        DarkLog.Normal("Removed '" + playerName + "' from the admin list.");
                         serverAdmins.Remove(playerName);
                         SaveAdmins();
                     }
                     else
                     {
-                        DarkLog.Debug("'" + playerName + "' is not an admin.");
+                        DarkLog.Normal("'" + playerName + "' is not an admin.");
+                    }
+                    break;
+                case "show":
+                    foreach (string player in serverWhitelist)
+                    {
+                        DarkLog.Normal(player);
+                    }
+                    break;
+            }
+        }
+
+        public static void WhitelistCommand(string commandArgs)
+        {
+            string func = "";
+            string playerName = "";
+
+            func = commandArgs;
+            if (commandArgs.Contains(" "))
+            {
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                if (commandArgs.Substring(func.Length).Contains(" "))
+                {
+                    playerName = commandArgs.Substring(func.Length + 1);
+                }
+            }
+
+            switch (func)
+            {
+                default:
+                    DarkLog.Debug("Undefined function. Usage: /whitelist [add|del] playername or /whitelist show");
+                    break;
+                case "add":
+                    if (!serverWhitelist.Contains(playerName))
+                    {
+                        DarkLog.Normal("Added '" + playerName + "' to whitelist.");
+                        serverWhitelist.Add(playerName);
+                        SaveWhitelist();
+                    }
+                    else
+                    {
+                        DarkLog.Normal("'" + playerName + "' is already on the whitelist.");
+                    }
+                    break;
+                case "del":
+                    if (serverWhitelist.Contains(playerName))
+                    {
+                        DarkLog.Normal("Removed '" + playerName + "' from the whitelist.");
+                        serverWhitelist.Remove(playerName);
+                        SaveWhitelist();
+                    }
+                    else
+                    {
+                        DarkLog.Normal("'" + playerName + "' is not on the whitelist.");
+                    }
+                    break;
+                case "show":
+                    foreach (string player in serverWhitelist)
+                    {
+                        DarkLog.Normal(player);
                     }
                     break;
             }

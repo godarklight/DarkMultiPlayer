@@ -149,6 +149,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("port", "The port the server listens on");
             descriptionList.Add("warpMode", "Specify the warp type");
             descriptionList.Add("gameMode", "Specify the game type");
+            descriptionList.Add("whitelisted", "Enable whitelisting");
             descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
             descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
             descriptionList.Add("logLevel", "Minimum log level.");
@@ -174,6 +175,7 @@ namespace DarkMultiPlayerServer
         public int port = 6702;
         public WarpMode warpMode = WarpMode.SUBSPACE;
         public GameMode gameMode = GameMode.SANDBOX;
+        public bool whitelisted = false;
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool useUTCTimeInLog = false;
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;

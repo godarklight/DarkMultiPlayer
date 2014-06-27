@@ -93,6 +93,11 @@ The warp type.
 - Mode 0: SANDBOX - The default sandbox game mode.  
 - Mode 1: CAREER - Everyone has their own career mode points. Shared science is currently not implemented.  
   
+####whitelisted
+Enable whitelisting on the server. The commands are /whitelist [add|del] playername or /whitelist show
+- 0 : Off  
+- 1 : On  
+  
 
 ####modcontrol
 Enables or disables modcontrol - Only turn this off if you are running a private server where everyone has the same mods.  
