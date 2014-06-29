@@ -265,6 +265,7 @@ namespace DarkMultiPlayerServer
             newClientObject.sendMessageQueueLow = new Queue<ServerMessage>();
             newClientObject.receiveMessageQueue = new Queue<ClientMessage>();
             newClientObject.sendLock = new object();
+            newClientObject.queueLock = new object();
             StartReceivingIncomingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
             addClients.Enqueue(newClientObject);
@@ -2020,27 +2021,30 @@ namespace DarkMultiPlayerServer
 
         private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
-            if (!Server.serverRunning && !highPriority)
+            lock (client.queueLock)
             {
-                //Skip sending low priority messages during a server shutdown.
-                return;
-            }
-            if (message == null)
-            {
-                Exception up = new Exception("Cannot send a null message to a client!");
-                throw up;
-            }
-            else
-            {
-                if (highPriority)
+                if (!Server.serverRunning && !highPriority)
                 {
-                    client.sendMessageQueueHigh.Enqueue(message);
+                    //Skip sending low priority messages during a server shutdown.
+                    return;
+                }
+                if (message == null)
+                {
+                    Exception up = new Exception("Cannot send a null message to a client!");
+                    throw up;
                 }
                 else
                 {
-                    client.sendMessageQueueLow.Enqueue(message);
+                    if (highPriority)
+                    {
+                        client.sendMessageQueueHigh.Enqueue(message);
+                    }
+                    else
+                    {
+                        client.sendMessageQueueLow.Enqueue(message);
+                    }
+                    SendOutgoingMessages(client);
                 }
-                SendOutgoingMessages(client);
             }
         }
 
@@ -2907,6 +2911,7 @@ namespace DarkMultiPlayerServer
         public float[] playerColor;
         //Send lock
         public object sendLock;
+        public object queueLock;
     }
 }
 
