@@ -58,7 +58,8 @@ namespace DarkMultiPlayer
         private Dictionary<string, double> lastLoadVessel = new Dictionary<string, double>();
         private List<Vessel> delayKillVessels = new List<Vessel>();
         //Hacky flying vessel loading
-        private Queue<HackyFlyingVesselLoad> loadingFlyingVessels = new Queue<HackyFlyingVesselLoad>();
+        private List<HackyFlyingVesselLoad> loadingFlyingVessels = new List<HackyFlyingVesselLoad>();
+        private List<HackyFlyingVesselLoad> loadingFlyingVesselsDeleteList = new List<HackyFlyingVesselLoad>();
         //Docking related
         private Vessel newActiveVessel;
         private int activeVesselLoadUpdates;
@@ -96,14 +97,13 @@ namespace DarkMultiPlayer
             if (workerEnabled)
             {
                 //Kill hacky flying vessels that have failed to load
-                if (loadingFlyingVessels.Count > 0)
+                foreach (HackyFlyingVesselLoad hfvl in loadingFlyingVessels)
                 {
-                    HackyFlyingVesselLoad hfvl = loadingFlyingVessels.Peek();
                     if (!FlightGlobals.fetch.vessels.Contains(hfvl.flyingVessel))
                     {
                         //Vessel failed to load
                         DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", killed in atmo");
-                        loadingFlyingVessels.Dequeue();
+                        loadingFlyingVesselsDeleteList.Add(hfvl);
                     }
                     else
                     {
@@ -111,7 +111,7 @@ namespace DarkMultiPlayer
                         {
                             hfvl.flyingVessel.Landed = false;
                             DarkLog.Debug("Hacky load successful for " + hfvl.flyingVessel.id.ToString());
-                            loadingFlyingVessels.Dequeue();
+                            loadingFlyingVesselsDeleteList.Add(hfvl);
                         }
                         else
                         {
@@ -130,11 +130,17 @@ namespace DarkMultiPlayer
                             {
                                 DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", failed to load in time");
                                 KillVessel(hfvl.flyingVessel);
-                                loadingFlyingVessels.Dequeue();
+                                loadingFlyingVesselsDeleteList.Add(hfvl);
                             }
                         }
                     }
                 }
+
+                foreach (HackyFlyingVesselLoad hfvl in loadingFlyingVesselsDeleteList)
+                {
+                    loadingFlyingVessels.Remove(hfvl);
+                }
+                loadingFlyingVesselsDeleteList.Clear();
 
                 //Switch to a new active vessel if needed.
                 if (newActiveVessel != null)
@@ -1300,6 +1306,11 @@ namespace DarkMultiPlayer
                         {
                             if (HighLogic.LoadedScene == GameScenes.FLIGHT)
                             {
+                                if (vesselPartCount.ContainsKey(currentProto.vesselID.ToString()) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID.ToString()] : false)
+                                {
+                                    DarkLog.Debug("Skipping flying vessel load - Vessel has the same part count");
+                                    return;
+                                }
                                 if (FlightGlobals.fetch.activeVessel == null)
                                 {
                                     DarkLog.Debug("Skipping flying vessel load - We do not have an active vessel");
@@ -1313,8 +1324,8 @@ namespace DarkMultiPlayer
                                 Vector3d ourPos = FlightGlobals.fetch.activeVessel.mainBody.GetWorldSurfacePosition(FlightGlobals.fetch.activeVessel.latitude, FlightGlobals.fetch.activeVessel.longitude, FlightGlobals.fetch.activeVessel.altitude);
                                 Vector3d protoPos = updateBody.GetWorldSurfacePosition(currentProto.latitude, currentProto.longitude, currentProto.altitude);
                                 double distance = Vector3d.Distance(ourPos, protoPos);
-                                //We'll load the vessel if we are within half the loading distance
-                                if (distance > (Vessel.loadDistance / 2f))
+                                //We'll load the vessel if possible
+                                if (distance > Vessel.loadDistance)
                                 {
                                     DarkLog.Debug("Skipping flying vessel load - We are not close enough, distance: " + distance);
                                     return;
@@ -1395,6 +1406,7 @@ namespace DarkMultiPlayer
                         }
                     }
 
+                    vesselPartCount[currentProto.vesselID.ToString()] = currentProto.protoPartSnapshots.Count;
                     serverVesselsProtoUpdate[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     lastLoadVessel[currentProto.vesselID.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                     currentProto.Load(HighLogic.CurrentGame.flightState);
@@ -1403,10 +1415,15 @@ namespace DarkMultiPlayer
                     {
                         if (usingHackyAtmoLoad)
                         {
+                            //Dodge unpack/pack distances
+                            currentProto.vesselRef.distanceUnpackThreshold = Vessel.loadDistance - 300;
+                            currentProto.vesselRef.distanceLandedUnpackThreshold = Vessel.loadDistance - 300;
+                            currentProto.vesselRef.distancePackThreshold = Vessel.loadDistance - 100;
+                            currentProto.vesselRef.distanceLandedPackThreshold = Vessel.loadDistance - 100;
                             HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
                             hfvl.flyingVessel = currentProto.vesselRef;
                             hfvl.loadTime = UnityEngine.Time.realtimeSinceStartup;
-                            loadingFlyingVessels.Enqueue(hfvl);
+                            loadingFlyingVessels.Add(hfvl);
                         }
 
                         if (wasActive)
@@ -1873,7 +1890,7 @@ namespace DarkMultiPlayer
                     Vector3d ourCoMDiff = Vector3d.zero;
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
                     {
-                            ourCoMDiff = FlightGlobals.fetch.activeVessel.findWorldCenterOfMass() - FlightGlobals.fetch.activeVessel.GetWorldPos3D();
+                        ourCoMDiff = FlightGlobals.fetch.activeVessel.findWorldCenterOfMass() - FlightGlobals.fetch.activeVessel.GetWorldPos3D();
                     }
                     //KSP's inaccuracy hurts me.
                     Vector3d orbitalPositionDelta = updateBody.bodyTransform.rotation * new Vector3d(update.orbitalPositionDelta[0], update.orbitalPositionDelta[1], update.orbitalPositionDelta[2]);
