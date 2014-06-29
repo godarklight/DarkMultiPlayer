@@ -54,8 +54,6 @@ namespace DarkMultiPlayer
             {
                 Client.updateEvent.Add(this.Update);
             }
-            sendThread = new Thread(new ThreadStart(SendThreadMain));
-            sendThread.Start();
         }
 
         public static NetworkWorker fetch
@@ -107,6 +105,8 @@ namespace DarkMultiPlayer
                 ChatWorker.fetch.workerEnabled = true;
                 ScenarioWorker.fetch.workerEnabled = true;
                 PlayerColorWorker.fetch.workerEnabled = true;
+                FlagSyncer.fetch.workerEnabled = true;
+                FlagSyncer.fetch.SendFlagList();
                 PlayerColorWorker.fetch.SendPlayerColorToServer();
             }
             if (state == ClientState.TIME_LOCKING)
@@ -139,12 +139,19 @@ namespace DarkMultiPlayer
         //This isn't tied to frame rate, During the loading screen Update doesn't fire.
         public void SendThreadMain()
         {
-            while (true)
+            try
             {
-                CheckDisconnection();
-                SendHeartBeat();
-                SendOutgoingMessages();
-                Thread.Sleep(10);
+                while (true)
+                {
+                    CheckDisconnection();
+                    SendHeartBeat();
+                    SendOutgoingMessages();
+                    Thread.Sleep(10);
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Send thread error: " + e);
             }
         }
         #region Connecting to server
@@ -153,6 +160,8 @@ namespace DarkMultiPlayer
         {
             if (state == ClientState.DISCONNECTED)
             {
+                sendThread = new Thread(new ThreadStart(SendThreadMain));
+                sendThread.Start();
                 DarkLog.Debug("Trying to connect to " + address + ", port " + port);
                 Client.fetch.status = "Connecting to " + address + " port " + port;
                 sendMessageQueueHigh = new Queue<ClientMessage>();
@@ -296,6 +305,7 @@ namespace DarkMultiPlayer
                     {
                         clientConnection.Close();
                     }
+                    sendThread.Abort();
                     DarkLog.Debug("Disconnected");
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
@@ -637,6 +647,9 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.SCREENSHOT_LIBRARY:
                         HandleScreenshotLibrary(message.data);
+                        break;
+                    case ServerMessageType.FLAG_SYNC:
+                        FlagSyncer.fetch.HandleMessage(message.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
                         HandleSetSubspace(message.data);
@@ -1579,6 +1592,14 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MOTD_REQUEST;
             QueueOutgoingMessage(newMessage, true);
+        }
+        //Called from FlagSyncer
+        public void SendFlagMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.FLAG_SYNC;
+            newMessage.data = messageData;
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from warpWorker
         public void SendWarpMessage(byte[] messageData)

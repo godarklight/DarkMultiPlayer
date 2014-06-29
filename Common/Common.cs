@@ -16,7 +16,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 21;
+        public const int PROTOCOL_VERSION = 22;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -345,6 +345,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_REMOVE,
         CRAFT_LIBRARY,
         SCREENSHOT_LIBRARY,
+        FLAG_SYNC,
         SYNC_TIME_REQUEST,
         PING_REQUEST,
         MOTD_REQUEST,
@@ -374,6 +375,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_REMOVE,
         CRAFT_LIBRARY,
         SCREENSHOT_LIBRARY,
+        FLAG_SYNC,
         SET_SUBSPACE,
         SYNC_TIME_REPLY,
         PING_REPLY,
@@ -478,6 +480,14 @@ namespace DarkMultiPlayerCommon
         LIST,
         ACQUIRE,
         RELEASE,
+    }
+
+    public enum FlagMessageType
+    {
+        LIST,
+        FLAG_DATA,
+        UPLOAD_FILE,
+        DELETE_FILE,
     }
 
     public enum PlayerColorMessageType

@@ -76,6 +76,7 @@
     <Compile Include="UniverseConverter.cs" />
     <Compile Include="UniverseConverterWindow.cs" />
     <Compile Include="IncorrectInstallWindow.cs" />
+    <Compile Include="FlagSyncer.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

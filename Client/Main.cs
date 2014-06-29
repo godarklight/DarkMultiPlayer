@@ -72,6 +72,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(CraftLibraryWorker.Reset);
                 resetEvent.Add(DebugWindow.Reset);
                 resetEvent.Add(DynamicTickWorker.Reset);
+                resetEvent.Add(FlagSyncer.Reset);
                 resetEvent.Add(PlayerColorWorker.Reset);
                 resetEvent.Add(PlayerStatusWindow.Reset);
                 resetEvent.Add(PlayerStatusWorker.Reset);
@@ -197,6 +198,7 @@ namespace DarkMultiPlayer
                     forceQuit = false;
                     gameRunning = false;
                     displayDisconnectMessage = false;
+                    Time.timeScale = 1f;
                     FireResetEvent();
                     NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
@@ -209,6 +211,7 @@ namespace DarkMultiPlayer
                     {
                         gameRunning = false;
                         displayDisconnectMessage = false;
+                        Time.timeScale = 1f;
                         FireResetEvent();
                         NetworkWorker.fetch.SendDisconnect("Quit to main menu");
                     }
@@ -224,6 +227,7 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Saving selected flag");
                         Settings.fetch.selectedFlag = HighLogic.CurrentGame.flagURL;
                         Settings.fetch.SaveSettings();
+                        FlagSyncer.fetch.flagChangeEvent = true;
                     }
 
                     //handle use of cheats
@@ -409,6 +413,9 @@ namespace DarkMultiPlayer
             CreateIfNeeded(darkMultiPlayerDataDirectory);
             string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
+            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
+            CreateIfNeeded(darkMultiPlayerFlagsDirectory);
+
         }
 
         private void CreateIfNeeded(string path)
