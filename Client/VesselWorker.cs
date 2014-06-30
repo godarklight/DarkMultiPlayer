@@ -1921,7 +1921,7 @@ namespace DarkMultiPlayer
                     Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
                     foreach (Part vesselPart in updateVessel.parts)
                     {
-                        if (vesselPart.rb != null && vesselPart.State == PartStates.ACTIVE)
+                        if ((vesselPart.rb != null ? !vesselPart.rb.isKinematic : false) && vesselPart.State == PartStates.ACTIVE)
                         {
                             vesselPart.rb.angularVelocity = newAng;
                         }
