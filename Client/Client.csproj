@@ -75,6 +75,7 @@
     <Compile Include="OptionsWindow.cs" />
     <Compile Include="UniverseConverter.cs" />
     <Compile Include="UniverseConverterWindow.cs" />
+    <Compile Include="IncorrectInstallWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

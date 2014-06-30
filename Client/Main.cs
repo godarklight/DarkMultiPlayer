@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using DarkMultiPlayerCommon;
+using System.Reflection;
 
 namespace DarkMultiPlayer
 {
@@ -14,6 +15,10 @@ namespace DarkMultiPlayer
         public string status;
         public bool forceQuit;
         public bool showGUI = true;
+        public bool incorrectlyInstalled = false;
+        public bool displayedIncorrectMessage = false;
+        public string assemblyPath;
+        public string assemblyShouldBeInstalledAt;
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public GameMode gameMode;
@@ -44,6 +49,18 @@ namespace DarkMultiPlayer
         public void Awake()
         {
             GameObject.DontDestroyOnLoad(this);
+            assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
+            string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
+            //I find my abuse of Path.Combine distrubing.
+            assemblyShouldBeInstalledAt = Path.Combine(Path.Combine(Path.Combine(Path.Combine(kspPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "DarkMultiPlayer.dll");
+            UnityEngine.Debug.Log("KSP installed at " + kspPath);
+            UnityEngine.Debug.Log("DMP installed at " + assemblyPath);
+            incorrectlyInstalled = (assemblyPath.ToLower() != assemblyShouldBeInstalledAt.ToLower());
+            if (incorrectlyInstalled)
+            {
+                UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '"+assemblyShouldBeInstalledAt+"'");
+                return;
+            }
             SetupDirectoriesIfNeeded();
             //Register events needed to bootstrap the workers.
             lock (eventLock)
@@ -83,6 +100,15 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            if (incorrectlyInstalled)
+            {
+                if (!displayedIncorrectMessage)
+                {
+                    displayedIncorrectMessage = true;
+                    IncorrectInstallWindow.Enable();
+                }
+                return;
+            }
             try
             {
                 if (HighLogic.LoadedScene == GameScenes.MAINMENU && !ModWorker.fetch.dllListBuilt)
