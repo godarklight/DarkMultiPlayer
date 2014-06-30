@@ -8,3 +8,4 @@ Client/obj/*
 Server/bin/*
 Server/obj/*
 *.suo
+*.csproj.user

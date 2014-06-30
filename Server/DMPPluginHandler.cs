@@ -11,6 +11,27 @@ namespace DarkMultiPlayerServer
         private static Dictionary <Delegate, DMPEventInfo> delegateInfo = new Dictionary<Delegate, DMPEventInfo>();
         private static Dictionary <Type, List<Delegate>> pluginEvents = new Dictionary<Type, List<Delegate>>();
 
+        static DMPPluginHandler()
+        {
+            AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve;
+        }
+
+        static Assembly CurrentDomain_AssemblyResolve(object sender, ResolveEventArgs args)
+        {
+            //This will find and return the assembly requested if it is already loaded
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                if (assembly.FullName == args.Name)
+                {
+                    DarkLog.Debug("Resolved plugin assembly reference: " + args.Name + " (referenced by " + args.RequestingAssembly.FullName + ")");
+                    return assembly;
+                }
+            }
+
+            DarkLog.Error("Could not resolve assembly " + args.Name + " referenced by " + args.RequestingAssembly.FullName);
+            return null;
+        }
+
         public static void LoadPlugins()
         {
             string pluginDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins");
@@ -55,37 +76,62 @@ namespace DarkMultiPlayerServer
                 {
                     if (loadedType.IsDefined(typeof(DMPPluginAttribute), false))
                     {
-                        DarkLog.Debug("Loading " + loadedType.Name);
-                        object pluginInstance = Activator.CreateInstance(loadedType);
-                        MethodInfo[] methodInfos = loadedType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-                        foreach (MethodInfo methodInfo in methodInfos)
+                        object pluginInstance = ActivatePluginType(loadedType);
+
+                        if (pluginInstance != null)
                         {
-                            try
-                            {
-                                foreach (Type evT in pluginEvents.Keys)
-                                {
-                                    if (evT.Name.Substring(3) == methodInfo.Name)
-                                    {
-                                        DarkLog.Debug("Event registered : " + evT.Name);
-                                        Delegate deg = Delegate.CreateDelegate(evT, pluginInstance, methodInfo);
-                                        DMPEventInfo info = new DMPEventInfo();
-                                        info.loadedAssembly = loadedAssembly.FullName;
-                                        info.loadedType = loadedType.Name;
-                                        delegateInfo.Add(deg, info);
-                                        pluginEvents[evT].Add(deg);
-                                    }
-                                }
-                            }
-                            catch (Exception e)
-                            {
-                                DarkLog.Error("Error loading " + methodInfo.Name + " from " + loadedType.Name + ", Exception: " + e.Message);
-                            }
+                            CreatePluginDelegates(loadedAssembly, loadedType, pluginInstance);
                         }
                     }
                 }
             }
             DarkLog.Debug("Done!");
         }
+
+        private static object ActivatePluginType(Type loadedType)
+        {
+            DarkLog.Debug("Loading " + loadedType.Name);
+            
+            try
+            {
+                object pluginInstance = Activator.CreateInstance(loadedType);
+                return pluginInstance;
+            }
+            catch (Exception e)
+            {
+                DarkLog.Error("Cannot activate plugin " + loadedType.Name + ", Exception: " + e.ToString());
+                return null;
+            }
+        }
+
+        private static void CreatePluginDelegates(Assembly loadedAssembly, Type loadedType, object pluginInstance)
+        {
+            MethodInfo[] methodInfos = loadedType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
+            foreach (MethodInfo methodInfo in methodInfos)
+            {
+                try
+                {
+                    foreach (Type evT in pluginEvents.Keys)
+                    {
+                        if (evT.Name.Substring(3) == methodInfo.Name)
+                        {
+                            DarkLog.Debug("Event registered : " + evT.Name);
+                            Delegate deg = Delegate.CreateDelegate(evT, pluginInstance, methodInfo);
+                            DMPEventInfo info = new DMPEventInfo();
+                            info.loadedAssembly = loadedAssembly.FullName;
+                            info.loadedType = loadedType.Name;
+                            delegateInfo.Add(deg, info);
+                            pluginEvents[evT].Add(deg);
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    DarkLog.Error("Error loading " + methodInfo.Name + " from " + loadedType.Name + ", Exception: " + e.Message);
+                }
+            }
+        }
+
         //Fire Update
         public static void FireUpdate()
         {
