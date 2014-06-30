@@ -16,4 +16,5 @@ namespace DarkMultiPlayerServer
     public delegate void DMPOnClientAuthenticated(ClientObject client);
     public delegate void DMPOnClientDisconnect(ClientObject client);
     public delegate void DMPOnMessageReceived(ClientObject client, ClientMessage messageData);
+    public delegate void DMPOnMessageReceivedRaw(ClientObject client, ref ClientMessage messageData);
 }

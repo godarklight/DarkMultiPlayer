@@ -46,6 +46,7 @@ namespace DarkMultiPlayerServer
             pluginEvents.Add(typeof(DMPOnClientAuthenticated), new List<Delegate>());
             pluginEvents.Add(typeof(DMPOnClientDisconnect), new List<Delegate>());
             pluginEvents.Add(typeof(DMPOnMessageReceived), new List<Delegate>());
+            pluginEvents.Add(typeof(DMPOnMessageReceivedRaw), new List<Delegate>());
             //Iterate through the assemblies looking for the DMPPlugin attribute
             foreach (Assembly loadedAssembly in loadedAssemblies)
             {
@@ -195,6 +196,26 @@ namespace DarkMultiPlayerServer
                 try
                 {
                     pluginEvent(client, message);
+                }
+                catch (Exception e)
+                {
+                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
+                    DarkLog.Debug("Error thrown in OnMessageReceived event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                }
+
+            }
+        }
+        //Fire OnMessageReceived
+        public static void FireOnMessageReceivedRaw(ClientObject client, ref ClientMessage message)
+        {
+            foreach (DMPOnMessageReceivedRaw pluginEvent in pluginEvents[typeof(DMPOnMessageReceivedRaw)])
+            {
+                try
+                {
+                    pluginEvent(client, ref message);
+                    if (message == null) {
+                        return;
+                    }
                 }
                 catch (Exception e)
                 {

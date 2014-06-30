@@ -839,7 +839,13 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
+            DMPPluginHandler.FireOnMessageReceivedRaw(client, ref message);
+            if (message == null)
+            {
+                return;
+            }
             DMPPluginHandler.FireOnMessageReceived(client, message);
+
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
             if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))
             {
