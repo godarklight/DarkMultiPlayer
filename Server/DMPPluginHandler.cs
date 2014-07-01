@@ -127,7 +127,7 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Error("Error loading " + methodInfo.Name + " from " + loadedType.Name + ", Exception: " + e.Message);
+                    DarkLog.Error("Error loading " + methodInfo.Name + " from " + loadedType.Name + ", Exception: " + e.ToString());
                 }
             }
         }

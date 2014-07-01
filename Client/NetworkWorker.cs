@@ -207,7 +207,7 @@ namespace DarkMultiPlayer
                     }
                     catch (Exception e)
                     {
-                        DarkLog.Debug("DNS Error: " + e.Message);
+                        DarkLog.Debug("DNS Error: " + e.ToString());
                         Client.fetch.status = "DNS Error: " + e.Message;
                         return;
                     }
@@ -227,14 +227,7 @@ namespace DarkMultiPlayer
                 }
                 catch (Exception e)
                 {
-                    if (e.InnerException != null)
-                    {
-                        Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                    }
-                    else
-                    {
-                        Disconnect("Connection error: " + e.Message);
-                    }
+                    HandleDisconnectException(e);
                 }
             }
         }
@@ -261,14 +254,7 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                if (e.InnerException != null)
-                {
-                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                }
-                else
-                {
-                    Disconnect("Connection error: " + e.Message);
-                }
+                HandleDisconnectException(e);
             }
         }
         #endregion
@@ -334,14 +320,7 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                if (e.InnerException != null)
-                {
-                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                }
-                else
-                {
-                    Disconnect("Connection error: " + e.Message);
-                }
+                HandleDisconnectException(e);
             }
         }
 
@@ -420,14 +399,7 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                if (e.InnerException != null)
-                {
-                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                }
-                else
-                {
-                    Disconnect("Connection error: " + e.Message);
-                }
+                HandleDisconnectException(e);
             }
         }
 
@@ -540,14 +512,7 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                if (e.InnerException != null)
-                {
-                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                }
-                else
-                {
-                    Disconnect("Connection error: " + e.Message);
-                }
+                HandleDisconnectException(e);
             }
         }
 
@@ -577,14 +542,19 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                if (e.InnerException != null)
-                {
-                    Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
-                }
-                else
-                {
-                    Disconnect("Connection error: " + e.Message);
-                }
+                HandleDisconnectException(e);
+            }
+        }
+
+        private void HandleDisconnectException(Exception e)
+        {
+            if (e.InnerException != null)
+            {
+                Disconnect("Connection error: " + e.Message + ", " + e.InnerException.ToString());
+            }
+            else
+            {
+                Disconnect("Connection error: " + e.ToString());
             }
         }
         #endregion
