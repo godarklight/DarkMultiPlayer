@@ -1908,7 +1908,9 @@ namespace DarkMultiPlayer
             if (updateVessel.LandedOrSplashed)
             {
                 updateVessel.angularVelocity = Vector3.zero;
-                if (updateVessel.rootPart != null && updateVessel.rootPart.rb != null)
+                if (updateVessel.rootPart != null && 
+                    updateVessel.rootPart.rb != null &&
+                    !updateVessel.rootPart.rb.isKinematic)
                 {
                     updateVessel.rootPart.rb.angularVelocity = Vector3.zero;
                 }
@@ -1921,7 +1923,9 @@ namespace DarkMultiPlayer
                     Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
                     foreach (Part vesselPart in updateVessel.parts)
                     {
-                        if ((vesselPart.rb != null ? !vesselPart.rb.isKinematic : false) && vesselPart.State == PartStates.ACTIVE)
+                        if (vesselPart.rb != null && 
+                            !vesselPart.rb.isKinematic && 
+                            vesselPart.State == PartStates.ACTIVE)
                         {
                             vesselPart.rb.angularVelocity = newAng;
                         }
