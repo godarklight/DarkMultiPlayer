@@ -49,9 +49,16 @@ namespace DarkMultiPlayerServer
                 {
                     try
                     {
-                        Assembly loadedAssembly = Assembly.LoadFile(pluginFile);
+                        //UnsafeLoadFrom will not throw an exception if the dll is marked as unsafe, such as downloaded from internet in Windows
+                        //See http://stackoverflow.com/a/15238782
+                        Assembly loadedAssembly = Assembly.UnsafeLoadFrom(pluginFile);
                         loadedAssemblies.Add(loadedAssembly);
                         DarkLog.Debug("Loaded " + pluginFile);
+                    }
+                    catch (NotSupportedException)
+                    {
+                        //This should only occur if using Assembly.LoadFrom() above instead of Assembly.UnsafeLoadFrom()
+                        DarkLog.Debug("Can't load dll, perhaps it is blocked: " + pluginFile);
                     }
                     catch
                     {
