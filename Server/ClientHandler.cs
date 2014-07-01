@@ -644,7 +644,7 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
+                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
                     DisconnectClient(client);
                 }
             }
@@ -677,7 +677,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + ", error: " + e.Message);
+                DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + ", error: " + e.ToString());
                 DisconnectClient(client);
             }
             client.isSendingToClient = false;
@@ -706,7 +706,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
+                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
                 DisconnectClient(client);
             }
         }
@@ -785,7 +785,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.Message);
+                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
                 DisconnectClient(client);
             }
         }
