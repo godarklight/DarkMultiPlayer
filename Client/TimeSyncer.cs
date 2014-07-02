@@ -46,12 +46,6 @@ namespace DarkMultiPlayer
             private set;
         }
 
-        public bool atMaxSkew
-        {
-            get;
-            private set;
-        }
-
         public float requestedRate
         {
             get;
@@ -235,32 +229,19 @@ namespace DarkMultiPlayer
             float timeWarpRate = (float)Math.Pow(2, -currentError);
             if (timeWarpRate > MAX_CLOCK_RATE)
             {
-                atMaxSkew = true;
                 timeWarpRate = MAX_CLOCK_RATE;
-            }
-            else
-            {
-                atMaxSkew = false;
             }
             if (timeWarpRate < MIN_CLOCK_RATE)
             {
                 timeWarpRate = MIN_CLOCK_RATE;
             }
-            if (!atMaxSkew)
+            //Request how fast we *think* we can run (The reciporical of the current warp rate)
+            float tempRequestedRate = subspaces[currentSubspace].subspaceSpeed * (1 / timeWarpRate);
+            if (tempRequestedRate > MAX_SUBSPACE_RATE)
             {
-                //Request how fast we *think* we can run (The reciporical of the current warp rate)
-                float tempRequestedRate = subspaces[currentSubspace].subspaceSpeed * (1 / timeWarpRate);
-                if (tempRequestedRate > MAX_SUBSPACE_RATE)
-                {
-                    tempRequestedRate = MAX_SUBSPACE_RATE;
-                }
-                requestedRatesList.Add(tempRequestedRate);
+                tempRequestedRate = MAX_SUBSPACE_RATE;
             }
-            else
-            {
-                //Request the slowest rate if we are "lagging to the max"
-                requestedRatesList.Add(MIN_SUBSPACE_RATE);
-            }
+            requestedRatesList.Add(tempRequestedRate);
             //Delete entries if there are too many
             while (requestedRatesList.Count > 50)
             {
