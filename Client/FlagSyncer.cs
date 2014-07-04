@@ -132,12 +132,12 @@ namespace DarkMultiPlayer
         {
             flagChangeEvent = false;
             string flagURL = HighLogic.CurrentGame.flagURL;
-            string flagName = flagURL.Substring("DarkMultiPlayer/Flags/".Length);
             if (!flagURL.ToLower().StartsWith("darkmultiplayer/flags/"))
             {
                 //If it's not a DMP flag don't sync it.
                 return;
             }
+            string flagName = flagURL.Substring("DarkMultiPlayer/Flags/".Length);
             if (serverFlags.ContainsKey(flagName) ? serverFlags[flagName].owner != Settings.fetch.playerName : false)
             {
                 //If the flag is owned by someone else don't sync it
