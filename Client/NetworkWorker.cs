@@ -550,11 +550,13 @@ namespace DarkMultiPlayer
         {
             if (e.InnerException != null)
             {
-                Disconnect("Connection error: " + e.Message + ", " + e.InnerException.ToString());
+                DarkLog.Debug("Connection error: " + e.Message + ", " + e.InnerException);
+                Disconnect("Connection error: " + e.Message + ", " + e.InnerException.Message);
             }
             else
             {
-                Disconnect("Connection error: " + e.ToString());
+                DarkLog.Debug("Connection error: " + e);
+                Disconnect("Connection error: " + e.Message);
             }
         }
         #endregion
