@@ -250,6 +250,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
+            GameEvents.onFlightReady.Add(this.OnFlightReady);
         }
 
         private void UnregisterGameHooks()
@@ -259,6 +260,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
+            GameEvents.onFlightReady.Remove(this.OnFlightReady);
         }
 
         private void HandleDocking()
@@ -509,6 +511,7 @@ namespace DarkMultiPlayer
         private void UpdateActiveVesselStatus()
         {
             bool isActiveVesselOk = FlightGlobals.fetch.activeVessel != null ? (FlightGlobals.fetch.activeVessel.loaded && !FlightGlobals.fetch.activeVessel.packed) : false;
+
             if (HighLogic.LoadedScene == GameScenes.FLIGHT && isActiveVesselOk)
             {
                 if (isSpectating && spectateType == 2)
@@ -1165,43 +1168,43 @@ namespace DarkMultiPlayer
         //Thanks KMP :)
         private void checkProtoNodeCrew(ref ConfigNode protoNode)
         {
-            string protoVesselID = protoNode.GetValue("pid");
+            List<int> kerbalsAssignedThisCheck = new List<int>();
+            string protoVesselID = Common.ConvertConfigStringToGUIDString(protoNode.GetValue("pid"));
             foreach (ConfigNode partNode in protoNode.GetNodes("PART"))
             {
                 int currentCrewIndex = 0;
                 foreach (string crew in partNode.GetValues("crew"))
                 {
                     int crewValue = Convert.ToInt32(crew);
-                    DarkLog.Debug("Protovessel: " + protoVesselID + " crew value " + crewValue);
-                    if (assignedKerbals.ContainsKey(crewValue) ? assignedKerbals[crewValue] != protoVesselID : false)
+                    //Check if kerbal has been assigned
+                    if (assignedKerbals.ContainsKey(crewValue))
                     {
-                        DarkLog.Debug("Kerbal taken!");
+                        //If the kerbal isn't assigned to this vessel, reassign it.
                         if (assignedKerbals[crewValue] != protoVesselID)
                         {
-                            //Assign a new kerbal, this one already belongs to another ship.
                             int freeKerbal = 0;
-                            while (assignedKerbals.ContainsKey(freeKerbal))
+                            //Search for a free kerbal
+                            while ((assignedKerbals.ContainsKey(freeKerbal) && (assignedKerbals[freeKerbal] != protoVesselID)) || kerbalsAssignedThisCheck.Contains(freeKerbal))
                             {
                                 freeKerbal++;
                             }
                             partNode.SetValue("crew", freeKerbal.ToString(), currentCrewIndex);
-                            CheckCrewMemberExists(freeKerbal);
-                            HighLogic.CurrentGame.CrewRoster[freeKerbal].rosterStatus = ProtoCrewMember.RosterStatus.ASSIGNED;
-                            HighLogic.CurrentGame.CrewRoster[freeKerbal].seatIdx = currentCrewIndex;
-                            DarkLog.Debug("Fixing duplicate kerbal reference, changing kerbal " + currentCrewIndex + " to " + freeKerbal);
+                            DarkLog.Debug("Fixing duplicate kerbal reference, changing kerbal " + crewValue + " to " + freeKerbal + " for " + protoVesselID);
                             crewValue = freeKerbal;
                             assignedKerbals[crewValue] = protoVesselID;
-                            currentCrewIndex++;
                         }
                     }
                     else
                     {
+                        //Assign a non assigned kerbal to this vessel
+                        DarkLog.Debug("Assigning kerbal " + currentCrewIndex + " to " + protoVesselID);
                         assignedKerbals[crewValue] = protoVesselID;
-                        CheckCrewMemberExists(crewValue);
-                        HighLogic.CurrentGame.CrewRoster[crewValue].rosterStatus = ProtoCrewMember.RosterStatus.ASSIGNED;
-                        HighLogic.CurrentGame.CrewRoster[crewValue].seatIdx = currentCrewIndex;
                     }
-                    crewValue++;
+                    CheckCrewMemberExists(crewValue);
+                    HighLogic.CurrentGame.CrewRoster[crewValue].rosterStatus = ProtoCrewMember.RosterStatus.ASSIGNED;
+                    HighLogic.CurrentGame.CrewRoster[crewValue].seatIdx = currentCrewIndex;
+                    kerbalsAssignedThisCheck.Add(crewValue);
+                    currentCrewIndex++;
                 }
             }   
         }
@@ -1699,16 +1702,39 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void OnFlightReady()
+        {
+            try
+            {
+                if (FlightGlobals.fetch.activeVessel.parts != null)
+                {
+                    foreach (Part vesselPart in FlightGlobals.fetch.activeVessel.parts)
+                    {
+                        if (vesselPart.protoModuleCrew != null)
+                        {
+                            foreach (ProtoCrewMember pcm in vesselPart.protoModuleCrew)
+                            {
+                                int kerbalIndex = HighLogic.CurrentGame.CrewRoster.IndexOf(pcm); 
+                                assignedKerbals[kerbalIndex] = FlightGlobals.fetch.activeVessel.id.ToString();
+                                DarkLog.Debug("Kerbal " + kerbalIndex + " assigned to " + FlightGlobals.fetch.activeVessel.id);
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                DarkLog.Debug("Thrown in OFR");
+            }
+        }
+
         private void unassignKerbals(string vesselID)
         {
             List<int> unassignKerbals = new List<int>();
             foreach (KeyValuePair<int,string> kerbalAssignment in assignedKerbals)
             {
-                if (kerbalAssignment.Value == vesselID.Replace("-", ""))
-                {
-                    DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + vesselID);
-                    unassignKerbals.Add(kerbalAssignment.Key);
-                }
+                DarkLog.Debug("Kerbal " + kerbalAssignment.Key + " unassigned from " + vesselID);
+                unassignKerbals.Add(kerbalAssignment.Key);
             }
             foreach (int unassignKerbal in unassignKerbals)
             {
