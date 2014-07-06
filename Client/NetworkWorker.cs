@@ -22,6 +22,7 @@ namespace DarkMultiPlayer
 
         private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
+        private float gameStartTime;
         private float lastSendTime = 0f;
         private bool isSendingMessage = false;
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
@@ -47,6 +48,9 @@ namespace DarkMultiPlayer
         private object messageDequeueLock = new object();
         private Thread sendThread;
         private ConfigNodeSerializer nodeSerializer = new ConfigNodeSerializer();
+        private string serverMotd;
+        private bool displayMotd;
+
 
         public NetworkWorker()
         {
@@ -134,6 +138,12 @@ namespace DarkMultiPlayer
                 CraftLibraryWorker.fetch.workerEnabled = true;
                 ScreenshotWorker.fetch.workerEnabled = true;
                 SendMotdRequest();
+                gameStartTime = UnityEngine.Time.realtimeSinceStartup;
+            }
+            if ((displayMotd && ((UnityEngine.Time.realtimeSinceStartup - gameStartTime) > 5f)))
+            {
+                ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
+                displayMotd = false;
             }
         }
         //This isn't tied to frame rate, During the loading screen Update doesn't fire.
@@ -1240,8 +1250,12 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                string serverMotd = mr.Read<string>();
-                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", serverMotd);
+                serverMotd = mr.Read<string>();
+                if (serverMotd != "")
+                {
+                    displayMotd = true;
+                    ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", serverMotd);
+                }
             }
         }
 
