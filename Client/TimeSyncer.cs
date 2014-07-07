@@ -72,6 +72,7 @@ namespace DarkMultiPlayer
         public TimeSyncer()
         {
             currentSubspace = -1;
+            requestedRate = 1f;
         }
 
         public static TimeSyncer fetch
@@ -107,10 +108,11 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
         //Skew or set the clock
         private void SyncTime()
         {
-            if (HighLogic.LoadedScene == GameScenes.SPH || HighLogic.LoadedScene == GameScenes.EDITOR)
+            if (HighLogic.LoadedScene != GameScenes.FLIGHT)
             {
                 if (requestedRatesList.Count > 0)
                 {
@@ -119,6 +121,19 @@ namespace DarkMultiPlayer
                     requestedRate = 1f;
                 }
                 return;
+            }
+            if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+            {
+                if (!FlightGlobals.ready)
+                {
+                    DarkLog.Debug("TimeSyncer - FlightGlobals not ready, skipping");
+                    return;
+                }
+                if (FlightGlobals.fetch.activeVessel == null)
+                {
+                    DarkLog.Debug("TimeSyncer - Active vessel is null, skipping");
+                    return;
+                }
             }
             if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
@@ -320,6 +335,7 @@ namespace DarkMultiPlayer
         {
             currentSubspace = -1;
             locked = false;
+            Time.timeScale = 1f;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
@@ -406,8 +422,6 @@ namespace DarkMultiPlayer
             {
                 case GameScenes.TRACKSTATION:
                 case GameScenes.FLIGHT:
-                case GameScenes.EDITOR:
-                case GameScenes.SPH:
                 case GameScenes.SPACECENTER:
                     canSync = true;
                     break;
@@ -474,6 +488,7 @@ namespace DarkMultiPlayer
                 {
                     singleton.workerEnabled = false;
                     Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
+                    Time.timeScale = 1f;
                 }
                 singleton = new TimeSyncer();
                 Client.fixedUpdateEvent.Add(singleton.FixedUpdate);

@@ -198,7 +198,6 @@ namespace DarkMultiPlayer
                     forceQuit = false;
                     gameRunning = false;
                     displayDisconnectMessage = false;
-                    Time.timeScale = 1f;
                     FireResetEvent();
                     NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
@@ -211,7 +210,6 @@ namespace DarkMultiPlayer
                     {
                         gameRunning = false;
                         displayDisconnectMessage = false;
-                        Time.timeScale = 1f;
                         FireResetEvent();
                         NetworkWorker.fetch.SendDisconnect("Quit to main menu");
                     }

@@ -36,7 +36,7 @@ namespace DarkMultiPlayer
         private ScreenMessage warpMessage;
         private const float SCREEN_MESSAGE_UPDATE_INTERVAL = 0.2f;
         private const float WARP_SET_THROTTLE = 1f;
-        private const float REPORT_SKEW_RATE_INTERVAL = 30f;
+        private const float REPORT_SKEW_RATE_INTERVAL = 10f;
         private const float MAX_WARP_TIME = 120f;
         private const float RELEASE_AFTER_WARP_TIME = 10f;
 
@@ -256,7 +256,7 @@ namespace DarkMultiPlayer
             }
             if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !TimeSyncer.fetch.locked && (warpMode == WarpMode.SUBSPACE) && (TimeSyncer.fetch.currentSubspace == -1))
             {
-                int newSubspaceID = TimeSyncer.fetch.LockNewSubspace(TimeSyncer.fetch.GetServerClock(), Planetarium.GetUniversalTime(), 1f);
+                int newSubspaceID = TimeSyncer.fetch.LockNewSubspace(TimeSyncer.fetch.GetServerClock(), Planetarium.GetUniversalTime(), TimeSyncer.fetch.requestedRate);
                 TimeSyncer.fetch.LockSubspace(newSubspaceID);
                 Subspace newSubspace = TimeSyncer.fetch.GetSubspace(newSubspaceID);
                 using (MessageWriter mw = new MessageWriter())

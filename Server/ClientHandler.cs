@@ -251,21 +251,10 @@ namespace DarkMultiPlayerServer
             newClientObject.subspace = GetLatestSubspace();
             newClientObject.playerStatus = new PlayerStatus();
             newClientObject.connectionStatus = ConnectionStatus.CONNECTED;
-            newClientObject.playerName = "Unknown";
-            newClientObject.activeVessel = "";
-            newClientObject.subspaceRate = 1f;
             newClientObject.endpoint = newClientConnection.Client.RemoteEndPoint.ToString();
             newClientObject.ipAddress = (newClientConnection.Client.RemoteEndPoint as IPEndPoint).Address;
-            newClientObject.GUID = Guid.Empty;
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
-            //Add the queues
-            newClientObject.sendMessageQueueHigh = new Queue<ServerMessage>();
-            newClientObject.sendMessageQueueSplit = new Queue<ServerMessage>();
-            newClientObject.sendMessageQueueLow = new Queue<ServerMessage>();
-            newClientObject.receiveMessageQueue = new Queue<ClientMessage>();
-            newClientObject.sendLock = new object();
-            newClientObject.queueLock = new object();
             StartReceivingIncomingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
             addClients.Enqueue(newClientObject);
@@ -644,14 +633,18 @@ namespace DarkMultiPlayerServer
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
-                    DisconnectClient(client);
+                    HandleDisconnectException("Send Network Message", client, e);
+                    return;
                 }
             }
             if (message.type == ServerMessageType.CONNECTION_END)
             {
-                DarkLog.Normal("Disconnecting client " + client.playerName + ", sent CONNECTION_END to endpoint " + client.endpoint);
-                client.disconnectClient = true;
+                using (MessageReader mr = new MessageReader(message.data, false))
+                {
+                    string reason = mr.Read<string>();
+                    DarkLog.Normal("Disconnecting client " + client.playerName + ", sent CONNECTION_END (" + reason + ") to endpoint " + client.endpoint);
+                    client.disconnectClient = true;
+                }
             }
             if (message.type == ServerMessageType.HANDSHAKE_REPLY)
             {
@@ -661,7 +654,7 @@ namespace DarkMultiPlayerServer
                     string reason = mr.Read<string>();
                     if (response != 0)
                     {
-                        DarkLog.Normal("Disconnecting client " + client.playerName + ", sent HANDSHAKE REPLY (" + reason + ") to endpoint " + client.endpoint);
+                        DarkLog.Normal("Disconnecting client " + client.playerName + ", sent HANDSHAKE_REPLY (" + reason + ") to endpoint " + client.endpoint);
                         client.disconnectClient = true;
                     }
                 }
@@ -677,8 +670,8 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Client " + client.playerName + " disconnected, endpoint " + client.endpoint + ", error: " + e.ToString());
-                DisconnectClient(client);
+                HandleDisconnectException("Send Callback", client, e);
+                return;
             }
             client.isSendingToClient = false;
             if (client.disconnectClient)
@@ -706,8 +699,7 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
-                DisconnectClient(client);
+                HandleDisconnectException("Start Receive", client, e);
             }
         }
 
@@ -785,54 +777,75 @@ namespace DarkMultiPlayerServer
             }
             catch (Exception e)
             {
-                DarkLog.Normal("Connection error for client " + client.playerName + ", endpoint " + client.endpoint + " error: " + e.ToString());
+                HandleDisconnectException("ReceiveCallback", client, e);
+            }
+        }
+
+        private static void HandleDisconnectException(string location, ClientObject client, Exception e)
+        {
+            lock (client.disconnectLock)
+            {
+                if (!client.disconnectClient && client.connectionStatus != ConnectionStatus.DISCONNECTED)
+                {
+                    if (e.InnerException != null)
+                    {
+                        DarkLog.Normal("Client " + client.playerName + " disconnected in " + location + ", endpoint " + client.endpoint + ", error: " + e.Message + " (" + e.InnerException.Message + ")");
+                    }
+                    else
+                    {
+                        DarkLog.Normal("Client " + client.playerName + " disconnected in " + location + ", endpoint " + client.endpoint + ", error: " + e.Message);
+                    }
+                }
                 DisconnectClient(client);
             }
         }
 
         private static void DisconnectClient(ClientObject client)
         {
-            if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
+            lock (client.disconnectLock)
             {
-                DMPPluginHandler.FireOnClientDisconnect(client);
-                if (client.playerName != null)
+                if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
                 {
-                    if (playerChatChannels.ContainsKey(client.playerName))
+                    DMPPluginHandler.FireOnClientDisconnect(client);
+                    if (client.playerName != null)
                     {
-                        playerChatChannels.Remove(client.playerName);
+                        if (playerChatChannels.ContainsKey(client.playerName))
+                        {
+                            playerChatChannels.Remove(client.playerName);
+                        }
+                        if (playerDownloadedScreenshotIndex.ContainsKey(client.playerName))
+                        {
+                            playerDownloadedScreenshotIndex.Remove(client.playerName);
+                        }
+                        if (playerUploadedScreenshotIndex.ContainsKey(client.playerName))
+                        {
+                            playerUploadedScreenshotIndex.Remove(client.playerName);
+                        }
+                        if (playerWatchScreenshot.ContainsKey(client.playerName))
+                        {
+                            playerWatchScreenshot.Remove(client.playerName);
+                        }
                     }
-                    if (playerDownloadedScreenshotIndex.ContainsKey(client.playerName))
+                    client.connectionStatus = ConnectionStatus.DISCONNECTED;
+                    if (client.authenticated)
                     {
-                        playerDownloadedScreenshotIndex.Remove(client.playerName);
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
+                        using (MessageWriter mw = new MessageWriter())
+                        {
+                            mw.Write<string>(client.playerName);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        SendToAll(client, newMessage, true);
+                        lockSystem.ReleasePlayerLocks(client.playerName);
                     }
-                    if (playerUploadedScreenshotIndex.ContainsKey(client.playerName))
+                    deleteClients.Enqueue(client);
+                    if (client.connection != null)
                     {
-                        playerUploadedScreenshotIndex.Remove(client.playerName);
+                        client.connection.Close();
                     }
-                    if (playerWatchScreenshot.ContainsKey(client.playerName))
-                    {
-                        playerWatchScreenshot.Remove(client.playerName);
-                    }
+                    Server.lastPlayerActivity = Server.serverClock.ElapsedTicks;
                 }
-                client.connectionStatus = ConnectionStatus.DISCONNECTED;
-                if (client.authenticated)
-                {
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.PLAYER_DISCONNECT;
-                    using (MessageWriter mw = new MessageWriter())
-                    {
-                        mw.Write<string>(client.playerName);
-                        newMessage.data = mw.GetMessageBytes();
-                    }
-                    SendToAll(client, newMessage, true);
-                    lockSystem.ReleasePlayerLocks(client.playerName);
-                }
-                deleteClients.Enqueue(client);
-                if (client.connection != null)
-                {
-                    client.connection.Close();
-                }
-                Server.lastPlayerActivity = Server.serverClock.ElapsedTicks;
             }
         }
         #endregion
@@ -1975,6 +1988,11 @@ namespace DarkMultiPlayerServer
                     if (warpType == WarpMessageType.REPORT_RATE)
                     {
                         int reportedSubspace = mr.Read<int>();
+                        if (client.subspace != reportedSubspace)
+                        {
+                            DarkLog.Debug("Warning, setting client " + client.playerName + " to subspace " + client.subspace);
+                            client.subspace = reportedSubspace;
+                        }
                         float newSubspaceRate = mr.Read<float>();
                         client.subspaceRate = newSubspaceRate;
                         foreach (ClientObject otherClient in clients)
@@ -1996,7 +2014,6 @@ namespace DarkMultiPlayerServer
                             newSubspaceRate = 1f;
                         }
                         //Relock the subspace if the rate is more than 3% out of the average
-                        //DarkLog.Debug("New average rate: " + newAverageRate + " for subspace " + client.subspace);
                         if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newSubspaceRate) > 0.03f)
                         {
                             //New time = Old time + (seconds since lock * subspace rate)
@@ -2019,7 +2036,7 @@ namespace DarkMultiPlayerServer
                                 relockMessage.data = mw.GetMessageBytes();
                             }
                             SaveLatestSubspace();
-                            DarkLog.Debug("Subspace " + client.subspace + " locked to " + newSubspaceRate + "x speed.");
+                            //DarkLog.Debug("Subspace " + client.subspace + " locked to " + newSubspaceRate + "x speed.");
                             SendToClient(client, relockMessage, true);
                             SendToAll(client, relockMessage, true);
                         }
@@ -2150,19 +2167,11 @@ namespace DarkMultiPlayerServer
         private static void HandleConnectionEnd(ClientObject client, byte[] messageData)
         {
             string reason = "Unknown";
-            try
+            using (MessageReader mr = new MessageReader(messageData, false))
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
-                {
-                    reason = mr.Read<string>();
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Error handling CONNECTION_END message from " + client.playerName + ":" + e);
+                reason = mr.Read<string>();
             }
             DarkLog.Debug(client.playerName + " sent connection end message, reason: " + reason);
-            DisconnectClient(client);
         }
         #endregion
         #region Message sending
@@ -3035,25 +3044,25 @@ namespace DarkMultiPlayerServer
     public class ClientObject
     {
         public bool authenticated;
-        public string playerName;
+        public string playerName = "Unknown";
         public bool isBanned;
         public IPAddress ipAddress;
-        public Guid GUID;
+        public Guid GUID = Guid.Empty;
         //subspace tracking
-        public int subspace;
-        public float subspaceRate;
+        public int subspace = -1;
+        public float subspaceRate = 1f;
         //vessel tracking
-        public string activeVessel;
+        public string activeVessel = "";
         //connection
         public string endpoint;
         public TcpClient connection;
         //Send buffer
         public long lastSendTime;
         public bool isSendingToClient;
-        public Queue<ServerMessage> sendMessageQueueHigh;
-        public Queue<ServerMessage> sendMessageQueueSplit;
-        public Queue<ServerMessage> sendMessageQueueLow;
-        public Queue<ClientMessage> receiveMessageQueue;
+        public Queue<ServerMessage> sendMessageQueueHigh = new Queue<ServerMessage>();
+        public Queue<ServerMessage> sendMessageQueueSplit = new Queue<ServerMessage>();
+        public Queue<ServerMessage> sendMessageQueueLow = new Queue<ServerMessage>();
+        public Queue<ClientMessage> receiveMessageQueue = new Queue<ClientMessage>();
         public long lastReceiveTime;
         public bool disconnectClient;
         //Receive buffer
@@ -3069,8 +3078,9 @@ namespace DarkMultiPlayerServer
         public PlayerStatus playerStatus;
         public float[] playerColor;
         //Send lock
-        public object sendLock;
-        public object queueLock;
+        public object sendLock = new object();
+        public object queueLock = new object();
+        public object disconnectLock = new object();
     }
 }
 
