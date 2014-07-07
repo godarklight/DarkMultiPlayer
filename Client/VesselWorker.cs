@@ -1556,7 +1556,7 @@ namespace DarkMultiPlayer
             }
 
             //Don't remove the vessel if it's not owned by another player.
-            if (LockSystem.fetch.LockExists("update-" + dyingVesselID) || !LockSystem.fetch.LockIsOurs("update-" + dyingVesselID))
+            if (LockSystem.fetch.LockExists("update-" + dyingVesselID) && !LockSystem.fetch.LockIsOurs("update-" + dyingVesselID))
             {
                 DarkLog.Debug("Skipping the removal of vessel " + dyingVesselID + ", name: " + dyingVessel.vesselName + ", update lock owned by another player.");
                 return;
@@ -1750,6 +1750,7 @@ namespace DarkMultiPlayer
         {
             if (killVessel != null)
             {
+                //TODO: Deselect the vessel in the tracking station if we are about to kill it.
                 DarkLog.Debug("Killing vessel: " + killVessel.id.ToString());
                 //Add it to the delay kill list to make sure it dies.
                 //With KSP, If it doesn't work first time, keeping doing it until it does.
@@ -1762,18 +1763,25 @@ namespace DarkMultiPlayer
                 {
                     if (killVessel.parts != null)
                     {
-                        for (int partID = killVessel.parts.Count - 1; partID >= 0; partID--)
+                        try
                         {
-                            Part killPart = killVessel.parts[partID];
-                            killPart.explosionPotential = 0f;
-                            killPart.Die();
+                            for (int partID = killVessel.parts.Count - 1; partID >= 0; partID--)
+                            {
+                                Part killPart = killVessel.parts[partID];
+                                killPart.explosionPotential = 0f;
+                                killPart.Die();
+                            }
+                        }
+                        catch (Exception partException)
+                        {
+                            DarkLog.Debug("Error killing parts: " + partException);
                         }
                     }
                     killVessel.Die();
                 }
-                catch (Exception e)
+                catch (Exception killException)
                 {
-                    DarkLog.Debug("Error destroying vessel: " + e);
+                    DarkLog.Debug("Error destroying vessel: " + killException);
                 }
             }
         }

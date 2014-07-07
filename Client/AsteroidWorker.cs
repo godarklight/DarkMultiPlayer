@@ -49,7 +49,6 @@ namespace DarkMultiPlayer
                             {
                                 if (psm.moduleRef != null)
                                 {
-                                    DarkLog.Debug("Found reference to asteroid spawner");
                                     scenarioController = (ScenarioDiscoverableObjects)psm.moduleRef;
                                     scenarioController.spawnInterval = float.MaxValue;
                                 }
@@ -91,24 +90,52 @@ namespace DarkMultiPlayer
                                         VesselWorker.fetch.RegisterServerVessel(asteroid.id.ToString());
                                         NetworkWorker.fetch.SendVesselProtoMessage(asteroid.protoVessel, false, false);
                                     }
+                                    if (serverAsteroids.Count >= maxNumberOfUntrackedAsteroids)
+                                    {
+                                        break;
+                                    }
                                 }
+                            }
+                        }
+                    }
+                    foreach (Vessel asteroid in asteroidList)
+                    {
+                        if (!serverAsteroids.Contains(asteroid.id.ToString()))
+                        {
+                            DarkLog.Debug("Killing non-server asteroid " + asteroid.id);
+                            try
+                            {
+                                asteroid.Die();
+                            }
+                            catch (Exception e)
+                            {
+                                DarkLog.Debug("Error killing asteroid " + asteroid.id + ", exception " + e);
                             }
                         }
                     }
                     //Check for changes to tracking
                     foreach (Vessel asteroid in asteroidList)
                     {
-                        if (!serverAsteroidTrackStatus.ContainsKey(asteroid.id.ToString()))
+                        if (asteroid.state != Vessel.State.DEAD)
                         {
-                            serverAsteroidTrackStatus.Add(asteroid.id.ToString(), asteroid.DiscoveryInfo.trackingStatus.Value);
-                        }
-                        else
-                        {
-                            if (asteroid.DiscoveryInfo.trackingStatus.Value != serverAsteroidTrackStatus[asteroid.id.ToString()])
+                            if (!serverAsteroidTrackStatus.ContainsKey(asteroid.id.ToString()))
                             {
-                                DarkLog.Debug("Sending changed asteroid, new state: " + asteroid.DiscoveryInfo.trackingStatus.Value + "!");
-                                serverAsteroidTrackStatus[asteroid.id.ToString()] = asteroid.DiscoveryInfo.trackingStatus.Value;
-                                NetworkWorker.fetch.SendVesselProtoMessage(asteroid.protoVessel, false, false);
+                                serverAsteroidTrackStatus.Add(asteroid.id.ToString(), asteroid.DiscoveryInfo.trackingStatus.Value);
+                            }
+                            else
+                            {
+                                if (asteroid.DiscoveryInfo.trackingStatus.Value != serverAsteroidTrackStatus[asteroid.id.ToString()])
+                                {
+                                    ProtoVessel pv = asteroid.BackupVessel();
+                                    if (pv.protoPartSnapshots.Count == 0)
+                                    {
+                                        DarkLog.Debug("Protovessel still has no parts");
+                                        return;
+                                    }
+                                    DarkLog.Debug("Sending changed asteroid, new state: " + asteroid.DiscoveryInfo.trackingStatus.Value + "!");
+                                    serverAsteroidTrackStatus[asteroid.id.ToString()] = asteroid.DiscoveryInfo.trackingStatus.Value;
+                                    NetworkWorker.fetch.SendVesselProtoMessage(pv, false, false);
+                                }
                             }
                         }
                     }

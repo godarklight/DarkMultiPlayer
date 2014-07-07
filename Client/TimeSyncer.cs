@@ -117,10 +117,8 @@ namespace DarkMultiPlayer
                 if (requestedRatesList.Count > 0)
                 {
                     requestedRatesList.Clear();
-                    Time.timeScale = 1f;
                     requestedRate = 1f;
                 }
-                return;
             }
             if (HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
@@ -150,6 +148,10 @@ namespace DarkMultiPlayer
                     {
                         SkewClock(currentError);
                     }
+                }
+                else
+                {
+                    Time.timeScale = 1f;
                 }
             }
         }
