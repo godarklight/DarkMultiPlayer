@@ -3,13 +3,13 @@ using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using System.Linq;
 
 namespace DarkMultiPlayerServer
 {
-    public class DMPPluginHandler
+    internal static class DMPPluginHandler
     {
-        private static Dictionary <Delegate, DMPEventInfo> delegateInfo = new Dictionary<Delegate, DMPEventInfo>();
-        private static Dictionary <Type, List<Delegate>> pluginEvents = new Dictionary<Type, List<Delegate>>();
+        private static readonly List<IDMPPlugin> loadedPlugins = new List<IDMPPlugin>();
 
         static DMPPluginHandler()
         {
@@ -66,28 +66,35 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-            //Add all the event types
-            pluginEvents.Add(typeof(DMPUpdate), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnServerStart), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnServerStop), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnClientConnect), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnClientAuthenticated), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnClientDisconnect), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnMessageReceived), new List<Delegate>());
-            pluginEvents.Add(typeof(DMPOnMessageReceivedRaw), new List<Delegate>());
-            //Iterate through the assemblies looking for the DMPPlugin attribute
+            
+            //Iterate through the assemblies looking for classes that have the IDMPPlugin interface
+
+            Type dmpInterfaceType = typeof(IDMPPlugin);
+
             foreach (Assembly loadedAssembly in loadedAssemblies)
             {
                 Type[] loadedTypes = loadedAssembly.GetExportedTypes();
                 foreach (Type loadedType in loadedTypes)
                 {
-                    if (loadedType.IsDefined(typeof(DMPPluginAttribute), false))
+                    Type[] typeInterfaces = loadedType.GetInterfaces();
+                    if (typeInterfaces.Contains(dmpInterfaceType))
                     {
-                        object pluginInstance = ActivatePluginType(loadedType);
+                        DarkLog.Debug("Loading plugin: " + loadedType.FullName);
 
-                        if (pluginInstance != null)
+                        try
                         {
-                            CreatePluginDelegates(loadedAssembly, loadedType, pluginInstance);
+                            IDMPPlugin pluginInstance = ActivatePluginType(loadedType);
+
+                            if (pluginInstance != null)
+                            {
+                                DarkLog.Debug("Loaded plugin: " + loadedType.FullName);
+
+                                loadedPlugins.Add(pluginInstance);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            DarkLog.Error("Error loading plugin " + loadedType.FullName + "(" + loadedType.Assembly.FullName + ") Exception: " + ex.ToString());
                         }
                     }
                 }
@@ -95,13 +102,12 @@ namespace DarkMultiPlayerServer
             DarkLog.Debug("Done!");
         }
 
-        private static object ActivatePluginType(Type loadedType)
+        private static IDMPPlugin ActivatePluginType(Type loadedType)
         {
-            DarkLog.Debug("Loading " + loadedType.Name);
-            
             try
             {
-                object pluginInstance = Activator.CreateInstance(loadedType);
+                //"as IDMPPlugin" will cast or return null if the type is not a IDMPPlugin
+                IDMPPlugin pluginInstance = Activator.CreateInstance(loadedType) as IDMPPlugin;
                 return pluginInstance;
             }
             catch (Exception e)
@@ -111,179 +117,132 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void CreatePluginDelegates(Assembly loadedAssembly, Type loadedType, object pluginInstance)
+        //Fire OnUpdate
+        public static void FireOnUpdate()
         {
-            MethodInfo[] methodInfos = loadedType.GetMethods(BindingFlags.Public | BindingFlags.Instance);
-            foreach (MethodInfo methodInfo in methodInfos)
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    foreach (Type evT in pluginEvents.Keys)
-                    {
-                        if (evT.Name.Substring(3) == methodInfo.Name)
-                        {
-                            DarkLog.Debug("Event registered : " + evT.Name);
-                            Delegate deg = Delegate.CreateDelegate(evT, pluginInstance, methodInfo);
-                            DMPEventInfo info = new DMPEventInfo();
-                            info.loadedAssembly = loadedAssembly.FullName;
-                            info.loadedType = loadedType.Name;
-                            delegateInfo.Add(deg, info);
-                            pluginEvents[evT].Add(deg);
-                        }
-                    }
+                    plugin.OnUpdate();
                 }
                 catch (Exception e)
                 {
-                    DarkLog.Error("Error loading " + methodInfo.Name + " from " + loadedType.Name + ", Exception: " + e.ToString());
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnUpdate event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
             }
         }
 
-        //Fire Update
-        public static void FireUpdate()
-        {
-            foreach (DMPUpdate pluginEvent in pluginEvents[typeof(DMPUpdate)])
-            {
-                try
-                {
-                    pluginEvent();
-                }
-                catch (Exception e)
-                {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in Update event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
-                }
-
-            }
-        }
         //Fire OnServerStart
         public static void FireOnServerStart()
         {
-            foreach (DMPOnServerStart pluginEvent in pluginEvents[typeof(DMPOnServerStart)])
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent();
+                    plugin.OnServerStart();
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnServerStart event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnServerStart event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
         }
+
         //Fire OnServerStart
         public static void FireOnServerStop()
         {
-            foreach (DMPOnServerStop pluginEvent in pluginEvents[typeof(DMPOnServerStop)])
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent();
+                    plugin.OnServerStop();
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnServerStop event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnServerStop event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
         }
+
         //Fire OnClientConnect
         public static void FireOnClientConnect(ClientObject client)
         {
-            foreach (DMPOnClientConnect pluginEvent in pluginEvents[typeof(DMPOnClientConnect)])
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent(client);
+                    plugin.OnClientConnect(client);
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnClientConnect event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnClientConnect event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
         }
-        //Fire OnClientConnect
+
+        //Fire OnClientAuthenticated
         public static void FireOnClientAuthenticated(ClientObject client)
         {
-            foreach (DMPOnClientAuthenticated pluginEvent in pluginEvents[typeof(DMPOnClientAuthenticated)])
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent(client);
+                    plugin.OnClientAuthenticated(client);
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnClientAuthenticated event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnClientAuthenticated event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
         }
+
         //Fire OnClientDisconnect
         public static void FireOnClientDisconnect(ClientObject client)
         {
-            foreach (DMPOnClientDisconnect pluginEvent in pluginEvents[typeof(DMPOnClientDisconnect)])
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent(client);
+                    plugin.OnClientDisconnect(client);
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnClientDisconnect event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnClientDisconnect event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
         }
+
         //Fire OnMessageReceived
         public static void FireOnMessageReceived(ClientObject client, ClientMessage message)
         {
-            foreach (DMPOnMessageReceived pluginEvent in pluginEvents[typeof(DMPOnMessageReceived)])
+            bool handledByAny = false;
+            foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    pluginEvent(client, message);
-                }
-                catch (Exception e)
-                {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnMessageReceived event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
-                }
+                    plugin.OnMessageReceived(client, message);
 
-            }
-        }
-        //Fire OnMessageReceived
-        public static void FireOnMessageReceivedRaw(ClientObject client, ref ClientMessage message)
-        {
-            foreach (DMPOnMessageReceivedRaw pluginEvent in pluginEvents[typeof(DMPOnMessageReceivedRaw)])
-            {
-                try
-                {
-                    pluginEvent(client, ref message);
-                    if (message == null) {
-                        return;
+                    //prevent plugins from unhandling other plugin's handled requests
+                    if (message.handled)
+                    {
+                        handledByAny = true;
                     }
                 }
                 catch (Exception e)
                 {
-                    DMPEventInfo eventInfo = delegateInfo[pluginEvent];
-                    DarkLog.Debug("Error thrown in OnMessageReceived event for " + eventInfo.loadedType + " (" + eventInfo.loadedAssembly + "), Exception: " + e);
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnMessageReceived event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
-
             }
+            message.handled = handledByAny;
         }
-    }
-
-    public class DMPEventInfo
-    {
-        public string loadedType;
-        public string loadedAssembly;
     }
 }
 

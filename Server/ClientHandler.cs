@@ -84,7 +84,7 @@ namespace DarkMultiPlayerServer
                         NukeKSC.CheckTimer();
                         Dekessler.CheckTimer();
                         //Run plugin update
-                        DMPPluginHandler.FireUpdate();
+                        DMPPluginHandler.FireOnUpdate();
                         //Delete old clients
                         while (deleteClients.Count > 0)
                         {
@@ -852,12 +852,13 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
-            DMPPluginHandler.FireOnMessageReceivedRaw(client, ref message);
-            if (message == null)
+            DMPPluginHandler.FireOnMessageReceived(client, message);
+
+            if (message.handled)
             {
+                //a plugin has handled this message and requested suppression of the default DMP behavior
                 return;
             }
-            DMPPluginHandler.FireOnMessageReceived(client, message);
 
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
             if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))

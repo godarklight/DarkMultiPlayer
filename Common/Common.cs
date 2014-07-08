@@ -498,6 +498,7 @@ namespace DarkMultiPlayerCommon
 
     public class ClientMessage
     {
+        public bool handled;
         public ClientMessageType type;
         public byte[] data;
     }
