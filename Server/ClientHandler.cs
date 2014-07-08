@@ -84,7 +84,7 @@ namespace DarkMultiPlayerServer
                         NukeKSC.CheckTimer();
                         Dekessler.CheckTimer();
                         //Run plugin update
-                        DMPPluginHandler.FireUpdate();
+                        DMPPluginHandler.FireOnUpdate();
                         //Delete old clients
                         while (deleteClients.Count > 0)
                         {
