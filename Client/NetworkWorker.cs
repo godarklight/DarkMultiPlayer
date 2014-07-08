@@ -43,6 +43,8 @@ namespace DarkMultiPlayer
         private int numberOfKerbalsReceived = 0;
         private int numberOfVessels = 0;
         private int numberOfVesselsReceived = 0;
+        private bool terminateOnNextMessageSend;
+        private string connectionEndReason;
         private object disconnectLock = new object();
         private object messageEnqueueLock = new object();
         private object messageDequeueLock = new object();
@@ -50,7 +52,6 @@ namespace DarkMultiPlayer
         private ConfigNodeSerializer nodeSerializer = new ConfigNodeSerializer();
         private string serverMotd;
         private bool displayMotd;
-
 
         public NetworkWorker()
         {
@@ -294,7 +295,7 @@ namespace DarkMultiPlayer
             {
                 if (state != ClientState.DISCONNECTED)
                 {
-                    DarkLog.Debug("Disconnecting, reason: " + reason);
+                    DarkLog.Debug("Disconnected, reason: " + reason);
                     Client.fetch.status = reason;
                     state = ClientState.DISCONNECTED;
                     if (clientConnection != null)
@@ -302,7 +303,6 @@ namespace DarkMultiPlayer
                         clientConnection.Close();
                     }
                     sendThread.Abort();
-                    DarkLog.Debug("Disconnected");
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
                         Client.fetch.forceQuit = true;
@@ -518,7 +518,16 @@ namespace DarkMultiPlayer
             {
                 clientConnection.GetStream().EndWrite(ar);
                 isSendingMessage = false;
-                SendOutgoingMessages();
+                if (terminateOnNextMessageSend)
+                {
+                    Disconnect("Connection ended: " + connectionEndReason);
+                    connectionEndReason = null;
+                    terminateOnNextMessageSend = false;
+                }
+                else
+                {
+                    SendOutgoingMessages();
+                }
             }
             catch (Exception e)
             {
@@ -537,18 +546,20 @@ namespace DarkMultiPlayer
                 }
                 messageBytes = mw.GetMessageBytes();
             }
+            //Disconnect after EndWrite completes
+            if (message.type == ClientMessageType.CONNECTION_END)
+            {
+                using (MessageReader mr = new MessageReader(message.data, false))
+                {
+                    terminateOnNextMessageSend = true;
+                    connectionEndReason = mr.Read<string>();
+                }
+            }
             isSendingMessage = true;
             lastSendTime = UnityEngine.Time.realtimeSinceStartup;
             try
             {
                 clientConnection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendCallback), null);
-                if (message.type == ClientMessageType.CONNECTION_END)
-                {
-                    using (MessageReader mr = new MessageReader(message.data, false))
-                    {
-                        Disconnect("Connection ended: " + mr.Read<string>());
-                    }
-                }
             }
             catch (Exception e)
             {
