@@ -13,7 +13,6 @@ namespace DarkMultiPlayerServer
         void OnClientAuthenticated(ClientObject client);
         void OnClientDisconnect(ClientObject client);
         void OnMessageReceived(ClientObject client, ClientMessage messageData);
-        void OnMessageReceivedRaw(ClientObject client, ref ClientMessage messageData);
     }
 
     public abstract class DMPPlugin : IDMPPlugin
@@ -25,6 +24,5 @@ namespace DarkMultiPlayerServer
         public virtual void OnClientAuthenticated(ClientObject client) { }
         public virtual void OnClientDisconnect(ClientObject client) { }
         public virtual void OnMessageReceived(ClientObject client, ClientMessage messageData) { }
-        public virtual void OnMessageReceivedRaw(ClientObject client, ref ClientMessage messageData) { }
     }
 }
