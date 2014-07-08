@@ -1,13 +1,15 @@
 using System;
 using DarkMultiPlayerCommon;
 
-public class DMPPluginAttribute : System.Attribute
-{
-    //DMP will look for this attribute to load classes.
-}
 
 namespace DarkMultiPlayerServer
 {
+    [AttributeUsage(AttributeTargets.Class)]
+    public class DMPPluginAttribute : System.Attribute
+    {
+        //DMP will look for this attribute to load classes.
+    }
+
     //Call your methods in your [DMPPlugin] class any of the following, minus the 'DMP' part. So DMPUpdate events require a method named Update.
     public delegate void DMPUpdate();
     public delegate void DMPOnServerStart();
