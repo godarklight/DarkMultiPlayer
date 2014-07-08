@@ -81,7 +81,7 @@ namespace DarkMultiPlayerServer
                 Type[] loadedTypes = loadedAssembly.GetExportedTypes();
                 foreach (Type loadedType in loadedTypes)
                 {
-                    if (loadedType.IsDefined(typeof(DMPPluginAttribute), false))
+                    if (loadedType.IsDefined(typeof(DMPPluginAttribute), true))
                     {
                         object pluginInstance = ActivatePluginType(loadedType);
 

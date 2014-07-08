@@ -19,4 +19,17 @@ namespace DarkMultiPlayerServer
     public delegate void DMPOnClientDisconnect(ClientObject client);
     public delegate void DMPOnMessageReceived(ClientObject client, ClientMessage messageData);
     public delegate void DMPOnMessageReceivedRaw(ClientObject client, ref ClientMessage messageData);
+
+    [DMPPlugin]
+    public abstract class DMPPlugin
+    {
+        public virtual void Update() { }
+        public virtual void OnServerStart() { }
+        public virtual void OnServerStop() { }
+        public virtual void OnClientConnect(ClientObject client) { }
+        public virtual void OnClientAuthenticated(ClientObject client) { }
+        public virtual void OnClientDisconnect(ClientObject client) { }
+        public virtual void OnMessageReceived(ClientObject client, ClientMessage messageData) { }
+        public virtual void OnMessageReceivedRaw(ClientObject client, ref ClientMessage messageData) { }
+    }
 }
