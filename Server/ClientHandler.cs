@@ -2172,6 +2172,7 @@ namespace DarkMultiPlayerServer
                 reason = mr.Read<string>();
             }
             DarkLog.Debug(client.playerName + " sent connection end message, reason: " + reason);
+            DisconnectClient(client);
         }
         #endregion
         #region Message sending
