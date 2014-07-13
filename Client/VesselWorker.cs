@@ -84,6 +84,20 @@ namespace DarkMultiPlayer
             {
                 return;
             }
+
+            if (Time.timeSinceLevelLoad < 1f)
+            {
+                return;
+            }
+
+            if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+            {
+                if (!FlightGlobals.ready)
+                {
+                    return;
+                }
+            }
+
             //GameEvents.debugEvents = true;
             if (workerEnabled && !registered)
             {
@@ -99,40 +113,68 @@ namespace DarkMultiPlayer
                 //Kill hacky flying vessels that have failed to load
                 foreach (HackyFlyingVesselLoad hfvl in loadingFlyingVessels)
                 {
+                    if (HighLogic.LoadedScene != GameScenes.FLIGHT)
+                    {
+                        //Scene change
+                        DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", failed to load in time");
+                        KillVessel(hfvl.flyingVessel);
+                        loadingFlyingVesselsDeleteList.Add(hfvl);
+                        continue;
+                    }
                     if (!FlightGlobals.fetch.vessels.Contains(hfvl.flyingVessel))
                     {
                         //Vessel failed to load
                         DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", killed in atmo");
                         loadingFlyingVesselsDeleteList.Add(hfvl);
+                        continue;
                     }
-                    else
+                    if (FlightGlobals.fetch.activeVessel != null)
                     {
-                        if (hfvl.flyingVessel.loaded && !hfvl.flyingVessel.packed)
+                        double ourDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), hfvl.flyingVessel.GetWorldPos3D());
+                        if (ourDistance > hfvl.flyingVessel.distanceLandedUnpackThreshold)
                         {
-                            hfvl.flyingVessel.Landed = false;
-                            DarkLog.Debug("Hacky load successful for " + hfvl.flyingVessel.id.ToString());
+                            DarkLog.Debug("Hacky load failed, distance: " + ourDistance + ", max: " + hfvl.flyingVessel.distanceUnpackThreshold);
+                            KillVessel(hfvl.flyingVessel);
                             loadingFlyingVesselsDeleteList.Add(hfvl);
+                            continue;
                         }
-                        else
+                    }
+                    //Everything is ok, attempt to load.
+                    if ((UnityEngine.Time.realtimeSinceStartup - hfvl.loadTime) < 10f)
+                    {
+                        if (hfvl.flyingVessel.loaded)
                         {
-                            //Ask to go off rails at 4 seconds
-                            if (hfvl.flyingVessel.loaded)
+                            if (hfvl.flyingVessel.packed)
                             {
-                                if ((UnityEngine.Time.realtimeSinceStartup - hfvl.loadTime) > 4f && !hfvl.requestedToGoOffRails)
+                                if (((UnityEngine.Time.realtimeSinceStartup - hfvl.loadTime) > 5f) && ((UnityEngine.Time.realtimeSinceStartup - hfvl.unpackTime) > 0.5f))
                                 {
-                                    hfvl.requestedToGoOffRails = true;
+                                    //Ask to go off rails 5 seconds after loading
+                                    hfvl.unpackTime = UnityEngine.Time.realtimeSinceStartup;
                                     DarkLog.Debug("Asking vessel to go off rails");
                                     hfvl.flyingVessel.GoOffRails();
                                 }
                             }
-                            //Timed out
-                            if ((UnityEngine.Time.realtimeSinceStartup - hfvl.loadTime) > 5f)
+                            else
                             {
-                                DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", failed to load in time");
-                                KillVessel(hfvl.flyingVessel);
-                                loadingFlyingVesselsDeleteList.Add(hfvl);
+                                if ((UnityEngine.Time.realtimeSinceStartup - hfvl.unpackTime) > 0.5f)
+                                {
+                                    //Vessel is off rails 1 second after asking, things must have worked!
+                                    hfvl.flyingVessel.Landed = false;
+                                    hfvl.flyingVessel.Splashed = false;
+                                    hfvl.flyingVessel.landedAt = "";
+                                    hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                                    DarkLog.Debug("Hacky load successful for " + hfvl.flyingVessel.id.ToString());
+                                    loadingFlyingVesselsDeleteList.Add(hfvl);
+                                }
                             }
                         }
+                    }
+                    else
+                    {
+                        //Timed out
+                        DarkLog.Debug("Hacky load failed for " + hfvl.flyingVessel.id.ToString() + ", failed to load in time");
+                        KillVessel(hfvl.flyingVessel);
+                        loadingFlyingVesselsDeleteList.Add(hfvl);
                     }
                 }
 
@@ -472,10 +514,10 @@ namespace DarkMultiPlayer
                     switch (spectateType)
                     {
                         case 1:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player...", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player.", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
                             break;
                         case 2:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future...", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future.", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
                             break;
                     }
                 }
@@ -717,7 +759,8 @@ namespace DarkMultiPlayer
                             if (!VesselUpdatedInFuture(checkVessel.id.ToString()))
                             {
                                 double currentDistance = Vector3d.Distance(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), checkVessel.GetWorldPos3D());
-                                if (!secondryVessels.ContainsValue(checkVessel))
+                                //If there's 2 vessels at the exact same distance.
+                                if (!secondryVessels.ContainsKey(currentDistance) && !secondryVessels.ContainsValue(checkVessel))
                                 {
                                     secondryVessels.Add(currentDistance, checkVessel);
                                 }
@@ -991,20 +1034,6 @@ namespace DarkMultiPlayer
                 returnUpdate.rotation[2] = updateVessel.srfRelRotation.z;
                 returnUpdate.rotation[3] = updateVessel.srfRelRotation.w;
 
-                /*
-                returnUpdate.vesselForward = new float[3];
-                Vector3 transformVesselForward = updateVessel.mainBody.transform.InverseTransformDirection(updateVessel.transform.forward);
-                returnUpdate.vesselForward[0] = transformVesselForward.x;
-                returnUpdate.vesselForward[1] = transformVesselForward.y;
-                returnUpdate.vesselForward[2] = transformVesselForward.z;
-
-                returnUpdate.vesselUp = new float[3];
-                Vector3 transformVesselUp = updateVessel.mainBody.transform.InverseTransformDirection(updateVessel.transform.up);
-                returnUpdate.vesselUp[0] = transformVesselUp.x;
-                returnUpdate.vesselUp[1] = transformVesselUp.y;
-                returnUpdate.vesselUp[2] = transformVesselUp.z;
-                */
-
                 returnUpdate.angularVelocity = new float[3];
                 returnUpdate.angularVelocity[0] = updateVessel.angularVelocity.x;
                 returnUpdate.angularVelocity[1] = updateVessel.angularVelocity.y;
@@ -1045,15 +1074,6 @@ namespace DarkMultiPlayer
                     returnUpdate.orbit[4] = updateVessel.orbit.argumentOfPeriapsis;
                     returnUpdate.orbit[5] = updateVessel.orbit.meanAnomalyAtEpoch;
                     returnUpdate.orbit[6] = updateVessel.orbit.epoch;
-                    //KSP tells us a bunch of lies, there's a ~40 meter error between our actual position and the orbital position
-                    Vector3d vesselPos = updateVessel.GetWorldPos3D();
-                    Vector3d orbitPos = updateVessel.orbitDriver.orbit.getPositionAtUT(Planetarium.GetUniversalTime());
-                    Vector3d positionDelta = Quaternion.Inverse(updateVessel.mainBody.bodyTransform.rotation) * (vesselPos - orbitPos);
-                    returnUpdate.orbitalPositionDelta = new double[3];
-                    returnUpdate.orbitalPositionDelta[0] = positionDelta.x;
-                    returnUpdate.orbitalPositionDelta[1] = positionDelta.y;
-                    returnUpdate.orbitalPositionDelta[2] = positionDelta.z;
-
                 }
 
             }
@@ -1309,7 +1329,7 @@ namespace DarkMultiPlayer
                         {
                             if (HighLogic.LoadedScene == GameScenes.FLIGHT)
                             {
-                                if (vesselPartCount.ContainsKey(currentProto.vesselID.ToString()) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID.ToString()] : false)
+                                if ((FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null) && vesselPartCount.ContainsKey(currentProto.vesselID.ToString()) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID.ToString()] : false)
                                 {
                                     DarkLog.Debug("Skipping flying vessel load - Vessel has the same part count");
                                     return;
@@ -1392,8 +1412,9 @@ namespace DarkMultiPlayer
                         {
                             //Don't replace the vessel if it's unpacked, not landed, close to the ground, and has the same amount of parts.
                             double hft = oldVessel.GetHeightFromTerrain();
-                            if (oldVessel.loaded && !oldVessel.packed && !oldVessel.Landed && (hft < 1000) && (currentProto.protoPartSnapshots.Count == oldVessel.parts.Count))
+                            if (oldVessel.loaded && !oldVessel.packed && !oldVessel.Landed && (hft != -1) && (hft < 1000) && (currentProto.protoPartSnapshots.Count == oldVessel.parts.Count))
                             {
+                                DarkLog.Debug("Skipped loading protovessel " + currentProto.vesselID.ToString() + " because it is flying close to the ground and may get destroyed");
                                 return;
                             }
                             //Don't kill the active vessel - Kill it after we switch.
@@ -1404,6 +1425,22 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
+                                /*
+                                 * Sorry guys - KSP's protovessel positioning is not as accurate as it could be.
+                                 * 
+                                 * The loading vessel needs to come off rails in order for the error to be corrected,
+                                 * but taking it off rails will allow the vessel to collide with others while it's in the incorrect spot for that fixed update.
+                                 * 
+                                 * If the vessel is the selected target, close (unpacked), and has the same number of parts, we'll skip the protovessel load.
+                                 */
+
+                                if (wasTarget && !oldVessel.LandedOrSplashed && oldVessel.loaded && !oldVessel.packed && (oldVessel.parts.Count == currentProto.protoPartSnapshots.Count))
+                                {
+
+                                    DarkLog.Debug("Skipping loading protovessel " + currentProto.vesselID.ToString() + " because it is the selected target and may crash into us");
+                                    return;
+                                }
+
                                 KillVessel(oldVessel);
                             }
                         }
@@ -1650,7 +1687,7 @@ namespace DarkMultiPlayer
 
         private bool VesselUpdatedInFuture(string vesselID)
         {
-            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 10f) > Planetarium.GetUniversalTime()) : false;
+            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 3f) > Planetarium.GetUniversalTime()) : false;
         }
 
         public void OnVesselDock(GameEvents.FromToAction<Part, Part> partAction)
@@ -1865,6 +1902,12 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("ApplyVesselUpdate - updateBody not found");
                 return;
             }
+
+            //Rotation
+            Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
+            updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
+
+            //Position/Velocity
             if (update.isSurfaceUpdate)
             {
                 //Get the new position/velocity
@@ -1885,13 +1928,13 @@ namespace DarkMultiPlayer
                 bool isUnpacking = (updateDistance < updateVessel.distanceUnpackThreshold) && updateVessel.packed && updateVessel.loaded;
                 if (updateVessel.HoldPhysics)
                 {
-                    DarkLog.Debug("Skipping update, physics held");
+                    //DarkLog.Debug("Skipping update, physics held");
                     return;
                 }
-                //Don't set the position while the vessel is unpacking / loading.
+                //Don't set the position while the vessel is unpacking / loading - It doesn't apply properly.
                 if (isUnpacking || isLoading)
                 {
-                    DarkLog.Debug("Skipping update, isUnpacking: " + isUnpacking + " isLoading: " + isLoading);
+                    //DarkLog.Debug("Skipping update, isUnpacking: " + isUnpacking + " isLoading: " + isLoading);
                     return;
                 }
                 if (updateVessel.packed)
@@ -1899,74 +1942,76 @@ namespace DarkMultiPlayer
                     updateVessel.latitude = update.position[0];
                     updateVessel.longitude = update.position[1];
                     updateVessel.altitude = update.position[2];
-                    Vector3d orbitalPos = updatePostion - updateBody.position;
-                    Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(updatePostion);
-                    Vector3d orbitalVel = updateVelocity + surfaceOrbitVelDiff;
-                    updateVessel.orbitDriver.orbit.UpdateFromStateVectors(orbitalPos.xzy, orbitalVel.xzy, updateBody, Planetarium.GetUniversalTime());
+                    if (!updateVessel.LandedOrSplashed)
+                    {
+                        //Not landed but under 10km.
+                        Vector3d orbitalPos = updatePostion - updateBody.position;
+                        Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(updatePostion);
+                        Vector3d orbitalVel = updateVelocity + surfaceOrbitVelDiff;
+                        updateVessel.orbitDriver.orbit.UpdateFromStateVectors(orbitalPos.xzy, orbitalVel.xzy, updateBody, Planetarium.GetUniversalTime());
+                        updateVessel.orbitDriver.pos = updateVessel.orbitDriver.orbit.pos.xzy;
+                        updateVessel.orbitDriver.vel = updateVessel.orbitDriver.orbit.vel;
+                        /*
+                        DarkLog.Debug("updateVelocity: " + (Vector3)updateVelocity + ", |vel| " + updateVelocity.magnitude);
+                        DarkLog.Debug("surfaceOrbitVelDiff: " + (Vector3)surfaceOrbitVelDiff + ", |vel| " + surfaceOrbitVelDiff.magnitude);
+                        */
+                        /*
+                        if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
+                        {
+                            DarkLog.Debug("ourVel: " + (Vector3)FlightGlobals.fetch.activeVessel.orbitDriver.vel + ", |vel| " + updateVessel.orbitDriver.vel.magnitude);
+                        }
+                        DarkLog.Debug("theirVel: " + (Vector3)updateVessel.orbitDriver.vel + ", |vel| " + updateVessel.orbitDriver.vel.magnitude);
+                        */
+                    }
                 }
                 else
                 {
                     Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
-                    updateVessel.SetPosition(updatePostion);
+                    updateVessel.SetPosition(updatePostion, true);
                     updateVessel.ChangeWorldVelocity(velocityOffset);
                 }
             }
             else
             {
                 Orbit updateOrbit = new Orbit(update.orbit[0], update.orbit[1], update.orbit[2], update.orbit[3], update.orbit[4], update.orbit[5], update.orbit[6], updateBody);
+                updateOrbit.Init();
+                updateOrbit.UpdateFromUT(Planetarium.GetUniversalTime());
 
                 if (updateVessel.packed)
                 {
+                    //The OrbitDriver update call will set the vessel position on the next fixed update
                     CopyOrbit(updateOrbit, updateVessel.orbitDriver.orbit);
+                    updateVessel.orbitDriver.pos = updateVessel.orbitDriver.orbit.pos.xzy;
+                    updateVessel.orbitDriver.vel = updateVessel.orbitDriver.orbit.vel;
                 }
                 else
                 {
-                    Vector3d ourCoMDiff = Vector3d.zero;
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
-                    {
-                        ourCoMDiff = FlightGlobals.fetch.activeVessel.findWorldCenterOfMass() - FlightGlobals.fetch.activeVessel.GetWorldPos3D();
-                    }
-                    //KSP's inaccuracy hurts me.
-                    Vector3d orbitalPositionDelta = updateBody.bodyTransform.rotation * new Vector3d(update.orbitalPositionDelta[0], update.orbitalPositionDelta[1], update.orbitalPositionDelta[2]);
-                    updateVessel.SetPosition(updateOrbit.getPositionAtUT(Planetarium.GetUniversalTime()) + orbitalPositionDelta + ourCoMDiff);
-                    Vector3d velocityOffset = updateOrbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy - updateVessel.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy;
-                    updateVessel.ChangeWorldVelocity(velocityOffset);
+                    //Vessel.SetPosition is full of fun and games. Avoid at all costs.
+                    //Also, It's quite difficult to figure out the world velocity due to Krakensbane, and the reference frame.
+                    Vector3d posDelta = updateOrbit.getPositionAtUT(Planetarium.GetUniversalTime()) - updateVessel.orbitDriver.orbit.getPositionAtUT(Planetarium.GetUniversalTime());
+                    Vector3d velDelta = updateOrbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy - updateVessel.orbitDriver.orbit.getOrbitalVelocityAtUT(Planetarium.GetUniversalTime()).xzy;
+                    //Vector3d velDelta = updateOrbit.vel.xzy - updateVessel.orbitDriver.orbit.vel.xzy;
+                    updateVessel.Translate(posDelta);
+                    updateVessel.ChangeWorldVelocity(velDelta);
                 }
-
             }
-            Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
-            updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
 
+            //Angular velocity
             Vector3 angularVelocity = new Vector3(update.angularVelocity[0], update.angularVelocity[1], update.angularVelocity[2]);
-
-            if (updateVessel.LandedOrSplashed)
+            if (updateVessel.parts != null)
             {
-                updateVessel.angularVelocity = Vector3.zero;
-                if (updateVessel.rootPart != null && 
-                    updateVessel.rootPart.rb != null &&
-                    !updateVessel.rootPart.rb.isKinematic)
+                Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
+                foreach (Part vesselPart in updateVessel.parts)
                 {
-                    updateVessel.rootPart.rb.angularVelocity = Vector3.zero;
-                }
-            }
-            else
-            {
-                updateVessel.angularVelocity = angularVelocity;
-                if (updateVessel.parts != null)
-                {
-                    Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
-                    foreach (Part vesselPart in updateVessel.parts)
+                    if (vesselPart.rb != null && !vesselPart.rb.isKinematic && vesselPart.State == PartStates.ACTIVE)
                     {
-                        if (vesselPart.rb != null && 
-                            !vesselPart.rb.isKinematic && 
-                            vesselPart.State == PartStates.ACTIVE)
-                        {
-                            vesselPart.rb.angularVelocity = newAng;
-                        }
+                        //The parts can have different rotations - This transforms them into the root part direction which is where the angular velocity is transferred.
+                        vesselPart.rb.angularVelocity = (Quaternion.Inverse(updateVessel.rootPart.rb.rotation) * vesselPart.rb.rotation) * newAng;
                     }
                 }
             }
 
+            //Flight state controls (Throttle etc)
             if (!isSpectating)
             {
                 updateVessel.ctrlState.CopyFrom(update.flightState);
@@ -1976,6 +2021,7 @@ namespace DarkMultiPlayer
                 FlightInputHandler.state.CopyFrom(update.flightState);
             }
 
+            //Action group controls
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.Gear, update.actiongroupControls[0]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.Light, update.actiongroupControls[1]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, update.actiongroupControls[2]);
@@ -2165,7 +2211,7 @@ namespace DarkMultiPlayer
     class HackyFlyingVesselLoad
     {
         public double loadTime;
-        public bool requestedToGoOffRails = false;
+        public double unpackTime;
         public Vessel flyingVessel;
     }
 
@@ -2188,8 +2234,6 @@ namespace DarkMultiPlayer
         //Position = lat,long,alt.
         public double[] position;
         public double[] velocity;
-        //KSP tells us a bunch of fibs. Lets keep it honest.
-        public double[] orbitalPositionDelta;
     }
 }
 

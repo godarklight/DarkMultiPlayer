@@ -12,10 +12,12 @@ namespace DarkMultiPlayer
         private static DebugWindow singleton;
         //private parts
         private bool displayFast;
+        private bool displayVectors;
         private bool displayNTP;
         private bool displayConnectionQueue;
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
+        private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
         private string dynamicTickText = "";
@@ -81,6 +83,11 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             displayFast = GUILayout.Toggle(displayFast, "Fast debug update", buttonStyle);
+            displayVectors = GUILayout.Toggle(displayVectors, "Display vessel vectors", buttonStyle);
+            if (displayVectors)
+            {
+                GUILayout.Label(vectorText, labelStyle);
+            }
             displayNTP = GUILayout.Toggle(displayNTP, "Display NTP/Subspace statistics", buttonStyle);
             if (displayNTP)
             {
@@ -112,6 +119,30 @@ namespace DarkMultiPlayer
                 if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
                     lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
+                    //Vector text
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null) {
+                        Vessel ourVessel = FlightGlobals.fetch.activeVessel;
+                        vectorText = "Forward vector: " + ourVessel.GetFwdVector() + "\n";
+                        vectorText += "Up vector: " + (Vector3)ourVessel.upAxis + "\n";
+                        vectorText += "Srf Rotation: " + ourVessel.srfRelRotation + "\n";
+                        vectorText += "Vessel Rotation: " + ourVessel.transform.rotation + "\n";
+                        vectorText += "Vessel Local Rotation: " + ourVessel.transform.localRotation + "\n";
+                        vectorText += "mainBody Rotation: " + (Quaternion)ourVessel.mainBody.rotation + "\n";
+                        vectorText += "mainBody Transform Rotation: " + (Quaternion)ourVessel.mainBody.bodyTransform.rotation + "\n";
+                        vectorText += "Surface Velocity: " + ourVessel.GetSrfVelocity() + ", |v|: " + ourVessel.GetSrfVelocity().magnitude + "\n";
+                        vectorText += "Orbital Velocity: " + ourVessel.GetObtVelocity() + ", |v|: " + ourVessel.GetObtVelocity().magnitude + "\n";
+                        if (ourVessel.orbitDriver != null && ourVessel.orbitDriver.orbit != null)
+                        {
+                            vectorText += "Frame Velocity: " + (Vector3)ourVessel.orbitDriver.orbit.GetFrameVel() + ", |v|: " + ourVessel.orbitDriver.orbit.GetFrameVel().magnitude + "\n";
+                        }
+                        vectorText += "CoM offset vector: " + ourVessel.orbitDriver.CoMoffset + "\n";
+                        vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
+                        vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
+                    }
+                    else {
+                        vectorText = "You have to be in flight";
+                    }
+
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
                     ntpText += "Current subspace: " + TimeSyncer.fetch.currentSubspace + ".\n";

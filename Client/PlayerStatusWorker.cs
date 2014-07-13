@@ -103,7 +103,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Splashed on " + bodyName;
                                         break;
                                     case (Vessel.Situations.SUB_ORBITAL):
-                                        if (FlightGlobals.ActiveVessel.orbit.timeToPe > 0)
+                                        if (FlightGlobals.ActiveVessel.verticalSpeed > 0)
                                         {
                                             myPlayerStatus.statusText = "Ascending from " + bodyName;
                                         }
@@ -116,13 +116,20 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
-                                if (LockSystem.fetch.LockExists("control-"+FlightGlobals.ActiveVessel.id.ToString()))
+                                if (LockSystem.fetch.LockExists("control-" + FlightGlobals.ActiveVessel.id.ToString()))
                                 {
-                                    myPlayerStatus.statusText = "Spectating " + LockSystem.fetch.LockOwner("control-"+FlightGlobals.ActiveVessel.id.ToString());
+                                    if (LockSystem.fetch.LockIsOurs("control-" + FlightGlobals.ActiveVessel.id.ToString()))
+                                    {
+                                        myPlayerStatus.statusText = "Waiting for vessel control";
+                                    }
+                                    else 
+                                    {
+                                        myPlayerStatus.statusText = "Spectating " + LockSystem.fetch.LockOwner("control-" + FlightGlobals.ActiveVessel.id.ToString());
+                                    }
                                 }
                                 else
                                 {
-                                    myPlayerStatus.statusText = "Spectating Unknown";
+                                    myPlayerStatus.statusText = "Spectating future updates";
                                 }
                             }
                         }

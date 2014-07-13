@@ -22,7 +22,6 @@ namespace DarkMultiPlayer
 
         private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
-        private float gameStartTime;
         private float lastSendTime = 0f;
         private bool isSendingMessage = false;
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
@@ -139,12 +138,11 @@ namespace DarkMultiPlayer
                 CraftLibraryWorker.fetch.workerEnabled = true;
                 ScreenshotWorker.fetch.workerEnabled = true;
                 SendMotdRequest();
-                gameStartTime = UnityEngine.Time.realtimeSinceStartup;
             }
-            if ((displayMotd && ((UnityEngine.Time.realtimeSinceStartup - gameStartTime) > 5f)))
+            if (displayMotd && (HighLogic.LoadedScene != GameScenes.LOADING) && (Time.timeSinceLevelLoad > 2f))
             {
-                ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
                 displayMotd = false;
+                ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
         //This isn't tied to frame rate, During the loading screen Update doesn't fire.
@@ -1064,7 +1062,6 @@ namespace DarkMultiPlayer
                 else
                 {
                     update.orbit = mr.Read<double[]>();
-                    update.orbitalPositionDelta = mr.Read<double[]>();
                 }
                 VesselWorker.fetch.QueueVesselUpdate(update);
             }
@@ -1487,7 +1484,6 @@ namespace DarkMultiPlayer
                 else
                 {
                     mw.Write<double[]>(update.orbit);
-                    mw.Write<double[]>(update.orbitalPositionDelta);
                 }
                 newMessage.data = mw.GetMessageBytes();
             }

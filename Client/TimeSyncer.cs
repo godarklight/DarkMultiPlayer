@@ -120,19 +120,24 @@ namespace DarkMultiPlayer
                     requestedRate = 1f;
                 }
             }
+
+            if (Time.timeSinceLevelLoad < 1f)
+            {
+                return;
+            }
+
             if (HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 if (!FlightGlobals.ready)
                 {
-                    DarkLog.Debug("TimeSyncer - FlightGlobals not ready, skipping");
                     return;
                 }
                 if (FlightGlobals.fetch.activeVessel == null)
                 {
-                    DarkLog.Debug("TimeSyncer - Active vessel is null, skipping");
                     return;
                 }
             }
+
             if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
                 lastClockSkew = UnityEngine.Time.realtimeSinceStartup;
