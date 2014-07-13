@@ -227,6 +227,7 @@ namespace DarkMultiPlayerServer
             {
                 try
                 {
+                    message.handled = false;
                     plugin.OnMessageReceived(client, message);
 
                     //prevent plugins from unhandling other plugin's handled requests
