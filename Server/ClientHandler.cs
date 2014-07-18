@@ -1274,15 +1274,12 @@ namespace DarkMultiPlayerServer
             {
                 //Don't care about subspace / send time.
                 string[] scenarioName = mr.Read<string[]>();
-                string[] scenarioData = mr.Read<string[]>();
                 DarkLog.Debug("Saving " + scenarioName.Length + " scenario modules from " + client.playerName);
 
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
-                    using (StreamWriter sw = new StreamWriter(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName, scenarioName[i] + ".txt")))
-                    {
-                        sw.Write(scenarioData[i]);
-                    }
+                    byte[] scenarioData = mr.Read<byte[]>();
+                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName, scenarioName[i] + ".txt"), scenarioData);
                 }
             }
         }
@@ -1309,15 +1306,14 @@ namespace DarkMultiPlayerServer
             SendPlayerChatChannels(client);
             SendAllLocks(client);
             //Send kerbals
-            int kerbalCount = 0;
-            while (File.Exists(Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt")))
+            string[] kerbalFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals"));
+            foreach (string kerbalFile in kerbalFiles)
             {
-                string kerbalFile = Path.Combine(Server.universeDirectory, "Kerbals", kerbalCount + ".txt");
+                string kerbalName = Path.GetFileNameWithoutExtension(kerbalFile);
                 byte[] kerbalData = File.ReadAllBytes(kerbalFile);
-                SendKerbal(client, kerbalCount, kerbalData);
-                kerbalCount++;
+                SendKerbal(client, kerbalName, kerbalData);
             }
-            DarkLog.Debug("Sending " + client.playerName + " " + kerbalCount + " kerbals...");
+            DarkLog.Debug("Sending " + client.playerName + " " + kerbalFiles.Length + " kerbals...");
             SendKerbalsComplete(client);
         }
 
@@ -1327,17 +1323,16 @@ namespace DarkMultiPlayerServer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 //Don't care about subspace / send time.
-                mr.Read<int>();
                 mr.Read<double>();
-                int kerbalID = mr.Read<int>();
-                DarkLog.Debug("Saving kerbal " + kerbalID + " from " + client.playerName);
+                string kerbalName = mr.Read<string>();
+                DarkLog.Debug("Saving kerbal " + kerbalName + " from " + client.playerName);
                 byte[] kerbalData = mr.Read<byte[]>();
-                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalID + ".txt"), kerbalData);
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.KERBAL_REPLY;
-                newMessage.data = messageData;
-                SendToAll(client, newMessage, false);
+                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt"), kerbalData);
             }
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.KERBAL_REPLY;
+            newMessage.data = messageData;
+            SendToAll(client, newMessage, false);
         }
 
         private static void HandleVesselsRequest(ClientObject client, byte[] messageData)
@@ -2573,24 +2568,24 @@ namespace DarkMultiPlayerServer
         {
             int numberOfScenarioModules = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)).Length;
             int currentScenarioModule = 0;
-            string[] scenarioName = new string[numberOfScenarioModules];
-            string[] scenarioData = new string[numberOfScenarioModules];
+            string[] scenarioNames = new string[numberOfScenarioModules];
+            byte[][] scenarioDataArray = new byte[numberOfScenarioModules][];
             foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
             {
-                using (StreamReader sr = new StreamReader(file))
-                {
-                    //Remove the .txt part for the name
-                    scenarioName[currentScenarioModule] = Path.GetFileNameWithoutExtension(file);
-                    scenarioData[currentScenarioModule] = sr.ReadToEnd();
-                    currentScenarioModule++;
-                }
+                //Remove the .txt part for the name
+                scenarioNames[currentScenarioModule] = Path.GetFileNameWithoutExtension(file);
+                scenarioDataArray[currentScenarioModule] = File.ReadAllBytes(file);
+                currentScenarioModule++;
             }
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SCENARIO_DATA;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<string[]>(scenarioName);
-                mw.Write<string[]>(scenarioData);
+                mw.Write<string[]>(scenarioNames);
+                foreach (byte[] scenarioData in scenarioDataArray)
+                {
+                    mw.Write<byte[]>(scenarioData);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -2662,16 +2657,15 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, false);
         }
 
-        private static void SendKerbal(ClientObject client, int kerbalID, byte[] kerbalData)
+        private static void SendKerbal(ClientObject client, string kerbalName, byte[] kerbalData)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<int>(GetLatestSubspace());
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
-                mw.Write<int>(kerbalID);
+                mw.Write<string>(kerbalName);
                 mw.Write<byte[]>(kerbalData);
                 newMessage.data = mw.GetMessageBytes();
             }

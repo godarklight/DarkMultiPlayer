@@ -30,7 +30,14 @@ namespace DarkMultiPlayerServer
                 //Start the server clock
                 serverClock = new Stopwatch();
                 serverClock.Start();
+
+                //Set the last player activity time to server start
                 lastPlayerActivity = serverClock.ElapsedTicks;
+
+                //Set universe directory and modfile path
+                universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
+                modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+
                 //Register the server commands
                 CommandHandler.RegisterCommand("exit", Server.ShutDown, "Shuts down the server");
                 CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
@@ -46,6 +53,9 @@ namespace DarkMultiPlayerServer
                 //Register the ctrl+c event
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
+
+                //Fix kerbals from 0.23.5 to 0.24 (Now indexed by string, thanks Squad!
+                BackwardsCompatibility.FixKerbals();
 
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
@@ -134,12 +144,11 @@ namespace DarkMultiPlayerServer
         //Create universe directories
         private static void CheckUniverse()
         {
-            modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+
             if (!File.Exists(modFile))
             {
                 GenerateNewModFile();
             }
-            universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
             if (!Directory.Exists(universeDirectory))
             {
                 Directory.CreateDirectory(universeDirectory);

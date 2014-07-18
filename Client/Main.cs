@@ -13,7 +13,8 @@ namespace DarkMultiPlayer
         private static Client singleton;
         //Global state vars
         public string status;
-        public bool forceQuit;
+        //Disabled - broken in 0.24
+        //public bool forceQuit;
         public bool showGUI = true;
         public bool incorrectlyInstalled = false;
         public bool displayedIncorrectMessage = false;
@@ -58,7 +59,7 @@ namespace DarkMultiPlayer
             incorrectlyInstalled = (assemblyPath.ToLower() != assemblyShouldBeInstalledAt.ToLower());
             if (incorrectlyInstalled)
             {
-                UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '"+assemblyShouldBeInstalledAt+"'");
+                UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '" + assemblyShouldBeInstalledAt + "'");
                 return;
             }
             SetupDirectoriesIfNeeded();
@@ -122,7 +123,7 @@ namespace DarkMultiPlayer
                 if (!PlayerStatusWindow.fetch.disconnectEventHandled)
                 {
                     PlayerStatusWindow.fetch.disconnectEventHandled = true;
-                    forceQuit = true;
+                    //forceQuit = true;
                     NetworkWorker.fetch.SendDisconnect("Quit");
                 }
                 if (!ConnectionWindow.fetch.renameEventHandled)
@@ -193,14 +194,35 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Force quit
+                /*
                 if (forceQuit)
                 {
                     forceQuit = false;
                     gameRunning = false;
-                    displayDisconnectMessage = false;
                     FireResetEvent();
                     NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
+                }
+                */
+
+                if (displayDisconnectMessage)
+                {
+                    if (HighLogic.LoadedScene != GameScenes.MAINMENU)
+                    {
+                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                        {
+                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                            if (disconnectMessage != null)
+                            {
+                                disconnectMessage.duration = 0;
+                            }
+                            disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                    }
+                    else
+                    {
+                        displayDisconnectMessage = false;
+                    }
                 }
 
                 //Normal quit
@@ -209,7 +231,6 @@ namespace DarkMultiPlayer
                     if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                     {
                         gameRunning = false;
-                        displayDisconnectMessage = false;
                         FireResetEvent();
                         NetworkWorker.fetch.SendDisconnect("Quit to main menu");
                     }
@@ -236,21 +257,7 @@ namespace DarkMultiPlayer
                         CheatOptions.InfiniteRCS = false;
                         CheatOptions.NoCrashDamage = false;
                     }
-
-                    if (displayDisconnectMessage)
-                    {
-                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
-                        {
-                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
-                            if (disconnectMessage != null)
-                            {
-                                disconnectMessage.duration = 0;
-                            }
-                            disconnectMessage = ScreenMessages.PostScreenMessage("You have been disconnected!", 2f, ScreenMessageStyle.UPPER_CENTER);
-                        }
-                    }
                 }
-
             }
             catch (Exception e)
             {
@@ -339,8 +346,8 @@ namespace DarkMultiPlayer
         public void StartGame()
         {
             HighLogic.CurrentGame = new Game();
+            HighLogic.CurrentGame.CrewRoster = new KerbalRoster();
             HighLogic.CurrentGame.flightState = new FlightState();
-            HighLogic.CurrentGame.CrewRoster = new CrewRoster();
             HighLogic.CurrentGame.scenarios = new List<ProtoScenarioModule>();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
@@ -355,10 +362,18 @@ namespace DarkMultiPlayer
             VesselWorker.fetch.LoadVesselsIntoGame();
             DarkLog.Debug("Starting " + gameMode + " game...");
             HighLogic.CurrentGame.Start();
-            DarkLog.Debug("Started!");
+            HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
             Planetarium.SetUniversalTime(TimeSyncer.fetch.GetUniverseTime());
-            GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            try
+            {
+                GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            }
+            catch
+            {
+                DarkLog.Debug("Failed to save game!");
+            }
             ChatWorker.fetch.display = true;
+            DarkLog.Debug("Started!");
         }
 
         private void StopGame()
@@ -380,6 +395,9 @@ namespace DarkMultiPlayer
                     break;
                 case GameMode.SANDBOX:
                     HighLogic.CurrentGame.Mode = Game.Modes.SANDBOX;
+                    break;
+                case GameMode.SCIENCE:
+                    HighLogic.CurrentGame.Mode = Game.Modes.SCIENCE_SANDBOX;
                     break;
             }
         }

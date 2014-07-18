@@ -9,8 +9,12 @@ namespace DarkMultiPlayer
 {
     class ConfigNodeSerializer
     {
-        private delegate void WriteNodeDelegate(ConfigNode configNode, StreamWriter writer);
+        private static ConfigNodeSerializer singleton = new ConfigNodeSerializer();
+
+        private delegate void WriteNodeDelegate(ConfigNode configNode,StreamWriter writer);
+
         private delegate List<string[]> PreFormatConfigDelegate(string[] cfgData);
+
         private delegate ConfigNode RecurseFormatDelegate(List<string[]> cfg);
 
         private WriteNodeDelegate WriteNodeThunk;
@@ -20,6 +24,14 @@ namespace DarkMultiPlayer
         public ConfigNodeSerializer()
         {
             CreateDelegates();
+        }
+
+        public static ConfigNodeSerializer fetch
+        {
+            get
+            {
+                return singleton;
+            }
         }
 
         private void CreateDelegates()
@@ -109,9 +121,7 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Fall back methods in case reflection isn't working:
-
         //Welcome to the world of beyond-dodgy. KSP: Expose either these methods or the string data please!
         private static ConfigNode ConvertByteArrayToConfigNode(byte[] configData)
         {

@@ -48,7 +48,6 @@ namespace DarkMultiPlayer
         private object messageEnqueueLock = new object();
         private object messageDequeueLock = new object();
         private Thread sendThread;
-        private ConfigNodeSerializer nodeSerializer = new ConfigNodeSerializer();
         private string serverMotd;
         private bool displayMotd;
 
@@ -124,7 +123,7 @@ namespace DarkMultiPlayer
                     Client.fetch.StartGame();
                 }
             }
-            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER))
+            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && (UnityEngine.Time.timeSinceLevelLoad > 1f))
             {
                 state = ClientState.RUNNING;
                 Client.fetch.status = "Running";
@@ -301,14 +300,20 @@ namespace DarkMultiPlayer
                         clientConnection.Close();
                     }
                     sendThread.Abort();
+
+                    //Forcequit broken in 0.24
+                    /*
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
                         Client.fetch.forceQuit = true;
                     }
                     else
                     {
+                    */
                         Client.fetch.displayDisconnectMessage = true;
+                    /*
                     }
+                    */
                 }
             }
         }
@@ -896,10 +901,11 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 string[] scenarioName = mr.Read<string[]>();
-                string[] scenarioData = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
-                    ScenarioWorker.fetch.QueueScenarioData(scenarioName[i], scenarioData[i]);
+                    byte[] scenarioData = mr.Read<byte[]>();
+                    ConfigNode scenarioNode = ConfigNodeSerializer.fetch.Deserialize(scenarioData);
+                    ScenarioWorker.fetch.QueueScenarioData(scenarioName[i], scenarioNode);
                 }
             }
         }
@@ -909,14 +915,13 @@ namespace DarkMultiPlayer
             numberOfKerbalsReceived++;
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                int subspaceID = mr.Read<int>();
                 double planetTime = mr.Read<double>();
-                int kerbalID = mr.Read<int>();
+                string kerbalName = mr.Read<string>();
                 byte[] kerbalData = mr.Read<byte[]>();
-                ConfigNode kerbalNode = nodeSerializer.Deserialize(kerbalData);
+                ConfigNode kerbalNode = ConfigNodeSerializer.fetch.Deserialize(kerbalData);
                 if (kerbalNode != null)
                 {
-                    VesselWorker.fetch.QueueKerbal(subspaceID, planetTime, kerbalID, kerbalNode);
+                    VesselWorker.fetch.QueueKerbal(planetTime, kerbalName, kerbalNode);
                 }
                 else
                 {
@@ -957,7 +962,7 @@ namespace DarkMultiPlayer
                     else
                     {
                         numberOfVesselsReceived++;
-                        ConfigNode vesselNode = nodeSerializer.Deserialize(UniverseSyncCache.fetch.GetFromCache(serverVessel));
+                        ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(UniverseSyncCache.fetch.GetFromCache(serverVessel));
                         if (vesselNode != null)
                         {
                             string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
@@ -992,7 +997,7 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
-                ConfigNode vesselNode = nodeSerializer.Deserialize(vesselData);
+                ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
                     string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
@@ -1416,9 +1421,9 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             vessel.Save(vesselNode);
 
-            byte[] vesselBytes = nodeSerializer.Serialize(vesselNode);
+            byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
 
-            if (vesselBytes != null)
+            if (vesselBytes != null && vesselBytes.Length > 0)
             {
                 UniverseSyncCache.fetch.SaveToCache(vesselBytes);
                 using (MessageWriter mw = new MessageWriter())
@@ -1526,36 +1531,36 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
-        public void SendScenarioModuleData(string[] scenarioNames, string[] scenarioData)
+        public void SendScenarioModuleData(string[] scenarioNames, byte[][] scenarioData)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCENARIO_DATA;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string[]>(scenarioNames);
-                mw.Write<string[]>(scenarioData);
+                foreach (byte[] scenarioBytes in scenarioData)
+                {
+                    mw.Write<byte[]>(scenarioBytes);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
-        public void SendKerbalProtoMessage(int kerbalID, ProtoCrewMember kerbal)
+        public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
         {
             ConfigNode kerbalNode = new ConfigNode();
-            //Dodge the available status - Too many kerbals are getting created.
-            kerbal.rosterStatus = ProtoCrewMember.RosterStatus.AVAILABLE;
             kerbal.Save(kerbalNode);
-            byte[] kerbalBytes = nodeSerializer.Serialize(kerbalNode);
-            if (kerbalBytes != null)
+            byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
+            if (kerbalBytes != null && kerbalBytes.Length > 0)
             {
                 ClientMessage newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.KERBAL_PROTO;
                 using (MessageWriter mw = new MessageWriter())
                 {
-                    mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                     mw.Write<double>(Planetarium.GetUniversalTime());
-                    mw.Write<int>(kerbalID);
+                    mw.Write<string>(kerbal.name);
                     mw.Write<byte[]>(kerbalBytes);
                     newMessage.data = mw.GetMessageBytes();
                 }
@@ -1564,7 +1569,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbalID);
+                DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbal.name);
             }
         }
         //Called from chatWorker
