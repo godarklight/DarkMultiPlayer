@@ -19,6 +19,7 @@ namespace DarkMultiPlayerServer
         private static List<ClientObject> clients;
         private static Queue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
+        private static Dictionary<string, int> playerSubspace;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
@@ -46,6 +47,7 @@ namespace DarkMultiPlayerServer
                 clients = new List<ClientObject>();
                 deleteClients = new Queue<ClientObject>();
                 subspaces = new Dictionary<int, Subspace>();
+                playerSubspace = new Dictionary<string, int>();
                 playerChatChannels = new Dictionary<string, List<string>>();
                 bannedNames = new List<string>();
                 bannedIPs = new List<IPAddress>();
@@ -73,6 +75,7 @@ namespace DarkMultiPlayerServer
                             clients.Add(addClients.Dequeue());
                             Server.playerCount = GetActiveClientCount();
                             Server.players = GetActivePlayerNames();
+                            DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
                         }
                         //Process current clients
                         foreach (ClientObject client in clients)
@@ -91,6 +94,12 @@ namespace DarkMultiPlayerServer
                             clients.Remove(deleteClients.Dequeue());
                             Server.playerCount = GetActiveClientCount();
                             Server.players = GetActivePlayerNames();
+                            DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
+                            if (!Settings.settingsStore.keepTickingWhileOffline && clients.Count == 0)
+                            {
+                                UpdateSubspace(GetLatestSubspace());
+                                SaveLatestSubspace();
+                            }
                         }
                     }
                     Thread.Sleep(10);
@@ -103,9 +112,15 @@ namespace DarkMultiPlayerServer
             }
             try
             {
+                long disconnectTime = DateTime.UtcNow.Ticks;
                 bool sendingHighPriotityMessages = true;
                 while (sendingHighPriotityMessages)
                 {
+                    if ((DateTime.UtcNow.Ticks - disconnectTime) > 50000000)
+                    {
+                        DarkLog.Debug("Shutting down with " + Server.playerCount + " players, " + clients.Count + " connected clients");
+                        break;
+                    }
                     while (deleteClients.Count > 0)
                     {
                         clients.Remove(deleteClients.Dequeue());
@@ -188,6 +203,16 @@ namespace DarkMultiPlayerServer
         {
             int latestID = GetLatestSubspace();
             SaveSubspace(latestID, subspaces[latestID]);
+        }
+
+        private static void UpdateSubspace(int subspaceID)
+        {
+            //New time = Old time + (seconds since lock * subspace rate)
+            long newServerClockTime = DateTime.UtcNow.Ticks;
+            float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[subspaceID].serverClock) / 10000000f;
+            double newPlanetariumTime = subspaces[subspaceID].planetTime + (timeSinceLock * subspaces[subspaceID].subspaceSpeed);
+            subspaces[subspaceID].serverClock = newServerClockTime;
+            subspaces[subspaceID].planetTime = newPlanetariumTime;
         }
 
         private static void SaveSubspace(int subspaceID, Subspace subspace)
@@ -483,18 +508,21 @@ namespace DarkMultiPlayerServer
         #region Network related methods
         private static void CheckHeartBeat(ClientObject client)
         {
-            if (client.sendMessageQueueHigh.Count == 0 && client.sendMessageQueueSplit.Count == 0 && client.sendMessageQueueLow.Count == 0)
+            long currentTime = Server.serverClock.ElapsedMilliseconds;
+            if ((currentTime - client.lastReceiveTime) > Common.CONNECTION_TIMEOUT)
             {
-                long currentTime = Server.serverClock.ElapsedMilliseconds;
-                if ((currentTime - client.lastSendTime) > Common.HEART_BEAT_INTERVAL)
+                //Heartbeat timeout
+                DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + ", Connection timed out");
+                DisconnectClient(client);
+            }
+            else
+            {
+                if (client.sendMessageQueueHigh.Count == 0 && client.sendMessageQueueSplit.Count == 0 && client.sendMessageQueueLow.Count == 0)
                 {
-                    SendHeartBeat(client);
-                }
-                if ((currentTime - client.lastReceiveTime) > Common.CONNECTION_TIMEOUT)
-                {
-                    //Heartbeat timeout
-                    DarkLog.Normal("Disconnecting client " + client.playerName + ", endpoint " + client.endpoint + ", Connection timed out");
-                    DisconnectClient(client);
+                    if ((currentTime - client.lastSendTime) > Common.HEART_BEAT_INTERVAL)
+                    {
+                        SendHeartBeat(client);
+                    }
                 }
             }
         }
@@ -840,9 +868,17 @@ namespace DarkMultiPlayerServer
                         lockSystem.ReleasePlayerLocks(client.playerName);
                     }
                     deleteClients.Enqueue(client);
-                    if (client.connection != null)
+                    try
                     {
-                        client.connection.Close();
+                        if (client.connection != null)
+                        {
+                            client.connection.GetStream().Close();
+                            client.connection.Close();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Debug("Error closing client connection: " + e.Message);
                     }
                     Server.lastPlayerActivity = Server.serverClock.ElapsedTicks;
                 }
@@ -852,12 +888,16 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
-            DMPPluginHandler.FireOnMessageReceived(client, message);
-
-            if (message.handled)
+            //Prevent plugins from dodging SPLIT_MESSAGE. If they are modified, every split message will be broken.
+            if (message.type != ClientMessageType.SPLIT_MESSAGE)
             {
-                //a plugin has handled this message and requested suppression of the default DMP behavior
-                return;
+                DMPPluginHandler.FireOnMessageReceived(client, message);
+
+                if (message.handled)
+                {
+                    //a plugin has handled this message and requested suppression of the default DMP behavior
+                    return;
+                }
             }
 
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
@@ -955,6 +995,7 @@ namespace DarkMultiPlayerServer
             int protocolVersion;
             string playerName = "";
             string playerGuid = Guid.Empty.ToString();
+            string clientVersion = "";
             string reason = "";
             //0 - Success
             int handshakeReponse = 0;
@@ -965,6 +1006,7 @@ namespace DarkMultiPlayerServer
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();
                     playerGuid = mr.Read<string>();
+                    clientVersion = mr.Read<string>();
                 }
             }
             catch (Exception e)
@@ -1041,6 +1083,7 @@ namespace DarkMultiPlayerServer
 
             client.playerName = playerName;
             client.GUID = Guid.Parse(playerGuid);
+            client.clientVersion = clientVersion;
 
             if (handshakeReponse == 0)
             {
@@ -1073,7 +1116,7 @@ namespace DarkMultiPlayerServer
             {
                 client.authenticated = true;
                 DMPPluginHandler.FireOnClientAuthenticated(client);
-                DarkLog.Normal("Client " + playerName + " handshook successfully!");
+                DarkLog.Normal("Client " + playerName + " handshook successfully, version: " + client.clientVersion);
 
                 if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
                 {
@@ -1086,6 +1129,8 @@ namespace DarkMultiPlayerServer
                 SendHandshakeReply(client, handshakeReponse, "success");
                 Server.playerCount = GetActiveClientCount();
                 Server.players = GetActivePlayerNames();
+                DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
+
             }
             else
             {
@@ -2012,23 +2057,18 @@ namespace DarkMultiPlayerServer
                         //Relock the subspace if the rate is more than 3% out of the average
                         if (Math.Abs(subspaces[reportedSubspace].subspaceSpeed - newSubspaceRate) > 0.03f)
                         {
-                            //New time = Old time + (seconds since lock * subspace rate)
-                            long newServerClockTime = DateTime.UtcNow.Ticks;
-                            float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[client.subspace].serverClock) / 10000000f;
-                            double newPlanetariumTime = subspaces[client.subspace].planetTime + (timeSinceLock * subspaces[client.subspace].subspaceSpeed);
-                            subspaces[client.subspace].serverClock = newServerClockTime;
-                            subspaces[client.subspace].planetTime = newPlanetariumTime;
-                            subspaces[client.subspace].subspaceSpeed = newSubspaceRate;
+                            UpdateSubspace(reportedSubspace);
+                            subspaces[reportedSubspace].subspaceSpeed = newSubspaceRate;
                             ServerMessage relockMessage = new ServerMessage();
                             relockMessage.type = ServerMessageType.WARP_CONTROL;
                             using (MessageWriter mw = new MessageWriter())
                             {
                                 mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
                                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
-                                mw.Write<int>(client.subspace);
-                                mw.Write<long>(DateTime.UtcNow.Ticks);
-                                mw.Write<double>(newPlanetariumTime);
-                                mw.Write<float>(newSubspaceRate);
+                                mw.Write<int>(reportedSubspace);
+                                mw.Write<long>(subspaces[reportedSubspace].serverClock);
+                                mw.Write<double>(subspaces[reportedSubspace].planetTime);
+                                mw.Write<float>(subspaces[reportedSubspace].subspaceSpeed);
                                 relockMessage.data = mw.GetMessageBytes();
                             }
                             SaveLatestSubspace();
@@ -2593,23 +2633,34 @@ namespace DarkMultiPlayerServer
 
         private static void SendSetSubspace(ClientObject client)
         {
-            int latestSubspace = -1;
-            double latestPlanetTime = 0;
-            foreach (KeyValuePair<int, Subspace> subspace in subspaces)
+            if (!Settings.settingsStore.keepTickingWhileOffline && clients.Count == 1)
             {
-                double subspaceTime = (((DateTime.UtcNow.Ticks - subspace.Value.serverClock) / 10000000d) * subspace.Value.subspaceSpeed) + subspace.Value.planetTime;
-                if (subspaceTime > latestPlanetTime)
+                DarkLog.Debug("Reverting server time to last player connection");
+                long currentTime = DateTime.UtcNow.Ticks;
+                foreach (KeyValuePair<int, Subspace> subspace in subspaces)
                 {
-                    latestSubspace = subspace.Key;
-                    latestPlanetTime = subspaceTime;
+                    subspace.Value.serverClock = currentTime;
+                    subspace.Value.subspaceSpeed = 1f;
+                    SaveLatestSubspace();
                 }
             }
-            DarkLog.Debug("Sending " + client.playerName + " to subspace " + latestSubspace + ", time: " + latestPlanetTime);
+            int targetSubspace = -1;
+            if (Settings.settingsStore.sendPlayerToLatestSubspace || !playerSubspace.ContainsKey(client.playerName))
+            {
+                DarkLog.Debug("Sending " + client.playerName + " to the latest subspace " + targetSubspace);
+                targetSubspace = GetLatestSubspace();
+            }
+            else
+            {
+                DarkLog.Debug("Sending " + client.playerName + " to the previous subspace " + targetSubspace);
+                targetSubspace = playerSubspace[client.playerName];
+            }
+            client.subspace = targetSubspace;
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SET_SUBSPACE;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<int>(latestSubspace);
+                mw.Write<int>(targetSubspace);
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -3041,6 +3092,7 @@ namespace DarkMultiPlayerServer
     {
         public bool authenticated;
         public string playerName = "Unknown";
+        public string clientVersion;
         public bool isBanned;
         public IPAddress ipAddress;
         public Guid GUID = Guid.Empty;

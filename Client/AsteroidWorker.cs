@@ -27,14 +27,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void LoadAsteroidScenario()
-        {
-            ConfigNode asteroidNode = GetAsteroidModuleNode();
-            ProtoScenarioModule asteroidModule = new ProtoScenarioModule(asteroidNode);
-            HighLogic.CurrentGame.scenarios.Add(asteroidModule);
-            asteroidModule.Load(ScenarioRunner.fetch);
-        }
-
         private void FixedUpdate()
         {
             if (workerEnabled)
@@ -80,19 +72,20 @@ namespace DarkMultiPlayer
                                 {
                                     DarkLog.Debug("Spawning asteroid, have " + asteroidList.Count + ", need " + maxNumberOfUntrackedAsteroids);
                                     scenarioController.SpawnAsteroid();
-                                }
-                                foreach (Vessel asteroid in asteroidList)
-                                {
-                                    if (!serverAsteroids.Contains(asteroid.id.ToString()))
+                                    asteroidList = GetAsteroidList();
+                                    foreach (Vessel asteroid in asteroidList)
                                     {
-                                        DarkLog.Debug("Spawned in new server asteroid!");
-                                        serverAsteroids.Add(asteroid.id.ToString());
-                                        VesselWorker.fetch.RegisterServerVessel(asteroid.id.ToString());
-                                        NetworkWorker.fetch.SendVesselProtoMessage(asteroid.protoVessel, false, false);
-                                    }
-                                    if (serverAsteroids.Count >= maxNumberOfUntrackedAsteroids)
-                                    {
-                                        break;
+                                        if (!serverAsteroids.Contains(asteroid.id.ToString()))
+                                        {
+                                            DarkLog.Debug("Spawned in new server asteroid!");
+                                            serverAsteroids.Add(asteroid.id.ToString());
+                                            VesselWorker.fetch.RegisterServerVessel(asteroid.id.ToString());
+                                            NetworkWorker.fetch.SendVesselProtoMessage(asteroid.protoVessel, false, false);
+                                        }
+                                        if (serverAsteroids.Count >= maxNumberOfUntrackedAsteroids)
+                                        {
+                                            break;
+                                        }
                                     }
                                 }
                             }
@@ -169,22 +162,6 @@ namespace DarkMultiPlayer
                 }
             }
             return returnList;
-        }
-
-        private ConfigNode GetAsteroidModuleNode()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "ScenarioDiscoverableObjects");
-            newNode.AddValue("scene", "7, 8, 5");
-            //This appears to be an int value of the seed, let's just make it random.
-            int randomSeed = new System.Random().Next();
-            newNode.AddValue("", randomSeed);
-            ConfigNode sizeCurveNode = newNode.AddNode("sizeCurve");
-            sizeCurveNode.AddValue("key", "0 0 1.5 1.5");
-            sizeCurveNode.AddValue("key", "0.3 0.45 0.875 0.875");
-            sizeCurveNode.AddValue("key", "0.7 0.55 0.875 0.875");
-            sizeCurveNode.AddValue("key", "1 1 1.5 1.5");
-            return newNode;
         }
 
         public void RegisterServerAsteroid(string asteroidID)

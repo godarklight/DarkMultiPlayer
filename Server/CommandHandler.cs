@@ -17,7 +17,7 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("say", CommandHandler.Say, "Broadcasts a message to clients");
                 CommandHandler.RegisterCommand("dekessler", Dekessler.RunDekessler, "Clears out debris from the server");
                 CommandHandler.RegisterCommand("nukeksc", NukeKSC.RunNukeKSC, "Clears ALL vessels from KSC and the Runway");
-                CommandHandler.RegisterCommand("listclients", ListClients , "Lists connected clients");
+                CommandHandler.RegisterCommand("listclients", ListClients, "Lists connected clients");
                 CommandHandler.RegisterCommand("countclients", CountClients, "Counts connected clients");
 
                 //Main loop
@@ -27,10 +27,16 @@ namespace DarkMultiPlayerServer
                     try
                     {
                         input = Console.ReadLine();
+                        if (input == null)
+                        {
+                            DarkLog.Debug("Terminal may be not attached or broken, Exiting out of command handler");
+                            return;
+                        }
                     }
                     catch
                     {
-                        if (Server.serverRunning) {
+                        if (Server.serverRunning)
+                        {
                             DarkLog.Debug("Ignored mono Console.ReadLine() bug");
                         }
                         Thread.Sleep(500);

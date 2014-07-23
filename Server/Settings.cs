@@ -151,6 +151,8 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("gameMode", "Specify the game type");
             descriptionList.Add("whitelisted", "Enable whitelisting");
             descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
+            descriptionList.Add("keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shutdown");
+            descriptionList.Add("sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NB: This may cause time-paradoxes, and will not work across server restarts");
             descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
             descriptionList.Add("logLevel", "Minimum log level.");
             descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
@@ -177,6 +179,8 @@ namespace DarkMultiPlayerServer
         public GameMode gameMode = GameMode.SANDBOX;
         public bool whitelisted = false;
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
+        public bool keepTickingWhileOffline = true;
+        public bool sendPlayerToLatestSubspace = true;
         public bool useUTCTimeInLog = false;
         public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
         public int screenshotsPerPlayer = 20;

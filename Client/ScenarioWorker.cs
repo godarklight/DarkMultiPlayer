@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
     {
         public bool workerEnabled = false;
         private static ScenarioWorker singleton;
+        private Dictionary<string,string> checkData = new Dictionary<string, string>();
         private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
         private bool blockScenarioDataSends = false;
         private float lastScenarioSendTime = 0f;
@@ -73,26 +74,31 @@ namespace DarkMultiPlayer
         {
             List<string> scenarioName = new List<string>();
             List<byte[]> scenarioData = new List<byte[]>();
-            foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
-            {
-                //Skip sending science data in sandbox mode (If this can even happen?)
-                if (psm != null ? (psm.moduleName != null && psm.moduleRef != null) : false)
-                {
-                    //Skip sending of blacklisted modules
-                    if (!IsScenarioModuleAllowed(psm.moduleName))
-                    {
-                        DarkLog.Debug("Skipped sending of '" + psm.moduleName + "' in " + Client.fetch.gameMode + " mode");
-                        continue;
-                    }
 
-                    ConfigNode scenarioNode = new ConfigNode();
-                    psm.moduleRef.Save(scenarioNode);
-                    byte[] scenarioBytes = ConfigNodeSerializer.fetch.Serialize(scenarioNode);
-                    if (scenarioBytes != null)
-                    {
-                        scenarioName.Add(psm.moduleName);
-                        scenarioData.Add(scenarioBytes);
-                    }
+            foreach (ScenarioModule sm in ScenarioRunner.GetLoadedModules())
+            {
+                string scenarioType = sm.GetType().Name;
+                if (!IsScenarioModuleAllowed(scenarioType))
+                {
+                    continue;
+                }
+                ConfigNode scenarioNode = new ConfigNode();
+                sm.Save(scenarioNode);
+                byte[] scenarioBytes = ConfigNodeSerializer.fetch.Serialize(scenarioNode);
+                string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
+                if (checkData.ContainsKey(scenarioType) ? (checkData[scenarioType] == scenarioHash) : false)
+                {
+                    //Data is the same since last time - Skip it.
+                    continue;
+                }
+                else
+                {
+                    checkData[scenarioType] = scenarioHash;
+                }
+                if (scenarioBytes != null)
+                {
+                    scenarioName.Add(scenarioType);
+                    scenarioData.Add(scenarioBytes);
                 }
             }
 
@@ -106,129 +112,28 @@ namespace DarkMultiPlayer
         {
             while (scenarioQueue.Count > 0)
             {
-                LoadScenarioData(scenarioQueue.Dequeue());
+
+                ProtoScenarioModule psm = new ProtoScenarioModule(scenarioQueue.Dequeue().scenarioNode);
+                if (psm != null)
+                {
+                    if (IsScenarioModuleAllowed(psm.moduleName))
+                    {
+                        DarkLog.Debug("Loading " + psm.moduleName + " scenario data");
+                        HighLogic.CurrentGame.scenarios.Add(psm);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Skipping " + psm.moduleName + " scenario data in " + Client.fetch.gameMode + " mode");
+                    }
+                }
             }
-            CheckScenarioModules();
-        }
-
-        public void CheckScenarioModules()
-        {
-            //Create scenarios that exist for all games
-            if (IsScenarioModuleAllowed("ProgressTracking") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "ProgressTracking"))
-            {
-                DarkLog.Debug("Creating new ProgressTracking data");
-                LoadNewScenarioData(GetBlankProgressTracking());
-            }
-
-            if (IsScenarioModuleAllowed("ResearchAndDevelopment") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "ResearchAndDevelopment"))
-            {
-                DarkLog.Debug("Creating new ResearchAndDevelopment data");
-                LoadNewScenarioData(GetBlankResearchAndDevelopment());
-            }
-
-            if (IsScenarioModuleAllowed("VesselRecovery") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "VesselRecovery"))
-            {
-                DarkLog.Debug("Creating new VesselRecovery data");
-                LoadNewScenarioData(GetBlankVesselRecovery());
-            }
-
-            if (IsScenarioModuleAllowed("ContractSystem") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "ContractSystem"))
-            {
-                DarkLog.Debug("Creating new ContractSystem data");
-                LoadNewScenarioData(GetBlankContractSystem());
-            }
-
-            if (IsScenarioModuleAllowed("Funding") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "Funding"))
-            {
-                DarkLog.Debug("Creating new Funding data");
-                LoadNewScenarioData(GetBlankFunding());
-            }
-
-            if (IsScenarioModuleAllowed("Reputation") && !HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == "Reputation"))
-            {
-                DarkLog.Debug("Creating new Reputation data");
-                LoadNewScenarioData(GetBlankReputation());
-            }
-        }
-        //Would be nice if we could ask KSP to do this for us...
-        /*
-        EDIT 18th July 2014 - Guess what this prints to the log
-
-        ProgressTracking progressTracking = new ProgressTracking();
-        if (progressTracking == null)
-        {
-            DarkLog.Debug("ProgressTracking is null, what the fuck?");
-        }
-        */
-        private ConfigNode GetBlankContractSystem()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "ContractSystem");
-            newNode.AddValue("scene", "7, 8, 5, 6, 9");
-            newNode.AddValue("update", "0.06");
-            newNode.AddNode("CONTRACTS");           
-            return newNode;
-        }
-
-        private ConfigNode GetBlankFunding()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "Funding");
-            newNode.AddValue("scene", "7, 8, 5, 6, 9");
-            newNode.AddValue("funds", "10000");
-            return newNode;
-        }
-
-        private ConfigNode GetBlankProgressTracking()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "ProgressTracking");
-            newNode.AddValue("scene", "7, 8, 5");
-            newNode.AddNode("Progress");
-            return newNode;
-        }
-
-        private ConfigNode GetBlankResearchAndDevelopment()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "ResearchAndDevelopment");
-            newNode.AddValue("scene", "7, 8, 5, 6, 9");
-            newNode.AddValue("sci", "0");
-            ConfigNode techNode = newNode.AddNode("Tech");
-            techNode.AddValue("id", "start");
-            techNode.AddValue("state", "Available");
-            techNode.AddValue("part", "mk1pod");
-            techNode.AddValue("part", "liquidEngine");
-            techNode.AddValue("part", "solidBooster");
-            techNode.AddValue("part", "fuelTankSmall");
-            techNode.AddValue("part", "trussPiece1x");
-            techNode.AddValue("part", "longAntenna");
-            techNode.AddValue("part", "parachuteSingle");
-            return newNode;
-        }
-
-        private ConfigNode GetBlankVesselRecovery()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "VesselRecovery");
-            newNode.AddValue("scene", "5, 7, 8, 6, 9");
-            return newNode;
-        }
-
-        private ConfigNode GetBlankReputation()
-        {
-            ConfigNode newNode = new ConfigNode();
-            newNode.AddValue("name", "Reputation");
-            newNode.AddValue("scene", "5, 7, 8, 6, 9");
-            newNode.AddValue("rep", "0");
-            return newNode;
         }
 
         public void LoadScenarioData(ScenarioEntry entry)
         {
             if (!IsScenarioModuleAllowed(entry.scenarioName))
             {
-                DarkLog.Debug("Skipped loading of '" + entry.scenarioName + "' in " + Client.fetch.gameMode + " mode");
+                DarkLog.Debug("Skipped '" + entry.scenarioName + "' scenario data  in " + Client.fetch.gameMode + " mode");
                 return;
             }
 

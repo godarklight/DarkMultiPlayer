@@ -45,8 +45,7 @@ namespace DarkMultiPlayer
         private bool terminateOnNextMessageSend;
         private string connectionEndReason;
         private object disconnectLock = new object();
-        private object messageEnqueueLock = new object();
-        private object messageDequeueLock = new object();
+        private object messageQueueLock = new object();
         private Thread sendThread;
         private string serverMotd;
         private bool displayMotd;
@@ -106,7 +105,6 @@ namespace DarkMultiPlayer
                 WarpWorker.fetch.ProcessWarpMessages();
                 TimeSyncer.fetch.workerEnabled = true;
                 ChatWorker.fetch.workerEnabled = true;
-                ScenarioWorker.fetch.workerEnabled = true;
                 PlayerColorWorker.fetch.workerEnabled = true;
                 FlagSyncer.fetch.workerEnabled = true;
                 FlagSyncer.fetch.SendFlagList();
@@ -120,7 +118,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Starting Game!");
                     Client.fetch.status = "Starting game";
                     state = ClientState.STARTING;
-                    Client.fetch.StartGame();
+                    Client.fetch.startGame = true;
                 }
             }
             if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && (UnityEngine.Time.timeSinceLevelLoad > 1f))
@@ -156,6 +154,10 @@ namespace DarkMultiPlayer
                     SendOutgoingMessages();
                     Thread.Sleep(10);
                 }
+            }
+            catch (ThreadAbortException)
+            {
+                //Don't care
             }
             catch (Exception e)
             {
@@ -281,7 +283,7 @@ namespace DarkMultiPlayer
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
                 {
-                    SendDisconnect("Connection timeout");
+                    Disconnect("Connection timeout");
                 }
             }
         }
@@ -293,27 +295,30 @@ namespace DarkMultiPlayer
                 if (state != ClientState.DISCONNECTED)
                 {
                     DarkLog.Debug("Disconnected, reason: " + reason);
-                    Client.fetch.status = reason;
-                    state = ClientState.DISCONNECTED;
-                    if (clientConnection != null)
-                    {
-                        clientConnection.Close();
-                    }
-                    sendThread.Abort();
-
-                    //Forcequit broken in 0.24
-                    /*
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
                         Client.fetch.forceQuit = true;
                     }
                     else
                     {
-                    */
                         Client.fetch.displayDisconnectMessage = true;
-                    /*
                     }
-                    */
+                    Client.fetch.status = reason;
+                    state = ClientState.DISCONNECTED;
+                    sendThread.Abort();
+                    try
+                    {
+                        if (clientConnection != null)
+                        {
+                            clientConnection.GetStream().Close();
+                            clientConnection.Close();
+                            clientConnection = null;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Debug("Error closing connection: " + e.Message);
+                    }
                 }
             }
         }
@@ -418,7 +423,7 @@ namespace DarkMultiPlayer
 
         private void QueueOutgoingMessage(ClientMessage message, bool highPriority)
         {
-            lock (messageEnqueueLock)
+            lock (messageQueueLock)
             {
                 if (highPriority)
                 {
@@ -434,7 +439,7 @@ namespace DarkMultiPlayer
 
         private void SendOutgoingMessages()
         {
-            lock (messageDequeueLock)
+            lock (messageQueueLock)
             {
                 if (!isSendingMessage && state >= ClientState.CONNECTED)
                 {
@@ -1341,6 +1346,7 @@ namespace DarkMultiPlayer
                 mw.Write<int>(Common.PROTOCOL_VERSION);
                 mw.Write<string>(Settings.fetch.playerName);
                 mw.Write<string>(Settings.fetch.playerGuid.ToString());
+                mw.Write<string>(Common.PROGRAM_VERSION);
                 messageBytes = mw.GetMessageBytes();
             }
             ClientMessage newMessage = new ClientMessage();

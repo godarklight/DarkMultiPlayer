@@ -13,8 +13,8 @@ namespace DarkMultiPlayer
         private static Client singleton;
         //Global state vars
         public string status;
-        //Disabled - broken in 0.24
-        //public bool forceQuit;
+        public bool startGame;
+        public bool forceQuit;
         public bool showGUI = true;
         public bool incorrectlyInstalled = false;
         public bool displayedIncorrectMessage = false;
@@ -22,6 +22,7 @@ namespace DarkMultiPlayer
         public string assemblyShouldBeInstalledAt;
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
+        public bool fireReset;
         public GameMode gameMode;
         public bool serverAllowCheats = true;
         //Disconnect message
@@ -123,7 +124,7 @@ namespace DarkMultiPlayer
                 if (!PlayerStatusWindow.fetch.disconnectEventHandled)
                 {
                     PlayerStatusWindow.fetch.disconnectEventHandled = true;
-                    //forceQuit = true;
+                    forceQuit = true;
                     NetworkWorker.fetch.SendDisconnect("Quit");
                 }
                 if (!ConnectionWindow.fetch.renameEventHandled)
@@ -167,7 +168,7 @@ namespace DarkMultiPlayer
                 {
                     ConnectionWindow.fetch.disconnectEventHandled = true;
                     gameRunning = false;
-                    FireResetEvent();
+                    fireReset = true;
                     NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
                 }
 
@@ -194,16 +195,14 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Force quit
-                /*
                 if (forceQuit)
                 {
                     forceQuit = false;
                     gameRunning = false;
-                    FireResetEvent();
+                    fireReset = true;
                     NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
                 }
-                */
 
                 if (displayDisconnectMessage)
                 {
@@ -231,7 +230,7 @@ namespace DarkMultiPlayer
                     if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                     {
                         gameRunning = false;
-                        FireResetEvent();
+                        fireReset = true;
                         NetworkWorker.fetch.SendDisconnect("Quit to main menu");
                     }
 
@@ -257,6 +256,18 @@ namespace DarkMultiPlayer
                         CheatOptions.InfiniteRCS = false;
                         CheatOptions.NoCrashDamage = false;
                     }
+                }
+
+                if (fireReset)
+                {
+                    fireReset = false;
+                    FireResetEvent();
+                }
+
+                if (startGame)
+                {
+                    startGame = false;
+                    StartGame();
                 }
             }
             catch (Exception e)
@@ -339,47 +350,73 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void OnDestroy()
+        private void StartGame()
         {
-        }
-        //WARNING: Called from NetworkWorker.
-        public void StartGame()
-        {
+            string savePath = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
+            if (File.Exists(savePath))
+            {
+                DarkLog.Debug("Removing old DarkMultiPlayer save");
+                File.Delete(savePath);
+            }
             HighLogic.CurrentGame = new Game();
-            HighLogic.CurrentGame.CrewRoster = new KerbalRoster();
             HighLogic.CurrentGame.flightState = new FlightState();
-            HighLogic.CurrentGame.scenarios = new List<ProtoScenarioModule>();
+            HighLogic.CurrentGame.flightState.protoVessels = new List<ProtoVessel>();
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
             SetGameMode();
             ScenarioWorker.fetch.LoadScenarioDataIntoGame();
-            AsteroidWorker.fetch.LoadAsteroidScenario();
+            List<KSPScenarioType> allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
+            using (List<KSPScenarioType>.Enumerator enumerator = allScenarioTypesInAssemblies.GetEnumerator())
+            {
+                while (enumerator.MoveNext())
+                {
+                    if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == enumerator.Current.ModuleType.Name))
+                    {
+                        continue;
+                    }
+                    bool loadModule = false;
+                    if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+                    {
+                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
+                    }
+                    if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
+                    {
+                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
+                    }
+                    if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
+                    {
+                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
+                    }
+                    if (loadModule)
+                    {
+                        DarkLog.Debug("Creating new scenario module " + enumerator.Current.ModuleType.Name);
+                        HighLogic.CurrentGame.AddProtoScenarioModule(enumerator.Current.ModuleType, enumerator.Current.ScenarioAttributes.TargetScenes);
+                    }
+                }
+            }
+
+            if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
+            {
+                HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = false;
+            }
+            HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
             VesselWorker.fetch.LoadKerbalsIntoGame();
             VesselWorker.fetch.LoadVesselsIntoGame();
-            DarkLog.Debug("Starting " + gameMode + " game...");
-            HighLogic.CurrentGame.Start();
             HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
-            Planetarium.SetUniversalTime(TimeSyncer.fetch.GetUniverseTime());
-            try
-            {
-                GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
-            }
-            catch
-            {
-                DarkLog.Debug("Failed to save game!");
-            }
+            DarkLog.Debug("Starting " + gameMode + " game...");
+            GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            HighLogic.CurrentGame.Start();
             ChatWorker.fetch.display = true;
             DarkLog.Debug("Started!");
         }
 
         private void StopGame()
         {
+            FlightDriver.SetPause(true);
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            GamePersistence.SaveGame("persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             if (HighLogic.LoadedScene != GameScenes.MAINMENU)
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
