@@ -852,6 +852,7 @@ namespace DarkMultiPlayerServer
         #region Message handling
         private static void HandleMessage(ClientObject client, ClientMessage message)
         {
+            message.handled = false;
             DMPPluginHandler.FireOnMessageReceived(client, message);
 
             if (message.handled)
