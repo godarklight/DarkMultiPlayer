@@ -358,6 +358,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Removing old DarkMultiPlayer save");
                 File.Delete(savePath);
             }
+
             HighLogic.CurrentGame = new Game();
             HighLogic.CurrentGame.flightState = new FlightState();
             HighLogic.CurrentGame.flightState.protoVessels = new List<ProtoVessel>();
@@ -366,38 +367,38 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
+            
             SetGameMode();
             ScenarioWorker.fetch.LoadScenarioDataIntoGame();
+            
             List<KSPScenarioType> allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
-            using (List<KSPScenarioType>.Enumerator enumerator = allScenarioTypesInAssemblies.GetEnumerator())
+            
+            foreach (KSPScenarioType scenarioType in allScenarioTypesInAssemblies)
             {
-                while (enumerator.MoveNext())
+                if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == scenarioType.ModuleType.Name))
                 {
-                    if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == enumerator.Current.ModuleType.Name))
-                    {
-                        continue;
-                    }
-                    bool loadModule = false;
-                    if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
-                    {
-                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
-                    }
-                    if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
-                    {
-                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
-                    }
-                    if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
-                    {
-                        loadModule = enumerator.Current.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
-                    }
-                    if (loadModule)
-                    {
-                        DarkLog.Debug("Creating new scenario module " + enumerator.Current.ModuleType.Name);
-                        HighLogic.CurrentGame.AddProtoScenarioModule(enumerator.Current.ModuleType, enumerator.Current.ScenarioAttributes.TargetScenes);
-                    }
+                    continue;
+                }
+                bool loadModule = false;
+                if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
+                }
+                if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
+                }
+                if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
+                }
+                if (loadModule)
+                {
+                    DarkLog.Debug("Creating new scenario module " + scenarioType.ModuleType.Name);
+                    HighLogic.CurrentGame.AddProtoScenarioModule(scenarioType.ModuleType, scenarioType.ScenarioAttributes.TargetScenes);
                 }
             }
-
+            
             if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
             {
                 HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = false;
