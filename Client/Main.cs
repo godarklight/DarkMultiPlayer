@@ -416,7 +416,6 @@ namespace DarkMultiPlayer
 
         private void StopGame()
         {
-            FlightDriver.SetPause(true);
             HighLogic.SaveFolder = "DarkMultiPlayer";
             if (HighLogic.LoadedScene != GameScenes.MAINMENU)
             {
