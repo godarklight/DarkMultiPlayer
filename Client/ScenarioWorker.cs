@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using DarkMultiPlayerCommon;
+using System.Reflection;
 
 namespace DarkMultiPlayer
 {
@@ -15,6 +16,8 @@ namespace DarkMultiPlayer
         private bool blockScenarioDataSends = false;
         private float lastScenarioSendTime = 0f;
         private const float SEND_SCENARIO_DATA_INTERVAL = 30f;
+        //System.Reflection hackiness for loading kerbals into the crew roster:
+        private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
 
         public static ScenarioWorker fetch
         {
@@ -112,8 +115,12 @@ namespace DarkMultiPlayer
         {
             while (scenarioQueue.Count > 0)
             {
-
-                ProtoScenarioModule psm = new ProtoScenarioModule(scenarioQueue.Dequeue().scenarioNode);
+                ScenarioEntry scenarioEntry = scenarioQueue.Dequeue();
+                if (scenarioEntry.scenarioName == "ContractSystem")
+                {
+                    RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
+                }
+                ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
                 if (psm != null)
                 {
                     if (IsScenarioModuleAllowed(psm.moduleName))
@@ -125,6 +132,59 @@ namespace DarkMultiPlayer
                     {
                         DarkLog.Debug("Skipping " + psm.moduleName + " scenario data in " + Client.fetch.gameMode + " mode");
                     }
+                }
+            }
+        }
+
+        private void RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(ConfigNode contractSystemNode)
+        {
+            ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
+            List<ConfigNode> filteredContracts = new List<ConfigNode>();
+            foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT"))
+            {
+                if (contractNode.GetValue("type") != "RescueKerbal")
+                {
+                    filteredContracts.Add(contractNode);
+                }
+                else
+                {
+                    DarkLog.Debug("Skipped RescueKerbal contract - Causes space center bug");
+                }
+            }
+            contractsNode.ClearNodes();
+            foreach (ConfigNode contractNode in filteredContracts)
+            {
+                contractSystemNode.AddNode(contractNode);
+            }
+        }
+
+        public void LoadMissingScenarioDataIntoGame()
+        {
+            List<KSPScenarioType> allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
+
+            foreach (KSPScenarioType scenarioType in allScenarioTypesInAssemblies)
+            {
+                if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == scenarioType.ModuleType.Name))
+                {
+                    continue;
+                }
+                bool loadModule = false;
+                if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
+                }
+                if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
+                }
+                if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
+                {
+                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
+                }
+                if (loadModule)
+                {
+                    DarkLog.Debug("Creating new scenario module " + scenarioType.ModuleType.Name);
+                    HighLogic.CurrentGame.AddProtoScenarioModule(scenarioType.ModuleType, scenarioType.ScenarioAttributes.TargetScenes);
                 }
             }
         }

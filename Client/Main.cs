@@ -352,6 +352,7 @@ namespace DarkMultiPlayer
 
         private void StartGame()
         {
+            //.Start() seems to stupidly .Load() somewhere, lets remove the old DMP save.
             string savePath = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
             if (File.Exists(savePath))
             {
@@ -359,55 +360,51 @@ namespace DarkMultiPlayer
                 File.Delete(savePath);
             }
 
+            //Create new game object for our DMP session.
             HighLogic.CurrentGame = new Game();
+
+            //KSP complains about a missing message system if we don't do this.
+            HighLogic.CurrentGame.additionalSystems = new ConfigNode();
+            HighLogic.CurrentGame.additionalSystems.AddNode("MESSAGESYSTEM");
+
+            //Flightstate is null on new Game();
             HighLogic.CurrentGame.flightState = new FlightState();
-            HighLogic.CurrentGame.flightState.protoVessels = new List<ProtoVessel>();
+
+            //Ditto
+            //HighLogic.CurrentGame.flightState.protoVessels = new List<ProtoVessel>();
+
+            //DMP stuff
             HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
             HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
-            
+
+            //Set the game mode
             SetGameMode();
-            ScenarioWorker.fetch.LoadScenarioDataIntoGame();
-            
-            List<KSPScenarioType> allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
-            
-            foreach (KSPScenarioType scenarioType in allScenarioTypesInAssemblies)
-            {
-                if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == scenarioType.ModuleType.Name))
-                {
-                    continue;
-                }
-                bool loadModule = false;
-                if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
-                {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
-                }
-                if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
-                {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
-                }
-                if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
-                {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
-                }
-                if (loadModule)
-                {
-                    DarkLog.Debug("Creating new scenario module " + scenarioType.ModuleType.Name);
-                    HighLogic.CurrentGame.AddProtoScenarioModule(scenarioType.ModuleType, scenarioType.ScenarioAttributes.TargetScenes);
-                }
-            }
-            
+
+            //Found in KSP's files. Makes a crapton of sense :)
             if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
             {
                 HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = false;
             }
             HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
+
+            //Load DMP stuff
             VesselWorker.fetch.LoadKerbalsIntoGame();
             VesselWorker.fetch.LoadVesselsIntoGame();
+
+            //Load the scenarios from the server
+            ScenarioWorker.fetch.LoadScenarioDataIntoGame();
+
+            //Load the missing scenarios as well (Eg, Contracts and stuff for career mode
+            ScenarioWorker.fetch.LoadMissingScenarioDataIntoGame();
+
+            //This only makes KSP complain
             HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
             DarkLog.Debug("Starting " + gameMode + " game...");
+
+            //.Start() seems to stupidly .Load() somewhere - Let's give it something to load.
             GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             HighLogic.CurrentGame.Start();
             ChatWorker.fetch.display = true;
@@ -421,6 +418,7 @@ namespace DarkMultiPlayer
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
             }
+            HighLogic.CurrentGame = null;
         }
 
         private void SetGameMode()
