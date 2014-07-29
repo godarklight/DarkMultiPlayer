@@ -1089,6 +1089,7 @@ namespace DarkMultiPlayer
         //Called from main
         public void LoadKerbalsIntoGame()
         {
+            DarkLog.Debug("Loading kerbals into game");
             MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.NonPublic | BindingFlags.Instance);
             AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
             if (AddCrewMemberToRoster == null)
@@ -1135,6 +1136,7 @@ namespace DarkMultiPlayer
                     generateKerbals--;
                 }
             }
+            DarkLog.Debug("Kerbals loaded");
         }
 
         private void LoadKerbal(ConfigNode crewNode)
@@ -1181,6 +1183,7 @@ namespace DarkMultiPlayer
         //Called from main
         public void LoadVesselsIntoGame()
         {
+            DarkLog.Debug("Loading vessels into game");
             foreach (KeyValuePair<string, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
             {
                 while (vesselQueue.Value.Count > 0)
@@ -1199,6 +1202,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            DarkLog.Debug("Vessels loaded into game");
         }
 
         //Also called from QuickSaveLoader

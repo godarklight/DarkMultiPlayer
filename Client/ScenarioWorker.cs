@@ -19,6 +19,8 @@ namespace DarkMultiPlayer
         //System.Reflection hackiness for loading kerbals into the crew roster:
         private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
 
+        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
+
         public static ScenarioWorker fetch
         {
             get
@@ -120,6 +122,10 @@ namespace DarkMultiPlayer
                 {
                     RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
                 }
+                if (scenarioEntry.scenarioName == "ProgressTracking")
+                {
+                    CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
+                }
                 ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
                 if (psm != null)
                 {
@@ -136,6 +142,7 @@ namespace DarkMultiPlayer
             }
         }
 
+        //Defends against bug #172
         private void RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(ConfigNode contractSystemNode)
         {
             ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
@@ -148,13 +155,53 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    DarkLog.Debug("Skipped RescueKerbal contract - Causes space center bug");
+                    DarkLog.Debug("Skipped RescueKerbal contract - Causes bug #172");
                 }
             }
             contractsNode.ClearNodes();
             foreach (ConfigNode contractNode in filteredContracts)
             {
-                contractSystemNode.AddNode(contractNode);
+                contractsNode.AddNode(contractNode);
+            }
+        }
+
+        //Defends against bug #172
+        private void CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(ConfigNode progressTrackingNode)
+        {
+            foreach (ConfigNode possibleNode in progressTrackingNode.nodes)
+            {
+                //Recursion (noun): See Recursion.
+                CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(possibleNode);
+            }
+            //The kerbals are kept in a ConfigNode named 'crew', with 'crews' as a comma space delimited array of names.
+            if (progressTrackingNode.name == "crew")
+            {
+                string kerbalNames = progressTrackingNode.GetValue("crews");
+                if (!String.IsNullOrEmpty(kerbalNames))
+                {
+                    string[] kerbalNamesSplit = kerbalNames.Split(new string[] { ", " }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string kerbalName in kerbalNamesSplit)
+                    {
+                        if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
+                        {
+                            if (AddCrewMemberToRoster == null)
+                            {
+                                MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.NonPublic | BindingFlags.Instance);
+                                AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
+                            }
+                            if (AddCrewMemberToRoster == null)
+                            {
+                                throw new Exception("Failed to initialize AddCrewMemberToRoster for #172 ProgressTracking fix.");
+                            }
+                            DarkLog.Debug("Generating missing kerbal from ProgressTracking: " + kerbalName);
+                            ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
+                            pcm.name = kerbalName;
+                            AddCrewMemberToRoster(pcm);
+                            //Also send it off to the server
+                            NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
+                        }
+                    }
+                }
             }
         }
 
