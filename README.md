@@ -1,6 +1,6 @@
 #DarkMultiPlayer 0.1.5.0.
 
-DarkMultiPlayer is a multiplayer mod for KSP 0.23.5. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
+DarkMultiPlayer is a multiplayer mod for KSP 0.24. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
 The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.  
   
@@ -14,20 +14,20 @@ Option b) Download DMPUpdater from http://chrisand.no-ip.info/dmp/downloads/dmpu
 ####LINUX BUG
 The linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
   
-Make sure the sha256 sum is correct, these instructions are specifically for 0.23.5  
+Make sure the sha256 sum is correct, these instructions are specifically for 0.24  
 
     sha256sum KSP.x86_64
-    d8885b0dfcb36433136d5d1395f182bfca31e9787b4b6af97f6808b859e60153  KSP.x86_64
+    17d395c8b2b30e2fdcca65a0078859f0422f1e36ba509f6bbf2f56b68b36148a KSP.x86_64
   
 Patch the executable  
 
-    echo "090f377: 00" | xxd -r - KSP.x86_64
-    echo "090f37c: 00" | xxd -r - KSP.x86_64
+    echo "0099f587: 00" | xxd -r - KSP.x86_64
+    echo "0099f58c: 00" | xxd -r - KSP.x86_64
 
 Check it patched correctly:  
 
     sha256sum KSP.x86_64
-    0c7b634998393f236f415b750e5d1cab036ab1ca3603aaf2d65c9adfc68dbe06  KSP.x86_64
+    7342792efa6e0390ceba1db7b92dce84811091d8436087f27697073a25277f92 KSP.x86_64
   
 ###Connecting to a server
 The connection window will appear on the main menu. Type in a username, press add server, type in the details, and then hit add.  
@@ -37,6 +37,10 @@ A player token will be generated (At GameData/DarkMultiPlayer/Plugins/Data/token
 If you are running the server locally, you will want to connect to 127.0.0.1/localhost.  
 If you are running the server on a networked computer, you will most likely be connecting to a 10.x.x.x or 192.168.x.x address.  
 Do not type in your public IP, this usually refers to your modem, which won't be running the DMP server (Unless you have the public IP address in your computer, which is rare).  
+  
+
+###Flag sharing
+DMP will sync any flags under the GameData/DarkMultiPlayer/Flags folder - Put your local flags in here if you want other players to see them. All other flags will work in any location if all players have the flags installed, but it will get reset to default if a player gets near a vessel with a flag they do not have.
   
 ###Chat window
 By default, you will join the Global channel (and cannot leave it).  
