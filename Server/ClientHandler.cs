@@ -5,7 +5,6 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Generic;
 using MessageStream;
-using System.Linq;
 using System.IO;
 using DarkMultiPlayerCommon;
 
@@ -479,10 +478,18 @@ namespace DarkMultiPlayerServer
 
         private static int GetActiveClientCount()
         {
+            int authenticatedCount = 0;
             lock (clientLock)
             {
-                return clients.Where(c => c.authenticated).Count();
+                foreach (ClientObject client in clients)
+                {
+                    if (client.authenticated)
+                    {
+                        authenticatedCount++;
+                    }
+                }
             }
+            return authenticatedCount;
         }
 
         private static string GetActivePlayerNames()

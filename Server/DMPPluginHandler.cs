@@ -3,7 +3,6 @@ using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using System.Linq;
 
 namespace DarkMultiPlayerServer
 {
@@ -77,7 +76,15 @@ namespace DarkMultiPlayerServer
                 foreach (Type loadedType in loadedTypes)
                 {
                     Type[] typeInterfaces = loadedType.GetInterfaces();
-                    if (typeInterfaces.Contains(dmpInterfaceType))
+                    bool containsDMPInterface = false;
+                    foreach (Type typeInterface in typeInterfaces)
+                    {
+                        if (typeInterface == dmpInterfaceType)
+                        {
+                            containsDMPInterface = true;
+                        }
+                    }
+                    if (containsDMPInterface)
                     {
                         DarkLog.Debug("Loading plugin: " + loadedType.FullName);
 
