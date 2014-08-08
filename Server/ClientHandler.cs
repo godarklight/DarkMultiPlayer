@@ -86,7 +86,6 @@ namespace DarkMultiPlayerServer
                     foreach (ClientObject client in clients)
                     {
                         CheckHeartBeat(client);
-                        SendOutgoingMessages(client);
                     }
                     //Check timers
                     NukeKSC.CheckTimer();
@@ -146,13 +145,9 @@ namespace DarkMultiPlayerServer
                     sendingHighPriotityMessages = false;
                     foreach (ClientObject client in clients)
                     {
-                        if (client.authenticated)
+                        if (client.authenticated && (client.sendMessageQueueHigh.Count > 0))
                         {
-                            if (client.sendMessageQueueHigh != null ? client.sendMessageQueueHigh.Count > 0 : false)
-                            {
-                                SendOutgoingHighPriorityMessages(client);
-                                sendingHighPriotityMessages = true;
-                            }
+                            sendingHighPriotityMessages = true;
                         }
                     }
                     Thread.Sleep(10);
@@ -297,6 +292,7 @@ namespace DarkMultiPlayerServer
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
             StartReceivingIncomingMessages(newClientObject);
+            StartSendingOutgoingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
             addClients.Enqueue(newClientObject);
         }
@@ -545,47 +541,49 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void StartSendingOutgoingMessages(ClientObject client)
+        {
+            Thread clientSendThread = new Thread(new ParameterizedThreadStart(SendOutgoingMessages));
+            clientSendThread.Start(client);
+        }
+
+        //ParameterizedThreadStart takes an object
+        private static void SendOutgoingMessages(object client)
+        {
+            SendOutgoingMessages((ClientObject)client);
+        }
+
         private static void SendOutgoingMessages(ClientObject client)
         {
-            lock (client.sendLock)
+            while (client.connectionStatus == ConnectionStatus.CONNECTED)
             {
-                if (!client.isSendingToClient)
+                ServerMessage message = null;
+                if (message == null && client.sendMessageQueueHigh.Count > 0)
                 {
-                    ServerMessage message = null;
-                    if (message == null && client.sendMessageQueueHigh.Count > 0)
-                    {
-                        message = client.sendMessageQueueHigh.Dequeue();
-                    }
+                    client.sendMessageQueueHigh.TryDequeue(out message);
+                }
+                //Don't send low or split during server shutdown.
+                if (Server.serverRunning)
+                {
                     if (message == null && client.sendMessageQueueSplit.Count > 0)
                     {
-                        message = client.sendMessageQueueSplit.Dequeue();
+                        client.sendMessageQueueSplit.TryDequeue(out message);
                     }
                     if (message == null && client.sendMessageQueueLow.Count > 0)
                     {
-                        message = client.sendMessageQueueLow.Dequeue();
+                        client.sendMessageQueueLow.TryDequeue(out message);
                         //Splits large messages to higher priority messages can get into the queue faster
                         SplitAndRewriteMessage(client, ref message);
                     }
-                    if (message != null)
-                    {
-                        SendNetworkMessage(client, message);
-                    }
-                }
-            }
-        }
-
-        private static void SendOutgoingHighPriorityMessages(ClientObject client)
-        {
-            if (!client.isSendingToClient)
-            {
-                ServerMessage message = null;
-                if (client.sendMessageQueueHigh.Count > 0)
-                {
-                    message = client.sendMessageQueueHigh.Dequeue();
                 }
                 if (message != null)
                 {
                     SendNetworkMessage(client, message);
+                }
+                else
+                {
+                    //Give the chance for the thread to terminate
+                    client.sendEvent.WaitOne(1000);
                 }
             }
         }
@@ -629,7 +627,7 @@ namespace DarkMultiPlayerServer
                     currentSplits++;
                     client.sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
-                message = client.sendMessageQueueSplit.Dequeue();
+                client.sendMessageQueueSplit.TryDequeue(out message);
             }
         }
 
@@ -669,13 +667,12 @@ namespace DarkMultiPlayerServer
                 }
                 messageBytes = mw.GetMessageBytes();
             }
-            client.isSendingToClient = true;
             client.lastSendTime = Server.serverClock.ElapsedMilliseconds;
             if (client.connectionStatus == ConnectionStatus.CONNECTED)
             {
                 try
                 {
-                    client.connection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendMessageCallback), client);
+                    client.connection.GetStream().Write(messageBytes, 0, messageBytes.Length);
                 }
                 catch (Exception e)
                 {
@@ -690,6 +687,7 @@ namespace DarkMultiPlayerServer
                     string reason = mr.Read<string>();
                     DarkLog.Normal("Disconnecting client " + client.playerName + ", sent CONNECTION_END (" + reason + ") to endpoint " + client.endpoint);
                     client.disconnectClient = true;
+                    DisconnectClient(client);
                 }
             }
             if (message.type == ServerMessageType.HANDSHAKE_REPLY)
@@ -702,33 +700,9 @@ namespace DarkMultiPlayerServer
                     {
                         DarkLog.Normal("Disconnecting client " + client.playerName + ", sent HANDSHAKE_REPLY (" + reason + ") to endpoint " + client.endpoint);
                         client.disconnectClient = true;
+                        DisconnectClient(client);
                     }
                 }
-            }
-        }
-
-        private static void SendMessageCallback(IAsyncResult ar)
-        {
-            ClientObject client = (ClientObject)ar.AsyncState;
-            try
-            {
-                client.connection.GetStream().EndWrite(ar);
-            }
-            catch (Exception e)
-            {
-                HandleDisconnectException("Send Callback", client, e);
-                return;
-            }
-            client.isSendingToClient = false;
-            if (client.disconnectClient)
-            {
-                //Disconnect client
-                DisconnectClient(client);
-            }
-            else
-            {
-                //Send another message
-                SendOutgoingMessages(client);
             }
         }
 
@@ -2244,31 +2218,19 @@ namespace DarkMultiPlayerServer
 
         private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
-            lock (client.queueLock)
+            if (message == null)
             {
-                if (!Server.serverRunning && !highPriority)
-                {
-                    //Skip sending low priority messages during a server shutdown.
-                    return;
-                }
-                if (message == null)
-                {
-                    Exception up = new Exception("Cannot send a null message to a client!");
-                    throw up;
-                }
-                else
-                {
-                    if (highPriority)
-                    {
-                        client.sendMessageQueueHigh.Enqueue(message);
-                    }
-                    else
-                    {
-                        client.sendMessageQueueLow.Enqueue(message);
-                    }
-                    SendOutgoingMessages(client);
-                }
+                return;
             }
+            if (highPriority)
+            {
+                client.sendMessageQueueHigh.Enqueue(message);
+            }
+            else
+            {
+                client.sendMessageQueueLow.Enqueue(message);
+            }
+            client.sendEvent.Set();
         }
 
         public static ClientObject GetClientByName(string playerName)
@@ -3121,11 +3083,9 @@ namespace DarkMultiPlayerServer
         public TcpClient connection;
         //Send buffer
         public long lastSendTime;
-        public bool isSendingToClient;
-        public Queue<ServerMessage> sendMessageQueueHigh = new Queue<ServerMessage>();
-        public Queue<ServerMessage> sendMessageQueueSplit = new Queue<ServerMessage>();
-        public Queue<ServerMessage> sendMessageQueueLow = new Queue<ServerMessage>();
-        public Queue<ClientMessage> receiveMessageQueue = new Queue<ClientMessage>();
+        public ConcurrentQueue<ServerMessage> sendMessageQueueHigh = new ConcurrentQueue<ServerMessage>();
+        public ConcurrentQueue<ServerMessage> sendMessageQueueSplit = new ConcurrentQueue<ServerMessage>();
+        public ConcurrentQueue<ServerMessage> sendMessageQueueLow = new ConcurrentQueue<ServerMessage>();
         public long lastReceiveTime;
         public bool disconnectClient;
         //Receive buffer
@@ -3141,8 +3101,7 @@ namespace DarkMultiPlayerServer
         public PlayerStatus playerStatus;
         public float[] playerColor;
         //Send lock
-        public object sendLock = new object();
-        public object queueLock = new object();
+        public AutoResetEvent sendEvent = new AutoResetEvent(false);
         public object disconnectLock = new object();
     }
 }

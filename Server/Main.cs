@@ -34,6 +34,9 @@ namespace DarkMultiPlayerServer
                 //Set the last player activity time to server start
                 lastPlayerActivity = serverClock.ElapsedTicks;
 
+                //Periodic garbage collection
+                long lastGarbageCollect = 0;
+
                 //Set universe directory and modfile path
                 universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
                 modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
@@ -94,6 +97,12 @@ namespace DarkMultiPlayerServer
                     DMPPluginHandler.FireOnServerStart();
                     while (serverRunning)
                     {
+                        //Run a garbage collection every 2 minutes.
+                        if ((serverClock.ElapsedTicks - lastGarbageCollect) > 1200000000)
+                        {
+                            lastGarbageCollect = serverClock.ElapsedTicks;
+                            GC.Collect();
+                        }
                         Thread.Sleep(500);
                     }
                     DMPPluginHandler.FireOnServerStop();
