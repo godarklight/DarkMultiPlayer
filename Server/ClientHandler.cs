@@ -3,6 +3,8 @@ using System.Threading;
 using System.Text;
 using System.Net;
 using System.Net.Sockets;
+using System.Collections.Concurrent;
+using System.Collections.ObjectModel;
 using System.Collections.Generic;
 using MessageStream;
 using System.IO;
@@ -15,8 +17,8 @@ namespace DarkMultiPlayerServer
         //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
         private static Queue<ClientObject> addClients;
-        private static List<ClientObject> clients;
-        private static Queue<ClientObject> deleteClients;
+        private static ReadOnlyCollection<ClientObject> clients;
+        private static ConcurrentQueue<ClientObject> deleteClients;
         private static Dictionary<int, Subspace> subspaces;
         private static Dictionary<string, int> playerSubspace;
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
@@ -36,15 +38,14 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
         private static LockSystem lockSystem;
-        private static object clientLock = new object();
         #region Main loop
         public static void ThreadMain()
         {
             try
             {
                 addClients = new Queue<ClientObject>();
-                clients = new List<ClientObject>();
-                deleteClients = new Queue<ClientObject>();
+                clients = new List<ClientObject>().AsReadOnly();
+                deleteClients = new ConcurrentQueue<ClientObject>();
                 subspaces = new Dictionary<int, Subspace>();
                 playerSubspace = new Dictionary<string, int>();
                 playerChatChannels = new Dictionary<string, List<string>>();
@@ -66,31 +67,41 @@ namespace DarkMultiPlayerServer
 
                 while (Server.serverRunning)
                 {
-                    lock (clientLock)
+                    //Add new clients
+                    while (addClients.Count > 0)
                     {
-                        //Add new clients
-                        while (addClients.Count > 0)
+                        //Create a new readonly collection from the current list and set clients. This prevents CollectionModified exceptions.
+                        ClientObject addClient = addClients.Dequeue();
+                        if (addClient != null)
                         {
-                            clients.Add(addClients.Dequeue());
+                            List<ClientObject> newList = new List<ClientObject>(clients);
+                            newList.Add(addClient);
+                            clients = newList.AsReadOnly();
                             Server.playerCount = GetActiveClientCount();
                             Server.players = GetActivePlayerNames();
                             DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
                         }
-                        //Process current clients
-                        foreach (ClientObject client in clients)
+                    }
+                    //Process current clients
+                    foreach (ClientObject client in clients)
+                    {
+                        CheckHeartBeat(client);
+                        SendOutgoingMessages(client);
+                    }
+                    //Check timers
+                    NukeKSC.CheckTimer();
+                    Dekessler.CheckTimer();
+                    //Run plugin update
+                    DMPPluginHandler.FireOnUpdate();
+                    //Delete old clients
+                    while (deleteClients.Count > 0)
+                    {
+                        ClientObject deleteClient;
+                        if (deleteClients.TryDequeue(out deleteClient))
                         {
-                            CheckHeartBeat(client);
-                            SendOutgoingMessages(client);
-                        }
-                        //Check timers
-                        NukeKSC.CheckTimer();
-                        Dekessler.CheckTimer();
-                        //Run plugin update
-                        DMPPluginHandler.FireOnUpdate();
-                        //Delete old clients
-                        while (deleteClients.Count > 0)
-                        {
-                            clients.Remove(deleteClients.Dequeue());
+                            List<ClientObject> newList = new List<ClientObject>(clients);
+                            newList.Remove(deleteClient);
+                            clients = newList.AsReadOnly();
                             Server.playerCount = GetActiveClientCount();
                             Server.players = GetActivePlayerNames();
                             DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
@@ -122,9 +133,15 @@ namespace DarkMultiPlayerServer
                     }
                     while (deleteClients.Count > 0)
                     {
-                        clients.Remove(deleteClients.Dequeue());
-                        Server.playerCount = GetActiveClientCount();
-                        Server.players = GetActivePlayerNames();
+                        ClientObject deleteClient = null;
+                        if (deleteClients.TryDequeue(out deleteClient))
+                        {
+                            List<ClientObject> newList = new List<ClientObject>(clients);
+                            newList.Remove(deleteClient);
+                            clients = newList.AsReadOnly();
+                            Server.playerCount = GetActiveClientCount();
+                            Server.players = GetActivePlayerNames();
+                        }
                     }
                     sendingHighPriotityMessages = false;
                     foreach (ClientObject client in clients)
@@ -479,14 +496,11 @@ namespace DarkMultiPlayerServer
         private static int GetActiveClientCount()
         {
             int authenticatedCount = 0;
-            lock (clientLock)
+            foreach (ClientObject client in clients)
             {
-                foreach (ClientObject client in clients)
+                if (client.authenticated)
                 {
-                    if (client.authenticated)
-                    {
-                        authenticatedCount++;
-                    }
+                    authenticatedCount++;
                 }
             }
             return authenticatedCount;
@@ -495,18 +509,15 @@ namespace DarkMultiPlayerServer
         private static string GetActivePlayerNames()
         {
             string playerString = "";
-            lock (clientLock)
+            foreach (ClientObject client in clients)
             {
-                foreach (ClientObject client in clients)
+                if (client.authenticated)
                 {
-                    if (client.authenticated)
+                    if (playerString != "")
                     {
-                        if (playerString != "")
-                        {
-                            playerString += ", ";
-                        }
-                        playerString += client.playerName;
+                        playerString += ", ";
                     }
+                    playerString += client.playerName;
                 }
             }
             return playerString;
@@ -2948,22 +2959,19 @@ namespace DarkMultiPlayerServer
         {
             ClientObject pmPlayer = null;
             int matchedLength = 0;
-            lock (clientLock)
+            foreach (ClientObject testPlayer in clients)
             {
-                foreach (ClientObject testPlayer in clients)
+                //Only search authenticated players
+                if (testPlayer.authenticated)
                 {
-                    //Only search authenticated players
-                    if (testPlayer.authenticated)
+                    //Try to match the longest player name
+                    if (commandArgs.StartsWith(testPlayer.playerName) && testPlayer.playerName.Length > matchedLength)
                     {
-                        //Try to match the longest player name
-                        if (commandArgs.StartsWith(testPlayer.playerName) && testPlayer.playerName.Length > matchedLength)
+                        //Double check there is a space after the player name
+                        if ((commandArgs.Length > (testPlayer.playerName.Length + 1)) ? commandArgs[testPlayer.playerName.Length] == ' ' : false)
                         {
-                            //Double check there is a space after the player name
-                            if ((commandArgs.Length > (testPlayer.playerName.Length + 1)) ? commandArgs[testPlayer.playerName.Length] == ' ' : false)
-                            {
-                                pmPlayer = testPlayer;
-                                matchedLength = testPlayer.playerName.Length;
-                            }
+                            pmPlayer = testPlayer;
+                            matchedLength = testPlayer.playerName.Length;
                         }
                     }
                 }
