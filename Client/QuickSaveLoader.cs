@@ -7,6 +7,7 @@ namespace DarkMultiPlayer
 {
     public class QuickSaveLoader
     {
+        public bool workerEnabled;
         private static QuickSaveLoader singleton;
         private ConfigNode savedVessel;
         private Subspace savedSubspace;
@@ -86,13 +87,16 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
-            if (Input.GetKey(KeyCode.F5))
+            if (workerEnabled)
             {
-                Save();
-            }
-            if (Input.GetKey(KeyCode.F9))
-            {
-                Load();
+                if (Input.GetKey(KeyCode.F5))
+                {
+                    Save();
+                }
+                if (Input.GetKey(KeyCode.F9))
+                {
+                    Load();
+                }
             }
         }
 
@@ -102,6 +106,7 @@ namespace DarkMultiPlayer
             {
                 if (singleton != null)
                 {
+                    singleton.workerEnabled = false;
                     Client.updateEvent.Remove(singleton.Update);
                 }
                 singleton = new QuickSaveLoader();

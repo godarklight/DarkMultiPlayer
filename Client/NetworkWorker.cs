@@ -134,6 +134,7 @@ namespace DarkMultiPlayer
                 WarpWorker.fetch.workerEnabled = true;
                 CraftLibraryWorker.fetch.workerEnabled = true;
                 ScreenshotWorker.fetch.workerEnabled = true;
+                QuickSaveLoader.fetch.workerEnabled = true;
                 SendMotdRequest();
             }
             if (displayMotd && (HighLogic.LoadedScene != GameScenes.LOADING) && (Time.timeSinceLevelLoad > 2f))
