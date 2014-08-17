@@ -158,6 +158,17 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Skipped RescueKerbal contract - Causes bug #172");
                 }
             }
+            foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT_FINISHED"))
+            {
+                if (contractNode.GetValue("type") != "RescueKerbal")
+                {
+                    filteredContracts.Add(contractNode);
+                }
+                else
+                {
+                    DarkLog.Debug("Skipped RescueKerbal contract - Causes bug #172");
+                }
+            }
             contractsNode.ClearNodes();
             foreach (ConfigNode contractNode in filteredContracts)
             {
