@@ -83,7 +83,7 @@ namespace DarkMultiPlayer
             }
         }
         //Called from main
-        public void FixedUpdate()
+        public void Update()
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING)
             {
@@ -2165,7 +2165,7 @@ namespace DarkMultiPlayer
                 if (singleton != null)
                 {
                     singleton.workerEnabled = false;
-                    Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
+                    Client.updateEvent.Remove(singleton.Update);
                     if (singleton.registered)
                     {
                         singleton.UnregisterGameHooks();
@@ -2176,7 +2176,7 @@ namespace DarkMultiPlayer
                     }
                 }
                 singleton = new VesselWorker();
-                Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
+                Client.updateEvent.Add(singleton.Update);
                 LockSystem.fetch.RegisterAcquireHook(singleton.CheckMasterAcquire);
             }
         }
