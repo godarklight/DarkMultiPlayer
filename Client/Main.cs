@@ -469,7 +469,7 @@ namespace DarkMultiPlayer
 
         private void SetupDirectoriesIfNeeded()
         {
-            string darkMultiPlayerSavesDirectory = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("saves", "DarkMultiPlayer"));
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
             CreateIfNeeded(darkMultiPlayerSavesDirectory);
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Ships"));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));

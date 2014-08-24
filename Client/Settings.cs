@@ -44,6 +44,11 @@ namespace DarkMultiPlayer
             {
                 Directory.CreateDirectory(darkMultiPlayerDataDirectory);
             }
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            if (!Directory.Exists(darkMultiPlayerSavesDirectory))
+            {
+                Directory.CreateDirectory(darkMultiPlayerSavesDirectory);
+            }
             dataLocation = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Data");
             settingsFile = Path.Combine(dataLocation, SETTINGS_FILE);
             backupSettingsFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), SETTINGS_FILE);
