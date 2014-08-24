@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         public string playerName;
         public Guid playerGuid;
         public int cacheSize;
+        public int disclaimerAccepted;
         public List<ServerEntry> servers;
         public Color playerColor;
         public KeyCode screenshotKey;
@@ -38,6 +39,11 @@ namespace DarkMultiPlayer
 
         public Settings()
         {
+            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
+            if (!Directory.Exists(darkMultiPlayerDataDirectory))
+            {
+                Directory.CreateDirectory(darkMultiPlayerDataDirectory);
+            }
             dataLocation = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Data");
             settingsFile = Path.Combine(dataLocation, SETTINGS_FILE);
             backupSettingsFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), SETTINGS_FILE);
@@ -81,6 +87,15 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Adding cache size to settings file");
                     saveXMLAfterLoad = true;
                     cacheSize = DEFAULT_CACHE_SIZE;
+                }
+                try
+                {
+                    disclaimerAccepted = Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@disclaimer").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding disclaimer to settings file");
+                    saveXMLAfterLoad = true;
                 }
                 try
                 {
@@ -245,6 +260,16 @@ namespace DarkMultiPlayer
                 XmlAttribute cacheAttribute = xmlDoc.CreateAttribute("cache-size");
                 cacheAttribute.Value = DEFAULT_CACHE_SIZE.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(cacheAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@disclaimer").Value = disclaimerAccepted.ToString();
+            }
+            catch
+            {
+                XmlAttribute disclaimerAttribute = xmlDoc.CreateAttribute("disclaimer");
+                disclaimerAttribute.Value = "0";
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(disclaimerAttribute);
             }
             try
             {

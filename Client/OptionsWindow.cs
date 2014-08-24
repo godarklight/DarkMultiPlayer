@@ -221,6 +221,11 @@ namespace DarkMultiPlayer
                 ModWorker.fetch.GenerateModControlFile(true);
             }
             UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, "Generate Universe from saved game", buttonStyle);
+            if (GUILayout.Button("Reset disclaimer"))
+            {
+                Settings.fetch.disclaimerAccepted = 0;
+                Settings.fetch.SaveSettings();
+            }
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

@@ -17,6 +17,7 @@ namespace DarkMultiPlayer
         public bool forceQuit;
         public bool showGUI = true;
         public bool incorrectlyInstalled = false;
+        public bool modDisabled = false;
         public bool displayedIncorrectMessage = false;
         public string assemblyPath;
         public string assemblyShouldBeInstalledAt;
@@ -63,11 +64,15 @@ namespace DarkMultiPlayer
                 UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '" + assemblyShouldBeInstalledAt + "'");
                 return;
             }
+            if (Settings.fetch.disclaimerAccepted != 1)
+            {
+                modDisabled = true;
+                DisclaimerWindow.Enable();
+            }
             SetupDirectoriesIfNeeded();
             //Register events needed to bootstrap the workers.
             lock (eventLock)
             {
-                updateEvent.Add(DarkLog.Update);
                 resetEvent.Add(LockSystem.Reset);
                 resetEvent.Add(AsteroidWorker.Reset);
                 resetEvent.Add(ChatWorker.Reset);
@@ -103,6 +108,11 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            DarkLog.Update();
+            if (modDisabled)
+            {
+                return;
+            }
             if (incorrectlyInstalled)
             {
                 if (!displayedIncorrectMessage)
@@ -296,6 +306,10 @@ namespace DarkMultiPlayer
 
         public void FixedUpdate()
         {
+            if (modDisabled)
+            {
+                return;
+            }
             foreach (Action fixedUpdateAction in fixedUpdateEvent)
             {
                 try
@@ -334,6 +348,7 @@ namespace DarkMultiPlayer
             //Screenshot window: 6710
             //Options window: 6711
             //Converter window: 6712
+            //Disclaimer window: 6713
             if (showGUI)
             {
                 foreach (Action drawAction in drawEvent)
@@ -460,8 +475,6 @@ namespace DarkMultiPlayer
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
-            CreateIfNeeded(darkMultiPlayerDataDirectory);
             string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
             string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
