@@ -479,7 +479,6 @@ namespace DarkMultiPlayer
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
             string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
             CreateIfNeeded(darkMultiPlayerFlagsDirectory);
-
         }
 
         private void CreateIfNeeded(string path)
