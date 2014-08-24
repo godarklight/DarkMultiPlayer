@@ -228,6 +228,10 @@ namespace DarkMultiPlayer
                 playerGuid = Guid.NewGuid();
                 if (File.Exists(tokenFile))
                 {
+                    if (File.Exists(tokenFile + ".bak"))
+                    {
+                        File.Delete(tokenFile + ".bak");
+                    }
                     File.Move(tokenFile, tokenFile + ".bak");
                 }
                 using (StreamWriter sw = new StreamWriter(tokenFile))
