@@ -729,6 +729,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.LOCK_SYSTEM:
                         LockSystem.fetch.HandleLockMessage(message.data);
                         break;
+                    case ServerMessageType.MOD_DATA:
+                        DMPModInterface.fetch.HandleModData(message.data);
+                        break;
                     case ServerMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(message.data);
                         break;
@@ -1687,6 +1690,16 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.LOCK_SYSTEM;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
+        }
+        /// <summary>
+        /// If you are a mod, call DMPModInterface.fetch.SendModMessage.
+        /// </summary>
+        public void SendModMessage(byte[] messageData, bool highPriority)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.MOD_DATA;
+            newMessage.data = messageData;
+            QueueOutgoingMessage(newMessage, highPriority);
         }
         //Called from main
         public void SendDisconnect(string disconnectReason = "Unknown")

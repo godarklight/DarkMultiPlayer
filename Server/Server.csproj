@@ -49,6 +49,7 @@
     <Compile Include="DMPPlugin.cs" />
     <Compile Include="DMPPluginHandler.cs" />
     <Compile Include="BackwardsCompatibility.cs" />
+    <Compile Include="DMPModInterface.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">

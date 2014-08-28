@@ -973,6 +973,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.LOCK_SYSTEM:
                         HandleLockSystemMessage(client, message.data);
                         break;
+                    case ClientMessageType.MOD_DATA:
+                        HandleModDataMessage(client, message.data);
+                        break;
                     case ClientMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(client, message.data);
                         break;
@@ -2215,6 +2218,25 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private static void HandleModDataMessage(ClientObject client, byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData, false))
+            {
+                string modName = mr.Read<string>();
+                bool relay = mr.Read<bool>();
+                bool highPriority = mr.Read<bool>();
+                byte[] modData = mr.Read<byte[]>();
+                if (relay)
+                {
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.MOD_DATA;
+                    newMessage.data = messageData;
+                    SendToAll(client, newMessage, highPriority);
+                }
+                DMPModInterface.OnModMessageReceived(client, modName, modData);
+            }
+        }
+
         private static void HandleSplitMessage(ClientObject client, byte[] messageData)
         {
             if (!client.isReceivingSplitMessage)
@@ -2270,7 +2292,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
+        public static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
             //Because we dodge the queue, we need to lock it up again...
             lock (client.sendLock)

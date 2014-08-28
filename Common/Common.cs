@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 25;
+        public const int PROTOCOL_VERSION = 26;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -355,6 +355,7 @@ namespace DarkMultiPlayerCommon
         MOTD_REQUEST,
         WARP_CONTROL,
         LOCK_SYSTEM,
+        MOD_DATA,
         SPLIT_MESSAGE,
         CONNECTION_END
     }
@@ -386,6 +387,7 @@ namespace DarkMultiPlayerCommon
         MOTD_REPLY,
         WARP_CONTROL,
         LOCK_SYSTEM,
+        MOD_DATA,
         SPLIT_MESSAGE,
         CONNECTION_END
     }
