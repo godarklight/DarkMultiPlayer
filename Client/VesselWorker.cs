@@ -1193,6 +1193,7 @@ namespace DarkMultiPlayer
                     {
                         DodgeVesselActionGroups(currentNode);
                         DodgeVesselCrewValues(currentNode);
+                        RemoveManeuverNodesFromProtoVessel(currentNode);
                         ProtoVessel pv = new ProtoVessel(currentNode, HighLogic.CurrentGame);
                         if (pv != null)
                         {
@@ -1215,6 +1216,9 @@ namespace DarkMultiPlayer
 
                 //Fix the "cannot control actiongroups bug" by dodging the last used time.
                 DodgeVesselActionGroups(vesselNode);
+
+                //Fix a bug where maneuver nodes make KSP throw an NRE flood.
+                RemoveManeuverNodesFromProtoVessel(vesselNode);
 
                 //Can be used for debugging incoming vessel config nodes.
                 //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
@@ -1495,6 +1499,14 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
+            }
+        }
+
+        private void RemoveManeuverNodesFromProtoVessel(ConfigNode vesselNode)
+        {
+            if (vesselNode != null)
+            {
+                vesselNode.GetNode("FLIGHTPLAN").ClearData();
             }
         }
 
