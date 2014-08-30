@@ -1149,6 +1149,14 @@ namespace DarkMultiPlayer
                     if (!String.IsNullOrEmpty(protoCrew.name))
                     {
                         protoCrew.type = ProtoCrewMember.KerbalType.Crew;
+                        if (assignedKerbals.ContainsKey(protoCrew.name))
+                        {
+                            protoCrew.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                        }
+                        else
+                        {
+                            protoCrew.rosterStatus = ProtoCrewMember.RosterStatus.Available;
+                        }
                         if (!HighLogic.CurrentGame.CrewRoster.Exists(protoCrew.name))
                         {
                             AddCrewMemberToRoster(protoCrew);
@@ -1557,17 +1565,25 @@ namespace DarkMultiPlayer
                     {
                         if (assignedKerbals[assignName] != vesselID)
                         {
-                            ProtoCrewMember pcm = null;
-                            while (pcm == null || HighLogic.CurrentGame.CrewRoster.Exists(pcm.name))
+                            ProtoCrewMember freeKerbal = null;
+                            foreach (ProtoCrewMember pcm in HighLogic.CurrentGame.CrewRoster.Crew)
                             {
-                                pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
+                                if (pcm.rosterStatus == ProtoCrewMember.RosterStatus.Available)
+                                {
+                                    freeKerbal = pcm;
+                                    DarkLog.Debug("Assigned kerbal " + freeKerbal.name + " replacing " + configNodeValue + " for vessel " + vesselID + ", Kerbal was taken");
+                                    break;
+                                }
                             }
-                            pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
-                            pcm.seatIdx = crewIndex;
-                            AddCrewMemberToRoster(pcm);
-                            partNode.SetValue("crew", pcm.name, crewIndex);
-                            DarkLog.Debug("Created kerbal " + pcm.name + " replacing " + configNodeValue + " for vessel " + vesselID + ", Kerbal was taken");
-                            assignName = pcm.name;
+                            if (freeKerbal == null)
+                            {
+                                freeKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
+                                DarkLog.Debug("Created kerbal " + freeKerbal.name + " replacing " + configNodeValue + " for vessel " + vesselID + ", Kerbal was taken");
+                            }
+                            freeKerbal.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                            freeKerbal.seatIdx = crewIndex;
+                            partNode.SetValue("crew", freeKerbal.name, crewIndex);
+                            assignName = freeKerbal.name;
                             dodged = true;
                         }
                     }

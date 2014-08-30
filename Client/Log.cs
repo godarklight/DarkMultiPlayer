@@ -30,5 +30,13 @@ namespace DarkMultiPlayer
                 */
             }
         }
+
+        public static void ExternalLog(string debugText)
+        {
+            using (StreamWriter sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
+            {
+                sw.WriteLine(debugText);
+            }
+        }
     }
 }
