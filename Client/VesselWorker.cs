@@ -1206,6 +1206,7 @@ namespace DarkMultiPlayer
                         if (pv != null)
                         {
                             RegisterServerVessel(pv.vesselID.ToString());
+                            RegisterServerAsteriodIfVesselIsAsteroid(pv);
                             HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
                         }
                     }
@@ -1259,21 +1260,7 @@ namespace DarkMultiPlayer
                         return;
                     }
 
-                    //Register asteroids from other players
-                    if (currentProto.vesselType == VesselType.SpaceObject)
-                    {
-                        if (currentProto.protoPartSnapshots != null)
-                        {
-                            if (currentProto.protoPartSnapshots.Count == 1)
-                            {
-                                if (currentProto.protoPartSnapshots[0].partName == "PotatoRoid")
-                                {
-                                    DarkLog.Debug("Registering remote server asteroid");
-                                    AsteroidWorker.fetch.RegisterServerAsteroid(currentProto.vesselID.ToString());
-                                }
-                            }
-                        }
-                    }
+                    RegisterServerAsteriodIfVesselIsAsteroid(currentProto);
 
                     //Skip vessels that try to load in the safety bubble
                     if (isProtoVesselInSafetyBubble(currentProto))
@@ -1486,6 +1473,25 @@ namespace DarkMultiPlayer
             else
             {
                 DarkLog.Debug("vesselNode is null!");
+            }
+        }
+
+        private void RegisterServerAsteriodIfVesselIsAsteroid(ProtoVessel possibleAsteroid)
+        {
+            //Register asteroids from other players
+            if (possibleAsteroid.vesselType == VesselType.SpaceObject)
+            {
+                if (possibleAsteroid.protoPartSnapshots != null)
+                {
+                    if (possibleAsteroid.protoPartSnapshots.Count == 1)
+                    {
+                        if (possibleAsteroid.protoPartSnapshots[0].partName == "PotatoRoid")
+                        {
+                            DarkLog.Debug("Registering remote server asteroid");
+                            AsteroidWorker.fetch.RegisterServerAsteroid(possibleAsteroid.vesselID.ToString());
+                        }
+                    }
+                }
             }
         }
 
