@@ -159,6 +159,9 @@ namespace DarkMultiPlayer
                     connectionText += "Queued outgoing messages (High): " + NetworkWorker.fetch.GetStatistics("HighPriorityQueueLength") + ".\n";
                     connectionText += "Queued outgoing messages (Split): " + NetworkWorker.fetch.GetStatistics("SplitPriorityQueueLength") + ".\n";
                     connectionText += "Queued outgoing messages (Low): " + NetworkWorker.fetch.GetStatistics("LowPriorityQueueLength") + ".\n";
+                    connectionText += "Queued out bytes: " + NetworkWorker.fetch.GetStatistics("QueuedOutBytes") + ".\n";
+                    connectionText += "Sent bytes: " + NetworkWorker.fetch.GetStatistics("SentBytes") + ".\n";
+                    connectionText += "Received bytes: " + NetworkWorker.fetch.GetStatistics("ReceivedBytes") + ".\n";
                     connectionText += "Stored future updates: " + VesselWorker.fetch.GetStatistics("StoredFutureUpdates") + "\n";
                     connectionText += "Stored future proto updates: " + VesselWorker.fetch.GetStatistics("StoredFutureProtoUpdates") + ".\n";
 

@@ -38,6 +38,8 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex;
         private static Dictionary<string, string> playerWatchScreenshot;
         private static LockSystem lockSystem;
+        //When a client hits 100kb on the send queue, DMPServer will throw out old duplicate messages
+        private const int OPTIMIZE_QUEUE_LIMIT = 100 * 1024;
         #region Main loop
         public static void ThreadMain()
         {
@@ -544,9 +546,9 @@ namespace DarkMultiPlayerServer
         private static void StartSendingOutgoingMessages(ClientObject client)
         {
             Thread clientSendThread = new Thread(new ParameterizedThreadStart(SendOutgoingMessages));
+            clientSendThread.IsBackground = true;
             clientSendThread.Start(client);
         }
-
         //ParameterizedThreadStart takes an object
         private static void SendOutgoingMessages(object client)
         {
@@ -612,10 +614,11 @@ namespace DarkMultiPlayerServer
                     mw.Write<byte[]>(firstSplit);
                     splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
                     newSplitMessage.data = mw.GetMessageBytes();
+                    //SPLIT_MESSAGE adds a 12 byte header.
+                    client.bytesQueuedOut += 12;
                     client.sendMessageQueueSplit.Enqueue(newSplitMessage);
                 }
 
-                int currentSplits = 1;
 
                 while (splitBytesLeft > 0)
                 {
@@ -624,7 +627,8 @@ namespace DarkMultiPlayerServer
                     currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
                     Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
                     splitBytesLeft -= currentSplitMessage.data.Length;
-                    currentSplits++;
+                    //Add the SPLIT_MESSAGE header to the out queue count.
+                    client.bytesQueuedOut += 12;
                     client.sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
                 client.sendMessageQueueSplit.TryDequeue(out message);
@@ -642,6 +646,7 @@ namespace DarkMultiPlayerServer
                     {
                         using (MessageReader mr = new MessageReader(message.data, false))
                         {
+                            client.bytesQueuedOut += 8;
                             //Client send time
                             mw.Write<long>(mr.Read<long>());
                             //Server receive time
@@ -668,6 +673,8 @@ namespace DarkMultiPlayerServer
                 messageBytes = mw.GetMessageBytes();
             }
             client.lastSendTime = Server.serverClock.ElapsedMilliseconds;
+            client.bytesQueuedOut -= messageBytes.Length;
+            client.bytesSent += messageBytes.Length;
             if (client.connectionStatus == ConnectionStatus.CONNECTED)
             {
                 try
@@ -728,7 +735,9 @@ namespace DarkMultiPlayerServer
             ClientObject client = (ClientObject)ar.AsyncState;
             try
             {
-                client.receiveMessageBytesLeft -= client.connection.GetStream().EndRead(ar);
+                int bytesRead = client.connection.GetStream().EndRead(ar);
+                client.bytesReceived += bytesRead;
+                client.receiveMessageBytesLeft -= bytesRead;
                 if (client.receiveMessageBytesLeft == 0)
                 {
                     //We either have the header or the message data, let's do something
@@ -1400,6 +1409,7 @@ namespace DarkMultiPlayerServer
 
         private static void HandleVesselProto(ClientObject client, byte[] messageData)
         {
+            //TODO: Relay the message as is so we can optimize it
             //Send vessel
             using (MessageReader mr = new MessageReader(messageData, false))
             {
@@ -2218,19 +2228,126 @@ namespace DarkMultiPlayerServer
 
         private static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
-            if (message == null)
+            //Because we dodge the queue, we need to lock it up again...
+            lock (client.sendLock)
             {
-                return;
+                if (message == null)
+                {
+                    return;
+                }
+                //All messages have an 8 byte header
+                client.bytesQueuedOut += 8;
+                if (message.data != null)
+                {
+                    //Count the payload if we have one. Byte[] serialisation has a further 4 byte header
+                    client.bytesQueuedOut += 4 + message.data.Length;
+                }
+                if (highPriority)
+                {
+                    client.sendMessageQueueHigh.Enqueue(message);
+                }
+                else
+                {
+                    client.sendMessageQueueLow.Enqueue(message);
+                    //If we need to optimize
+                    if (client.bytesQueuedOut > OPTIMIZE_QUEUE_LIMIT)
+                    {
+                        //And we haven't optimized in the last 5 seconds
+                        long currentTime = DateTime.UtcNow.Ticks;
+                        long optimizedBytes = 0;
+                        if ((currentTime - client.lastQueueOptimizeTime) > 50000000)
+                        {
+                            DarkLog.Debug("Optimizing " + client.playerName + " (" + client.bytesQueuedOut + " bytes queued)");
+                            client.lastQueueOptimizeTime = currentTime;
+                            //Create a temporary filter list
+                            List<ServerMessage> oldClientMessagesToSend = new List<ServerMessage>();
+                            List<ServerMessage> newClientMessagesToSend = new List<ServerMessage>();
+                            //Steal all the messages from the queue and put them into a list
+                            ServerMessage stealMessage = null;
+                            while (client.sendMessageQueueLow.TryDequeue(out stealMessage))
+                            {
+                                oldClientMessagesToSend.Add(stealMessage);
+                            }
+                            //Clear the client send queue
+                            //List<string> seenProtovesselUpdates = new List<string>();
+                            List<string> seenPositionUpdates = new List<string>();
+                            //Iterate backwards over the list
+                            oldClientMessagesToSend.Reverse();
+                            foreach (ServerMessage currentMessage in oldClientMessagesToSend)
+                            {
+                                //TODO: Relay VESSEL_PROTO as is so we can filter them.
+                                if (currentMessage.type != ServerMessageType.VESSEL_UPDATE)
+                                //if (currentMessage.type != ServerMessageType.VESSEL_PROTO && currentMessage.type != ServerMessageType.VESSEL_UPDATE)
+                                {
+                                    //Message isn't proto or position, don't skip it.
+                                    newClientMessagesToSend.Add(currentMessage);
+                                }
+                                else
+                                {
+                                    //Message is proto or position
+                                    //TODO: Uncomment and double check this block!
+                                    /*
+                                    if (currentMessage.type == ServerMessageType.VESSEL_PROTO)
+                                    {
+                                        using (MessageReader mr = new MessageReader(currentMessage.data, false))
+                                        {
+                                            //Don't care about the send time, it's already the latest in the queue.
+                                            mr.Read<double>();
+                                            string vesselID = mr.Read<string>();
+                                            if (!seenProtovesselUpdates.Contains(vesselID))
+                                            {
+                                                seenProtovesselUpdates.Add(vesselID);
+                                                newClientMessagesToSend.Add(currentMessage);
+                                            }
+                                            else
+                                            {
+                                                optimizedBytes += 8 + currentMessage.data.Length;
+                                            }
+                                        }
+                                    }
+                                    */
+
+                                    if (currentMessage.type == ServerMessageType.VESSEL_UPDATE)
+                                    {
+                                        using (MessageReader mr = new MessageReader(currentMessage.data, false))
+                                        {
+                                            //Don't care about the send time, it's already the latest in the queue.
+                                            mr.Read<double>();
+                                            string vesselID = mr.Read<string>();
+                                            if (!seenPositionUpdates.Contains(vesselID))
+                                            {
+                                                seenPositionUpdates.Add(vesselID);
+                                                newClientMessagesToSend.Add(currentMessage);
+                                            }
+                                            else
+                                            {
+                                                //8 byte message header plus 4 byte payload header
+                                                optimizedBytes += 12 + currentMessage.data.Length;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            //Flip it back to the right order
+                            newClientMessagesToSend.Reverse();
+                            foreach (ServerMessage putBackMessage in newClientMessagesToSend)
+                            {
+                                client.sendMessageQueueLow.Enqueue(putBackMessage);
+                            }
+                            float optimizeTime = (DateTime.UtcNow.Ticks - currentTime) / 10000f;
+                            client.bytesQueuedOut -= optimizedBytes;
+                            DarkLog.Debug("Optimized " + optimizedBytes + " bytes in " + Math.Round(optimizeTime, 3) + " ms.");
+                        }
+                    }
+                }
+                client.sendEvent.Set();
             }
-            if (highPriority)
-            {
-                client.sendMessageQueueHigh.Enqueue(message);
-            }
-            else
-            {
-                client.sendMessageQueueLow.Enqueue(message);
-            }
-            client.sendEvent.Set();
+        }
+
+        public static ClientObject[] GetClients()
+        {
+            List<ClientObject> returnArray = new List<ClientObject>(clients);
+            return returnArray.ToArray();
         }
 
         public static ClientObject GetClientByName(string playerName)
@@ -3100,8 +3217,14 @@ namespace DarkMultiPlayerServer
         public ConnectionStatus connectionStatus;
         public PlayerStatus playerStatus;
         public float[] playerColor;
+        //Network traffic tracking
+        public long bytesQueuedOut = 0;
+        public long bytesSent = 0;
+        public long bytesReceived = 0;
+        public long lastQueueOptimizeTime = 0;
         //Send lock
         public AutoResetEvent sendEvent = new AutoResetEvent(false);
+        public object sendLock = new object();
         public object disconnectLock = new object();
     }
 }

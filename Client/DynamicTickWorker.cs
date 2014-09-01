@@ -9,17 +9,16 @@ namespace DarkMultiPlayer
         public bool workerEnabled;
         private static DynamicTickWorker singleton;
         private float lastDynamicTickRateCheck;
-        private float lastDynamicTickRateChange;
         private const float DYNAMIC_TICK_RATE_CHECK_INTERVAL = 1f;
-        private const float DYNAMIC_TICK_RATE_CHANGE_INTERVAL = 5f;
         //Twiddle these knobs
         private const int MASTER_MIN_TICKS_PER_SECOND = 1;
         private const int MASTER_MAX_TICKS_PER_SECOND = 5;
-        private const int MASTER_MIN_SECONDRY_VESSELS = 1;
-        private const int MASTER_MAX_SECONDRY_VESSELS = 15;
-        private const int MASTER_MESSAGE_TO_TICK_RATE_DECREASE = 10;
-        private const int MASTER_MESSAGE_TO_TICK_RATE_INCREASE = 30;
-        private const int MASTER_MESSAGE_TO_PANIC = 200;
+        private const int MASTER_MIN_SECONDARY_VESSELS = 1;
+        private const int MASTER_MAX_SECONDARY_VESSELS = 15;
+        //500KB
+        private const int MASTER_TICK_SCALING = 100 * 1024;
+        //1000KB
+        private const int MASTER_SECONDARY_VESSELS_SCALING = 200 * 1024;
 
         public static DynamicTickWorker fetch
         {
@@ -55,55 +54,15 @@ namespace DarkMultiPlayer
 
         private void CalculateRates()
         {
-            if ((UnityEngine.Time.realtimeSinceStartup - lastDynamicTickRateChange) > DYNAMIC_TICK_RATE_CHANGE_INTERVAL)
-            {
-                int outgoingHigh = NetworkWorker.fetch.GetStatistics("HighPriorityQueueLength");
-                int outgoingSplit = NetworkWorker.fetch.GetStatistics("SplitPriorityQueueLength");
-                int outgoingLow = NetworkWorker.fetch.GetStatistics("LowPriorityQueueLength");
-                int outgoingTotal = outgoingHigh + outgoingSplit + outgoingLow;
-                if (outgoingTotal < MASTER_MESSAGE_TO_PANIC)
-                {
-                    //Things are normal, detect lag and reduce our send rates.
-                    if (maxSecondryVesselsPerTick == MASTER_MIN_SECONDRY_VESSELS)
-                    {
-                        if ((outgoingTotal < MASTER_MESSAGE_TO_TICK_RATE_INCREASE) && (sendTickRate < MASTER_MAX_TICKS_PER_SECOND))
-                        {
-                            lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
-                            sendTickRate++;
-                            return;
-                        }
-                        if ((outgoingTotal > MASTER_MESSAGE_TO_TICK_RATE_DECREASE) && (sendTickRate > MASTER_MIN_TICKS_PER_SECOND))
-                        {
-                            lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
-                            sendTickRate--;
-                            return;
-                        }
-                    }
-                    if (sendTickRate == MASTER_MAX_TICKS_PER_SECOND)
-                    {
-                        if ((outgoingTotal < MASTER_MESSAGE_TO_TICK_RATE_INCREASE) && (maxSecondryVesselsPerTick < MASTER_MAX_SECONDRY_VESSELS))
-                        {
-                            lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
-                            maxSecondryVesselsPerTick++;
-                            return;
-                        }
-                        if ((outgoingTotal > MASTER_MESSAGE_TO_TICK_RATE_DECREASE) && (maxSecondryVesselsPerTick > MASTER_MIN_SECONDRY_VESSELS))
-                        {
-                            lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
-                            maxSecondryVesselsPerTick--;
-                            return;
-                        }
-                    }
-                }
-                else
-                {
-                    //Panic
-                    DarkLog.Debug("High lag detected - Going into panic mode!");
-                    lastDynamicTickRateChange = UnityEngine.Time.realtimeSinceStartup;
-                    sendTickRate = MASTER_MIN_TICKS_PER_SECOND;
-                    maxSecondryVesselsPerTick = MASTER_MIN_SECONDRY_VESSELS;
-                }
-            }
+            long currentQueuedBytes = NetworkWorker.fetch.GetStatistics("QueuedOutBytes");
+
+            //Tick Rate math - Clamp to minimum value.
+            long newTickRate = MASTER_MAX_TICKS_PER_SECOND - (currentQueuedBytes / (MASTER_TICK_SCALING / (MASTER_MAX_TICKS_PER_SECOND - MASTER_MIN_TICKS_PER_SECOND)));
+            sendTickRate = newTickRate > MASTER_MIN_TICKS_PER_SECOND ? (int)newTickRate : MASTER_MIN_TICKS_PER_SECOND;
+
+            //Secondary vessel math - Clamp to minimum value
+            long newSecondryVesselsPerTick = MASTER_MAX_SECONDARY_VESSELS - (currentQueuedBytes / (MASTER_SECONDARY_VESSELS_SCALING / (MASTER_MAX_SECONDARY_VESSELS - MASTER_MIN_SECONDARY_VESSELS)));
+            maxSecondryVesselsPerTick = newSecondryVesselsPerTick > MASTER_MIN_SECONDARY_VESSELS ? (int)newSecondryVesselsPerTick : MASTER_MIN_SECONDARY_VESSELS;
         }
 
         public static void Reset()
@@ -116,7 +75,7 @@ namespace DarkMultiPlayer
                     Client.updateEvent.Remove(singleton.Update);
                 }
                 singleton = new DynamicTickWorker();
-                singleton.maxSecondryVesselsPerTick = MASTER_MAX_SECONDRY_VESSELS;
+                singleton.maxSecondryVesselsPerTick = MASTER_MAX_SECONDARY_VESSELS;
                 singleton.sendTickRate = MASTER_MAX_TICKS_PER_SECOND;
                 Client.updateEvent.Add(singleton.Update);
             }

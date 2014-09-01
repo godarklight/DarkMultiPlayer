@@ -71,6 +71,11 @@ namespace DarkMultiPlayer
 
         public ConfigNode Deserialize(byte[] data)
         {
+            if (data == null)
+            {
+                return null;
+            }
+
             using (MemoryStream stream = new MemoryStream(data))
             {
                 using (StreamReader reader = new StreamReader(stream))

@@ -42,8 +42,14 @@ namespace DarkMultiPlayer
         private int numberOfKerbalsReceived = 0;
         private int numberOfVessels = 0;
         private int numberOfVesselsReceived = 0;
+        //Connection tracking
         private bool terminateOnNextMessageSend;
         private string connectionEndReason;
+        //Network traffic tracking
+        private long bytesQueuedOut;
+        private long bytesSent;
+        private long bytesReceived;
+        //Locking
         private object disconnectLock = new object();
         private object messageQueueLock = new object();
         private Thread sendThread;
@@ -172,6 +178,7 @@ namespace DarkMultiPlayer
             if (state == ClientState.DISCONNECTED)
             {
                 sendThread = new Thread(new ThreadStart(SendThreadMain));
+                sendThread.IsBackground = true;
                 sendThread.Start();
                 DarkLog.Debug("Trying to connect to " + address + ", port " + port);
                 Client.fetch.status = "Connecting to " + address + " port " + port;
@@ -183,6 +190,9 @@ namespace DarkMultiPlayer
                 numberOfKerbalsReceived = 0;
                 numberOfVessels = 0;
                 numberOfVesselsReceived = 0;
+                bytesReceived = 0;
+                bytesQueuedOut = 0;
+                bytesSent = 0;
                 receiveSplitMessage = null;
                 receiveSplitMessageBytesLeft = 0;
                 isReceivingSplitMessage = false;
@@ -348,6 +358,7 @@ namespace DarkMultiPlayer
             try
             {
                 int bytesRead = clientConnection.GetStream().EndRead(ar);
+                bytesReceived += bytesRead;
                 receiveMessageBytesLeft -= bytesRead;
                 if (bytesRead > 0)
                 {
@@ -426,6 +437,13 @@ namespace DarkMultiPlayer
         {
             lock (messageQueueLock)
             {
+                //All messages have an 8 byte header
+                bytesQueuedOut += 8;
+                if (message.data != null)
+                {
+                    //Count the payload if we have one. Byte[] serialisation has a further 4 byte header
+                    bytesQueuedOut += 4 + message.data.Length;
+                }
                 if (highPriority)
                 {
                     sendMessageQueueHigh.Enqueue(message);
@@ -505,6 +523,8 @@ namespace DarkMultiPlayer
                     mw.Write<byte[]>(firstSplit);
                     splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
                     newSplitMessage.data = mw.GetMessageBytes();
+                    //SPLIT_MESSAGE adds a 12 byte header.
+                    bytesQueuedOut += 12;
                     sendMessageQueueSplit.Enqueue(newSplitMessage);
                 }
 
@@ -515,6 +535,8 @@ namespace DarkMultiPlayer
                     currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
                     Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
                     splitBytesLeft -= currentSplitMessage.data.Length;
+                    //Add the SPLIT_MESSAGE header to the out queue count.
+                    bytesQueuedOut += 12;
                     sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
                 message = sendMessageQueueSplit.Dequeue();
@@ -555,6 +577,8 @@ namespace DarkMultiPlayer
                 }
                 messageBytes = mw.GetMessageBytes();
             }
+            bytesQueuedOut -= messageBytes.Length;
+            bytesSent += messageBytes.Length;
             //Disconnect after EndWrite completes
             if (message.type == ClientMessageType.CONNECTION_END)
             {
@@ -968,22 +992,30 @@ namespace DarkMultiPlayer
                     else
                     {
                         numberOfVesselsReceived++;
-                        ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(UniverseSyncCache.fetch.GetFromCache(serverVessel));
-                        if (vesselNode != null)
+                        byte[] vesselBytes = UniverseSyncCache.fetch.GetFromCache(serverVessel);
+                        if (vesselBytes.Length != 0)
                         {
-                            string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
-                            if (vesselID != null)
+                            ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselBytes);
+                            if (vesselNode != null)
                             {
-                                VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                                string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                                if (vesselID != null)
+                                {
+                                    VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                                }
+                                else
+                                {
+                                    DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to get vessel ID");
+                                }
                             }
                             else
                             {
-                                DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to get vessel ID");
+                                DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to create a config node");
                             }
                         }
                         else
                         {
-                            DarkLog.Debug("Cached object " + serverVessel + " is damaged - Failed to create a config node");
+                            DarkLog.Debug("Cached object " + serverVessel + " is damaged - Object is a 0 length file!");
                         }
                     }
                 }
@@ -1643,7 +1675,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public int GetStatistics(string statType)
+        public long GetStatistics(string statType)
         {
             switch (statType)
             {
@@ -1653,6 +1685,12 @@ namespace DarkMultiPlayer
                     return sendMessageQueueSplit.Count;
                 case "LowPriorityQueueLength":
                     return sendMessageQueueLow.Count;
+                case "QueuedOutBytes":
+                    return bytesQueuedOut;
+                case "SentBytes":
+                    return bytesSent;
+                case "ReceivedBytes":
+                    return bytesReceived;
                 case "LastReceiveTime":
                     return (int)((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) * 1000);
                 case "LastSendTime":
