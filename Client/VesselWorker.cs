@@ -1860,22 +1860,6 @@ namespace DarkMultiPlayer
                 lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
                 try
                 {
-                    if (killVessel.parts != null)
-                    {
-                        try
-                        {
-                            for (int partID = killVessel.parts.Count - 1; partID >= 0; partID--)
-                            {
-                                Part killPart = killVessel.parts[partID];
-                                killPart.explosionPotential = 0f;
-                                killPart.Die();
-                            }
-                        }
-                        catch (Exception partException)
-                        {
-                            DarkLog.Debug("Error killing parts: " + partException);
-                        }
-                    }
                     killVessel.Die();
                 }
                 catch (Exception killException)
