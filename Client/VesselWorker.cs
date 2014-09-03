@@ -42,6 +42,8 @@ namespace DarkMultiPlayer
         private Dictionary <string, string> vesselNames = new Dictionary<string, string>();
         private Dictionary <string, VesselType> vesselTypes = new Dictionary<string, VesselType>();
         private Dictionary <string, Vessel.Situations> vesselSituations = new Dictionary<string, Vessel.Situations>();
+        //Part tracking
+        private Dictionary<string, string> vesselParts = new Dictionary<string, string>();
         //Known kerbals
         private Dictionary<string, ProtoCrewMember> serverKerbals = new Dictionary<string, ProtoCrewMember>();
         private Dictionary<string, string> assignedKerbals = new Dictionary<string, string>();
@@ -295,6 +297,9 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
+            GameEvents.onVesselCreate.Add(this.OnVesselCreate);
+            GameEvents.onVesselLoaded.Add(this.OnVesselLoaded);
+            GameEvents.onPartDestroyed.Add(this.OnPartDestroy);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
         }
@@ -305,7 +310,11 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
+            GameEvents.onVesselCreate.Remove(this.OnVesselCreate);
+            GameEvents.onVesselLoaded.Remove(this.OnVesselLoaded);
+            GameEvents.onPartDestroyed.Remove(this.OnPartDestroy);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
+            GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
         }
 
         private void HandleDocking()
@@ -1751,6 +1760,89 @@ namespace DarkMultiPlayer
             unassignKerbals(terminatedVesselID);
             serverVessels.Remove(terminatedVesselID);
             NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
+        }
+
+        public void OnVesselCreate(Vessel createdVessel)
+        {
+            try
+            {
+                //DarkLog.Debug("Vessel creation detected: " + createdVessel.id + ", name: " + createdVessel.vesselName);
+                ProtoVessel pv = createdVessel.BackupVessel();
+                bool killShip = false;
+                bool spawnDebris = false;
+                string partOwner = null;
+                string createdVesselID = pv.vesselID.ToString();
+                foreach (ProtoPartSnapshot vesselPart in pv.protoPartSnapshots)
+                {
+                    if (vesselPart != null)
+                    {
+                        if (vesselParts.ContainsKey(vesselPart.flightID.ToString()))
+                        {
+                            partOwner = vesselParts[vesselPart.flightID.ToString()];
+                            if (!killShip && (createdVesselID != partOwner))
+                            {
+                                if (LockSystem.fetch.LockIsOurs("control-" + partOwner) || LockSystem.fetch.LockIsOurs("update-" + partOwner))
+                                {
+                                    //Vessel is ours, update the part owner.
+                                    spawnDebris = true;
+                                    vesselParts[vesselPart.flightID.ToString()] = createdVesselID;
+                                }
+                                else
+                                {
+                                    DarkLog.Debug("Detected debris for a vessel we do not control, removing " + createdVesselID);
+                                    killShip = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (killShip)
+                {
+                    createdVessel.Die();
+                }
+                if (spawnDebris)
+                {
+                    //DarkLog.Debug("Spawned debris " + createdVesselID + " from " + partOwner);
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Threw in OnVesselCreate: " + e);
+            }
+        }
+
+        public void OnVesselLoaded(Vessel createdVessel)
+        {
+            try
+            {
+                //DarkLog.Debug("Vessel load detected: " + createdVessel.id + ", name: " + createdVessel.vesselName + ", parts: " + createdVessel.parts.Count);
+                string loadedVesselID = createdVessel.id.ToString();
+                foreach (Part vesselPart in createdVessel.parts)
+                {
+                    if (vesselPart != null)
+                    {
+                        if (!vesselParts.ContainsKey(vesselPart.flightID.ToString()))
+                        {
+                            //DarkLog.Debug("Loaded part " + vesselPart.name + ", id " + vesselPart.flightID + " belongs to " + loadedVesselID);
+                            vesselParts.Add(vesselPart.flightID.ToString(), loadedVesselID);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Threw in OnVesselLoaded: " + e);
+            }
+        }
+
+        public void OnPartDestroy(Part dyingPart)
+        {
+            if (vesselParts.ContainsKey(dyingPart.flightID.ToString()))
+            {
+                //DarkLog.Debug("Dying part " + dyingPart.name + ", id " + dyingPart.flightID + " belongs to " + vesselParts[dyingPart.flightID.ToString()]);
+                vesselParts.Remove(dyingPart.flightID.ToString());
+            }
         }
 
         private bool VesselRecentlyLoaded(string vesselID)
