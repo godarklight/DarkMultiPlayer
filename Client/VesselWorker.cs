@@ -1223,7 +1223,6 @@ namespace DarkMultiPlayer
             }
             DarkLog.Debug("Vessels loaded into game");
         }
-
         //Also called from QuickSaveLoader
         public void LoadVessel(ConfigNode vesselNode)
         {
@@ -1529,7 +1528,11 @@ namespace DarkMultiPlayer
         {
             if (vesselNode != null)
             {
-                vesselNode.GetNode("FLIGHTPLAN").ClearData();
+                ConfigNode flightPlanNode = vesselNode.GetNode("FLIGHTPLAN");
+                if (flightPlanNode != null)
+                {
+                    flightPlanNode.ClearData();
+                }
             }
         }
 
