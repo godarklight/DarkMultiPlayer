@@ -76,6 +76,11 @@ namespace DarkMultiPlayer
                 return null;
             }
 
+            if (data.Length == 0)
+            {
+                return null;
+            }
+
             using (MemoryStream stream = new MemoryStream(data))
             {
                 using (StreamReader reader = new StreamReader(stream))

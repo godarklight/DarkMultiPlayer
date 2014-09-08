@@ -1,6 +1,6 @@
-#DarkMultiPlayer 0.1.5.2.
+#DarkMultiPlayer 0.1.5.4.
 
-DarkMultiPlayer is a multiplayer mod for KSP 0.24. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
+DarkMultiPlayer is a multiplayer mod for KSP 0.24.2. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
 The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.  
   
@@ -14,7 +14,7 @@ Option b) Download DMPUpdater from http://chrisand.no-ip.info/dmp/downloads/dmpu
 ####LINUX BUG
 The linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
   
-Make sure the sha256 sum is correct, these instructions are specifically for 0.24  
+Make sure the sha256 sum is correct, these instructions are specifically for 0.24.2  
 
     sha256sum KSP.x86_64
     17d395c8b2b30e2fdcca65a0078859f0422f1e36ba509f6bbf2f56b68b36148a KSP.x86_64
