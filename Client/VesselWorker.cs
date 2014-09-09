@@ -1784,7 +1784,7 @@ namespace DarkMultiPlayer
                             partOwner = vesselParts[vesselPart.flightID.ToString()];
                             if (!killShip && (createdVesselID != partOwner))
                             {
-                                if (LockSystem.fetch.LockIsOurs("control-" + partOwner) || LockSystem.fetch.LockIsOurs("update-" + partOwner))
+                                if (LockSystem.fetch.LockIsOurs("control-" + partOwner) || LockSystem.fetch.LockIsOurs("update-" + partOwner) || !LockSystem.fetch.LockExists("update-" + partOwner))
                                 {
                                     //Vessel is ours, update the part owner.
                                     spawnDebris = true;
