@@ -1352,14 +1352,17 @@ namespace DarkMultiPlayerServer
             SendPlayerChatChannels(client);
             SendAllLocks(client);
             //Send kerbals
-            string[] kerbalFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals"));
-            foreach (string kerbalFile in kerbalFiles)
+            lock (Server.universeSizeLock)
             {
-                string kerbalName = Path.GetFileNameWithoutExtension(kerbalFile);
-                byte[] kerbalData = File.ReadAllBytes(kerbalFile);
-                SendKerbal(client, kerbalName, kerbalData);
+                string[] kerbalFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals"));
+                foreach (string kerbalFile in kerbalFiles)
+                {
+                    string kerbalName = Path.GetFileNameWithoutExtension(kerbalFile);
+                    byte[] kerbalData = File.ReadAllBytes(kerbalFile);
+                    SendKerbal(client, kerbalName, kerbalData);
+                }
+                DarkLog.Debug("Sending " + client.playerName + " " + kerbalFiles.Length + " kerbals...");
             }
-            DarkLog.Debug("Sending " + client.playerName + " " + kerbalFiles.Length + " kerbals...");
             SendKerbalsComplete(client);
         }
 
@@ -1373,7 +1376,10 @@ namespace DarkMultiPlayerServer
                 string kerbalName = mr.Read<string>();
                 DarkLog.Debug("Saving kerbal " + kerbalName + " from " + client.playerName);
                 byte[] kerbalData = mr.Read<byte[]>();
-                File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt"), kerbalData);
+                lock (Server.universeSizeLock)
+                {
+                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt"), kerbalData);
+                }
             }
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.KERBAL_REPLY;
@@ -1388,18 +1394,21 @@ namespace DarkMultiPlayerServer
                 int sendVesselCount = 0;
                 int cachedVesselCount = 0;
                 List<string> clientRequested = new List<string>(mr.Read<string[]>());
-                foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
+                lock (Server.universeSizeLock)
                 {
-                    byte[] vesselData = File.ReadAllBytes(file);
-                    string vesselObject = Common.CalculateSHA256Hash(vesselData);
-                    if (clientRequested.Contains(vesselObject))
+                    foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
                     {
-                        sendVesselCount++;
-                        SendVessel(client, vesselData);
-                    }
-                    else
-                    {
-                        cachedVesselCount++;
+                        byte[] vesselData = File.ReadAllBytes(file);
+                        string vesselObject = Common.CalculateSHA256Hash(vesselData);
+                        if (clientRequested.Contains(vesselObject))
+                        {
+                            sendVesselCount++;
+                            SendVessel(client, vesselData);
+                        }
+                        else
+                        {
+                            cachedVesselCount++;
+                        }
                     }
                 }
                 DarkLog.Debug("Sending " + client.playerName + " " + sendVesselCount + " vessels, cached: " + cachedVesselCount + "...");
@@ -1432,7 +1441,10 @@ namespace DarkMultiPlayerServer
                     {
                         DarkLog.Debug("Saving DOCKED vessel " + vesselGuid + " from " + client.playerName);
                     }
-                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
+                    lock (Server.universeSizeLock)
+                    {
+                        File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
+                    }
                 }
                 using (MessageWriter mw = new MessageWriter())
                 {
