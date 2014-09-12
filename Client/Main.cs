@@ -170,8 +170,8 @@ namespace DarkMultiPlayer
                 }
                 if (!ConnectionWindow.fetch.connectEventHandled)
                 {
-                    NetworkWorker.fetch.ConnectToServer(Settings.fetch.servers[ConnectionWindow.fetch.selected].address, Settings.fetch.servers[ConnectionWindow.fetch.selected].port);
                     ConnectionWindow.fetch.connectEventHandled = true;
+                    NetworkWorker.fetch.ConnectToServer(Settings.fetch.servers[ConnectionWindow.fetch.selected].address, Settings.fetch.servers[ConnectionWindow.fetch.selected].port);
                 }
 
                 if (!ConnectionWindow.fetch.disconnectEventHandled)
@@ -179,7 +179,14 @@ namespace DarkMultiPlayer
                     ConnectionWindow.fetch.disconnectEventHandled = true;
                     gameRunning = false;
                     fireReset = true;
-                    NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
+                    if (NetworkWorker.fetch.state == ClientState.CONNECTING)
+                    {
+                        NetworkWorker.fetch.Disconnect("Cancelled connection to server");
+                    }
+                    else
+                    {
+                        NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
+                    }
                 }
 
                 foreach (Action updateAction in updateEvent)

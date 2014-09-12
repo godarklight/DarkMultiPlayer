@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
     public class DarkLog
     {
         public static Queue<string> messageQueue = new Queue<string>();
+        private static object externalLogLock = new object();
 
         public static void Debug(string message)
         {
@@ -33,9 +34,12 @@ namespace DarkMultiPlayer
 
         public static void ExternalLog(string debugText)
         {
-            using (StreamWriter sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
+            lock (externalLogLock)
             {
-                sw.WriteLine(debugText);
+                using (StreamWriter sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
+                {
+                    sw.WriteLine(debugText);
+                }
             }
         }
     }

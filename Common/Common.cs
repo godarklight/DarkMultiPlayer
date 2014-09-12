@@ -10,6 +10,7 @@ namespace DarkMultiPlayerCommon
     {
         //Timeouts in milliseconds
         public const long HEART_BEAT_INTERVAL = 5000;
+        public const long INITIAL_CONNECTION_TIMEOUT = 5000;
         public const long CONNECTION_TIMEOUT = 20000;
         //Any message bigger than 5MB will be invalid
         public const int MAX_MESSAGE_SIZE = 5242880;

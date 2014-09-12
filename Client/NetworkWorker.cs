@@ -23,7 +23,7 @@ namespace DarkMultiPlayer
         private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
         private float lastSendTime = 0f;
-        private bool isSendingMessage = false;
+        private AutoResetEvent sendEvent = new AutoResetEvent(false);
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueSplit = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueLow = new Queue<ClientMessage>();
@@ -52,6 +52,8 @@ namespace DarkMultiPlayer
         //Locking
         private object disconnectLock = new object();
         private object messageQueueLock = new object();
+        private Thread connectThread;
+        private Thread receiveThread;
         private Thread sendThread;
         private string serverMotd;
         private bool displayMotd;
@@ -158,8 +160,11 @@ namespace DarkMultiPlayer
                 {
                     CheckDisconnection();
                     SendHeartBeat();
-                    SendOutgoingMessages();
-                    Thread.Sleep(10);
+                    bool sentMessage = SendOutgoingMessages();
+                    if (!sentMessage)
+                    {
+                        sendEvent.WaitOne(100);
+                    }
                 }
             }
             catch (ThreadAbortException)
@@ -175,6 +180,20 @@ namespace DarkMultiPlayer
         //Called from main
         public void ConnectToServer(string address, int port)
         {
+            DMPServerAddress connectAddress = new DMPServerAddress();
+            connectAddress.ip = address;
+            connectAddress.port = port;
+            connectThread = new Thread(new ParameterizedThreadStart(ConnectToServerMain));
+            connectThread.IsBackground = true;
+            //ParameterizedThreadStart only takes one object.
+            connectThread.Start(connectAddress);
+        }
+
+        private void ConnectToServerMain(object connectAddress)
+        {
+            DMPServerAddress connectAddressCast = (DMPServerAddress)connectAddress;
+            string address = connectAddressCast.ip;
+            int port = connectAddressCast.port;
             if (state == ClientState.DISCONNECTED)
             {
                 sendThread = new Thread(new ThreadStart(SendThreadMain));
@@ -185,7 +204,6 @@ namespace DarkMultiPlayer
                 sendMessageQueueHigh = new Queue<ClientMessage>();
                 sendMessageQueueSplit = new Queue<ClientMessage>();
                 sendMessageQueueLow = new Queue<ClientMessage>();
-                isSendingMessage = false;
                 numberOfKerbals = 0;
                 numberOfKerbalsReceived = 0;
                 numberOfVessels = 0;
@@ -244,38 +262,28 @@ namespace DarkMultiPlayer
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
                     lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
                     state = ClientState.CONNECTING;
-                    clientConnection.BeginConnect(destination.Address, destination.Port, new AsyncCallback(ConnectionCallback), null);
+                    clientConnection.Connect(destination.Address, destination.Port);
+                    if (clientConnection.Connected)
+                    {
+                        //Timeout didn't expire.
+                        DarkLog.Debug("Connected!");
+                        Client.fetch.status = "Connected";
+                        state = ClientState.CONNECTED;
+                        receiveThread = new Thread(new ThreadStart(StartReceivingIncomingMessages));
+                        receiveThread.IsBackground = true;
+                        receiveThread.Start();
+                    }
+                    else
+                    {
+                        //The connection actually comes good, but after the timeout, so we can send the disconnect message.
+                        DarkLog.Debug("Failed to connect within the timeout!");
+                        Disconnect("Initial connection timeout");
+                    }
                 }
                 catch (Exception e)
                 {
                     HandleDisconnectException(e);
                 }
-            }
-        }
-
-        private void ConnectionCallback(IAsyncResult ar)
-        {
-            try
-            {
-                clientConnection.EndConnect(ar);
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) < (Common.CONNECTION_TIMEOUT / 1000))
-                {
-                    //Timeout didn't expire.
-                    DarkLog.Debug("Connected!");
-                    Client.fetch.status = "Connected";
-                    state = ClientState.CONNECTED;
-                    StartReceivingIncomingMessages();
-                }
-                else
-                {
-                    //The connection actually comes good, but after the timeout, so we can send the disconnect message.
-                    DarkLog.Debug("Failed to connect within the timeout!");
-                    SendDisconnect("Initial connection timeout");
-                }
-            }
-            catch (Exception e)
-            {
-                HandleDisconnectException(e);
             }
         }
         #endregion
@@ -284,10 +292,20 @@ namespace DarkMultiPlayer
         {
             if (state == ClientState.CONNECTING)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
+                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Failed to connect!");
                     Client.fetch.status = "Failed to connect - no reply";
+                    if (connectThread != null)
+                    {
+                        try
+                        {
+                            connectThread.Abort();
+                        }
+                        catch
+                        {
+                        }
+                    }
                 }
             }
             if (state >= ClientState.CONNECTED)
@@ -316,7 +334,30 @@ namespace DarkMultiPlayer
                     }
                     Client.fetch.status = reason;
                     state = ClientState.DISCONNECTED;
-                    sendThread.Abort();
+                    try
+                    {
+                        connectThread.Abort();
+                    }
+                    catch
+                    {
+                        //Don't care
+                    }
+                    try
+                    {
+                        sendThread.Abort();
+                    }
+                    catch
+                    {
+                        //Don't care
+                    }
+                    try
+                    {
+                        receiveThread.Abort();
+                    }
+                    catch
+                    {
+                        //Don't care
+                    }
                     try
                     {
                         if (clientConnection != null)
@@ -345,86 +386,81 @@ namespace DarkMultiPlayer
             receiveMessageBytesLeft = receiveMessage.data.Length;
             try
             {
-                clientConnection.GetStream().BeginRead(receiveMessage.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), null);
-            }
-            catch (Exception e)
-            {
-                HandleDisconnectException(e);
-            }
-        }
-
-        private void ReceiveCallback(IAsyncResult ar)
-        {
-            try
-            {
-                int bytesRead = clientConnection.GetStream().EndRead(ar);
-                bytesReceived += bytesRead;
-                receiveMessageBytesLeft -= bytesRead;
-                if (bytesRead > 0)
+                while (true)
                 {
-                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
-                }
-                if (receiveMessageBytesLeft == 0)
-                {
-                    //We either have the header or the message data, let's do something
-                    if (!isReceivingMessage)
+                    int bytesRead = clientConnection.GetStream().Read(receiveMessage.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft);
+                    bytesReceived += bytesRead;
+                    receiveMessageBytesLeft -= bytesRead;
+                    if (bytesRead > 0)
                     {
-                        //We have the header
-                        using (MessageReader mr = new MessageReader(receiveMessage.data, true))
+                        lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                    }
+                    else
+                    {
+                        Thread.Sleep(10);
+                    }
+                    if (receiveMessageBytesLeft == 0)
+                    {
+                        //We either have the header or the message data, let's do something
+                        if (!isReceivingMessage)
                         {
-                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
+                            //We have the header
+                            using (MessageReader mr = new MessageReader(receiveMessage.data, true))
                             {
-                                //Malformed message, most likely from a non DMP-server.
-                                Disconnect("Disconnected from non-DMP server");
-                                //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
-                                return;
-                            }
-                            receiveMessage.type = (ServerMessageType)mr.GetMessageType();
-                            int length = mr.GetMessageLength();
-                            if (length == 0)
-                            {
-                                //Null message, handle it.
-                                receiveMessage.data = null;
-                                HandleMessage(receiveMessage);
-                                receiveMessage.type = 0;
-                                receiveMessage.data = new byte[8];
-                                receiveMessageBytesLeft = receiveMessage.data.Length;
-                            }
-                            else
-                            {
-                                if (length < Common.MAX_MESSAGE_SIZE)
-                                {
-                                    isReceivingMessage = true;
-                                    receiveMessage.data = new byte[length];
-                                    receiveMessageBytesLeft = receiveMessage.data.Length;
-                                }
-                                else
+                                if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
                                 {
                                     //Malformed message, most likely from a non DMP-server.
                                     Disconnect("Disconnected from non-DMP server");
                                     //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                     return;
                                 }
+                                receiveMessage.type = (ServerMessageType)mr.GetMessageType();
+                                int length = mr.GetMessageLength();
+                                if (length == 0)
+                                {
+                                    //Null message, handle it.
+                                    receiveMessage.data = null;
+                                    HandleMessage(receiveMessage);
+                                    receiveMessage.type = 0;
+                                    receiveMessage.data = new byte[8];
+                                    receiveMessageBytesLeft = receiveMessage.data.Length;
+                                }
+                                else
+                                {
+                                    if (length < Common.MAX_MESSAGE_SIZE)
+                                    {
+                                        isReceivingMessage = true;
+                                        receiveMessage.data = new byte[length];
+                                        receiveMessageBytesLeft = receiveMessage.data.Length;
+                                    }
+                                    else
+                                    {
+                                        //Malformed message, most likely from a non DMP-server.
+                                        Disconnect("Disconnected from non-DMP server");
+                                        //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                                        return;
+                                    }
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        //We have the message data to a non-null message, handle it
-                        isReceivingMessage = false;
-                        using (MessageReader mr = new MessageReader(receiveMessage.data, false))
+                        else
                         {
-                            receiveMessage.data = mr.Read<byte[]>();
+                            //We have the message data to a non-null message, handle it
+                            isReceivingMessage = false;
+                            using (MessageReader mr = new MessageReader(receiveMessage.data, false))
+                            {
+                                receiveMessage.data = mr.Read<byte[]>();
+                            }
+                            HandleMessage(receiveMessage);
+                            receiveMessage.type = 0;
+                            receiveMessage.data = new byte[8];
+                            receiveMessageBytesLeft = receiveMessage.data.Length;
                         }
-                        HandleMessage(receiveMessage);
-                        receiveMessage.type = 0;
-                        receiveMessage.data = new byte[8];
-                        receiveMessageBytesLeft = receiveMessage.data.Length;
                     }
-                }
-                if (state >= ClientState.CONNECTED && state != ClientState.DISCONNECTING)
-                {
-                    clientConnection.GetStream().BeginRead(receiveMessage.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), null);
+                    if (state < ClientState.CONNECTED || state == ClientState.DISCONNECTING)
+                    {
+                        return;
+                    }
                 }
             }
             catch (Exception e)
@@ -453,20 +489,20 @@ namespace DarkMultiPlayer
                     sendMessageQueueLow.Enqueue(message);
                 }
             }
-            SendOutgoingMessages();
+            sendEvent.Set();
         }
 
-        private void SendOutgoingMessages()
+        private bool SendOutgoingMessages()
         {
             lock (messageQueueLock)
             {
-                if (!isSendingMessage && state >= ClientState.CONNECTED)
+                if (state >= ClientState.CONNECTED)
                 {
                     if (sendMessageQueueHigh.Count > 0)
                     {
                         ClientMessage message = sendMessageQueueHigh.Dequeue();
                         SendNetworkMessage(message);
-                        return;
+                        return true;
                     }
                     if (sendMessageQueueSplit.Count > 0)
                     {
@@ -484,7 +520,7 @@ namespace DarkMultiPlayer
                             }
                         }
                         SendNetworkMessage(message);
-                        return;
+                        return true;
                     }
                     if (sendMessageQueueLow.Count > 0)
                     {
@@ -492,10 +528,11 @@ namespace DarkMultiPlayer
                         //Splits large messages to higher priority messages can get into the queue faster
                         SplitAndRewriteMessage(ref message);
                         SendNetworkMessage(message);
-                        return;
+                        return true;
                     }
                 }
             }
+            return false;
         }
 
         private void SplitAndRewriteMessage(ref ClientMessage message)
@@ -543,29 +580,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void SendCallback(IAsyncResult ar)
-        {
-            try
-            {
-                clientConnection.GetStream().EndWrite(ar);
-                isSendingMessage = false;
-                if (terminateOnNextMessageSend)
-                {
-                    Disconnect("Connection ended: " + connectionEndReason);
-                    connectionEndReason = null;
-                    terminateOnNextMessageSend = false;
-                }
-                else
-                {
-                    SendOutgoingMessages();
-                }
-            }
-            catch (Exception e)
-            {
-                HandleDisconnectException(e);
-            }
-        }
-
         private void SendNetworkMessage(ClientMessage message)
         {
             byte[] messageBytes;
@@ -588,11 +602,16 @@ namespace DarkMultiPlayer
                     connectionEndReason = mr.Read<string>();
                 }
             }
-            isSendingMessage = true;
             lastSendTime = UnityEngine.Time.realtimeSinceStartup;
             try
             {
-                clientConnection.GetStream().BeginWrite(messageBytes, 0, messageBytes.Length, new AsyncCallback(SendCallback), null);
+                clientConnection.GetStream().Write(messageBytes, 0, messageBytes.Length);
+                if (terminateOnNextMessageSend)
+                {
+                    Disconnect("Connection ended: " + connectionEndReason);
+                    connectionEndReason = null;
+                    terminateOnNextMessageSend = false;
+                }
             }
             catch (Exception e)
             {
@@ -1699,6 +1718,12 @@ namespace DarkMultiPlayer
             return 0;
         }
         #endregion
+    }
+
+    class DMPServerAddress
+    {
+        public string ip;
+        public int port;
     }
 }
 
