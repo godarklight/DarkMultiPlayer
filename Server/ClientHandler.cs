@@ -1,14 +1,14 @@
 using System;
-using System.Threading;
-using System.Text;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Collections.Concurrent;
-using System.Collections.ObjectModel;
-using System.Collections.Generic;
-using MessageStream;
-using System.IO;
+using System.Threading;
 using DarkMultiPlayerCommon;
+using MessageStream;
 
 namespace DarkMultiPlayerServer
 {
@@ -2610,14 +2610,12 @@ namespace DarkMultiPlayerServer
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.LOCK_SYSTEM;
             //Send the dictionary as 2 string[]'s.
-            Dictionary<string,string> lockList = lockSystem.GetLockList();
-            List<string> lockKeys = new List<string>(lockList.Keys);
-            List<string> lockValues = new List<string>(lockList.Values);
+            IEnumerable<KeyValuePair<string, string>> locks = lockSystem.Locks;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write((int)LockMessageType.LIST);
-                mw.Write<string[]>(lockKeys.ToArray());
-                mw.Write<string[]>(lockValues.ToArray());
+                mw.Write<string[]>(locks.Select(a => a.Key).ToArray());
+                mw.Write<string[]>(locks.Select(a => a.Value).ToArray());
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
