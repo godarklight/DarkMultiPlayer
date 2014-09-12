@@ -45,6 +45,7 @@ namespace DarkMultiPlayer
         //Connection tracking
         private bool terminateOnNextMessageSend;
         private string connectionEndReason;
+        private bool terminateThreadsOnNextUpdate;
         //Network traffic tracking
         private long bytesQueuedOut;
         private long bytesSent;
@@ -76,6 +77,12 @@ namespace DarkMultiPlayer
         //Called from main
         private void Update()
         {
+            if (terminateThreadsOnNextUpdate)
+            {
+                terminateThreadsOnNextUpdate = false;
+                TerminateThreads();
+            }
+
             if (state == ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending handshake!");
@@ -196,9 +203,6 @@ namespace DarkMultiPlayer
             int port = connectAddressCast.port;
             if (state == ClientState.DISCONNECTED)
             {
-                sendThread = new Thread(new ThreadStart(SendThreadMain));
-                sendThread.IsBackground = true;
-                sendThread.Start();
                 DarkLog.Debug("Trying to connect to " + address + ", port " + port);
                 Client.fetch.status = "Connecting to " + address + " port " + port;
                 sendMessageQueueHigh = new Queue<ClientMessage>();
@@ -269,6 +273,9 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Connected!");
                         Client.fetch.status = "Connected";
                         state = ClientState.CONNECTED;
+                        sendThread = new Thread(new ThreadStart(SendThreadMain));
+                        sendThread.IsBackground = true;
+                        sendThread.Start();
                         receiveThread = new Thread(new ThreadStart(StartReceivingIncomingMessages));
                         receiveThread.IsBackground = true;
                         receiveThread.Start();
@@ -326,6 +333,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Disconnected, reason: " + reason);
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
+                        NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                         Client.fetch.forceQuit = true;
                     }
                     else
@@ -334,30 +342,7 @@ namespace DarkMultiPlayer
                     }
                     Client.fetch.status = reason;
                     state = ClientState.DISCONNECTED;
-                    try
-                    {
-                        connectThread.Abort();
-                    }
-                    catch
-                    {
-                        //Don't care
-                    }
-                    try
-                    {
-                        sendThread.Abort();
-                    }
-                    catch
-                    {
-                        //Don't care
-                    }
-                    try
-                    {
-                        receiveThread.Abort();
-                    }
-                    catch
-                    {
-                        //Don't care
-                    }
+
                     try
                     {
                         if (clientConnection != null)
@@ -371,9 +356,39 @@ namespace DarkMultiPlayer
                     {
                         DarkLog.Debug("Error closing connection: " + e.Message);
                     }
+                    terminateThreadsOnNextUpdate = true;
                 }
             }
         }
+
+        private void TerminateThreads()
+        {
+            try
+            {
+                connectThread.Abort();
+            }
+            catch
+            {
+                //Don't care
+            }
+            try
+            {
+                sendThread.Abort();
+            }
+            catch
+            {
+                //Don't care
+            }
+            try
+            {
+                receiveThread.Abort();
+            }
+            catch
+            {
+                //Don't care
+            }
+        }
+
         #endregion
         #region Network writers/readers
         private void StartReceivingIncomingMessages()

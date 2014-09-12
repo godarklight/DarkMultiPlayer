@@ -151,6 +151,18 @@ namespace DarkMultiPlayer
             disconnectingPlayers.Enqueue(playerName);
         }
 
+        public void PMMessageServer(string message)
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
+                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(consoleIdentifier);
+                mw.Write<string>(message);
+                NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+            }
+        }
+
         private void Update()
         {
             safeDisplay = display;
@@ -403,6 +415,10 @@ namespace DarkMultiPlayer
                                 highlightPM.Add(pe.fromPlayer);
                             }
                         }
+                    }
+                    if (!privateMessages.ContainsKey(pe.toPlayer))
+                    {
+                        privateMessages.Add(pe.toPlayer, new List<string>());
                     }
                     //Move the bar to the bottom on a new message
                     if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == Settings.fetch.playerName))

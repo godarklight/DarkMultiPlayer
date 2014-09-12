@@ -1214,9 +1214,24 @@ namespace DarkMultiPlayer
                         ProtoVessel pv = new ProtoVessel(currentNode, HighLogic.CurrentGame);
                         if (pv != null)
                         {
-                            RegisterServerVessel(pv.vesselID.ToString());
-                            RegisterServerAsteriodIfVesselIsAsteroid(pv);
-                            HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
+                            bool protovesselIsOk = true;
+                            try
+                            {
+                                ConfigNode cn = new ConfigNode();
+                                pv.Save(cn);
+                            }
+                            catch
+                            {
+                                DarkLog.Debug("WARNING: Protovessel " + pv.vesselID + ", name: " + pv.vesselName + " is DAMAGED!. Skipping load.");
+                                ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + pv.vesselID + ", name: " + pv.vesselName + " is DAMAGED!. Skipping load.");
+                                protovesselIsOk = false;
+                            }
+                            if (protovesselIsOk)
+                            {
+                                RegisterServerVessel(pv.vesselID.ToString());
+                                RegisterServerAsteriodIfVesselIsAsteroid(pv);
+                                HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
+                            }
                         }
                     }
                 }

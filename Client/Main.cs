@@ -217,7 +217,6 @@ namespace DarkMultiPlayer
                     forceQuit = false;
                     gameRunning = false;
                     fireReset = true;
-                    NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
                     StopGame();
                 }
 
@@ -272,6 +271,15 @@ namespace DarkMultiPlayer
                         CheatOptions.InfiniteEVAFuel = false;
                         CheatOptions.InfiniteRCS = false;
                         CheatOptions.NoCrashDamage = false;
+                    }
+
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+                    {
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = (FlightGlobals.ClearToSave() == ClearToSaveStatus.CLEAR);
+                    }
+                    else
+                    {
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = true;
                     }
                 }
 
@@ -400,6 +408,8 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
             HighLogic.CurrentGame.Title = "DarkMultiPlayer";
             HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
+            HighLogic.CurrentGame.Parameters.Flight.CanRestart = false;
+            HighLogic.CurrentGame.Parameters.Flight.CanLeaveToEditor = false;
             HighLogic.SaveFolder = "DarkMultiPlayer";
 
             //Set the game mode
