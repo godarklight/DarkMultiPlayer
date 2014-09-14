@@ -1001,7 +1001,7 @@ namespace DarkMultiPlayerServer
             string reason = "";
             Regex regex = new Regex(@"[\""<>|$]"); // Regex to detect quotation marks, and other illegal characters
             //0 - Success
-            HandshakeReply handshakeReponse = 0;
+            HandshakeReply handshakeReponse = HandshakeReply.HANDSHOOK_SUCCESSFULLY;
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
@@ -1030,7 +1030,7 @@ namespace DarkMultiPlayerServer
                 handshakeReponse = HandshakeReply.PROTOCOL_MISMATCH;
                 reason = "Protocol mismatch";
             }
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 //Check client isn't already connected
                 ClientObject testClient = GetClientByName(playerName);
@@ -1045,7 +1045,7 @@ namespace DarkMultiPlayerServer
                     reason = "Client already connected";
                 }
             }
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 bool reserveKick = false;
                 //Check the client isn't using a reserved name
@@ -1063,7 +1063,7 @@ namespace DarkMultiPlayerServer
                     reason = "Kicked for using a reserved name";
                 }
             }
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 //Check the client matches any database entry
                 string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
@@ -1103,7 +1103,7 @@ namespace DarkMultiPlayerServer
             client.GUID = Guid.Parse(playerGuid);
             client.clientVersion = clientVersion;
 
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
                 {
@@ -1112,7 +1112,7 @@ namespace DarkMultiPlayerServer
                 }
             }
 
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 if (GetActiveClientCount() >= Settings.settingsStore.maxPlayers)
                 {
@@ -1121,7 +1121,7 @@ namespace DarkMultiPlayerServer
                 }
             }
 
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 if (Settings.settingsStore.whitelisted && !serverWhitelist.Contains(client.playerName))
                 {
@@ -1130,11 +1130,21 @@ namespace DarkMultiPlayerServer
                 }
             }
 
-            if (handshakeReponse == 0)
+            if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
                 client.authenticated = true;
+                string devClientVersion = "";
                 DMPPluginHandler.FireOnClientAuthenticated(client);
-                DarkLog.Normal("Client " + playerName + " handshook successfully, version: " + client.clientVersion);
+
+                if (client.clientVersion.Length == 40)
+                {
+                    devClientVersion = client.clientVersion.Substring(0, 7);
+                }
+                else
+                {
+                    devClientVersion = client.clientVersion;
+                }
+                DarkLog.Normal("Client " + playerName + " handshook successfully, version: " + devClientVersion);
 
                 if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
                 {
