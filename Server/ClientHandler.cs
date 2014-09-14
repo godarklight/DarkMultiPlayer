@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
+using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using MessageStream;
 using System.IO;
@@ -998,8 +999,9 @@ namespace DarkMultiPlayerServer
             string playerGuid = Guid.Empty.ToString();
             string clientVersion = "";
             string reason = "";
+            Regex regex = new Regex(@"[\""<>|$]"); // Regex to detect quotation marks, and other illegal characters
             //0 - Success
-            int handshakeReponse = 0;
+            HandshakeReply handshakeReponse = 0;
             try
             {
                 using (MessageReader mr = new MessageReader(messageData, false))
@@ -1013,13 +1015,19 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + client.playerName + ": " + e);
-                SendHandshakeReply(client, 99, "Malformed handshake");
+                SendHandshakeReply(client, HandshakeReply.MALFORMED_HANDSHAKE, "Malformed handshake");
                 return;
+            }
+            if (regex.IsMatch(playerName))
+            {
+                // Invalid username
+                handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
+                reason = "Invalid username";
             }
             if (protocolVersion != Common.PROTOCOL_VERSION)
             {
                 //Protocol mismatch
-                handshakeReponse = 1;
+                handshakeReponse = HandshakeReply.PROTOCOL_MISMATCH;
                 reason = "Protocol mismatch";
             }
             if (handshakeReponse == 0)
@@ -1033,7 +1041,7 @@ namespace DarkMultiPlayerServer
                 }
                 if (clients.Contains(testClient))
                 {
-                    handshakeReponse = 2;
+                    handshakeReponse = HandshakeReply.ALREADY_CONNECTED;
                     reason = "Client already connected";
                 }
             }
@@ -1051,7 +1059,7 @@ namespace DarkMultiPlayerServer
                 }
                 if (reserveKick)
                 {
-                    handshakeReponse = 3;
+                    handshakeReponse = HandshakeReply.RESERVED_NAME;
                     reason = "Kicked for using a reserved name";
                 }
             }
@@ -1068,16 +1076,25 @@ namespace DarkMultiPlayerServer
                     }
                     if (playerGuid != storedPlayerGuid)
                     {
-                        handshakeReponse = 4;
+                        handshakeReponse = HandshakeReply.INVALID_TOKEN;
                         reason = "Invalid player token for user";
                     }
                 }
                 else
                 {
-                    DarkLog.Debug("Client " + playerName + " registered!");
-                    using (StreamWriter sw = new StreamWriter(storedPlayerFile))
+                    try
                     {
-                        sw.WriteLine(playerGuid);
+                        using (StreamWriter sw = new StreamWriter(storedPlayerFile))
+                        {
+                            sw.WriteLine(playerGuid);
+                        }
+                        
+                        DarkLog.Debug("Client " + playerName + " registered!");
+                    }
+                    catch
+                    {
+                        handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
+                        reason = "Invalid username";
                     }
                 }
             }
@@ -1090,7 +1107,7 @@ namespace DarkMultiPlayerServer
             {
                 if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
                 {
-                    handshakeReponse = 5;
+                    handshakeReponse = HandshakeReply.PLAYER_BANNED;
                     reason = "You were banned from the server!";
                 }
             }
@@ -1099,7 +1116,7 @@ namespace DarkMultiPlayerServer
             {
                 if (GetActiveClientCount() >= Settings.settingsStore.maxPlayers)
                 {
-                    handshakeReponse = 6;
+                    handshakeReponse = HandshakeReply.SERVER_FULL;
                     reason = "Server is full";
                 }
             }
@@ -1108,7 +1125,7 @@ namespace DarkMultiPlayerServer
             {
                 if (Settings.settingsStore.whitelisted && !serverWhitelist.Contains(client.playerName))
                 {
-                    handshakeReponse = 7;
+                    handshakeReponse = HandshakeReply.NOT_WHITELISTED;
                     reason = "You are not on the whitelist";
                 }
             }
@@ -2411,10 +2428,11 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
-        private static void SendHandshakeReply(ClientObject client, int response, string reason)
+        private static void SendHandshakeReply(ClientObject client, HandshakeReply enumResponse, string reason)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.HANDSHAKE_REPLY;
+            int response = (int)enumResponse;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(response);
