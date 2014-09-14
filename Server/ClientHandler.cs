@@ -1024,6 +1024,11 @@ namespace DarkMultiPlayerServer
                 handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
                 reason = "Invalid username";
             }
+            if (playerName.Contains("/") || playerName.Contains(@"\"))
+            {
+                handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
+                reason = "Invalid username";
+            }
             if (protocolVersion != Common.PROTOCOL_VERSION)
             {
                 //Protocol mismatch
