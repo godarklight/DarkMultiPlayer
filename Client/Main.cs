@@ -35,6 +35,8 @@ namespace DarkMultiPlayer
         public static List<Action> drawEvent = new List<Action>();
         public static List<Action> resetEvent = new List<Action>();
         public static object eventLock = new object();
+        //Chosen by a 2147483647 sided dice roll. Guaranteed to be random.
+        public const int WINDOW_OFFSET = 1664952404;
 
         public Client()
         {
@@ -351,7 +353,7 @@ namespace DarkMultiPlayer
 
         public void OnGUI()
         {
-            //Window ID's
+            //Window ID's - Doesn't include "random" offset.
             //Connection window: 6702
             //Status window: 6703
             //Chat window: 6704
@@ -359,7 +361,6 @@ namespace DarkMultiPlayer
             //Mod windw: 6706
             //Craft library window: 6707
             //Craft upload window: 6708
-            //Craft download window: 6709
             //Screenshot window: 6710
             //Options window: 6711
             //Converter window: 6712

@@ -74,7 +74,7 @@ namespace DarkMultiPlayer
                     initialized = true;
                     InitGUI();
                 }
-                windowRect = GUILayout.Window(GUIUtility.GetControlID(6705, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Debug", windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6705 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Debug", windowStyle, layoutOptions);
             }
         }
 

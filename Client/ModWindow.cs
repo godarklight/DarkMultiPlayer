@@ -72,7 +72,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = GUILayout.Window(GUIUtility.GetControlID(6706, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6706 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Mod Control", windowStyle, layoutOptions);
             }
         }
 

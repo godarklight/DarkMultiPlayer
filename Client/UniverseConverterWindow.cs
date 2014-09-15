@@ -69,7 +69,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = GUILayout.Window(GUIUtility.GetControlID(6712, FocusType.Passive), windowRect, DrawContent, "Universe Converter", windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(GUIUtility.GetControlID(6712 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "Universe Converter", windowStyle, layoutOptions);
             }
         }
 
