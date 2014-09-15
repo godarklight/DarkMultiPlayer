@@ -110,6 +110,7 @@ namespace DarkMultiPlayerServer
                     clientThread.Join();
                 }
                 DarkLog.Normal("Goodbye!");
+                Environment.Exit(0);
             }
             catch (Exception e)
             {
