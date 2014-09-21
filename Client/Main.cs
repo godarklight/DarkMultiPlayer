@@ -275,7 +275,7 @@ namespace DarkMultiPlayer
                         CheatOptions.NoCrashDamage = false;
                     }
 
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
                     {
                         HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = (FlightGlobals.ClearToSave() == ClearToSaveStatus.CLEAR);
                     }

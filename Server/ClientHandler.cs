@@ -2228,10 +2228,7 @@ namespace DarkMultiPlayerServer
                 byte[] modData = mr.Read<byte[]>();
                 if (relay)
                 {
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.MOD_DATA;
-                    newMessage.data = messageData;
-                    SendToAll(client, newMessage, highPriority);
+                    DMPModInterface.SendDMPModMessageToAll(client, modName, modData, highPriority);
                 }
                 DMPModInterface.OnModMessageReceived(client, modName, modData);
             }
