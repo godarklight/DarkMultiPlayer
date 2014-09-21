@@ -325,6 +325,10 @@ namespace DarkMultiPlayer
                             {
                                 NetworkWorker.fetch.SendMotdRequest();
                             }
+                            if (sendText == "/version")
+                            {
+                                QueuePrivateMessage("status", Settings.fetch.playerName, (Common.PROGRAM_VERSION.Length == 40) ? "DarkMultiPlayer build " + Common.PROGRAM_VERSION.Substring(0, 7) : "DarkMultiPlayer " + Common.PROGRAM_VERSION);
+                            }
                         }
                     }
                     sendText = "";
