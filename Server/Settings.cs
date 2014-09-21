@@ -57,6 +57,11 @@ namespace DarkMultiPlayerServer
                                             int intValue = Int32.Parse(currentValue);
                                             settingField.SetValue(settingsStore, (int)intValue);
                                         }
+                                        if (settingField.FieldType == typeof(double))
+                                        {
+                                            double doubleValue = Double.Parse(currentValue);
+                                            settingField.SetValue(settingsStore, (double)doubleValue);
+                                        }
                                         if (settingField.FieldType == typeof(bool)) {
                                             if (currentValue == "1")
                                             {
@@ -108,7 +113,7 @@ namespace DarkMultiPlayerServer
                         {
                             sw.WriteLine("#" + settingField.Name.ToLower() + " - " + settingDescriptions[settingField.Name]);
                         }
-                        if (settingField.FieldType == typeof(string) || settingField.FieldType == typeof(int))
+                        if (settingField.FieldType == typeof(string) || settingField.FieldType == typeof(int) || settingField.FieldType == typeof(double))
                         {
                             sw.WriteLine(settingField.Name.ToLower() + "," + settingField.GetValue(settingsStore));
                         }
@@ -167,6 +172,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("numberOfAsteroids", "How many untracked asteroids to spawn into the universe. 0 = Disabled");
             descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console.");
             descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
+            descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
             return descriptionList;
         }
     }
@@ -195,5 +201,6 @@ namespace DarkMultiPlayerServer
         public int numberOfAsteroids = 30;
         public string consoleIdentifier = "Server";
         public string serverMotd = "Welcome, %name%!";
+        public double expireScreenshots = 0;
     }
 }

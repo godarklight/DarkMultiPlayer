@@ -36,6 +36,9 @@ namespace DarkMultiPlayerServer
 
                 //Periodic garbage collection
                 long lastGarbageCollect = 0;
+                
+                //Periodic screenshot check
+                long lastScreenshotExpiredCheck = 0;
 
                 //Set universe directory and modfile path
                 universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
@@ -102,6 +105,12 @@ namespace DarkMultiPlayerServer
                         {
                             lastGarbageCollect = serverClock.ElapsedTicks;
                             GC.Collect();
+                        }
+                        //Run the screenshot expire function every 10 minutes
+                        if ((serverClock.ElapsedMilliseconds - lastScreenshotExpiredCheck) > 600000)
+                        {
+                            lastScreenshotExpiredCheck = serverClock.ElapsedMilliseconds;
+                            ScreenshotExpire.ExpireCache();
                         }
                         Thread.Sleep(500);
                     }
