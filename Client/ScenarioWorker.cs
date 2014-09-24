@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
                 ScenarioEntry scenarioEntry = scenarioQueue.Dequeue();
                 if (scenarioEntry.scenarioName == "ContractSystem")
                 {
-                    RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
+                    SpawnStrandedKerbalsForRescueMissions(scenarioEntry.scenarioNode);
                 }
                 if (scenarioEntry.scenarioName == "ProgressTracking")
                 {
@@ -141,41 +141,50 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Defends against bug #172
-        private void RemoveKerbalRescueMissionsSoTheGameDoesntBugOut(ConfigNode contractSystemNode)
+        private void SpawnStrandedKerbalsForRescueMissions(ConfigNode contractSystemNode)
         {
             ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
-            List<ConfigNode> filteredContracts = new List<ConfigNode>();
             foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT"))
             {
-                if (contractNode.GetValue("type") != "RescueKerbal")
+                if ((contractNode.GetValue("type") == "RescueKerbal") && (contractNode.GetValue("state") == "Active"))
                 {
-                    filteredContracts.Add(contractNode);
+                    string kerbalName = contractNode.GetValue("kerbalName");
+                    int bodyID = Int32.Parse(contractNode.GetValue("body"));
+                    if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
+                    {
+                        GenerateStrandedKerbal(bodyID, kerbalName);
+                    }
                 }
-                else
-                {
-                    DarkLog.Debug("Skipped RescueKerbal contract - Causes bug #172");
-                }
-            }
-            foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT_FINISHED"))
-            {
-                if (contractNode.GetValue("type") != "RescueKerbal")
-                {
-                    filteredContracts.Add(contractNode);
-                }
-                else
-                {
-                    DarkLog.Debug("Skipped RescueKerbal contract - Causes bug #172");
-                }
-            }
-            contractsNode.ClearNodes();
-            foreach (ConfigNode contractNode in filteredContracts)
-            {
-                contractsNode.AddNode(contractNode);
             }
         }
 
+        private void GenerateStrandedKerbal(int bodyID, string kerbalName)
+        {
+            //Add kerbal to crew roster.
+            DarkLog.Debug("Spawning missing kerbal, name: " + kerbalName);
+            ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
+            pcm.name = kerbalName;
+            pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+            //Create protovessel
+            uint newPartID = ShipConstruction.GetUniqueFlightID(HighLogic.CurrentGame.flightState);
+            CelestialBody contractBody = FlightGlobals.Bodies[bodyID];
+            //Atmo: 10km above atmo, to half the planets radius out.
+            //Non-atmo: 30km above ground, to half the planets radius out.
+            double minAltitude = contractBody.atmosphere ? contractBody.Radius + contractBody.maxAtmosphereAltitude + 10000 : contractBody.Radius + 30000;
+            double maxAltitude = minAltitude + contractBody.Radius * 0.5;
+            Orbit strandedOrbit = Orbit.CreateRandomOrbitAround(FlightGlobals.Bodies[bodyID], minAltitude, maxAltitude);
+            ConfigNode[] kerbalPartNode = new ConfigNode[1];
+            ProtoCrewMember[] partCrew = new ProtoCrewMember[1];
+            partCrew[0] = pcm;
+            kerbalPartNode[0] = ProtoVessel.CreatePartNode("kerbalEVA", newPartID, partCrew);
+            ConfigNode protoVesselNode = ProtoVessel.CreateVesselNode(kerbalName, VesselType.EVA, strandedOrbit, 0, kerbalPartNode);
+            ConfigNode discoveryNode = ProtoVessel.CreateDiscoveryNode(DiscoveryLevels.Unowned, UntrackedObjectClass.A, double.PositiveInfinity, double.PositiveInfinity);
+            ProtoVessel protoVessel = new ProtoVessel(protoVesselNode, HighLogic.CurrentGame);
+            protoVessel.discoveryInfo = discoveryNode;
+            //It's not supposed to be infinite, but you're crazy if you think I'm going to decipher the values field of the rescue node.
+            HighLogic.CurrentGame.flightState.protoVessels.Add(protoVessel);
+        }
         //Defends against bug #172
         private void CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(ConfigNode progressTrackingNode)
         {
