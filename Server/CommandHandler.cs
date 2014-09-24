@@ -43,7 +43,44 @@ namespace DarkMultiPlayerServer
                         Thread.Sleep(500);
                     }
                     DarkLog.Normal("Command input: " + input);
-                    HandleCommand(input);
+                    if (input.StartsWith("/"))
+                    {
+                        string commandPart = input.Substring(1);
+                        string argumentPart = "";
+                        if (commandPart.Contains(" "))
+                        {
+                            if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                            {
+                                argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                            }
+                            commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
+                        }
+                        if (commandPart.Length > 0)
+                        {
+                            if (commands.ContainsKey(commandPart))
+                            {
+                                try
+                                {
+                                    commands[commandPart].func(argumentPart);
+                                }
+                                catch (Exception e)
+                                {
+                                    DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
+                                }
+                            }
+                            else
+                            {
+                                DarkLog.Normal("Unknown command: " + commandPart);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (input != "")
+                        {
+                            commands["say"].func(input);
+                        }
+                    }
                 }
             }
             catch (Exception e)
@@ -52,48 +89,6 @@ namespace DarkMultiPlayerServer
                 {
                     DarkLog.Fatal("Error in command handler thread, Exception: " + e);
                     throw;
-                }
-            }
-        }
-
-        public static void HandleCommand(string input)
-        {
-            if (input.StartsWith("/"))
-            {
-                string commandPart = input.Substring(1);
-                string argumentPart = "";
-                if (commandPart.Contains(" "))
-                {
-                    if (commandPart.Length > commandPart.IndexOf(' ') + 1)
-                    {
-                        argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
-                    }
-                    commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
-                }
-                if (commandPart.Length > 0)
-                {
-                    if (commands.ContainsKey(commandPart))
-                    {
-                        try
-                        {
-                            commands[commandPart].func(argumentPart);
-                        }
-                        catch (Exception e)
-                        {
-                            DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
-                        }
-                    }
-                    else
-                    {
-                        DarkLog.Normal("Unknown command: " + commandPart);
-                    }
-                }
-            }
-            else
-            {
-                if (input != "")
-                {
-                    commands["say"].func(input);
                 }
             }
         }

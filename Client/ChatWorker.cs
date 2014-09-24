@@ -325,17 +325,6 @@ namespace DarkMultiPlayer
                             {
                                 NetworkWorker.fetch.SendMotdRequest();
                             }
-                            if (sendText.StartsWith("/admcmd ") && sendText.Length > 9)
-                            {
-                                string admcmd = sendText.Substring(8);
-                                using (MessageWriter mw = new MessageWriter())
-                                {
-                                    mw.Write<int>((int)ChatMessageType.ADMIN_CMD_MESSAGE);
-                                    mw.Write<string>(Settings.fetch.playerName);
-                                    mw.Write<string>(admcmd);
-                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                                }
-                            }
                         }
                     }
                     sendText = "";

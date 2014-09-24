@@ -1277,20 +1277,6 @@ namespace DarkMultiPlayerServer
                             }
                         }
                         break;
-                    case ChatMessageType.ADMIN_CMD_MESSAGE:
-                        {
-                            string admcmd = mr.Read<string>();
-                            if(serverAdmins.Contains(fromPlayer))
-                            {
-                                CommandHandler.HandleCommand("/" + admcmd);
-                                DarkLog.ChatMessage("Admin player " + fromPlayer + " ran server command " + admcmd);
-                            }
-                            else
-                            {
-                                DarkLog.ChatMessage("Unprivileged user " + fromPlayer + " tried to run admin command " + admcmd);
-                            }
-                        }
-                        break;
                 }
             }
         }
