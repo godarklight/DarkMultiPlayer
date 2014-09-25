@@ -36,6 +36,7 @@ namespace DarkMultiPlayer
         private bool selectTextBox = false;
         private string sendText = "";
         public string consoleIdentifier = "";
+        public bool debugging = false;
         //chat command register
         private Dictionary<string, ChatCommand> registeredChatCommands = new Dictionary<string, ChatCommand>();
         //event handling
@@ -79,6 +80,7 @@ namespace DarkMultiPlayer
             RegisterChatCommand("ping", ServerPing, "Pings the server");
             RegisterChatCommand("motd", ServerMOTD, "Gets the current Message of the Day");
             RegisterChatCommand("resize", ResizeChat, "Resized the chat window");
+            RegisterChatCommand("debug", ToggleDebugging, "Toggles client debugging in the console window");
         }
 
         private void DisplayHelp(string commandArgs)
@@ -96,7 +98,21 @@ namespace DarkMultiPlayer
             commands.Sort();
             foreach (ChatCommand cmd in commands)
             {
-                QueueSystemMessage(cmd.name.PadRight(longestName) + " - " + cmd.description);
+                DarkLog.Log(cmd.name.PadRight(longestName) + " - " + cmd.description);
+            }
+        }
+
+        private void ToggleDebugging(string commandArgs)
+        {
+            if (debugging)
+            {
+                debugging = false;
+                DarkLog.Log("Chat Debugging Deactivated");
+            }
+            else
+            {
+                debugging = true;
+                DarkLog.Log("Chat Debugging Activated");
             }
         }
 
@@ -104,7 +120,7 @@ namespace DarkMultiPlayer
         {
             if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier)
             {
-                QueueSystemMessage("Joining channel " + commandArgs);
+                DarkLog.Log("Joining channel " + commandArgs);
                 joinedChannels.Add(commandArgs);
                 selectedChannel = commandArgs;
                 selectedPMChannel = null;
@@ -118,7 +134,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                QueueSystemMessage("Couln't join '" + commandArgs + "', channel name not valid!");
+                DarkLog.Log("Couln't join '" + commandArgs + "', channel name not valid!");
             }
         }
 
@@ -147,14 +163,14 @@ namespace DarkMultiPlayer
             }
             if (playerFound)
             {
-                QueueSystemMessage("Starting query with " + commandArgs);
+                DarkLog.Log("Starting query with " + commandArgs);
                 joinedPMChannels.Add(commandArgs);
                 selectedChannel = null;
                 selectedPMChannel = commandArgs;
             }
             else
             {
-                QueueSystemMessage("Couln't start query with '" + commandArgs + "', player not found!");
+                DarkLog.Log("Couln't start query with '" + commandArgs + "', player not found!");
             }
         }
 
@@ -185,7 +201,7 @@ namespace DarkMultiPlayer
                     }
                     catch (FormatException)
                     {
-                        QueueSystemMessage("Error: Argument is not a number");
+                        DarkLog.Log("Error: Argument is not a number");
                         size = 400f;
                     }
                 }
@@ -194,8 +210,8 @@ namespace DarkMultiPlayer
             switch (func)
             {
                 default:
-                    QueueSystemMessage("Undefined function. Usage: /resize [default|medium|large], /resize [x|y] size, or /resize show");
-                    QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    DarkLog.Log("Undefined function. Usage: /resize [default|medium|large], /resize [x|y] size, or /resize show");
+                    DarkLog.Log("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "x":
                     if (size <= 800 && size >= 300)
@@ -203,11 +219,11 @@ namespace DarkMultiPlayer
                         WINDOW_WIDTH = size;
                         initialized = false;
 
-                        QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                        DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     }
                     else
                     {
-                        QueueSystemMessage("Size is out of range.");
+                        DarkLog.Log("Size is out of range.");
                     }
                     break;
                 case "y":
@@ -216,33 +232,33 @@ namespace DarkMultiPlayer
                         WINDOW_HEIGHT = size;
                         initialized = false;
 
-                        QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                        DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     }
                     else
                     {
-                        QueueSystemMessage("Size is out of range.");
+                        DarkLog.Log("Size is out of range.");
                     }
                     break;
                 case "default":
                     WINDOW_HEIGHT = 300;
                     WINDOW_WIDTH = 400;
                     initialized = false;
-                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "medium":
                     WINDOW_HEIGHT = 600;
                     WINDOW_WIDTH = 600;
                     initialized = false;
-                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "large":
                     WINDOW_HEIGHT = 800;
                     WINDOW_WIDTH = 800;
                     initialized = false;
-                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "show":
-                    QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    DarkLog.Log("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
             }
         }
@@ -303,11 +319,11 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (ce.channel != "")
                 {
-                    QueueSystemMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message);
+                    DarkLog.Log(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message);
                 }
                 else
                 {
-                    QueueSystemMessage(ce.fromPlayer + " -> #Global : " + ce.message);
+                    DarkLog.Log(ce.fromPlayer + " -> #Global : " + ce.message);
                 }
             }
         }
@@ -324,7 +340,7 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (pe.fromPlayer != Settings.fetch.playerName)
                 {
-                    QueueSystemMessage(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message);
+                    DarkLog.Log(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message);
                 }
             }
         }
@@ -406,7 +422,7 @@ namespace DarkMultiPlayer
                         mw.Write<string>(Settings.fetch.playerName);
                         mw.Write<string>(input);
                         NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                        QueueSystemMessage("Server Command: " + input);
+                        DarkLog.Log("Server Command: " + input);
                     }
                 }
                 if (selectedPMChannel != null)
@@ -439,17 +455,17 @@ namespace DarkMultiPlayer
                     {
                         try
                         {
-                            QueueSystemMessage("Chat Command: " + input.Substring(1));
+                            DarkLog.Log("Chat Command: " + input.Substring(1));
                             registeredChatCommands[commandPart].func(argumentPart);
                         }
                         catch (Exception e)
                         {
-                            QueueSystemMessage("Error handling chat command " + commandPart + ", Exception " + e);
+                            DarkLog.Log("Error handling chat command " + commandPart + ", Exception " + e);
                         }
                     }
                     else
                     {
-                        QueueSystemMessage("Unknown chat command: " + commandPart);
+                        DarkLog.Log("Unknown chat command: " + commandPart);
                     }
                 }
             }

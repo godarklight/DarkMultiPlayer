@@ -12,10 +12,22 @@ namespace DarkMultiPlayer
 
         public static void Debug(string message)
         {
+            //Add message to chat console if debugging is on.
+            if (ChatWorker.fetch.debugging)
+            {
+                ChatWorker.fetch.QueueSystemMessage("[" + UnityEngine.Time.realtimeSinceStartup + "][DEBUG] Client: " + message);
+            }
+            
             //Use messageQueue if looking for messages that don't normally show up in the log.
-
             messageQueue.Enqueue("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+
             //UnityEngine.Debug.Log("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+        }
+
+        public static void Log(string message)
+        {
+            //Use QueueSystemMessage() for normal log messages.
+            ChatWorker.fetch.QueueSystemMessage("[" + UnityEngine.Time.realtimeSinceStartup + "] Client: " + message);
         }
 
         public static void Update()
@@ -23,7 +35,7 @@ namespace DarkMultiPlayer
             while (messageQueue.Count > 0)
             {
                 string message = messageQueue.Dequeue();
-                ChatWorker.fetch.QueueSystemMessage(message);
+                UnityEngine.Debug.Log(message);
                 /*
                 using (StreamWriter sw = new StreamWriter("DarkLog.txt", true, System.Text.Encoding.UTF8)) {
                     sw.WriteLine(message);
