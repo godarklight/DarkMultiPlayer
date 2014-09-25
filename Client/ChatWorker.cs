@@ -193,7 +193,7 @@ namespace DarkMultiPlayer
             switch (func)
             {
                 default:
-                    QueueSystemMessage("Undefined function. Usage: /resize [x|y] size, /resize default, or /resize show");
+                    QueueSystemMessage("Undefined function. Usage: /resize [default|medium|large], /resize [x|y] size, or /resize show");
                     QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "x":
@@ -225,6 +225,16 @@ namespace DarkMultiPlayer
                 case "default":
                     WINDOW_HEIGHT = 300;
                     WINDOW_WIDTH = 400;
+                    initialized = false;
+                    break;
+                case "medium":
+                    WINDOW_HEIGHT = 600;
+                    WINDOW_WIDTH = 600;
+                    initialized = false;
+                    break;
+                case "large":
+                    WINDOW_HEIGHT = 800;
+                    WINDOW_WIDTH = 800;
                     initialized = false;
                     break;
                 case "show":
