@@ -183,7 +183,7 @@ namespace DarkMultiPlayer
                     {
                         size = Convert.ToSingle(commandArgs.Substring(func.Length + 1));
                     }
-                    catch (FormatException e)
+                    catch (FormatException)
                     {
                         QueueSystemMessage("Error: Argument is not a number");
                     }
