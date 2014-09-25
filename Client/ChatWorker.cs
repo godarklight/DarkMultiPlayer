@@ -186,6 +186,7 @@ namespace DarkMultiPlayer
                     catch (FormatException)
                     {
                         QueueSystemMessage("Error: Argument is not a number");
+                        size = 400f;
                     }
                 }
             }
@@ -226,16 +227,19 @@ namespace DarkMultiPlayer
                     WINDOW_HEIGHT = 300;
                     WINDOW_WIDTH = 400;
                     initialized = false;
+                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "medium":
                     WINDOW_HEIGHT = 600;
                     WINDOW_WIDTH = 600;
                     initialized = false;
+                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "large":
                     WINDOW_HEIGHT = 800;
                     WINDOW_WIDTH = 800;
                     initialized = false;
+                    QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
                     break;
                 case "show":
                     QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
