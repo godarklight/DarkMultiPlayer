@@ -19,8 +19,10 @@ namespace DarkMultiPlayer
         private Queue<JoinLeaveMessage> newLeaveMessages = new Queue<JoinLeaveMessage>();
         private Queue<ChannelEntry> newChannelMessages = new Queue<ChannelEntry>();
         private Queue<PrivateEntry> newPrivateMessages = new Queue<PrivateEntry>();
+        private Queue<ConsoleEntry> newConsoleMessages = new Queue<ConsoleEntry>();
         private Dictionary<string, List<string>> channelMessages = new Dictionary<string, List<string>>();
         private Dictionary<string, List<string>> privateMessages = new Dictionary<string, List<string>>();
+        private List<string> consoleMessages = new List<string>();
         private Dictionary<string, List<string>> playerChannels = new Dictionary<string, List<string>>();
         private List<string> joinedChannels = new List<string>();
         private List<string> joinedPMChannels = new List<string>();
@@ -52,9 +54,10 @@ namespace DarkMultiPlayer
         private GUIStyle scrollStyle;
         private Vector2 chatScrollPos;
         private Vector2 playerScrollPos;
+        //window size
+        private float WINDOW_HEIGHT = 300;
+        private float WINDOW_WIDTH = 400;
         //const
-        private const float WINDOW_HEIGHT = 300;
-        private const float WINDOW_WIDTH = 400;
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
@@ -75,6 +78,7 @@ namespace DarkMultiPlayer
             RegisterChatCommand("part", LeaveChannel, "Leaves the current channel");
             RegisterChatCommand("ping", ServerPing, "Pings the server");
             RegisterChatCommand("motd", ServerMOTD, "Gets the current Message of the Day");
+            RegisterChatCommand("resize", ResizeChat, "Resized the chat window");
         }
 
         private void DisplayHelp(string commandArgs)
@@ -92,15 +96,15 @@ namespace DarkMultiPlayer
             commands.Sort();
             foreach (ChatCommand cmd in commands)
             {
-                PostSystemMessage(cmd.name.PadRight(longestName) + " - " + cmd.description);
+                QueueSystemMessage(cmd.name.PadRight(longestName) + " - " + cmd.description);
             }
         }
 
         private void JoinChannel(string commandArgs)
         {
-            if (commandArgs != "" || commandArgs != "Global")
+            if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier)
             {
-                DarkLog.Debug("Joining channel " + commandArgs);
+                QueueSystemMessage("Joining channel " + commandArgs);
                 joinedChannels.Add(commandArgs);
                 selectedChannel = commandArgs;
                 selectedPMChannel = null;
@@ -114,7 +118,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                ScreenMessages.PostScreenMessage("Couln't join '" + commandArgs + "', channel name not valid!", 5f, ScreenMessageStyle.UPPER_CENTER);
+                QueueSystemMessage("Couln't join '" + commandArgs + "', channel name not valid!");
             }
         }
 
@@ -143,15 +147,14 @@ namespace DarkMultiPlayer
             }
             if (playerFound)
             {
-                DarkLog.Debug("Starting query with " + commandArgs);
+                QueueSystemMessage("Starting query with " + commandArgs);
                 joinedPMChannels.Add(commandArgs);
                 selectedChannel = null;
                 selectedPMChannel = commandArgs;
             }
             else
             {
-                DarkLog.Debug("Couln't start query with '" + commandArgs + "', player not found!");
-                ScreenMessages.PostScreenMessage("Couln't start query with '" + commandArgs + "', player not found!", 5f, ScreenMessageStyle.UPPER_CENTER);
+                QueueSystemMessage("Couln't start query with '" + commandArgs + "', player not found!");
             }
         }
 
@@ -163,6 +166,71 @@ namespace DarkMultiPlayer
         private void ServerMOTD(string commandArgs)
         {
             NetworkWorker.fetch.SendMotdRequest();
+        }
+
+        private void ResizeChat(string commandArgs)
+        {
+            string func = "";
+            float size = 0;
+
+            func = commandArgs;
+            if (commandArgs.Contains(" "))
+            {
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                if (commandArgs.Substring(func.Length).Contains(" "))
+                {
+                    try
+                    {
+                        size = Convert.ToSingle(commandArgs.Substring(func.Length + 1));
+                    }
+                    catch (FormatException e)
+                    {
+                        QueueSystemMessage("Error: Argument is not a number");
+                    }
+                }
+            }
+            
+            switch (func)
+            {
+                default:
+                    QueueSystemMessage("Undefined function. Usage: /resize [x|y] size, /resize default, or /resize show");
+                    QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+                case "x":
+                    if (size <= 800 && size >= 300)
+                    {
+                        WINDOW_WIDTH = size;
+                        initialized = false;
+
+                        QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    }
+                    else
+                    {
+                        QueueSystemMessage("Size is out of range.");
+                    }
+                    break;
+                case "y":
+                    if (size <= 800 && size >= 300)
+                    {
+                        WINDOW_HEIGHT = size;
+                        initialized = false;
+
+                        QueueSystemMessage("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    }
+                    else
+                    {
+                        QueueSystemMessage("Size is out of range.");
+                    }
+                    break;
+                case "default":
+                    WINDOW_HEIGHT = 300;
+                    WINDOW_WIDTH = 400;
+                    initialized = false;
+                    break;
+                case "show":
+                    QueueSystemMessage("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+            }
         }
 
         private void InitGUI()
@@ -221,11 +289,11 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (ce.channel != "")
                 {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    QueueSystemMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message);
                 }
                 else
                 {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #Global : " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    QueueSystemMessage(ce.fromPlayer + " -> #Global : " + ce.message);
                 }
             }
         }
@@ -242,7 +310,7 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (pe.fromPlayer != Settings.fetch.playerName)
                 {
-                    ScreenMessages.PostScreenMessage(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    QueueSystemMessage(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message);
                 }
             }
         }
@@ -264,22 +332,11 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void PostSystemMessage(string message)
+        public void QueueSystemMessage(string message)
         {
-            ChannelEntry ce = new ChannelEntry();
-            ce.fromPlayer = "COM$";
+            ConsoleEntry ce = new ConsoleEntry();
             ce.message = message;
-            if (selectedChannel != null)
-            {
-                ce.channel = selectedChannel;
-            }
-            else
-            {
-                ce.channel = "";
-            }
-
-            newChannelMessages.Enqueue(ce);
-
+            newConsoleMessages.Enqueue(ce);
         }
 
         public void RegisterChatCommand(string command, Action<string> func, string description)
@@ -316,7 +373,7 @@ namespace DarkMultiPlayer
                         NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
                     }
                 }
-                if (selectedChannel != null)
+                if (selectedChannel != null && selectedChannel != consoleIdentifier)
                 {
                     using (MessageWriter mw = new MessageWriter())
                     {
@@ -325,6 +382,17 @@ namespace DarkMultiPlayer
                         mw.Write<string>(selectedChannel);
                         mw.Write<string>(input);
                         NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
+                }
+                if (selectedChannel == consoleIdentifier)
+                {
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(input);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                        QueueSystemMessage("Server Command: " + input);
                     }
                 }
                 if (selectedPMChannel != null)
@@ -357,16 +425,17 @@ namespace DarkMultiPlayer
                     {
                         try
                         {
+                            QueueSystemMessage("Chat Command: " + input.Substring(1));
                             registeredChatCommands[commandPart].func(argumentPart);
                         }
                         catch (Exception e)
                         {
-                            PostSystemMessage("Error handling command " + commandPart + ", Exception " + e);
+                            QueueSystemMessage("Error handling command " + commandPart + ", Exception " + e);
                         }
                     }
                     else
                     {
-                        PostSystemMessage("Unknown command: " + commandPart);
+                        QueueSystemMessage("Unknown command: " + commandPart);
                     }
                 }
             }
@@ -377,7 +446,7 @@ namespace DarkMultiPlayer
             //Handle leave event
             if (!leaveEventHandled)
             {
-                if (selectedChannel != null)
+                if (selectedChannel != null && selectedChannel != consoleIdentifier)
                 {
                     using (MessageWriter mw = new MessageWriter())
                     {
@@ -518,6 +587,29 @@ namespace DarkMultiPlayer
                     privateMessages[pe.toPlayer].Add(pe.fromPlayer + ": " + pe.message);
                 }
             }
+            //Handle console messages
+            while (newConsoleMessages.Count > 0)
+            {
+                ConsoleEntry ce = newConsoleMessages.Dequeue();
+                //Highlight if the channel isn't selected.
+                if (selectedChannel != consoleIdentifier)
+                {
+                    if (!highlightChannel.Contains(consoleIdentifier))
+                    {
+                        highlightChannel.Add(consoleIdentifier);
+                    }
+                }
+                //Move the bar to the bottom on a new message
+                if (selectedChannel == null && selectedPMChannel == null && consoleIdentifier == "")
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                if (selectedChannel != null && selectedPMChannel == null && consoleIdentifier == selectedChannel)
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                consoleMessages.Add(ce.message);
+            }
             while (disconnectingPlayers.Count > 0)
             {
                 string disconnectingPlayer = disconnectingPlayers.Dequeue();
@@ -586,13 +678,14 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             DrawRooms();
             GUILayout.FlexibleSpace();
-            if (selectedChannel != null || selectedPMChannel != null)
+            if (selectedChannel != null && selectedChannel != consoleIdentifier || selectedPMChannel != null)
             {
                 if (GUILayout.Button("Leave", buttonStyle))
-                {
-                    leaveEventHandled = false;
-                }
+               {
+                   leaveEventHandled = false;
+               }
             }
+            DrawConsole();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             chatScrollPos = GUILayout.BeginScrollView(chatScrollPos, scrollStyle);
@@ -607,7 +700,7 @@ namespace DarkMultiPlayer
                     GUILayout.Label(channelMessage, labelStyle);
                 }
             }
-            if (selectedChannel != null)
+            if (selectedChannel != null && selectedChannel != consoleIdentifier)
             {
                 if (!channelMessages.ContainsKey(selectedChannel))
                 {
@@ -616,6 +709,13 @@ namespace DarkMultiPlayer
                 foreach (string channelMessage in channelMessages[selectedChannel])
                 {
                     GUILayout.Label(channelMessage, labelStyle);
+                }
+            }
+            if (selectedChannel == consoleIdentifier)
+            {
+                foreach (string consoleMessage in consoleMessages)
+                {
+                    GUILayout.Label(consoleMessage, labelStyle);
                 }
             }
             if (selectedPMChannel != null)
@@ -727,6 +827,34 @@ namespace DarkMultiPlayer
                 selectTextBox = false;
                 GUI.FocusControl("SendTextArea");
             }
+        }
+
+        private void DrawConsole()
+        {
+            GUIStyle possibleHighlightButtonStyle = buttonStyle;
+            if (selectedChannel == consoleIdentifier)
+            {
+                GUI.enabled = false;
+            }
+            if (highlightChannel.Contains(consoleIdentifier))
+            {
+                possibleHighlightButtonStyle = highlightStyle;
+            }
+            else
+            {
+                possibleHighlightButtonStyle = buttonStyle;
+            }
+            if (GUILayout.Button("#" + consoleIdentifier, possibleHighlightButtonStyle))
+            {
+                if (highlightChannel.Contains(consoleIdentifier))
+                {
+                    highlightChannel.Remove(consoleIdentifier);
+                }
+                selectedChannel = consoleIdentifier;
+                selectedPMChannel = null;
+                chatScrollPos.y = float.PositiveInfinity;
+            }
+            GUI.enabled = true;
         }
 
         private void DrawRooms()
@@ -871,6 +999,11 @@ namespace DarkMultiPlayer
     {
         public string fromPlayer;
         public string channel;
+    }
+
+    public class ConsoleEntry
+    {
+        public string message;
     }
 }
 

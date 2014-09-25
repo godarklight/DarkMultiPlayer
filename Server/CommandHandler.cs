@@ -45,34 +45,7 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Command input: " + input);
                     if (input.StartsWith("/"))
                     {
-                        string commandPart = input.Substring(1);
-                        string argumentPart = "";
-                        if (commandPart.Contains(" "))
-                        {
-                            if (commandPart.Length > commandPart.IndexOf(' ') + 1)
-                            {
-                                argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
-                            }
-                            commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
-                        }
-                        if (commandPart.Length > 0)
-                        {
-                            if (commands.ContainsKey(commandPart))
-                            {
-                                try
-                                {
-                                    commands[commandPart].func(argumentPart);
-                                }
-                                catch (Exception e)
-                                {
-                                    DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
-                                }
-                            }
-                            else
-                            {
-                                DarkLog.Normal("Unknown command: " + commandPart);
-                            }
-                        }
+                        HandleServerInput(input.Substring(1));
                     }
                     else
                     {
@@ -89,6 +62,38 @@ namespace DarkMultiPlayerServer
                 {
                     DarkLog.Fatal("Error in command handler thread, Exception: " + e);
                     throw;
+                }
+            }
+        }
+
+        public static void HandleServerInput(string input)
+        {
+            string commandPart = input;
+            string argumentPart = "";
+            if (commandPart.Contains(" "))
+            {
+                if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                {
+                    argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                }
+                commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
+            }
+            if (commandPart.Length > 0)
+            {
+                if (commands.ContainsKey(commandPart))
+                {
+                    try
+                    {
+                        commands[commandPart].func(argumentPart);
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
+                    }
+                }
+                else
+                {
+                    DarkLog.Normal("Unknown command: " + commandPart);
                 }
             }
         }

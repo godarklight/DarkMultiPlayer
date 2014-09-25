@@ -28,15 +28,29 @@ namespace DarkMultiPlayerServer
             if (level >= Settings.settingsStore.logLevel)
             {
                 string output;
+                string tag;
                 if (Settings.settingsStore.useUTCTimeInLog)
                 {
-                    output = "[" + DateTime.UtcNow.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
+                    tag = "[" + DateTime.UtcNow.ToString("HH:mm:ss") + "][" + level.ToString() + "] : ";
                 }
                 else
                 {
-                    output = "[" + DateTime.Now.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
+                    tag = "[" + DateTime.Now.ToString("HH:mm:ss") + "][" + level.ToString() + "] : ";
                 }
-                Console.WriteLine(output);
+                output = tag + message;
+
+                //Send messages to admin consoles or terminal console dependent upon the availablility of an admin.
+                //This is ugly.
+                try
+                {
+                    ClientHandler.SendConsoleMessageToAdmins(output);
+                }
+                catch
+                {
+                    Console.WriteLine(output);
+                }
+
+
                 try
                 {
                     lock (logLock) {

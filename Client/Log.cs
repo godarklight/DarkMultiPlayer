@@ -23,7 +23,7 @@ namespace DarkMultiPlayer
             while (messageQueue.Count > 0)
             {
                 string message = messageQueue.Dequeue();
-                UnityEngine.Debug.Log(message);
+                ChatWorker.fetch.QueueSystemMessage(message);
                 /*
                 using (StreamWriter sw = new StreamWriter("DarkLog.txt", true, System.Text.Encoding.UTF8)) {
                     sw.WriteLine(message);

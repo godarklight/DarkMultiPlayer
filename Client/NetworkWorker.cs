@@ -896,6 +896,12 @@ namespace DarkMultiPlayer
                             }
                         }
                         break;
+                    case ChatMessageType.CONSOLE_MESSAGE:
+                        {
+                            string message = mr.Read<string>();
+                            ChatWorker.fetch.QueueSystemMessage(message);
+                        }
+                        break;
                 }
             }
         }

@@ -1277,6 +1277,19 @@ namespace DarkMultiPlayerServer
                             }
                         }
                         break;
+                    case ChatMessageType.CONSOLE_MESSAGE:
+                        {
+                            string message = mr.Read<string>();
+                            if (client.authenticated && serverAdmins.Contains(client.playerName))
+                            {
+                                CommandHandler.HandleServerInput(message);
+                            }
+                            else
+                            {
+                                SendConsoleMessageToClient(client, "You do not have the authorization to use this command!");
+                            }
+                        }
+                        break;
                 }
             }
         }
@@ -2489,6 +2502,38 @@ namespace DarkMultiPlayerServer
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
+        }
+
+        public static void SendConsoleMessageToClient(ClientObject client, string message)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
+                mw.Write<string>(message);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, false);
+        }
+
+        public static void SendConsoleMessageToAdmins(string message)
+        {
+            foreach (ClientObject client in clients)
+            {
+                if (client.authenticated && serverAdmins.Contains(client.playerName))
+                {
+                    SendConsoleMessageToClient(client, message);
+                }
+            }
+        }
+
+        public static void SendConsoleMessageToAll(string message)
+        {
+            foreach (ClientObject client in clients)
+            {
+                SendConsoleMessageToClient(client, message);
+            }
         }
 
         private static void SendChatMessageToClient(ClientObject client, string messageText)
