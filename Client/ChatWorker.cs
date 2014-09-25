@@ -19,8 +19,10 @@ namespace DarkMultiPlayer
         private Queue<JoinLeaveMessage> newLeaveMessages = new Queue<JoinLeaveMessage>();
         private Queue<ChannelEntry> newChannelMessages = new Queue<ChannelEntry>();
         private Queue<PrivateEntry> newPrivateMessages = new Queue<PrivateEntry>();
+        private Queue<ConsoleEntry> newConsoleMessages = new Queue<ConsoleEntry>();
         private Dictionary<string, List<string>> channelMessages = new Dictionary<string, List<string>>();
         private Dictionary<string, List<string>> privateMessages = new Dictionary<string, List<string>>();
+        private List<string> consoleMessages = new List<string>();
         private Dictionary<string, List<string>> playerChannels = new Dictionary<string, List<string>>();
         private List<string> joinedChannels = new List<string>();
         private List<string> joinedPMChannels = new List<string>();
@@ -34,6 +36,9 @@ namespace DarkMultiPlayer
         private bool selectTextBox = false;
         private string sendText = "";
         public string consoleIdentifier = "";
+        public bool debugging = false;
+        //chat command register
+        private Dictionary<string, ChatCommand> registeredChatCommands = new Dictionary<string, ChatCommand>();
         //event handling
         private bool leaveEventHandled = true;
         private bool sendEventHandled = true;
@@ -50,9 +55,10 @@ namespace DarkMultiPlayer
         private GUIStyle scrollStyle;
         private Vector2 chatScrollPos;
         private Vector2 playerScrollPos;
+        //window size
+        private float WINDOW_HEIGHT = 300;
+        private float WINDOW_WIDTH = 400;
         //const
-        private const float WINDOW_HEIGHT = 300;
-        private const float WINDOW_WIDTH = 400;
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
@@ -61,6 +67,199 @@ namespace DarkMultiPlayer
             get
             {
                 return singleton;
+            }
+        }
+
+        public ChatWorker()
+        {
+            RegisterChatCommand("help", DisplayHelp, "Displays this help");
+            RegisterChatCommand("join", JoinChannel, "Joins a new chat channel");
+            RegisterChatCommand("query", StartQuery, "Starts a query");
+            RegisterChatCommand("leave", LeaveChannel, "Leaves the current channel");
+            RegisterChatCommand("part", LeaveChannel, "Leaves the current channel");
+            RegisterChatCommand("ping", ServerPing, "Pings the server");
+            RegisterChatCommand("motd", ServerMOTD, "Gets the current Message of the Day");
+            RegisterChatCommand("resize", ResizeChat, "Resized the chat window");
+            RegisterChatCommand("debug", ToggleDebugging, "Toggles client debugging in the console window");
+        }
+
+        private void DisplayHelp(string commandArgs)
+        {
+            List<ChatCommand> commands = new List<ChatCommand>();
+            int longestName = 0;
+            foreach (ChatCommand cmd in registeredChatCommands.Values)
+            {
+                commands.Add(cmd);
+                if (cmd.name.Length > longestName)
+                {
+                    longestName = cmd.name.Length;
+                }
+            }
+            commands.Sort();
+            foreach (ChatCommand cmd in commands)
+            {
+                DarkLog.Log(cmd.name.PadRight(longestName) + " - " + cmd.description);
+            }
+        }
+
+        private void ToggleDebugging(string commandArgs)
+        {
+            if (debugging)
+            {
+                debugging = false;
+                DarkLog.Log("Chat Debugging Deactivated");
+            }
+            else
+            {
+                debugging = true;
+                DarkLog.Log("Chat Debugging Activated");
+            }
+        }
+
+        private void JoinChannel(string commandArgs)
+        {
+            if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier)
+            {
+                DarkLog.Log("Joining channel " + commandArgs);
+                joinedChannels.Add(commandArgs);
+                selectedChannel = commandArgs;
+                selectedPMChannel = null;
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)ChatMessageType.JOIN);
+                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(commandArgs);
+                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                }
+            }
+            else
+            {
+                DarkLog.Log("Couln't join '" + commandArgs + "', channel name not valid!");
+            }
+        }
+
+        private void LeaveChannel(string commandArgs)
+        {
+            leaveEventHandled = false;
+        }
+
+        private void StartQuery(string commandArgs)
+        {
+            bool playerFound = false;
+            if (commandArgs != consoleIdentifier)
+            {
+                foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
+                {
+                    if (ps.playerName == commandArgs)
+                    {
+                        playerFound = true;
+                    }
+                }
+            }
+            else
+            {
+                //Make sure we can always query the server.
+                playerFound = true;
+            }
+            if (playerFound)
+            {
+                DarkLog.Log("Starting query with " + commandArgs);
+                joinedPMChannels.Add(commandArgs);
+                selectedChannel = null;
+                selectedPMChannel = commandArgs;
+            }
+            else
+            {
+                DarkLog.Log("Couln't start query with '" + commandArgs + "', player not found!");
+            }
+        }
+
+        private void ServerPing(string commandArgs)
+        {
+            NetworkWorker.fetch.SendPingRequest();
+        }
+
+        private void ServerMOTD(string commandArgs)
+        {
+            NetworkWorker.fetch.SendMotdRequest();
+        }
+
+        private void ResizeChat(string commandArgs)
+        {
+            string func = "";
+            float size = 0;
+
+            func = commandArgs;
+            if (commandArgs.Contains(" "))
+            {
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                if (commandArgs.Substring(func.Length).Contains(" "))
+                {
+                    try
+                    {
+                        size = Convert.ToSingle(commandArgs.Substring(func.Length + 1));
+                    }
+                    catch (FormatException)
+                    {
+                        DarkLog.Log("Error: Argument is not a number");
+                        size = 400f;
+                    }
+                }
+            }
+            
+            switch (func)
+            {
+                default:
+                    DarkLog.Log("Undefined function. Usage: /resize [default|medium|large], /resize [x|y] size, or /resize show");
+                    DarkLog.Log("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+                case "x":
+                    if (size <= 800 && size >= 300)
+                    {
+                        WINDOW_WIDTH = size;
+                        initialized = false;
+
+                        DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    }
+                    else
+                    {
+                        DarkLog.Log("Size is out of range.");
+                    }
+                    break;
+                case "y":
+                    if (size <= 800 && size >= 300)
+                    {
+                        WINDOW_HEIGHT = size;
+                        initialized = false;
+
+                        DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    }
+                    else
+                    {
+                        DarkLog.Log("Size is out of range.");
+                    }
+                    break;
+                case "default":
+                    WINDOW_HEIGHT = 300;
+                    WINDOW_WIDTH = 400;
+                    initialized = false;
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+                case "medium":
+                    WINDOW_HEIGHT = 600;
+                    WINDOW_WIDTH = 600;
+                    initialized = false;
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+                case "large":
+                    WINDOW_HEIGHT = 800;
+                    WINDOW_WIDTH = 800;
+                    initialized = false;
+                    DarkLog.Log("New window size is: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
+                case "show":
+                    DarkLog.Log("Chat window size is currently: " + WINDOW_WIDTH + "x" + WINDOW_HEIGHT);
+                    break;
             }
         }
 
@@ -120,11 +319,11 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (ce.channel != "")
                 {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    DarkLog.Log(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message);
                 }
                 else
                 {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #Global : " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    DarkLog.Log(ce.fromPlayer + " -> #Global : " + ce.message);
                 }
             }
         }
@@ -141,7 +340,7 @@ namespace DarkMultiPlayer
                 chatButtonHighlighted = true;
                 if (pe.fromPlayer != Settings.fetch.playerName)
                 {
-                    ScreenMessages.PostScreenMessage(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    DarkLog.Log(pe.fromPlayer + " -> @" + pe.toPlayer + ": " + pe.message);
                 }
             }
         }
@@ -163,6 +362,306 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void QueueSystemMessage(string message)
+        {
+            ConsoleEntry ce = new ConsoleEntry();
+            ce.message = message;
+            newConsoleMessages.Enqueue(ce);
+        }
+
+        public void RegisterChatCommand(string command, Action<string> func, string description)
+        {
+            ChatCommand cmd = new ChatCommand(command, func, description);
+            if (!registeredChatCommands.ContainsKey(command))
+            {
+                registeredChatCommands.Add(command, cmd);
+            }
+        }
+
+        
+
+        public void HandleChatInput(string input)
+        {
+            if (!input.StartsWith("/") || input.StartsWith("//"))
+            {
+                //Handle chat messages
+                if (input.StartsWith("//"))
+                {
+                    input = input.Substring(1);
+                }
+
+                if (selectedChannel == null && selectedPMChannel == null)
+                {
+                    //Sending a global chat message
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        //Global channel name is empty string.
+                        mw.Write<string>("");
+                        mw.Write<string>(input);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
+                }
+                if (selectedChannel != null && selectedChannel != consoleIdentifier)
+                {
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(selectedChannel);
+                        mw.Write<string>(input);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
+                }
+                if (selectedChannel == consoleIdentifier)
+                {
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(input);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                        DarkLog.Log("Server Command: " + input);
+                    }
+                }
+                if (selectedPMChannel != null)
+                {
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(selectedPMChannel);
+                        mw.Write<string>(input);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
+                }
+            }
+            else
+            {
+                string commandPart = input.Substring(1);
+                string argumentPart = "";
+                if (commandPart.Contains(" "))
+                {
+                    if (commandPart.Length > commandPart.IndexOf(' ') + 1)
+                    {
+                        argumentPart = commandPart.Substring(commandPart.IndexOf(' ') + 1);
+                    }
+                    commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
+                }
+                if (commandPart.Length > 0)
+                {
+                    if (registeredChatCommands.ContainsKey(commandPart))
+                    {
+                        try
+                        {
+                            DarkLog.Log("Chat Command: " + input.Substring(1));
+                            registeredChatCommands[commandPart].func(argumentPart);
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Log("Error handling chat command " + commandPart + ", Exception " + e);
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Log("Unknown chat command: " + commandPart);
+                    }
+                }
+            }
+        }
+
+        private void HandleChatEvents()
+        {
+            //Handle leave event
+            if (!leaveEventHandled)
+            {
+                if (selectedChannel != null && selectedChannel != consoleIdentifier)
+                {
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.LEAVE);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(selectedChannel);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
+                    if (joinedChannels.Contains(selectedChannel))
+                    {
+                        joinedChannels.Remove(selectedChannel);
+                    }
+                    selectedChannel = null;
+                    selectedPMChannel = null;
+                }
+                if (selectedPMChannel != null)
+                {
+                    if (joinedPMChannels.Contains(selectedPMChannel))
+                    {
+                        joinedPMChannels.Remove(selectedPMChannel);
+                    }
+                    selectedChannel = null;
+                    selectedPMChannel = null;
+                }
+                leaveEventHandled = true;
+            }
+            //Handle send event
+            if (!sendEventHandled)
+            {
+                if (sendText != "")
+                {
+                    HandleChatInput(sendText);
+                }
+                sendText = "";
+                sendEventHandled = true;
+            }
+            //Handle join messages
+            while (newJoinMessages.Count > 0)
+            {
+                JoinLeaveMessage jlm = newJoinMessages.Dequeue();
+                if (!playerChannels.ContainsKey(jlm.fromPlayer))
+                {
+                    playerChannels.Add(jlm.fromPlayer, new List<string>());
+                }
+                if (!playerChannels[jlm.fromPlayer].Contains(jlm.channel))
+                {
+                    playerChannels[jlm.fromPlayer].Add(jlm.channel);
+                }
+            }
+            //Handle leave messages
+            while (newLeaveMessages.Count > 0)
+            {
+                JoinLeaveMessage jlm = newLeaveMessages.Dequeue();
+                if (playerChannels.ContainsKey(jlm.fromPlayer))
+                {
+                    if (playerChannels[jlm.fromPlayer].Contains(jlm.channel))
+                    {
+                        playerChannels[jlm.fromPlayer].Remove(jlm.channel);
+                    }
+                    if (playerChannels[jlm.fromPlayer].Count == 0)
+                    {
+                        playerChannels.Remove(jlm.fromPlayer);
+                    }
+                }
+            }
+            //Handle channel messages
+            while (newChannelMessages.Count > 0)
+            {
+                ChannelEntry ce = newChannelMessages.Dequeue();
+                if (!channelMessages.ContainsKey(ce.channel))
+                {
+                    channelMessages.Add(ce.channel, new List<string>());
+                }
+                //Highlight if the channel isn't selected.
+                if (selectedChannel != null && ce.channel == "")
+                {
+                    if (!highlightChannel.Contains(ce.channel))
+                    {
+                        highlightChannel.Add(ce.channel);
+                    }
+                }
+                if (ce.channel != selectedChannel && ce.channel != "")
+                {
+                    if (!highlightChannel.Contains(ce.channel))
+                    {
+                        highlightChannel.Add(ce.channel);
+                    }
+                }
+                //Move the bar to the bottom on a new message
+                if (selectedChannel == null && selectedPMChannel == null && ce.channel == "")
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                if (selectedChannel != null && selectedPMChannel == null && ce.channel == selectedChannel)
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                channelMessages[ce.channel].Add(ce.fromPlayer + ": " + ce.message);
+            }
+            //Handle private messages
+            while (newPrivateMessages.Count > 0)
+            {
+                PrivateEntry pe = newPrivateMessages.Dequeue();
+                if (pe.fromPlayer != Settings.fetch.playerName)
+                {
+                    if (!privateMessages.ContainsKey(pe.fromPlayer))
+                    {
+                        privateMessages.Add(pe.fromPlayer, new List<string>());
+                    }
+                    //Highlight if the player isn't selected
+                    if (!joinedPMChannels.Contains(pe.fromPlayer))
+                    {
+                        joinedPMChannels.Add(pe.fromPlayer);
+                    }
+                    if (selectedPMChannel != pe.fromPlayer)
+                    {
+                        if (!highlightPM.Contains(pe.fromPlayer))
+                        {
+                            highlightPM.Add(pe.fromPlayer);
+                        }
+                    }
+                }
+                if (!privateMessages.ContainsKey(pe.toPlayer))
+                {
+                    privateMessages.Add(pe.toPlayer, new List<string>());
+                }
+                //Move the bar to the bottom on a new message
+                if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == Settings.fetch.playerName))
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                if (pe.fromPlayer != Settings.fetch.playerName)
+                {
+                    privateMessages[pe.fromPlayer].Add(pe.fromPlayer + ": " + pe.message);
+                }
+                else
+                {
+                    privateMessages[pe.toPlayer].Add(pe.fromPlayer + ": " + pe.message);
+                }
+            }
+            //Handle console messages
+            while (newConsoleMessages.Count > 0)
+            {
+                ConsoleEntry ce = newConsoleMessages.Dequeue();
+                //Highlight if the channel isn't selected.
+                if (selectedChannel != consoleIdentifier)
+                {
+                    if (!highlightChannel.Contains(consoleIdentifier))
+                    {
+                        highlightChannel.Add(consoleIdentifier);
+                    }
+                }
+                //Move the bar to the bottom on a new message
+                if (selectedChannel == null && selectedPMChannel == null && consoleIdentifier == "")
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                if (selectedChannel != null && selectedPMChannel == null && consoleIdentifier == selectedChannel)
+                {
+                    chatScrollPos.y = float.PositiveInfinity;
+                }
+                consoleMessages.Add(ce.message);
+            }
+            while (disconnectingPlayers.Count > 0)
+            {
+                string disconnectingPlayer = disconnectingPlayers.Dequeue();
+                if (playerChannels.ContainsKey(disconnectingPlayer))
+                {
+                    playerChannels.Remove(disconnectingPlayer);
+                }
+                if (joinedPMChannels.Contains(disconnectingPlayer))
+                {
+                    joinedPMChannels.Remove(disconnectingPlayer);
+                }
+                if (highlightPM.Contains(disconnectingPlayer))
+                {
+                    highlightPM.Remove(disconnectingPlayer);
+                }
+                if (privateMessages.ContainsKey(disconnectingPlayer))
+                {
+                    privateMessages.Remove(disconnectingPlayer);
+                }
+            }
+        }
+
         private void Update()
         {
             safeDisplay = display;
@@ -178,282 +677,7 @@ namespace DarkMultiPlayer
             }
             if (workerEnabled)
             {
-                //Handle leave event
-                if (!leaveEventHandled)
-                {
-                    if (selectedChannel != null)
-                    {
-                        using (MessageWriter mw = new MessageWriter())
-                        {
-                            mw.Write<int>((int)ChatMessageType.LEAVE);
-                            mw.Write<string>(Settings.fetch.playerName);
-                            mw.Write<string>(selectedChannel);
-                            NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                        }
-                        if (joinedChannels.Contains(selectedChannel))
-                        {
-                            joinedChannels.Remove(selectedChannel);
-                        }
-                        selectedChannel = null;
-                        selectedPMChannel = null;
-                    }
-                    if (selectedPMChannel != null)
-                    {
-                        if (joinedPMChannels.Contains(selectedPMChannel))
-                        {
-                            joinedPMChannels.Remove(selectedPMChannel);
-                        }
-                        selectedChannel = null;
-                        selectedPMChannel = null;
-                    }
-                    leaveEventHandled = true;
-                }
-                //Handle send event
-                if (!sendEventHandled)
-                {
-                    if (sendText != "")
-                    {
-                        if (!sendText.StartsWith("/") || sendText.StartsWith("//"))
-                        {
-                            if (sendText.StartsWith("//"))
-                            {
-                                sendText = sendText.Substring(1);
-                            }
-                            if (selectedChannel == null && selectedPMChannel == null)
-                            {
-                                //Sending a global chat message
-                                using (MessageWriter mw = new MessageWriter())
-                                {
-                                    mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                                    mw.Write<string>(Settings.fetch.playerName);
-                                    //Global channel name is empty string.
-                                    mw.Write<string>("");
-                                    mw.Write<string>(sendText);
-                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                                }
-                            }
-                            if (selectedChannel != null)
-                            {
-                                using (MessageWriter mw = new MessageWriter())
-                                {
-                                    mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
-                                    mw.Write<string>(Settings.fetch.playerName);
-                                    mw.Write<string>(selectedChannel);
-                                    mw.Write<string>(sendText);
-                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                                }
-                            }
-                            if (selectedPMChannel != null)
-                            {
-                                using (MessageWriter mw = new MessageWriter())
-                                {
-                                    mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
-                                    mw.Write<string>(Settings.fetch.playerName);
-                                    mw.Write<string>(selectedPMChannel);
-                                    mw.Write<string>(sendText);
-                                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                                }
-                            }
-                        }
-                        else
-                        {
-                            //Handle command
-                            if (sendText.StartsWith("/join ") && sendText.Length > 7)
-                            {
-                                string channelName = sendText.Substring(6);
-                                if (channelName != "" || channelName != "Global")
-                                {
-                                    DarkLog.Debug("Joining channel " + channelName);
-                                    joinedChannels.Add(channelName);
-                                    selectedChannel = channelName;
-                                    selectedPMChannel = null;
-                                    using (MessageWriter mw = new MessageWriter())
-                                    {
-                                        mw.Write<int>((int)ChatMessageType.JOIN);
-                                        mw.Write<string>(Settings.fetch.playerName);
-                                        mw.Write<string>(channelName);
-                                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-                                    }
-                                }
-                                else
-                                {
-                                    ScreenMessages.PostScreenMessage("Couln't join '" + channelName + "', channel name not valid!", 5f, ScreenMessageStyle.UPPER_CENTER);
-                                }
-                            }
-                            if (sendText.StartsWith("/query ") && sendText.Length > 8)
-                            {
-                                string playerName = sendText.Substring(7);
-                                bool playerFound = false;
-                                if (playerName != consoleIdentifier)
-                                {
-                                    foreach (PlayerStatus ps in PlayerStatusWorker.fetch.playerStatusList)
-                                    {
-                                        if (ps.playerName == playerName)
-                                        {
-                                            playerFound = true;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    //Make sure we can always query the server.
-                                    playerFound = true;
-                                }
-                                if (playerFound)
-                                {
-                                    DarkLog.Debug("Starting query with " + playerName);
-                                    joinedPMChannels.Add(playerName);
-                                    selectedChannel = null;
-                                    selectedPMChannel = playerName;
-                                }
-                                else
-                                {
-                                    DarkLog.Debug("Couln't start query with '" + playerName + "', player not found!");
-                                    ScreenMessages.PostScreenMessage("Couln't start query with '" + playerName + "', player not found!", 5f, ScreenMessageStyle.UPPER_CENTER);
-                                }
-                               
-                            }
-                            if (sendText == "/part" || sendText == "/leave")
-                            {
-                                leaveEventHandled = false;
-                            }
-                            if (sendText == "/ping")
-                            {
-                                NetworkWorker.fetch.SendPingRequest();
-                            }
-                            if (sendText == "/motd")
-                            {
-                                NetworkWorker.fetch.SendMotdRequest();
-                            }
-                        }
-                    }
-                    sendText = "";
-                    sendEventHandled = true;
-                }
-                //Handle join messages
-                while (newJoinMessages.Count > 0)
-                {
-                    JoinLeaveMessage jlm = newJoinMessages.Dequeue();
-                    if (!playerChannels.ContainsKey(jlm.fromPlayer))
-                    {
-                        playerChannels.Add(jlm.fromPlayer, new List<string>());
-                    }
-                    if (!playerChannels[jlm.fromPlayer].Contains(jlm.channel))
-                    {
-                        playerChannels[jlm.fromPlayer].Add(jlm.channel);
-                    }
-                }
-                //Handle leave messages
-                while (newLeaveMessages.Count > 0)
-                {
-                    JoinLeaveMessage jlm = newLeaveMessages.Dequeue();
-                    if (playerChannels.ContainsKey(jlm.fromPlayer))
-                    {
-                        if (playerChannels[jlm.fromPlayer].Contains(jlm.channel))
-                        {
-                            playerChannels[jlm.fromPlayer].Remove(jlm.channel);
-                        }
-                        if (playerChannels[jlm.fromPlayer].Count == 0)
-                        {
-                            playerChannels.Remove(jlm.fromPlayer);
-                        }
-                    }
-                }
-                //Handle channel messages
-                while (newChannelMessages.Count > 0)
-                {
-                    ChannelEntry ce = newChannelMessages.Dequeue();
-                    if (!channelMessages.ContainsKey(ce.channel))
-                    {
-                        channelMessages.Add(ce.channel, new List<string>());
-                    }
-                    //Highlight if the channel isn't selected.
-                    if (selectedChannel != null && ce.channel == "")
-                    {
-                        if (!highlightChannel.Contains(ce.channel))
-                        {
-                            highlightChannel.Add(ce.channel);
-                        }
-                    }
-                    if (ce.channel != selectedChannel && ce.channel != "")
-                    {
-                        if (!highlightChannel.Contains(ce.channel))
-                        {
-                            highlightChannel.Add(ce.channel);
-                        }
-                    }
-                    //Move the bar to the bottom on a new message
-                    if (selectedChannel == null && selectedPMChannel == null && ce.channel == "")
-                    {
-                        chatScrollPos.y = float.PositiveInfinity;
-                    }
-                    if (selectedChannel != null && selectedPMChannel == null && ce.channel == selectedChannel)
-                    {
-                        chatScrollPos.y = float.PositiveInfinity;
-                    }
-                    channelMessages[ce.channel].Add(ce.fromPlayer + ": " + ce.message);
-                }
-                //Handle private messages
-                while (newPrivateMessages.Count > 0)
-                {
-                    PrivateEntry pe = newPrivateMessages.Dequeue();
-                    if (pe.fromPlayer != Settings.fetch.playerName)
-                    {
-                        if (!privateMessages.ContainsKey(pe.fromPlayer))
-                        {
-                            privateMessages.Add(pe.fromPlayer, new List<string>());
-                        }
-                        //Highlight if the player isn't selected
-                        if (!joinedPMChannels.Contains(pe.fromPlayer))
-                        {
-                            joinedPMChannels.Add(pe.fromPlayer);
-                        }
-                        if (selectedPMChannel != pe.fromPlayer)
-                        {
-                            if (!highlightPM.Contains(pe.fromPlayer))
-                            {
-                                highlightPM.Add(pe.fromPlayer);
-                            }
-                        }
-                    }
-                    if (!privateMessages.ContainsKey(pe.toPlayer))
-                    {
-                        privateMessages.Add(pe.toPlayer, new List<string>());
-                    }
-                    //Move the bar to the bottom on a new message
-                    if (selectedPMChannel != null && selectedChannel == null && (pe.fromPlayer == selectedPMChannel || pe.fromPlayer == Settings.fetch.playerName))
-                    {
-                        chatScrollPos.y = float.PositiveInfinity;
-                    }
-                    if (pe.fromPlayer != Settings.fetch.playerName)
-                    {
-                        privateMessages[pe.fromPlayer].Add(pe.fromPlayer + ": " + pe.message);
-                    }
-                    else
-                    {
-                        privateMessages[pe.toPlayer].Add(pe.fromPlayer + ": " + pe.message);
-                    }
-                }
-                while (disconnectingPlayers.Count > 0)
-                {
-                    string disconnectingPlayer = disconnectingPlayers.Dequeue();
-                    if (playerChannels.ContainsKey(disconnectingPlayer))
-                    {
-                        playerChannels.Remove(disconnectingPlayer);
-                    }
-                    if (joinedPMChannels.Contains(disconnectingPlayer))
-                    {
-                        joinedPMChannels.Remove(disconnectingPlayer);
-                    }
-                    if (highlightPM.Contains(disconnectingPlayer))
-                    {
-                        highlightPM.Remove(disconnectingPlayer);
-                    }
-                    if (privateMessages.ContainsKey(disconnectingPlayer))
-                    {
-                        privateMessages.Remove(disconnectingPlayer);
-                    }
-                }
+                HandleChatEvents();
             }
         }
 
@@ -484,13 +708,14 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             DrawRooms();
             GUILayout.FlexibleSpace();
-            if (selectedChannel != null || selectedPMChannel != null)
+            if (selectedChannel != null && selectedChannel != consoleIdentifier || selectedPMChannel != null)
             {
                 if (GUILayout.Button("Leave", buttonStyle))
-                {
-                    leaveEventHandled = false;
-                }
+               {
+                   leaveEventHandled = false;
+               }
             }
+            DrawConsole();
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             chatScrollPos = GUILayout.BeginScrollView(chatScrollPos, scrollStyle);
@@ -505,7 +730,7 @@ namespace DarkMultiPlayer
                     GUILayout.Label(channelMessage, labelStyle);
                 }
             }
-            if (selectedChannel != null)
+            if (selectedChannel != null && selectedChannel != consoleIdentifier)
             {
                 if (!channelMessages.ContainsKey(selectedChannel))
                 {
@@ -514,6 +739,13 @@ namespace DarkMultiPlayer
                 foreach (string channelMessage in channelMessages[selectedChannel])
                 {
                     GUILayout.Label(channelMessage, labelStyle);
+                }
+            }
+            if (selectedChannel == consoleIdentifier)
+            {
+                foreach (string consoleMessage in consoleMessages)
+                {
+                    GUILayout.Label(consoleMessage, labelStyle);
                 }
             }
             if (selectedPMChannel != null)
@@ -627,6 +859,34 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void DrawConsole()
+        {
+            GUIStyle possibleHighlightButtonStyle = buttonStyle;
+            if (selectedChannel == consoleIdentifier)
+            {
+                GUI.enabled = false;
+            }
+            if (highlightChannel.Contains(consoleIdentifier))
+            {
+                possibleHighlightButtonStyle = highlightStyle;
+            }
+            else
+            {
+                possibleHighlightButtonStyle = buttonStyle;
+            }
+            if (GUILayout.Button("#" + consoleIdentifier, possibleHighlightButtonStyle))
+            {
+                if (highlightChannel.Contains(consoleIdentifier))
+                {
+                    highlightChannel.Remove(consoleIdentifier);
+                }
+                selectedChannel = consoleIdentifier;
+                selectedPMChannel = null;
+                chatScrollPos.y = float.PositiveInfinity;
+            }
+            GUI.enabled = true;
+        }
+
         private void DrawRooms()
         {
             GUIStyle possibleHighlightButtonStyle = buttonStyle;
@@ -728,6 +988,27 @@ namespace DarkMultiPlayer
                 Client.drawEvent.Add(singleton.Draw);
             }
         }
+
+        private class ChatCommand : IComparable
+        {
+            public string name;
+            public Action<string> func;
+            public string description;
+
+            public ChatCommand(string name, Action<string> func, string description)
+            {
+                this.name = name;
+                this.func = func;
+                this.description = description;
+            }
+
+            public int CompareTo(object obj)
+            {
+                var cmd = obj as ChatCommand;
+                return this.name.CompareTo(cmd.name);
+            }
+        }
+
     }
 
     public class ChannelEntry
@@ -748,6 +1029,11 @@ namespace DarkMultiPlayer
     {
         public string fromPlayer;
         public string channel;
+    }
+
+    public class ConsoleEntry
+    {
+        public string message;
     }
 }
 

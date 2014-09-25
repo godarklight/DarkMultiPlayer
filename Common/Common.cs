@@ -480,6 +480,7 @@ namespace DarkMultiPlayerCommon
         LEAVE,
         CHANNEL_MESSAGE,
         PRIVATE_MESSAGE,
+        CONSOLE_MESSAGE
     }
 
     public enum LockMessageType
