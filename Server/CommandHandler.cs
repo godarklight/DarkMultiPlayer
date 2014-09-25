@@ -88,12 +88,12 @@ namespace DarkMultiPlayerServer
                     }
                     catch (Exception e)
                     {
-                        DarkLog.Error("Error handling command " + commandPart + ", Exception " + e);
+                        DarkLog.Error("Error handling server command " + commandPart + ", Exception " + e);
                     }
                 }
                 else
                 {
-                    DarkLog.Normal("Unknown command: " + commandPart);
+                    DarkLog.Normal("Unknown server command: " + commandPart);
                 }
             }
         }

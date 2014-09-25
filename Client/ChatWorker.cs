@@ -430,12 +430,12 @@ namespace DarkMultiPlayer
                         }
                         catch (Exception e)
                         {
-                            QueueSystemMessage("Error handling command " + commandPart + ", Exception " + e);
+                            QueueSystemMessage("Error handling chat command " + commandPart + ", Exception " + e);
                         }
                     }
                     else
                     {
-                        QueueSystemMessage("Unknown command: " + commandPart);
+                        QueueSystemMessage("Unknown chat command: " + commandPart);
                     }
                 }
             }
