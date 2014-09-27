@@ -19,6 +19,7 @@ namespace DarkMultiPlayer
         public bool incorrectlyInstalled = false;
         public bool modDisabled = false;
         public bool displayedIncorrectMessage = false;
+        public bool dmpSaveChecked = false;
         public string assemblyPath;
         public string assemblyShouldBeInstalledAt;
         //Game running is directly set from NetworkWorker.fetch after a successful connection
@@ -126,10 +127,18 @@ namespace DarkMultiPlayer
             }
             try
             {
-                if (HighLogic.LoadedScene == GameScenes.MAINMENU && !ModWorker.fetch.dllListBuilt)
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                 {
-                    ModWorker.fetch.dllListBuilt = true;
-                    ModWorker.fetch.BuildDllFileList();
+                    if (!ModWorker.fetch.dllListBuilt)
+                    {
+                        ModWorker.fetch.dllListBuilt = true;
+                        ModWorker.fetch.BuildDllFileList();
+                    }
+                    if (!dmpSaveChecked)
+                    {
+                        dmpSaveChecked = true;
+                        SetupBlankGameIfNeeded();
+                    }
                 }
 
                 //Handle GUI events
@@ -383,35 +392,8 @@ namespace DarkMultiPlayer
 
         private void StartGame()
         {
-            //.Start() seems to stupidly .Load() somewhere, lets remove the old DMP save.
-            string savePath = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
-            if (File.Exists(savePath))
-            {
-                DarkLog.Debug("Removing old DarkMultiPlayer save");
-                File.Delete(savePath);
-            }
-
             //Create new game object for our DMP session.
-            HighLogic.CurrentGame = new Game();
-
-            //KSP complains about a missing message system if we don't do this.
-            HighLogic.CurrentGame.additionalSystems = new ConfigNode();
-            HighLogic.CurrentGame.additionalSystems.AddNode("MESSAGESYSTEM");
-
-            //Flightstate is null on new Game();
-            HighLogic.CurrentGame.flightState = new FlightState();
-
-            //Ditto
-            //HighLogic.CurrentGame.flightState.protoVessels = new List<ProtoVessel>();
-
-            //DMP stuff
-            HighLogic.CurrentGame.startScene = GameScenes.SPACECENTER;
-            HighLogic.CurrentGame.flagURL = Settings.fetch.selectedFlag;
-            HighLogic.CurrentGame.Title = "DarkMultiPlayer";
-            HighLogic.CurrentGame.Parameters.Flight.CanQuickLoad = false;
-            HighLogic.CurrentGame.Parameters.Flight.CanRestart = false;
-            HighLogic.CurrentGame.Parameters.Flight.CanLeaveToEditor = false;
-            HighLogic.SaveFolder = "DarkMultiPlayer";
+            HighLogic.CurrentGame = CreateBlankGame();
 
             //Set the game mode
             SetGameMode();
@@ -437,7 +419,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
             DarkLog.Debug("Starting " + gameMode + " game...");
 
-            //.Start() seems to stupidly .Load() somewhere - Let's give it something to load.
+            //.Start() seems to stupidly .Load() somewhere - Let's overwrite it so it loads correctly.
             GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             HighLogic.CurrentGame.Start();
             ChatWorker.fetch.display = true;
@@ -497,6 +479,40 @@ namespace DarkMultiPlayer
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
             string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
             CreateIfNeeded(darkMultiPlayerFlagsDirectory);
+        }
+
+        private void SetupBlankGameIfNeeded()
+        {
+            string persistentFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
+            if (!File.Exists(persistentFile))
+            {
+                DarkLog.Debug("Creating new blank persistent.sfs file");
+                Game blankGame = CreateBlankGame();
+                HighLogic.SaveFolder = "DarkMultiPlayer";
+                GamePersistence.SaveGame(blankGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
+            }
+        }
+
+        private Game CreateBlankGame()
+        {
+            Game returnGame = new Game();
+            //KSP complains about a missing message system if we don't do this.
+            returnGame.additionalSystems = new ConfigNode();
+            returnGame.additionalSystems.AddNode("MESSAGESYSTEM");
+
+            //Flightstate is null on new Game();
+            returnGame.flightState = new FlightState();
+
+            //DMP stuff
+            returnGame.startScene = GameScenes.SPACECENTER;
+            returnGame.flagURL = Settings.fetch.selectedFlag;
+            returnGame.Title = "DarkMultiPlayer";
+            returnGame.Parameters.Flight.CanQuickLoad = false;
+            returnGame.Parameters.Flight.CanRestart = false;
+            returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            HighLogic.SaveFolder = "DarkMultiPlayer";
+
+            return returnGame;
         }
 
         private void CreateIfNeeded(string path)
