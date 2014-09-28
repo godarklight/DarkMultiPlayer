@@ -1027,7 +1027,7 @@ namespace DarkMultiPlayerServer
                 handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
                 reason = "Invalid username";
             }
-            if (playerName.Contains("/") || playerName.Contains(@"\"))
+            if (playerName.Contains("/") || playerName.Contains(@"\") || playerName.Contains("\n") || playerName.Contains("\r"))
             {
                 handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
                 reason = "Invalid username";
