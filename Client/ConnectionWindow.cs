@@ -1,4 +1,5 @@
 using System;
+using DarkMultiPlayerCommon;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -36,6 +37,15 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 200;
         private const float WINDOW_WIDTH = 400;
+        //version
+        private string version()
+        {
+            if (Common.PROGRAM_VERSION.Length == 40)
+            {
+                return "build " + Common.PROGRAM_VERSION.Substring(0, 7);
+            }
+            return Common.PROGRAM_VERSION;
+        }
 
         public ConnectionWindow()
         {
@@ -91,7 +101,7 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
-                GUILayout.Window(GUIUtility.GetControlID(6702 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer", windowStyle, layoutOptions);
+                GUILayout.Window(GUIUtility.GetControlID(6702 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer " + version(), windowStyle, layoutOptions);
             }
         }
 
