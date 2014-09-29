@@ -30,6 +30,11 @@ namespace DarkMultiPlayerServer
 
         public static void ExpireCache()
         {
+            if (!Directory.Exists(screenshotDirectory))
+            {
+                //Screenshot directory is missing so there will be no screenshots to delete.
+                return;
+            }
             string[] cacheObjects = GetCachedObjects();
             foreach (string cacheObject in cacheObjects)
             {
