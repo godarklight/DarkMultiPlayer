@@ -1277,6 +1277,19 @@ namespace DarkMultiPlayerServer
                             }
                         }
                         break;
+                    case ChatMessageType.CONSOLE_MESSAGE:
+                        {
+                            string message = mr.Read<string>();
+                            if (client.authenticated && serverAdmins.Contains(client.playerName))
+                            {
+                                CommandHandler.HandleServerInput(message);
+                            }
+                            else
+                            {
+                                SendConnectionEnd(client, "Kicked for sending a console command as a non-admin player.");
+                            }
+                        }
+                        break;
                 }
             }
         }
@@ -1386,6 +1399,7 @@ namespace DarkMultiPlayerServer
             SendCraftList(client);
             SendPlayerChatChannels(client);
             SendAllLocks(client);
+            SendAllAdmins(client);
             //Send kerbals
             lock (Server.universeSizeLock)
             {
@@ -2491,6 +2505,43 @@ namespace DarkMultiPlayerServer
             SendToClient(client, newMessage, true);
         }
 
+        public static void SendConsoleMessageToClient(ClientObject client, string message)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.CHAT_MESSAGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
+                mw.Write<string>(message);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, false);
+        }
+
+        public static void SendConsoleMessageToAdmins(string message)
+        {
+            if (clients == null)
+            {
+                //Early return to avoid throw while starting up.
+                return;
+            }
+            foreach (ClientObject client in clients)
+            {
+                if (client.authenticated && serverAdmins.Contains(client.playerName))
+                {
+                    SendConsoleMessageToClient(client, message);
+                }
+            }
+        }
+
+        public static void SendConsoleMessageToAll(string message)
+        {
+            foreach (ClientObject client in clients)
+            {
+                SendConsoleMessageToClient(client, message);
+            }
+        }
+
         private static void SendChatMessageToClient(ClientObject client, string messageText)
         {
             ServerMessage newMessage = new ServerMessage();
@@ -2670,6 +2721,19 @@ namespace DarkMultiPlayerServer
                 mw.Write((int)LockMessageType.LIST);
                 mw.Write<string[]>(lockKeys.ToArray());
                 mw.Write<string[]>(lockValues.ToArray());
+                newMessage.data = mw.GetMessageBytes();
+            }
+            SendToClient(client, newMessage, true);
+        }
+
+        private static void SendAllAdmins(ClientObject client)
+        {
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.ADMIN_SYSTEM;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write((int)AdminMessageType.LIST);
+                mw.Write<string[]>(serverAdmins.ToArray());
                 newMessage.data = mw.GetMessageBytes();
             }
             SendToClient(client, newMessage, true);
@@ -3158,6 +3222,16 @@ namespace DarkMultiPlayerServer
                             DarkLog.Debug("Added '" + playerName + "' to admin list.");
                             serverAdmins.Add(playerName);
                             SaveAdmins();
+                            //Notify all players an admin has been added
+                            ServerMessage newMessage = new ServerMessage();
+                            newMessage.type = ServerMessageType.ADMIN_SYSTEM;
+                            using (MessageWriter mw = new MessageWriter())
+                            {
+                                mw.Write<int>((int)AdminMessageType.ADD);
+                                mw.Write<string>(playerName);
+                                newMessage.data = mw.GetMessageBytes();
+                            }
+                            SendToAll(null, newMessage, true);
                         }
                         else
                         {
@@ -3176,6 +3250,17 @@ namespace DarkMultiPlayerServer
                         DarkLog.Normal("Removed '" + playerName + "' from the admin list.");
                         serverAdmins.Remove(playerName);
                         SaveAdmins();
+                        //Notify all players an admin has been removed
+                        ServerMessage newMessage = new ServerMessage();
+                        newMessage.type = ServerMessageType.ADMIN_SYSTEM;
+                        using (MessageWriter mw = new MessageWriter())
+                        {
+                            mw.Write<int>((int)AdminMessageType.REMOVE);
+                            mw.Write<string>(playerName);
+                            newMessage.data = mw.GetMessageBytes();
+                        }
+                        SendToAll(null, newMessage, true);
+
                     }
                     else
                     {

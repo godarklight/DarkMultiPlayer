@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 26;
+        public const int PROTOCOL_VERSION = 27;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -386,6 +386,7 @@ namespace DarkMultiPlayerCommon
         PING_REPLY,
         MOTD_REPLY,
         WARP_CONTROL,
+        ADMIN_SYSTEM,
         LOCK_SYSTEM,
         MOD_DATA,
         SPLIT_MESSAGE,
@@ -480,6 +481,14 @@ namespace DarkMultiPlayerCommon
         LEAVE,
         CHANNEL_MESSAGE,
         PRIVATE_MESSAGE,
+        CONSOLE_MESSAGE
+    }
+
+    public enum AdminMessageType
+    {
+        LIST,
+        ADD,
+        REMOVE,
     }
 
     public enum LockMessageType

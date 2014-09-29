@@ -726,6 +726,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.WARP_CONTROL:
                         HandleWarpControl(message.data);
                         break;
+                    case ServerMessageType.ADMIN_SYSTEM:
+                        AdminSystem.fetch.HandleAdminMessage(message.data);
+                        break;
                     case ServerMessageType.LOCK_SYSTEM:
                         LockSystem.fetch.HandleLockMessage(message.data);
                         break;
@@ -894,6 +897,12 @@ namespace DarkMultiPlayer
                             {
                                 ChatWorker.fetch.QueuePrivateMessage(fromPlayer, toPlayer, privateMessage);
                             }
+                        }
+                        break;
+                    case ChatMessageType.CONSOLE_MESSAGE:
+                        {
+                            string message = mr.Read<string>();
+                            ChatWorker.fetch.QueueSystemMessage(message);
                         }
                         break;
                 }

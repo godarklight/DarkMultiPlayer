@@ -77,6 +77,7 @@ namespace DarkMultiPlayer
             lock (eventLock)
             {
                 resetEvent.Add(LockSystem.Reset);
+                resetEvent.Add(AdminSystem.Reset);
                 resetEvent.Add(AsteroidWorker.Reset);
                 resetEvent.Add(ChatWorker.Reset);
                 resetEvent.Add(CraftLibraryWorker.Reset);

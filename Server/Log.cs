@@ -37,6 +37,7 @@ namespace DarkMultiPlayerServer
                     output = "[" + DateTime.Now.ToString("HH:mm:ss") + "][" + level.ToString() + "] : " + message;
                 }
                 Console.WriteLine(output);
+                ClientHandler.SendConsoleMessageToAdmins(output);
                 try
                 {
                     lock (logLock) {

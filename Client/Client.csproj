@@ -76,6 +76,7 @@
     <Compile Include="FlagSyncer.cs" />
     <Compile Include="DisclaimerWindow.cs" />
     <Compile Include="DMPModInterface.cs" />
+    <Compile Include="AdminSystem.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
