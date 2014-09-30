@@ -38,6 +38,8 @@ namespace DarkMultiPlayer
         public static object eventLock = new object();
         //Chosen by a 2147483647 sided dice roll. Guaranteed to be random.
         public const int WINDOW_OFFSET = 1664952404;
+        //Hack gravity fix.
+        private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody,double>();
 
         public Client()
         {
@@ -276,6 +278,15 @@ namespace DarkMultiPlayer
                         FlagSyncer.fetch.flagChangeEvent = true;
                     }
 
+                    // save every GeeASL from each body in FlightGlobals
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && bodiesGees.Count == 0)
+                    {
+                        foreach (CelestialBody body in FlightGlobals.fetch.bodies)
+                        {
+                            bodiesGees.Add(body, body.GeeASL);
+                        }
+                    }
+
                     //handle use of cheats
                     if (!serverAllowCheats)
                     {
@@ -283,6 +294,11 @@ namespace DarkMultiPlayer
                         CheatOptions.InfiniteEVAFuel = false;
                         CheatOptions.InfiniteRCS = false;
                         CheatOptions.NoCrashDamage = false;
+
+                        foreach (KeyValuePair<CelestialBody, double> gravityEntry in bodiesGees)
+                        {
+                            gravityEntry.Key.GeeASL = gravityEntry.Value;
+                        }
                     }
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
@@ -435,6 +451,7 @@ namespace DarkMultiPlayer
                 HighLogic.LoadScene(GameScenes.MAINMENU);
             }
             HighLogic.CurrentGame = null;
+            bodiesGees.Clear();
         }
 
         private void SetGameMode()
