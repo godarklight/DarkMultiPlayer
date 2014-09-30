@@ -283,6 +283,7 @@ namespace DarkMultiPlayer
                         CheatOptions.InfiniteEVAFuel = false;
                         CheatOptions.InfiniteRCS = false;
                         CheatOptions.NoCrashDamage = false;
+                        Destroy(FindObjectOfType(typeof(DebugToolbar)));
                     }
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
