@@ -136,7 +136,7 @@ namespace DarkMultiPlayer
                     Client.fetch.startGame = true;
                 }
             }
-            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER) && (UnityEngine.Time.timeSinceLevelLoad > 1f))
+            if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER))
             {
                 state = ClientState.RUNNING;
                 Client.fetch.status = "Running";
