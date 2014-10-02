@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
         private static OptionsWindow singleton = new OptionsWindow();
         public bool loadEventHandled = true;
         public bool display;
+        private bool isEditorLocked = false;
         private bool safeDisplay;
         private bool initialized;
         //GUI Layout
@@ -78,6 +79,7 @@ namespace DarkMultiPlayer
             {
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6711 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Options", windowStyle, layoutOptions);
             }
+            CheckEditorLock();
         }
 
         private void DrawContent(int windowID)
@@ -232,6 +234,51 @@ namespace DarkMultiPlayer
                 display = false;
             }
             GUILayout.EndVertical();
+        }
+
+        private void CheckEditorLock()
+        {
+            if (!Client.fetch.gameRunning)
+            {
+                return;
+            }
+
+            EditorLogic editor = EditorLogic.fetch;
+
+            if (editor == null)
+            {
+                return;
+            }
+
+            if (safeDisplay)
+            {
+                Vector2 mousePos = Input.mousePosition;
+                mousePos.y = Screen.height - mousePos.y;
+
+                bool shouldLock = (windowRect.Contains(mousePos) || moveRect.Contains(mousePos));
+
+
+                if (shouldLock && !isEditorLocked)
+                {
+                    EditorLogic.fetch.Lock(true, true, true, "DMP_OptionsLock");
+                    isEditorLocked = true;
+                }
+                else if (!shouldLock)
+                {
+                    if (!isEditorLocked)
+                    {
+                        editor.Lock(true, true, true, "DMP_OptionsLock");
+                    }
+                    editor.Unlock("DMP_OptionsLock");
+                    isEditorLocked = false;
+                }
+            }
+
+            if (!safeDisplay && isEditorLocked)
+            {
+                editor.Unlock("DMP_OptionsLock");
+                isEditorLocked = false;
+            }
         }
     }
 }

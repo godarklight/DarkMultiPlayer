@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
         private static ChatWorker singleton;
         public bool display = false;
         public bool workerEnabled = false;
+        private bool isEditorLocked = false;
         private bool safeDisplay = false;
         private bool initialized = false;
         //State tracking
@@ -59,6 +60,7 @@ namespace DarkMultiPlayer
         private float WINDOW_WIDTH = 400;
         //const
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
+        private const string DMP_CHAT_WINDOW_LOCK = "DMP_Chat_Window_Lock";
         public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
         public static ChatWorker fetch
@@ -711,6 +713,7 @@ namespace DarkMultiPlayer
                 }
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6704 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer Chat", windowStyle, windowLayoutOptions);
             }
+            CheckEditorLock();
         }
 
         private void DrawContent(int windowID)
@@ -1002,6 +1005,51 @@ namespace DarkMultiPlayer
                 singleton = new ChatWorker();
                 Client.updateEvent.Add(singleton.Update);
                 Client.drawEvent.Add(singleton.Draw);
+            }
+        }
+
+        private void CheckEditorLock()
+        {
+            if (!Client.fetch.gameRunning)
+            {
+                return;
+            }
+
+            EditorLogic editor = EditorLogic.fetch;
+
+            if (editor == null)
+            {
+                return;
+            }
+
+            if (safeDisplay)
+            {
+                Vector2 mousePos = Input.mousePosition;
+                mousePos.y = Screen.height - mousePos.y;
+
+                bool shouldLock = (windowRect.Contains(mousePos) || moveRect.Contains(mousePos));
+
+
+                if (shouldLock && !isEditorLocked)
+                {
+                    EditorLogic.fetch.Lock(true, true, true, DMP_CHAT_WINDOW_LOCK);
+                    isEditorLocked = true;
+                }
+                else if (!shouldLock)
+                {
+                    if (!isEditorLocked)
+                    {
+                        editor.Lock(true, true, true, DMP_CHAT_WINDOW_LOCK);
+                    }
+                    editor.Unlock(DMP_CHAT_WINDOW_LOCK);
+                    isEditorLocked = false;
+                }
+            }
+
+            if (!safeDisplay && isEditorLocked)
+            {
+                editor.Unlock(DMP_CHAT_WINDOW_LOCK);
+                isEditorLocked = false;
             }
         }
 
