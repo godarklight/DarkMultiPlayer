@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
         public bool display = false;
         public bool disconnectEventHandled = true;
         public bool colorEventHandled = true;
+        private bool isEditorLocked = false;
         //private parts
         private static PlayerStatusWindow singleton;
         private bool initialized;
@@ -154,6 +155,7 @@ namespace DarkMultiPlayer
                     minWindowRect = GUILayout.Window(GUIUtility.GetControlID(6703 + Client.WINDOW_OFFSET, FocusType.Passive), minWindowRect, DrawMaximize, "DMP", windowStyle, minLayoutOptions);
                 }
             }
+            CheckEditorLock();
         }
 
         private void DrawContent(int windowID)
@@ -237,6 +239,51 @@ namespace DarkMultiPlayer
             OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "Options", buttonStyle);
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
+        }
+
+        private void CheckEditorLock()
+        {
+            if (!Client.fetch.gameRunning)
+            {
+                return;
+            }
+
+            EditorLogic editor = EditorLogic.fetch;
+
+            if (editor == null)
+            {
+                return;
+            }
+
+            if (display)
+            {
+                Vector2 mousePos = Input.mousePosition;
+                mousePos.y = Screen.height - mousePos.y;
+
+                bool shouldLock = (moveRect.Contains(mousePos) || minWindowRect.Contains(mousePos) || (minmized ? false : windowRect.Contains(mousePos)));
+
+
+                if (shouldLock && !isEditorLocked)
+                {
+                    EditorLogic.fetch.Lock(true, true, true, "DMP_PlayerStatusLock");
+                    isEditorLocked = true;
+                }
+                else if (!shouldLock)
+                {
+                    if (!isEditorLocked)
+                    {
+                        editor.Lock(true, true, true, "DMP_PlayerStatusLock");
+                    }
+                    editor.Unlock("DMP_PlayerStatusLock");
+                    isEditorLocked = false;
+                }
+            }
+
+            if (!display && isEditorLocked)
+            {
+                editor.Unlock("DMP_PlayerStatusLock");
+                isEditorLocked = false;
+            }
         }
 
         private string SecondsToLongString(int time)

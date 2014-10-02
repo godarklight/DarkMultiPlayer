@@ -9,6 +9,7 @@ namespace DarkMultiPlayer
         public bool display = false;
         private bool safeDisplay = false;
         private bool initialized = false;
+        private bool isEditorLocked = false;
         private static DebugWindow singleton;
         //private parts
         private bool displayFast;
@@ -76,6 +77,7 @@ namespace DarkMultiPlayer
                 }
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6705 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer - Debug", windowStyle, layoutOptions);
             }
+            CheckEditorLock();
         }
 
         private void DrawContent(int windowID)
@@ -176,6 +178,51 @@ namespace DarkMultiPlayer
                         requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
                     }
                 }
+            }
+        }
+
+        private void CheckEditorLock()
+        {
+            if (!Client.fetch.gameRunning)
+            {
+                return;
+            }
+
+            EditorLogic editor = EditorLogic.fetch;
+
+            if (editor == null)
+            {
+                return;
+            }
+
+            if (safeDisplay)
+            {
+                Vector2 mousePos = Input.mousePosition;
+                mousePos.y = Screen.height - mousePos.y;
+
+                bool shouldLock = (windowRect.Contains(mousePos) || moveRect.Contains(mousePos));
+
+
+                if (shouldLock && !isEditorLocked)
+                {
+                    EditorLogic.fetch.Lock(true, true, true, "DMP_DebugLock");
+                    isEditorLocked = true;
+                }
+                else if (!shouldLock)
+                {
+                    if (!isEditorLocked)
+                    {
+                        editor.Lock(true, true, true, "DMP_DebugLock");
+                    }
+                    editor.Unlock("DMP_DebugLock");
+                    isEditorLocked = false;
+                }
+            }
+
+            if (!safeDisplay && isEditorLocked)
+            {
+                editor.Unlock("DMP_DebugLock");
+                isEditorLocked = false;
             }
         }
 

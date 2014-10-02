@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         private static ScreenshotWorker singleton;
         //GUI stuff
         private bool initialized;
+        private bool isEditorLocked = false;
         public bool workerEnabled;
         private GUIStyle windowStyle;
         private GUILayoutOption[] windowLayoutOption;
@@ -248,6 +249,7 @@ namespace DarkMultiPlayer
             {
                 windowRect = GUILayout.Window(GUIUtility.GetControlID(6710 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption);
             }
+            CheckEditorLock();
         }
 
         private void DrawContent(int windowID)
@@ -278,6 +280,51 @@ namespace DarkMultiPlayer
                 }
             }
             GUILayout.EndHorizontal();
+        }
+
+        private void CheckEditorLock()
+        {
+            if (!Client.fetch.gameRunning)
+            {
+                return;
+            }
+
+            EditorLogic editor = EditorLogic.fetch;
+
+            if (editor == null)
+            {
+                return;
+            }
+
+            if (safeDisplay)
+            {
+                Vector2 mousePos = Input.mousePosition;
+                mousePos.y = Screen.height - mousePos.y;
+
+                bool shouldLock = (windowRect.Contains(mousePos) || moveRect.Contains(mousePos));
+
+
+                if (shouldLock && !isEditorLocked)
+                {
+                    EditorLogic.fetch.Lock(true, true, true, "DMP_ScreenshotLock");
+                    isEditorLocked = true;
+                }
+                else if (!shouldLock)
+                {
+                    if (!isEditorLocked)
+                    {
+                        editor.Lock(true, true, true, "DMP_ScreenshotLock");
+                    }
+                    editor.Unlock("DMP_ScreenshotLock");
+                    isEditorLocked = false;
+                }
+            }
+
+            if (!safeDisplay && isEditorLocked)
+            {
+                editor.Unlock("DMP_ScreenshotLock");
+                isEditorLocked = false;
+            }
         }
 
         private void DrawPlayerButton(string playerName)

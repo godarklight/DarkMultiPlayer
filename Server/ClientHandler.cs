@@ -3025,7 +3025,7 @@ namespace DarkMultiPlayerServer
             if (commandArgs.Contains(" "))
             {
                 playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
             }
             ClientObject player = null;
 
@@ -3059,7 +3059,7 @@ namespace DarkMultiPlayerServer
             if (commandArgs.Contains(" "))
             {
                 playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
             }
 
             if (playerName != "")
@@ -3093,7 +3093,7 @@ namespace DarkMultiPlayerServer
             if (commandArgs.Contains(" "))
             {
                 ip = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
             }
 
             IPAddress ipAddress;
@@ -3132,7 +3132,7 @@ namespace DarkMultiPlayerServer
             if (commandArgs.Contains(" "))
             {
                 guid = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" "));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
             }
 
             Guid bguid;
