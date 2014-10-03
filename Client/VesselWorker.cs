@@ -1885,7 +1885,9 @@ namespace DarkMultiPlayer
             {
                 if (partAction.from.vessel != null && partAction.to.vessel != null)
                 {
-                    if (partAction.from.vessel == FlightGlobals.fetch.activeVessel || partAction.to.vessel == FlightGlobals.fetch.activeVessel)
+                    bool fromVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.from.vessel.id.ToString());
+                    bool toVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.to.vessel.id.ToString());
+                    if (fromVesselUpdateLockIsOurs || toVesselUpdateLockIsOurs)
                     {                    
                         DarkLog.Debug("Vessel docking, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
                         DarkLog.Debug("Vessel docking, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
@@ -1896,6 +1898,18 @@ namespace DarkMultiPlayer
                         fromDockedVesselID = partAction.from.vessel.id.ToString();
                         toDockedVesselID = partAction.to.vessel.id.ToString();
                         PrintDockingInProgress();
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Inconsistent docking state detected, killing both vessels if possible.");
+                        if (partAction.from.vessel != FlightGlobals.fetch.activeVessel)
+                        {
+                            delayKillVessels.Add(partAction.from.vessel);
+                        }
+                        if (partAction.to.vessel != FlightGlobals.fetch.activeVessel)
+                        {
+                            delayKillVessels.Add(partAction.to.vessel);
+                        }
                     }
                 }
             }
