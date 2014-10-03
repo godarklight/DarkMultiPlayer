@@ -1982,6 +1982,17 @@ namespace DarkMultiPlayer
                     delayKillVessels.Add(killVessel);
                 }
                 lastKillVesselDestroy[killVessel.id.ToString()] = UnityEngine.Time.realtimeSinceStartup;
+                if (killVessel.loaded)
+                {
+                    try
+                    {
+                        killVessel.Unload();
+                    }
+                    catch (Exception unloadException)
+                    {
+                        DarkLog.Debug("Error unloading vessel: " + unloadException);
+                    }
+                }
                 try
                 {
                     killVessel.Die();
