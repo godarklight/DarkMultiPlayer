@@ -56,7 +56,6 @@ namespace DarkMultiPlayer
 
         public void Awake()
         {
-            GameEvents.debugEvents = true;
             GameObject.DontDestroyOnLoad(this);
             assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
             string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
