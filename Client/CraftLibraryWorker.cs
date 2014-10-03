@@ -433,7 +433,7 @@ namespace DarkMultiPlayer
                 Vector2 mousePos = Input.mousePosition;
                 mousePos.y = Screen.height - mousePos.y;
 
-                bool shouldLock = (playerWindowRect.Contains(mousePos) || moveRect.Contains(mousePos) || libraryWindowRect.Contains(mousePos));
+                bool shouldLock = (playerWindowRect.Contains(mousePos) || libraryWindowRect.Contains(mousePos));
 
 
                 if (shouldLock && !isEditorLocked)

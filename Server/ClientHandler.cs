@@ -2334,8 +2334,9 @@ namespace DarkMultiPlayerServer
                         long optimizedBytes = 0;
                         if ((currentTime - client.lastQueueOptimizeTime) > 50000000)
                         {
-                            DarkLog.Debug("Optimizing " + client.playerName + " (" + client.bytesQueuedOut + " bytes queued)");
                             client.lastQueueOptimizeTime = currentTime;
+                            DarkLog.Debug("Optimizing " + client.playerName + " (" + client.bytesQueuedOut + " bytes queued)");
+
                             //Create a temporary filter list
                             List<ServerMessage> oldClientMessagesToSend = new List<ServerMessage>();
                             List<ServerMessage> newClientMessagesToSend = new List<ServerMessage>();
