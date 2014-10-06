@@ -18,11 +18,13 @@ namespace DarkMultiPlayer
         private bool displayConnectionQueue;
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
+        private bool displayProfilerStatistics;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
         private string dynamicTickText = "";
         private string requestedRateText = "";
+        private string profilerText = "";
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -34,7 +36,7 @@ namespace DarkMultiPlayer
         private GUIStyle labelStyle;
         //const
         private const float WINDOW_HEIGHT = 400;
-        private const float WINDOW_WIDTH = 300;
+        private const float WINDOW_WIDTH = 350;
         private const float DISPLAY_UPDATE_INTERVAL = .2f;
 
         public static DebugWindow fetch
@@ -111,6 +113,26 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(requestedRateText, labelStyle);
             }
+            displayProfilerStatistics = GUILayout.Toggle(displayProfilerStatistics, "Display Profiler Statistics", buttonStyle);
+            if (displayProfilerStatistics)
+            {
+                if (System.Diagnostics.Stopwatch.IsHighResolution)
+                {
+                    if (GUILayout.Button("Reset Profiler history", buttonStyle))
+                    {
+                        Profiler.updateData = new ProfilerData();
+                        Profiler.fixedUpdateData = new ProfilerData();
+                        Profiler.guiData = new ProfilerData();
+                    }
+                    GUILayout.Label("Timer resolution: " + System.Diagnostics.Stopwatch.Frequency + " hz", labelStyle);
+                    GUILayout.Label(profilerText, labelStyle);
+                }
+                else
+                {
+                    GUILayout.Label("Timer resolution: " + System.Diagnostics.Stopwatch.Frequency + " hz", labelStyle);
+                    GUILayout.Label("Profiling statistics unavailable without a high resolution timer");
+                }
+            }
             GUILayout.EndVertical();
         }
 
@@ -178,6 +200,10 @@ namespace DarkMultiPlayer
                     {
                         requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
                     }
+
+                    profilerText = "Update: \n" + Profiler.updateData;
+                    profilerText += "Fixed Update: \n" + Profiler.fixedUpdateData;
+                    profilerText += "GUI: \n" + Profiler.guiData;
                 }
             }
         }

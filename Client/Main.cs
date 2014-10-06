@@ -56,6 +56,7 @@ namespace DarkMultiPlayer
 
         public void Awake()
         {
+            Profiler.DMPReferenceTime.Start();
             GameObject.DontDestroyOnLoad(this);
             assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
             string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
@@ -108,12 +109,9 @@ namespace DarkMultiPlayer
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
         }
 
-        public void Start()
-        {
-        }
-
         public void Update()
         {
+            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             DarkLog.Update();
             if (modDisabled)
             {
@@ -338,6 +336,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            Profiler.updateData.ReportTime(startClock);
         }
 
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
@@ -349,6 +348,7 @@ namespace DarkMultiPlayer
 
         public void FixedUpdate()
         {
+            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (modDisabled)
             {
                 return;
@@ -375,6 +375,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            Profiler.fixedUpdateData.ReportTime(startClock);
         }
 
         public void OnGUI()
@@ -391,6 +392,7 @@ namespace DarkMultiPlayer
             //Options window: 6711
             //Converter window: 6712
             //Disclaimer window: 6713
+            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (showGUI)
             {
                 foreach (Action drawAction in drawEvent)
@@ -405,6 +407,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            Profiler.guiData.ReportTime(startClock);
         }
 
         private void StartGame()

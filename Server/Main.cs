@@ -32,7 +32,7 @@ namespace DarkMultiPlayerServer
                 serverClock.Start();
 
                 //Set the last player activity time to server start
-                lastPlayerActivity = serverClock.ElapsedTicks;
+                lastPlayerActivity = serverClock.ElapsedMilliseconds;
 
                 //Periodic garbage collection
                 long lastGarbageCollect = 0;
@@ -101,9 +101,9 @@ namespace DarkMultiPlayerServer
                     while (serverRunning)
                     {
                         //Run a garbage collection every 2 minutes.
-                        if ((serverClock.ElapsedTicks - lastGarbageCollect) > 1200000000)
+                        if ((serverClock.ElapsedMilliseconds - lastGarbageCollect) > 12000)
                         {
-                            lastGarbageCollect = serverClock.ElapsedTicks;
+                            lastGarbageCollect = serverClock.ElapsedMilliseconds;
                             GC.Collect();
                         }
                         //Run the screenshot expire function every 10 minutes
@@ -158,7 +158,7 @@ namespace DarkMultiPlayerServer
             {
                 return 0;
             }
-            return (serverClock.ElapsedTicks - lastPlayerActivity) / 10000000;
+            return (serverClock.ElapsedMilliseconds - lastPlayerActivity) / 1000;
         }
         //Create universe directories
         private static void CheckUniverse()

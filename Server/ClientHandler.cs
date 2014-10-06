@@ -882,7 +882,7 @@ namespace DarkMultiPlayerServer
                     {
                         DarkLog.Debug("Error closing client connection: " + e.Message);
                     }
-                    Server.lastPlayerActivity = Server.serverClock.ElapsedTicks;
+                    Server.lastPlayerActivity = Server.serverClock.ElapsedMilliseconds;
                 }
             }
         }
