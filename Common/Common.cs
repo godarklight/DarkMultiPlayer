@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 27;
+        public const int PROTOCOL_VERSION = 28;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -242,6 +242,37 @@ namespace DarkMultiPlayerCommon
             //0.24 parts
             stockPartList.Add("omsEngine");
             stockPartList.Add("vernierEngine");
+            //0.25 parts
+            stockPartList.Add("delta_small");
+            stockPartList.Add("elevon2");
+            stockPartList.Add("elevon3");
+            stockPartList.Add("elevon5");
+            stockPartList.Add("IntakeRadialLong");
+            stockPartList.Add("MK1IntakeFuselage");
+            stockPartList.Add("mk2_1m_AdapterLong");
+            stockPartList.Add("mk2_1m_Bicoupler");
+            stockPartList.Add("mk2CargoBayL");
+            stockPartList.Add("mk2CargoBayS");
+            stockPartList.Add("mk2Cockpit_Inline");
+            stockPartList.Add("mk2Cockpit_Standard");
+            stockPartList.Add("mk2CrewCabin");
+            stockPartList.Add("mk2DockingPort");
+            stockPartList.Add("mk2DroneCore");
+            stockPartList.Add("mk2FuselageLongLFO");
+            stockPartList.Add("mk2FuselageShortLFO");
+            stockPartList.Add("mk2FuselageShortLiquid");
+            stockPartList.Add("mk2FuselageShortMono");
+            stockPartList.Add("shockConeIntake");
+            stockPartList.Add("structuralWing2");
+            stockPartList.Add("structuralWing3");
+            stockPartList.Add("structuralWing4");
+            stockPartList.Add("sweptWing1");
+            stockPartList.Add("sweptWing2");
+            stockPartList.Add("wingConnector2");
+            stockPartList.Add("wingConnector3");
+            stockPartList.Add("wingConnector4");
+            stockPartList.Add("wingConnector5");
+            stockPartList.Add("wingStrake");
             return stockPartList;
         }
 

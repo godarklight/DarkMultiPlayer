@@ -1130,7 +1130,6 @@ namespace DarkMultiPlayer
                 update.flightState.gearDown = mr.Read<bool>();
                 update.flightState.headlight = mr.Read<bool>();
                 update.flightState.wheelThrottle = mr.Read<float>();
-                update.flightState.fastThrottle = mr.Read<float>();
                 update.flightState.roll = mr.Read<float>();
                 update.flightState.yaw = mr.Read<float>();
                 update.flightState.pitch = mr.Read<float>();
@@ -1553,7 +1552,6 @@ namespace DarkMultiPlayer
                 mw.Write<bool>(update.flightState.gearDown);
                 mw.Write<bool>(update.flightState.headlight);
                 mw.Write<float>(update.flightState.wheelThrottle);
-                mw.Write<float>(update.flightState.fastThrottle);
                 mw.Write<float>(update.flightState.roll);
                 mw.Write<float>(update.flightState.yaw);
                 mw.Write<float>(update.flightState.pitch);
