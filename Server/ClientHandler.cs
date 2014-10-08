@@ -7,6 +7,7 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Security.Cryptography;
 using MessageStream;
 using System.IO;
 using DarkMultiPlayerCommon;
@@ -25,13 +26,13 @@ namespace DarkMultiPlayerServer
         private static string subspaceFile = Path.Combine(Server.universeDirectory, "subspace.txt");
         private static string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
         private static string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
-        private static string guidBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPGuidBans.txt");
+        private static string publicKeyBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPKeyBans.txt");
         private static string adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
         private static string whitelistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPWhitelist.txt");
         private static Dictionary<string, List<string>> playerChatChannels;
         private static List<string> bannedNames;
         private static List<IPAddress> bannedIPs;
-        private static List<Guid> bannedGUIDs;
+        private static List<string> bannedPublicKeys;
         private static List<string> banReasons;
         private static List<string> serverAdmins;
         private static List<string> serverWhitelist;
@@ -54,7 +55,7 @@ namespace DarkMultiPlayerServer
                 playerChatChannels = new Dictionary<string, List<string>>();
                 bannedNames = new List<string>();
                 bannedIPs = new List<IPAddress>();
-                bannedGUIDs = new List<Guid>();
+                bannedPublicKeys = new List<string>();
                 banReasons = new List<string>();
                 serverAdmins = new List<string>();
                 serverWhitelist = new List<string>();
@@ -297,6 +298,7 @@ namespace DarkMultiPlayerServer
             StartReceivingIncomingMessages(newClientObject);
             StartSendingOutgoingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
+            SendHandshakeChallange(newClientObject);
             addClients.Enqueue(newClientObject);
         }
 
@@ -375,11 +377,11 @@ namespace DarkMultiPlayerServer
                     }
                 }
 
-                using (StreamWriter sw = new StreamWriter(guidBanlistFile))
+                using (StreamWriter sw = new StreamWriter(publicKeyBanlistFile))
                 {
-                    foreach (Guid guid in bannedGUIDs)
+                    foreach (string publicKey in bannedPublicKeys)
                     {
-                        sw.WriteLine("{0}", guid);
+                        sw.WriteLine("{0}", publicKey);
                     }
                 }
             }
@@ -427,7 +429,7 @@ namespace DarkMultiPlayerServer
 
             bannedNames.Clear();
             bannedIPs.Clear();
-            bannedGUIDs.Clear();
+            bannedPublicKeys.Clear();
             banReasons.Clear();
 
             if (File.Exists(banlistFile))
@@ -468,27 +470,19 @@ namespace DarkMultiPlayerServer
                 File.Create(ipBanlistFile);
             }
 
-            if (File.Exists(guidBanlistFile))
+            if (File.Exists(publicKeyBanlistFile))
             {
-                foreach (string line in File.ReadAllLines(guidBanlistFile))
+                foreach (string bannedPublicKey in File.ReadAllLines(publicKeyBanlistFile))
                 {
-                    Guid bannedGUID = Guid.Empty;
-                    if (Guid.TryParse(line, out bannedGUID))
+                    if (!bannedPublicKeys.Contains(bannedPublicKey))
                     {
-                        if (!bannedGUIDs.Contains(bannedGUID))
-                        {
-                            bannedGUIDs.Add(bannedGUID);
-                        }
-                    }
-                    else
-                    {
-                        DarkLog.Error("Error in GUID ban list file, " + line + " is not an valid player token");
+                        bannedPublicKeys.Add(bannedPublicKey);
                     }
                 }
             }
             else
             {
-                File.Create(guidBanlistFile);
+                File.Create(publicKeyBanlistFile);
             }
         }
 
@@ -903,7 +897,7 @@ namespace DarkMultiPlayerServer
             }
 
             //Clients can only send HEARTBEATS, HANDSHAKE_REQUEST or CONNECTION_END's until they are authenticated.
-            if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_REQUEST || message.type == ClientMessageType.CONNECTION_END))
+            if (!client.authenticated && !(message.type == ClientMessageType.HEARTBEAT || message.type == ClientMessageType.HANDSHAKE_RESPONSE || message.type == ClientMessageType.CONNECTION_END))
             {
                 SendConnectionEnd(client, "You must authenticate before attempting to send a " + message.type.ToString() + " message");
                 return;
@@ -916,8 +910,8 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.HEARTBEAT:
                         //Don't do anything for heartbeats, they just keep the connection alive
                         break;
-                    case ClientMessageType.HANDSHAKE_REQUEST:
-                        HandleHandshakeRequest(client, message.data);
+                    case ClientMessageType.HANDSHAKE_RESPONSE:
+                        HandleHandshakeResponse(client, message.data);
                         break;
                     case ClientMessageType.CHAT_MESSAGE:
                         HandleChatMessage(client, message.data);
@@ -995,11 +989,12 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static void HandleHandshakeRequest(ClientObject client, byte[] messageData)
+        private static void HandleHandshakeResponse(ClientObject client, byte[] messageData)
         {
             int protocolVersion;
             string playerName = "";
-            string playerGuid = Guid.Empty.ToString();
+            string playerPublicKey;
+            byte[] playerChallangeSignature;
             string clientVersion = "";
             string reason = "";
             Regex regex = new Regex(@"[\""<>|$]"); // Regex to detect quotation marks, and other illegal characters
@@ -1011,7 +1006,8 @@ namespace DarkMultiPlayerServer
                 {
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();
-                    playerGuid = mr.Read<string>();
+                    playerPublicKey = mr.Read<string>();
+                    playerChallangeSignature = mr.Read<byte[]>();
                     clientVersion = mr.Read<string>();
                 }
             }
@@ -1075,28 +1071,35 @@ namespace DarkMultiPlayerServer
             {
                 //Check the client matches any database entry
                 string storedPlayerFile = Path.Combine(Server.universeDirectory, "Players", playerName + ".txt");
-                string storedPlayerGuid = "";
+                string storedPlayerPublicKey = "";
                 if (File.Exists(storedPlayerFile))
                 {
-                    using (StreamReader sr = new StreamReader(storedPlayerFile))
+                    storedPlayerPublicKey = File.ReadAllText(storedPlayerFile);
+                    if (playerPublicKey != storedPlayerPublicKey)
                     {
-                        storedPlayerGuid = sr.ReadLine();
+                        handshakeReponse = HandshakeReply.INVALID_KEY;
+                        reason = "Invalid key for user";
                     }
-                    if (playerGuid != storedPlayerGuid)
+                    else
                     {
-                        handshakeReponse = HandshakeReply.INVALID_TOKEN;
-                        reason = "Invalid player token for user";
+                        using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
+                        {
+                            rsa.PersistKeyInCsp = false;
+                            rsa.FromXmlString(playerPublicKey);
+                            bool result = rsa.VerifyData(client.challange, CryptoConfig.CreateFromName("SHA256"), playerChallangeSignature);
+                            if (!result)
+                            {
+                                handshakeReponse = HandshakeReply.INVALID_KEY;
+                                reason = "Public/private key mismatch";
+                            }
+                        }
                     }
                 }
                 else
                 {
                     try
                     {
-                        using (StreamWriter sw = new StreamWriter(storedPlayerFile))
-                        {
-                            sw.WriteLine(playerGuid);
-                        }
-                        
+                        File.WriteAllText(storedPlayerFile, playerPublicKey);
                         DarkLog.Debug("Client " + playerName + " registered!");
                     }
                     catch
@@ -1108,12 +1111,12 @@ namespace DarkMultiPlayerServer
             }
 
             client.playerName = playerName;
-            client.GUID = Guid.Parse(playerGuid);
+            client.publicKey = playerPublicKey;
             client.clientVersion = clientVersion;
 
             if (handshakeReponse == HandshakeReply.HANDSHOOK_SUCCESSFULLY)
             {
-                if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedGUIDs.Contains(client.GUID))
+                if (bannedNames.Contains(client.playerName) || bannedIPs.Contains(client.ipAddress) || bannedPublicKeys.Contains(client.publicKey))
                 {
                     handshakeReponse = HandshakeReply.PLAYER_BANNED;
                     reason = "You were banned from the server!";
@@ -2456,12 +2459,12 @@ namespace DarkMultiPlayerServer
             return findClient;
         }
 
-        public static ClientObject GetClientByGuid(Guid guid)
+        public static ClientObject GetClientByPublicKey(string publicKey)
         {
             ClientObject findClient = null;
             foreach (ClientObject testClient in clients)
             {
-                if (testClient.authenticated && testClient.GUID == guid)
+                if (testClient.authenticated && testClient.publicKey == publicKey)
                 {
                     findClient = testClient;
                     break;
@@ -2474,6 +2477,21 @@ namespace DarkMultiPlayerServer
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.HEARTBEAT;
+            SendToClient(client, newMessage, true);
+        }
+
+        private static void SendHandshakeChallange(ClientObject client)
+        {
+            client.challange = new byte[1024];
+            Random rand = new Random();
+            rand.NextBytes(client.challange);
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.HANDSHAKE_CHALLANGE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<byte[]>(client.challange);
+                newMessage.data = mw.GetMessageBytes();
+            }
             SendToClient(client, newMessage, true);
         }
 
@@ -3125,42 +3143,34 @@ namespace DarkMultiPlayerServer
 
         }
 
-        public static void BanGuid(string commandArgs)
+        public static void BanPublicKey(string commandArgs)
         {
-            string guid = commandArgs;
+            string publicKey = commandArgs;
             string reason = "";
 
             if (commandArgs.Contains(" "))
             {
-                guid = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                publicKey = commandArgs.Substring(0, commandArgs.IndexOf(" "));
                 reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
             }
 
-            Guid bguid;
-            if (Guid.TryParse(guid, out bguid))
+            ClientObject player = GetClientByPublicKey(publicKey);
+
+            if (reason == "")
             {
-
-                ClientObject player = GetClientByGuid(bguid);
-
-                if (reason == "")
-                {
-                    reason = "no reason specified";
-                }
-
-                if (player != null)
-                {
-                    SendConnectionEnd(player, "You were banned from the server!");
-                }
-                bannedGUIDs.Add(bguid);
-                banReasons.Add(reason);
-                SaveBans();
-
-                DarkLog.Normal("GUID '" + guid + "' was banned from the server: " + reason);
+                reason = "no reason specified";
             }
-            else
+
+            if (player != null)
             {
-                DarkLog.Normal(guid + " is not a valid player token");
+                SendConnectionEnd(player, "You were banned from the server!");
             }
+            bannedPublicKeys.Add(publicKey);
+            banReasons.Add(reason);
+            SaveBans();
+
+            DarkLog.Normal("Public key '" + publicKey + "' was banned from the server: " + reason);
+
         }
 
         public static void PMCommand(string commandArgs)
@@ -3335,11 +3345,12 @@ namespace DarkMultiPlayerServer
     public class ClientObject
     {
         public bool authenticated;
+        public byte[] challange;
         public string playerName = "Unknown";
         public string clientVersion;
         public bool isBanned;
         public IPAddress ipAddress;
-        public Guid GUID = Guid.Empty;
+        public string publicKey;
         //subspace tracking
         public int subspace = -1;
         public float subspaceRate = 1f;

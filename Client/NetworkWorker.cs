@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography;
 using System.Threading;
 using UnityEngine;
 using DarkMultiPlayerCommon;
@@ -85,11 +86,14 @@ namespace DarkMultiPlayer
 
             if (state == ClientState.CONNECTED)
             {
-                DarkLog.Debug("Sending handshake!");
-                state = ClientState.HANDSHAKING;
-                Client.fetch.status = "Handshaking";
-                SendHandshakeRequest();
+                Client.fetch.status = "Connected";
             }
+
+            if (state == ClientState.HANDSHAKING)
+            {
+                Client.fetch.status = "Handshaking";
+            }
+
             if (state == ClientState.AUTHENTICATED)
             {
                 NetworkWorker.fetch.SendPlayerStatus(PlayerStatusWorker.fetch.myPlayerStatus);
@@ -388,7 +392,6 @@ namespace DarkMultiPlayer
                 //Don't care
             }
         }
-
         #endregion
         #region Network writers/readers
         private void StartReceivingIncomingMessages()
@@ -657,6 +660,9 @@ namespace DarkMultiPlayer
                 {
                     case ServerMessageType.HEARTBEAT:
                         break;
+                    case ServerMessageType.HANDSHAKE_CHALLANGE:
+                        HandleHandshakeChallange(message.data);
+                        break;
                     case ServerMessageType.HANDSHAKE_REPLY:
                         HandleHandshakeReply(message.data);
                         break;
@@ -750,6 +756,29 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Error handling message type " + message.type + ", exception: " + e);
                 SendDisconnect("Error handling " + message.type + " message");
+            }
+        }
+
+        private void HandleHandshakeChallange(byte[] messageData)
+        {
+            try
+            {
+                using (MessageReader mr = new MessageReader(messageData, false))
+                {
+                    byte[] challange = mr.Read<byte[]>();
+                    using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
+                    {
+                        rsa.PersistKeyInCsp = false;
+                        rsa.FromXmlString(Settings.fetch.playerPrivateKey);
+                        byte[] signature = rsa.SignData(challange, CryptoConfig.CreateFromName("SHA256"));
+                        SendHandshakeResponse(signature);
+                        state = ClientState.HANDSHAKING;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error handling HANDSHAKE_CHALLANGE message, exception: " + e);
             }
         }
 
@@ -1416,19 +1445,20 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void SendHandshakeRequest()
+        private void SendHandshakeResponse(byte[] signature)
         {
             byte[] messageBytes;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(Common.PROTOCOL_VERSION);
                 mw.Write<string>(Settings.fetch.playerName);
-                mw.Write<string>(Settings.fetch.playerGuid.ToString());
+                mw.Write<string>(Settings.fetch.playerPublicKey);
+                mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 messageBytes = mw.GetMessageBytes();
             }
             ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.HANDSHAKE_REQUEST;
+            newMessage.type = ClientMessageType.HANDSHAKE_RESPONSE;
             newMessage.data = messageBytes;
             QueueOutgoingMessage(newMessage, true);
         }
@@ -1698,6 +1728,7 @@ namespace DarkMultiPlayer
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
         }
+
         /// <summary>
         /// If you are a mod, call DMPModInterface.fetch.SendModMessage.
         /// </summary>

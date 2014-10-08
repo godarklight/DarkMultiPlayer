@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Xml;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ namespace DarkMultiPlayer
         //Settings
         private static Settings singleton = new Settings();
         public string playerName;
-        public Guid playerGuid;
+        public string playerPublicKey;
+        public string playerPrivateKey;
         public int cacheSize;
         public int disclaimerAccepted;
         public List<ServerEntry> servers;
@@ -21,13 +23,16 @@ namespace DarkMultiPlayer
         public string selectedFlag;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
-        private const string TOKEN_FILE = "token.txt";
+        private const string PUBLIC_KEY_FILE = "publickey.txt";
+        private const string PRIVATE_KEY_FILE = "privatekey.txt";
         private const int DEFAULT_CACHE_SIZE = 100;
         private string dataLocation;
         private string settingsFile;
         private string backupSettingsFile;
-        private string tokenFile;
-        private string backupTokenFile;
+        private string publicKeyFile;
+        private string privateKeyFile;
+        private string backupPublicKeyFile;
+        private string backupPrivateKeyFile;
 
         public static Settings fetch
         {
@@ -51,9 +56,11 @@ namespace DarkMultiPlayer
             }
             dataLocation = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Data");
             settingsFile = Path.Combine(dataLocation, SETTINGS_FILE);
-            backupSettingsFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), SETTINGS_FILE);
-            tokenFile = Path.Combine(dataLocation, TOKEN_FILE);
-            backupTokenFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), TOKEN_FILE);
+            backupSettingsFile = Path.Combine(darkMultiPlayerSavesDirectory, SETTINGS_FILE);
+            publicKeyFile = Path.Combine(dataLocation, PUBLIC_KEY_FILE);
+            backupPublicKeyFile = Path.Combine(darkMultiPlayerSavesDirectory, PUBLIC_KEY_FILE);
+            privateKeyFile = Path.Combine(dataLocation, PRIVATE_KEY_FILE);
+            backupPrivateKeyFile = Path.Combine(darkMultiPlayerSavesDirectory, PRIVATE_KEY_FILE);
             LoadSettings();
         }
 
@@ -198,54 +205,62 @@ namespace DarkMultiPlayer
             try
             {
                 //Restore backup if needed
-                if (File.Exists(backupTokenFile) && !File.Exists(tokenFile))
+                if (File.Exists(backupPublicKeyFile) && File.Exists(backupPrivateKeyFile) && (!File.Exists(publicKeyFile) || !File.Exists(privateKeyFile)))
                 {
-                    DarkLog.Debug("Restoring backed up token file!");
-                    File.Copy(backupTokenFile, tokenFile);
+                    DarkLog.Debug("Restoring backed up keypair!");
+                    File.Copy(backupPublicKeyFile, publicKeyFile, true);
+                    File.Copy(backupPrivateKeyFile, privateKeyFile, true);
                 }
                 //Load or create token file
-                if (File.Exists(tokenFile))
+                if (File.Exists(privateKeyFile) && File.Exists(publicKeyFile))
                 {
-                    using (StreamReader sr = new StreamReader(tokenFile))
-                    {
-                        playerGuid = new Guid(sr.ReadLine());
-                    }
+                    playerPublicKey = File.ReadAllText(publicKeyFile);
+                    playerPrivateKey = File.ReadAllText(privateKeyFile);
                 }
                 else
                 {
-                    DarkLog.Debug("Creating new token file.");
-                    using (StreamWriter sw = new StreamWriter(tokenFile))
-                    {
-                        playerGuid = Guid.NewGuid();
-                        sw.WriteLine(playerGuid.ToString());
-                    }
+                    DarkLog.Debug("Creating new keypair!");
+                    GenerateNewKeypair();
                 }
                 //Save backup token file if needed
-                if (!File.Exists(backupTokenFile))
+                if (!File.Exists(backupPublicKeyFile) || !File.Exists(backupPrivateKeyFile))
                 {
-                    DarkLog.Debug("Backing up token file.");
-                    File.Copy(tokenFile, backupTokenFile);
+                    DarkLog.Debug("Backing up keypair");
+                    File.Copy(publicKeyFile, backupPublicKeyFile, true);
+                    File.Copy(privateKeyFile, backupPrivateKeyFile, true);
                 }
             }
             catch
             {
-                DarkLog.Debug("Error processing token, creating new token file.");
-                playerGuid = Guid.NewGuid();
-                if (File.Exists(tokenFile))
-                {
-                    if (File.Exists(tokenFile + ".bak"))
-                    {
-                        File.Delete(tokenFile + ".bak");
-                    }
-                    File.Move(tokenFile, tokenFile + ".bak");
-                }
-                using (StreamWriter sw = new StreamWriter(tokenFile))
-                {
-                    sw.WriteLine(playerGuid.ToString());
-                }
-                DarkLog.Debug("Backing up token file.");
-                File.Copy(tokenFile, backupTokenFile, true);
+                DarkLog.Debug("Error processing keypair, creating new keypair");
+                GenerateNewKeypair();
+                DarkLog.Debug("Backing up keypair");
+                File.Copy(publicKeyFile, backupPublicKeyFile, true);
+                File.Copy(privateKeyFile, backupPrivateKeyFile, true);
             }
+        }
+
+        private void GenerateNewKeypair()
+        {
+            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
+            {
+                try
+                {
+                    playerPublicKey = rsa.ToXmlString(false);
+                    playerPrivateKey = rsa.ToXmlString(true);
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Error: " + e);
+                }
+                finally
+                {
+                    //Don't save the key in the machine store.
+                    rsa.PersistKeyInCsp = false;
+                }
+            }
+            File.WriteAllText(publicKeyFile, playerPublicKey);
+            File.WriteAllText(privateKeyFile, playerPrivateKey);
         }
 
         public void SaveSettings()

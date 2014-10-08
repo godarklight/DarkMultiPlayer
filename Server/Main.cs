@@ -52,7 +52,7 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
                 CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
                 CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
-                CommandHandler.RegisterCommand("banguid", ClientHandler.BanGuid, "Bans a Guid from the server");
+                CommandHandler.RegisterCommand("bankey", ClientHandler.BanPublicKey, "Bans a Guid from the server");
                 CommandHandler.RegisterCommand("pm", ClientHandler.PMCommand, "Sends a message to a player");
                 CommandHandler.RegisterCommand("admin", ClientHandler.AdminCommand, "Sets a player as admin/removes admin from the player");
                 CommandHandler.RegisterCommand("whitelist", ClientHandler.WhitelistCommand, "Change the server whitelist");
@@ -62,6 +62,9 @@ namespace DarkMultiPlayerServer
 
                 //Fix kerbals from 0.23.5 to 0.24 (Now indexed by string, thanks Squad!
                 BackwardsCompatibility.FixKerbals();
+
+                //Remove player tokens
+                BackwardsCompatibility.RemoveOldPlayerTokens();
 
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();

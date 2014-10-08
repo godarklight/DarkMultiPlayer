@@ -5,6 +5,31 @@ namespace DarkMultiPlayerServer
 {
     public class BackwardsCompatibility
     {
+        public static void RemoveOldPlayerTokens()
+        {
+            string[] playerFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Players"), "*", SearchOption.TopDirectoryOnly);
+            Guid testGuid;
+            foreach (string playerFile in playerFiles)
+            {
+                try
+                {
+                    DarkLog.Debug("Testing " + playerFile);
+                    string playerText = File.ReadAllLines(playerFile)[0];
+                    if (Guid.TryParse(playerText, out testGuid))
+                    {
+                        //Player token detected, remove it
+                        DarkLog.Debug("Removing old player token for " + Path.GetFileNameWithoutExtension(playerFile));
+                        File.Delete(playerFile);
+                    }
+                }
+                catch
+                {
+                    DarkLog.Debug("Removing damaged player token for " + Path.GetFileNameWithoutExtension(playerFile));
+                    File.Delete(playerFile);
+                }
+            }
+        }
+
         public static void FixKerbals()
         {
             string kerbalPath = Path.Combine(Server.universeDirectory, "Kerbals");

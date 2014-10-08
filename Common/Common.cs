@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8096;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 28;
+        public const int PROTOCOL_VERSION = 29;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
 
@@ -367,7 +367,7 @@ namespace DarkMultiPlayerCommon
     public enum ClientMessageType
     {
         HEARTBEAT,
-        HANDSHAKE_REQUEST,
+        HANDSHAKE_RESPONSE,
         CHAT_MESSAGE,
         PLAYER_STATUS,
         PLAYER_COLOR,
@@ -394,6 +394,7 @@ namespace DarkMultiPlayerCommon
     public enum ServerMessageType
     {
         HEARTBEAT,
+        HANDSHAKE_CHALLANGE,
         HANDSHAKE_REPLY,
         SERVER_SETTINGS,
         CHAT_MESSAGE,
@@ -576,7 +577,7 @@ namespace DarkMultiPlayerCommon
         PROTOCOL_MISMATCH = 1,
         ALREADY_CONNECTED = 2,
         RESERVED_NAME = 3,
-        INVALID_TOKEN = 4,
+        INVALID_KEY = 4,
         PLAYER_BANNED = 5,
         SERVER_FULL = 6,
         NOT_WHITELISTED = 7,
