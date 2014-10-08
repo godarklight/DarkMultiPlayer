@@ -243,18 +243,18 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("omsEngine");
             stockPartList.Add("vernierEngine");
             //0.25 parts
-            stockPartList.Add("delta_small");
+            stockPartList.Add("delta.small");
             stockPartList.Add("elevon2");
             stockPartList.Add("elevon3");
             stockPartList.Add("elevon5");
             stockPartList.Add("IntakeRadialLong");
             stockPartList.Add("MK1IntakeFuselage");
-            stockPartList.Add("mk2_1m_AdapterLong");
-            stockPartList.Add("mk2_1m_Bicoupler");
+            stockPartList.Add("mk2.1m.AdapterLong");
+            stockPartList.Add("mk2.1m.Bicoupler");
             stockPartList.Add("mk2CargoBayL");
             stockPartList.Add("mk2CargoBayS");
-            stockPartList.Add("mk2Cockpit_Inline");
-            stockPartList.Add("mk2Cockpit_Standard");
+            stockPartList.Add("mk2Cockpit.Inline");
+            stockPartList.Add("mk2Cockpit.Standard");
             stockPartList.Add("mk2CrewCabin");
             stockPartList.Add("mk2DockingPort");
             stockPartList.Add("mk2DroneCore");
