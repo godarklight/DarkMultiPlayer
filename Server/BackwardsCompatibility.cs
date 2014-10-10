@@ -7,7 +7,12 @@ namespace DarkMultiPlayerServer
     {
         public static void RemoveOldPlayerTokens()
         {
-            string[] playerFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Players"), "*", SearchOption.TopDirectoryOnly);
+            string playerDirectory = Path.Combine(Server.universeDirectory, "Players");
+            if (!Directory.Exists(playerDirectory))
+            {
+                return;
+            }
+            string[] playerFiles = Directory.GetFiles(playerDirectory, "*", SearchOption.TopDirectoryOnly);
             Guid testGuid;
             foreach (string playerFile in playerFiles)
             {
