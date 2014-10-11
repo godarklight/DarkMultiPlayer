@@ -115,10 +115,11 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
-            if (workerEnabled && syncComplete)
+            if (workerEnabled && syncComplete && (HighLogic.CurrentGame != null ? HighLogic.CurrentGame.flagURL != null : false))
             {
                 if (flagChangeEvent)
                 {
+                    flagChangeEvent = false;
                     HandleFlagChangeEvent();
                 }
                 while (newFlags.Count > 0)
@@ -130,7 +131,6 @@ namespace DarkMultiPlayer
 
         private void HandleFlagChangeEvent()
         {
-            flagChangeEvent = false;
             string flagURL = HighLogic.CurrentGame.flagURL;
             if (!flagURL.ToLower().StartsWith("darkmultiplayer/flags/"))
             {
