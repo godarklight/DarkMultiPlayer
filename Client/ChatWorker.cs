@@ -711,7 +711,7 @@ namespace DarkMultiPlayer
                     ignoreChatInput = true;
                     selectTextBox = true;
                 }
-                windowRect = GUILayout.Window(GUIUtility.GetControlID(6704 + Client.WINDOW_OFFSET, FocusType.Passive), windowRect, DrawContent, "DarkMultiPlayer Chat", windowStyle, windowLayoutOptions);
+                windowRect = GUILayout.Window(6704 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer Chat", windowStyle, windowLayoutOptions);
             }
             CheckEditorLock();
         }
