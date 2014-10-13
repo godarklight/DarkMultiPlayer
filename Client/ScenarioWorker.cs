@@ -147,9 +147,21 @@ namespace DarkMultiPlayer
             ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
             foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT"))
             {
-                if ((contractNode.GetValue("type") == "RescueKerbal") && (contractNode.GetValue("state") == "Active"))
+                if ((contractNode.GetValue("type") == "RescueKerbal") && (contractNode.GetValue("state") == "Offered"))
                 {
                     string kerbalName = contractNode.GetValue("kerbalName");
+                    if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
+                    {
+                        DarkLog.Debug("Spawning missing kerbal (" + kerbalName + ") for offered KerbalRescue contract");
+                        ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
+                        pcm.name = kerbalName;
+                    }
+                }
+                if ((contractNode.GetValue("type") == "RescueKerbal") && (contractNode.GetValue("state") == "Active"))
+                {
+
+                    string kerbalName = contractNode.GetValue("kerbalName");
+                    DarkLog.Debug("Spawning stranded kerbal (" + kerbalName + ") for active KerbalRescue contract");
                     int bodyID = Int32.Parse(contractNode.GetValue("body"));
                     if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
                     {
