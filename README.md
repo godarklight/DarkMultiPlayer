@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.5.6.
+#DarkMultiPlayer 0.1.6.0.
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.24.2. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -113,7 +113,8 @@ The warp type.
 
 ####gamemode
 - Mode 0: SANDBOX - The default sandbox game mode.  
-- Mode 1: CAREER - Everyone has their own career mode points. Shared science is currently not implemented.  
+- Mode 1: SCIENCE - Everyone has their own science points. Shared science is currently not implemented.  
+- Mode 2: CAREER - Everyone has their own career mode points and funds. Shared science is currently not implemented.  
   
 ####whitelisted
 Enable whitelisting on the server. The commands are /whitelist [add|del] playername or /whitelist show
