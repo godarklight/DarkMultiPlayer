@@ -106,7 +106,7 @@ namespace DarkMultiPlayer
 
         private void DisplayHelp(string commandArgs)
         {
-            List<ChatCommand> commands = new List<ChatCommand>();
+            var commands = new List<ChatCommand>();
             int longestName = 0;
             foreach (ChatCommand cmd in registeredChatCommands.Values)
             {
@@ -138,7 +138,7 @@ namespace DarkMultiPlayer
                 joinedChannels.Add(commandArgs);
                 selectedChannel = commandArgs;
                 selectedPMChannel = null;
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)ChatMessageType.JOIN);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -307,7 +307,7 @@ namespace DarkMultiPlayer
 
         public void QueueChatJoin(string playerName, string channelName)
         {
-            JoinLeaveMessage jlm = new JoinLeaveMessage();
+            var jlm = new JoinLeaveMessage();
             jlm.fromPlayer = playerName;
             jlm.channel = channelName;
             newJoinMessages.Enqueue(jlm);
@@ -315,7 +315,7 @@ namespace DarkMultiPlayer
 
         public void QueueChatLeave(string playerName, string channelName)
         {
-            JoinLeaveMessage jlm = new JoinLeaveMessage();
+            var jlm = new JoinLeaveMessage();
             jlm.fromPlayer = playerName;
             jlm.channel = channelName;
             newLeaveMessages.Enqueue(jlm);
@@ -323,7 +323,7 @@ namespace DarkMultiPlayer
 
         public void QueueChannelMessage(string fromPlayer, string channelName, string channelMessage)
         {
-            ChannelEntry ce = new ChannelEntry();
+            var ce = new ChannelEntry();
             ce.fromPlayer = fromPlayer;
             ce.channel = channelName;
             ce.message = channelMessage;
@@ -344,7 +344,7 @@ namespace DarkMultiPlayer
 
         public void QueuePrivateMessage(string fromPlayer, string toPlayer, string privateMessage)
         {
-            PrivateEntry pe = new PrivateEntry();
+            var pe = new PrivateEntry();
             pe.fromPlayer = fromPlayer;
             pe.toPlayer = toPlayer;
             pe.message = privateMessage;
@@ -366,7 +366,7 @@ namespace DarkMultiPlayer
 
         public void PMMessageServer(string message)
         {
-            using (MessageWriter mw = new MessageWriter())
+            using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -378,14 +378,14 @@ namespace DarkMultiPlayer
 
         public void QueueSystemMessage(string message)
         {
-            ConsoleEntry ce = new ConsoleEntry();
+            var ce = new ConsoleEntry();
             ce.message = message;
             newConsoleMessages.Enqueue(ce);
         }
 
         public void RegisterChatCommand(string command, Action<string> func, string description)
         {
-            ChatCommand cmd = new ChatCommand(command, func, description);
+            var cmd = new ChatCommand(command, func, description);
             if (!registeredChatCommands.ContainsKey(command))
             {
                 registeredChatCommands.Add(command, cmd);
@@ -407,7 +407,7 @@ namespace DarkMultiPlayer
                 if (selectedChannel == null && selectedPMChannel == null)
                 {
                     //Sending a global chat message
-                    using (MessageWriter mw = new MessageWriter())
+                    using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
                         mw.Write<string>(Settings.fetch.playerName);
@@ -419,7 +419,7 @@ namespace DarkMultiPlayer
                 }
                 if (selectedChannel != null && selectedChannel != consoleIdentifier)
                 {
-                    using (MessageWriter mw = new MessageWriter())
+                    using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
                         mw.Write<string>(Settings.fetch.playerName);
@@ -430,7 +430,7 @@ namespace DarkMultiPlayer
                 }
                 if (selectedChannel == consoleIdentifier)
                 {
-                    using (MessageWriter mw = new MessageWriter())
+                    using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
                         mw.Write<string>(Settings.fetch.playerName);
@@ -441,7 +441,7 @@ namespace DarkMultiPlayer
                 }
                 if (selectedPMChannel != null)
                 {
-                    using (MessageWriter mw = new MessageWriter())
+                    using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
                         mw.Write<string>(Settings.fetch.playerName);
@@ -493,7 +493,7 @@ namespace DarkMultiPlayer
             {
                 if (selectedChannel != null && selectedChannel != consoleIdentifier)
                 {
-                    using (MessageWriter mw = new MessageWriter())
+                    using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)ChatMessageType.LEAVE);
                         mw.Write<string>(Settings.fetch.playerName);
@@ -1082,20 +1082,20 @@ namespace DarkMultiPlayer
         public string message;
     }
 
-    public class PrivateEntry
+	public class PrivateEntry
     {
         public string fromPlayer;
         public string toPlayer;
         public string message;
     }
 
-    public class JoinLeaveMessage
+	public class JoinLeaveMessage
     {
         public string fromPlayer;
         public string channel;
     }
 
-    public class ConsoleEntry
+	public class ConsoleEntry
     {
         public string message;
     }

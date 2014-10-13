@@ -191,7 +191,7 @@ namespace DarkMultiPlayer
         //Called from main
         public void ConnectToServer(string address, int port)
         {
-            DMPServerAddress connectAddress = new DMPServerAddress();
+            var connectAddress = new DMPServerAddress();
             connectAddress.ip = address;
             connectAddress.port = port;
             connectThread = new Thread(new ParameterizedThreadStart(ConnectToServerMain));
@@ -260,7 +260,7 @@ namespace DarkMultiPlayer
                     }
 
                 }
-                IPEndPoint destination = new IPEndPoint(destinationAddress, port);
+                var destination = new IPEndPoint(destinationAddress, port);
                 clientConnection = new TcpClient(destination.AddressFamily);
                 clientConnection.NoDelay = true;
                 try
@@ -423,7 +423,7 @@ namespace DarkMultiPlayer
                         if (!isReceivingMessage)
                         {
                             //We have the header
-                            using (MessageReader mr = new MessageReader(receiveMessage.data, true))
+                            using (var mr = new MessageReader(receiveMessage.data, true))
                             {
                                 if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
                                 {
@@ -465,7 +465,7 @@ namespace DarkMultiPlayer
                         {
                             //We have the message data to a non-null message, handle it
                             isReceivingMessage = false;
-                            using (MessageReader mr = new MessageReader(receiveMessage.data, false))
+                            using (var mr = new MessageReader(receiveMessage.data, false))
                             {
                                 receiveMessage.data = mr.Read<byte[]>();
                             }
@@ -566,10 +566,10 @@ namespace DarkMultiPlayer
             if (message.data.Length > Common.SPLIT_MESSAGE_LENGTH)
             {
                 lastSplitMessageType = message.type;
-                ClientMessage newSplitMessage = new ClientMessage();
+                var newSplitMessage = new ClientMessage();
                 newSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
                 int splitBytesLeft = message.data.Length;
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)message.type);
                     mw.Write<int>(message.data.Length);
@@ -585,7 +585,7 @@ namespace DarkMultiPlayer
 
                 while (splitBytesLeft > 0)
                 {
-                    ClientMessage currentSplitMessage = new ClientMessage();
+                    var currentSplitMessage = new ClientMessage();
                     currentSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
                     currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
                     Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
@@ -601,7 +601,7 @@ namespace DarkMultiPlayer
         private void SendNetworkMessage(ClientMessage message)
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter((int)message.type))
+            using (var mw = new MessageWriter((int)message.type))
             {
                 if (message.data != null)
                 {
@@ -614,7 +614,7 @@ namespace DarkMultiPlayer
             //Disconnect after EndWrite completes
             if (message.type == ClientMessageType.CONNECTION_END)
             {
-                using (MessageReader mr = new MessageReader(message.data, false))
+                using (var mr = new MessageReader(message.data, false))
                 {
                     terminateOnNextMessageSend = true;
                     connectionEndReason = mr.Read<string>();
@@ -763,7 +763,7 @@ namespace DarkMultiPlayer
         {
             try
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (var mr = new MessageReader(messageData, false))
                 {
                     byte[] challange = mr.Read<byte[]>();
                     using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
@@ -792,7 +792,7 @@ namespace DarkMultiPlayer
             string serverVersion = "Unknown";
             try
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (var mr = new MessageReader(messageData, false))
                 {
                     reply = mr.Read<int>();
                     reason = mr.Read<string>();
@@ -876,7 +876,7 @@ namespace DarkMultiPlayer
 
         private void HandleChatMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 ChatMessageType chatMessageType = (ChatMessageType)mr.Read<int>();
 
@@ -940,7 +940,7 @@ namespace DarkMultiPlayer
 
         private void HandleServerSettings(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 WarpWorker.fetch.warpMode = (WarpMode)mr.Read<int>();
                 Client.fetch.gameMode = (GameMode)mr.Read<int>();
@@ -955,7 +955,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerStatus(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 string playerName = mr.Read<string>();
                 string vesselText = mr.Read<string>();
@@ -970,7 +970,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerJoin(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 string playerName = mr.Read<string>();
                 ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has joined the server");
@@ -979,7 +979,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerDisconnect(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 string playerName = mr.Read<string>();
                 WarpWorker.fetch.RemovePlayer(playerName);
@@ -992,7 +992,7 @@ namespace DarkMultiPlayer
 
         private void HandleSyncTimeReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 long clientSend = mr.Read<long>();
                 long serverReceive = mr.Read<long>();
@@ -1003,7 +1003,7 @@ namespace DarkMultiPlayer
 
         private void HandleScenarioModuleData(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 string[] scenarioName = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
@@ -1018,7 +1018,7 @@ namespace DarkMultiPlayer
         private void HandleKerbalReply(byte[] messageData)
         {
             numberOfKerbalsReceived++;
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
@@ -1053,11 +1053,11 @@ namespace DarkMultiPlayer
         {
             state = ClientState.SYNCING_VESSELS;
             Client.fetch.status = "Syncing vessels";
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
-                List<string> serverVessels = new List<string>(mr.Read<string[]>());
-                List<string> cacheObjects = new List<string>(UniverseSyncCache.fetch.GetCachedObjects());
-                List<string> requestedObjects = new List<string>();
+                var serverVessels = new List<string>(mr.Read<string[]>());
+				var cacheObjects = new List<string>(UniverseSyncCache.fetch.GetCachedObjects());
+				var requestedObjects = new List<string>();
                 foreach (string serverVessel in serverVessels)
                 {
                     if (!cacheObjects.Contains(serverVessel))
@@ -1105,7 +1105,7 @@ namespace DarkMultiPlayer
         private void HandleVesselProto(byte[] messageData)
         {
             numberOfVesselsReceived++;
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 double planetTime = mr.Read<double>();
                 byte[] vesselData = mr.Read<byte[]>();
@@ -1139,8 +1139,8 @@ namespace DarkMultiPlayer
 
         private void HandleVesselUpdate(byte[] messageData)
         {
-            VesselUpdate update = new VesselUpdate();
-            using (MessageReader mr = new MessageReader(messageData, false))
+			var update = new VesselUpdate();
+			using (var mr = new MessageReader(messageData, false))
             {
                 update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
@@ -1186,7 +1186,7 @@ namespace DarkMultiPlayer
 
         private void HandleSetActiveVessel(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 string player = mr.Read<string>();
                 string vesselID = mr.Read<string>();
@@ -1201,7 +1201,7 @@ namespace DarkMultiPlayer
 
         private void HandleVesselRemove(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 //We don't care about the subspace ID anymore.
                 mr.Read<int>();
@@ -1220,7 +1220,7 @@ namespace DarkMultiPlayer
 
         private void HandleCraftLibrary(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 CraftMessageType messageType = (CraftMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1316,7 +1316,7 @@ namespace DarkMultiPlayer
 
         private void HandleScreenshotLibrary(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1354,7 +1354,7 @@ namespace DarkMultiPlayer
 
         private void HandleSetSubspace(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 int subspaceID = mr.Read<int>();
                 TimeSyncer.fetch.LockSubspace(subspaceID);
@@ -1363,7 +1363,7 @@ namespace DarkMultiPlayer
 
         private void HandlePingReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
                 ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
@@ -1373,7 +1373,7 @@ namespace DarkMultiPlayer
 
         private void HandleMotdReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 serverMotd = mr.Read<string>();
                 if (serverMotd != "")
@@ -1394,7 +1394,7 @@ namespace DarkMultiPlayer
             if (!isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData, false))
+				using (var mr = new MessageReader(messageData, false))
                 {
                     receiveSplitMessage = new ServerMessage();
                     receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
@@ -1423,7 +1423,7 @@ namespace DarkMultiPlayer
         private void HandleConnectionEnd(byte[] messageData)
         {
             string reason = "";
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 reason = mr.Read<string>();
             }
@@ -1438,7 +1438,7 @@ namespace DarkMultiPlayer
                 if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
                 {
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
-                    ClientMessage newMessage = new ClientMessage();
+					var newMessage = new ClientMessage();
                     newMessage.type = ClientMessageType.HEARTBEAT;
                     QueueOutgoingMessage(newMessage, true);
                 }
@@ -1448,7 +1448,7 @@ namespace DarkMultiPlayer
         private void SendHandshakeResponse(byte[] signature)
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>(Common.PROTOCOL_VERSION);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -1457,7 +1457,7 @@ namespace DarkMultiPlayer
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 messageBytes = mw.GetMessageBytes();
             }
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.HANDSHAKE_RESPONSE;
             newMessage.data = messageBytes;
             QueueOutgoingMessage(newMessage, true);
@@ -1465,7 +1465,7 @@ namespace DarkMultiPlayer
         //Called from ChatWindow
         public void SendChatMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CHAT_MESSAGE;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
@@ -1474,14 +1474,14 @@ namespace DarkMultiPlayer
         public void SendPlayerStatus(PlayerStatus playerStatus)
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<string>(playerStatus.playerName);
                 mw.Write<string>(playerStatus.vesselText);
                 mw.Write<string>(playerStatus.statusText);
                 messageBytes = mw.GetMessageBytes();
             }
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PLAYER_STATUS;
             newMessage.data = messageBytes;
             QueueOutgoingMessage(newMessage, true);
@@ -1489,7 +1489,7 @@ namespace DarkMultiPlayer
         //Called from PlayerColorWorker
         public void SendPlayerColorMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PLAYER_COLOR;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, false);
@@ -1498,12 +1498,12 @@ namespace DarkMultiPlayer
         public void SendTimeSync()
         {
             byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 messageBytes = mw.GetMessageBytes();
             }
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SYNC_TIME_REQUEST;
             newMessage.data = messageBytes;
             QueueOutgoingMessage(newMessage, true);
@@ -1511,16 +1511,16 @@ namespace DarkMultiPlayer
 
         private void SendKerbalsRequest()
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.KERBALS_REQUEST;
             QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendVesselsRequest(string[] requestList)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<string[]>(requestList);
                 newMessage.data = mw.GetMessageBytes();
@@ -1530,8 +1530,8 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate, bool isFlyingUpdate)
         {
-            ConfigNode vesselNode = new ConfigNode();
-            ClientMessage newMessage = new ClientMessage();
+			var vesselNode = new ConfigNode();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             vessel.Save(vesselNode);
 
@@ -1540,7 +1540,7 @@ namespace DarkMultiPlayer
             if (vesselBytes != null && vesselBytes.Length > 0)
             {
                 UniverseSyncCache.fetch.SaveToCache(vesselBytes);
-                using (MessageWriter mw = new MessageWriter())
+				using (var mw = new MessageWriter())
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
@@ -1560,9 +1560,9 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendVesselUpdate(VesselUpdate update)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<double>(update.planetTime);
                 mw.Write<string>(update.vesselID);
@@ -1611,9 +1611,9 @@ namespace DarkMultiPlayer
         public void SendVesselRemove(string vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_REMOVE;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(Planetarium.GetUniversalTime());
@@ -1630,7 +1630,7 @@ namespace DarkMultiPlayer
         //Called fro craftLibraryWorker
         public void SendCraftLibraryMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CRAFT_LIBRARY;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, false);
@@ -1638,7 +1638,7 @@ namespace DarkMultiPlayer
         //Called from ScreenshotWorker
         public void SendScreenshotMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCREENSHOT_LIBRARY;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, false);
@@ -1646,9 +1646,9 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendScenarioModuleData(string[] scenarioNames, byte[][] scenarioData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCENARIO_DATA;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<string[]>(scenarioNames);
                 foreach (byte[] scenarioBytes in scenarioData)
@@ -1663,14 +1663,14 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
         {
-            ConfigNode kerbalNode = new ConfigNode();
+			var kerbalNode = new ConfigNode();
             kerbal.Save(kerbalNode);
             byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
             if (kerbalBytes != null && kerbalBytes.Length > 0)
             {
-                ClientMessage newMessage = new ClientMessage();
+				var newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.KERBAL_PROTO;
-                using (MessageWriter mw = new MessageWriter())
+				using (var mw = new MessageWriter())
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(kerbal.name);
@@ -1688,9 +1688,9 @@ namespace DarkMultiPlayer
         //Called from chatWorker
         public void SendPingRequest()
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PING_REQUEST;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<long>(DateTime.UtcNow.Ticks);
                 newMessage.data = mw.GetMessageBytes();
@@ -1700,14 +1700,14 @@ namespace DarkMultiPlayer
         //Called from networkWorker
         public void SendMotdRequest()
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MOTD_REQUEST;
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from FlagSyncer
         public void SendFlagMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.FLAG_SYNC;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, false);
@@ -1715,7 +1715,7 @@ namespace DarkMultiPlayer
         //Called from warpWorker
         public void SendWarpMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.WARP_CONTROL;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
@@ -1723,7 +1723,7 @@ namespace DarkMultiPlayer
         //Called from lockSystem
         public void SendLockSystemMessage(byte[] messageData)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.LOCK_SYSTEM;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
@@ -1734,7 +1734,7 @@ namespace DarkMultiPlayer
         /// </summary>
         public void SendModMessage(byte[] messageData, bool highPriority)
         {
-            ClientMessage newMessage = new ClientMessage();
+			var newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MOD_DATA;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, highPriority);
@@ -1748,12 +1748,12 @@ namespace DarkMultiPlayer
                 Client.fetch.status = "Disconnected: " + disconnectReason;
                 state = ClientState.DISCONNECTING;
                 byte[] messageBytes;
-                using (MessageWriter mw = new MessageWriter())
+				using (var mw = new MessageWriter())
                 {
                     mw.Write<string>(disconnectReason);
                     messageBytes = mw.GetMessageBytes();
                 }
-                ClientMessage newMessage = new ClientMessage();
+				var newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.CONNECTION_END;
                 newMessage.data = messageBytes;
                 QueueOutgoingMessage(newMessage, true);

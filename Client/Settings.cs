@@ -71,7 +71,7 @@ namespace DarkMultiPlayer
             try
             {
                 bool saveXMLAfterLoad = false;
-                XmlDocument xmlDoc = new XmlDocument();
+				var xmlDoc = new XmlDocument();
                 if (File.Exists(backupSettingsFile) && !File.Exists(settingsFile))
                 {
                     DarkLog.Debug("Restoring player settings file!");
@@ -242,7 +242,7 @@ namespace DarkMultiPlayer
 
         private void GenerateNewKeypair()
         {
-            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
+			using (var rsa = new RSACryptoServiceProvider(1024))
             {
                 try
                 {
@@ -265,7 +265,7 @@ namespace DarkMultiPlayer
 
         public void SaveSettings()
         {
-            XmlDocument xmlDoc = new XmlDocument();
+			var xmlDoc = new XmlDocument();
             if (File.Exists(settingsFile))
             {
                 xmlDoc.Load(settingsFile);

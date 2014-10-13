@@ -100,7 +100,7 @@ namespace DarkMultiPlayerServer
 
         public static void RegisterCommand(string command, Action<string> func, string description)
         {
-            Command cmd = new Command(command, func, description);
+			var cmd = new Command(command, func, description);
             if (!commands.ContainsKey(command))
             {
                 commands.Add(command, cmd);
@@ -109,7 +109,7 @@ namespace DarkMultiPlayerServer
 
         private static void DisplayHelp(string commandArgs)
         {
-            List<Command> commands = new List<Command>();
+			var commands = new List<Command>();
             int longestName = 0;
             foreach (Command cmd in CommandHandler.commands.Values)
             {

@@ -36,7 +36,7 @@ namespace DarkMultiPlayer
         {
             lock (externalLogLock)
             {
-                using (StreamWriter sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
+                using (var sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
                 {
                     sw.WriteLine(debugText);
                 }

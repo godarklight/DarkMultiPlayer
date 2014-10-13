@@ -77,17 +77,17 @@ namespace DarkMultiPlayer
 
         private void SendScenarioModules()
         {
-            List<string> scenarioName = new List<string>();
-            List<byte[]> scenarioData = new List<byte[]>();
+			var scenarioName = new List<string>();
+			var scenarioData = new List<byte[]>();
 
-            foreach (ScenarioModule sm in ScenarioRunner.GetLoadedModules())
+			foreach (var sm in ScenarioRunner.GetLoadedModules())
             {
                 string scenarioType = sm.GetType().Name;
                 if (!IsScenarioModuleAllowed(scenarioType))
                 {
                     continue;
                 }
-                ConfigNode scenarioNode = new ConfigNode();
+				var scenarioNode = new ConfigNode();
                 sm.Save(scenarioNode);
                 byte[] scenarioBytes = ConfigNodeSerializer.fetch.Serialize(scenarioNode);
                 string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
@@ -126,7 +126,7 @@ namespace DarkMultiPlayer
                 {
                     CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
                 }
-                ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
+				var psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
                 if (psm != null)
                 {
                     if (IsScenarioModuleAllowed(psm.moduleName))
@@ -144,7 +144,7 @@ namespace DarkMultiPlayer
         //Defends against bug #172
         private void SpawnStrandedKerbalsForRescueMissions(ConfigNode contractSystemNode)
         {
-            ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
+			var contractsNode = contractSystemNode.GetNode("CONTRACTS");
             foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT"))
             {
                 if ((contractNode.GetValue("type") == "RescueKerbal") && (contractNode.GetValue("state") == "Active"))
@@ -305,7 +305,7 @@ namespace DarkMultiPlayer
 
         public void LoadNewScenarioData(ConfigNode newScenarioData)
         {
-            ProtoScenarioModule newModule = new ProtoScenarioModule(newScenarioData);
+			var newModule = new ProtoScenarioModule(newScenarioData);
             try
             {
                 HighLogic.CurrentGame.scenarios.Add(newModule);
@@ -320,7 +320,7 @@ namespace DarkMultiPlayer
 
         public void QueueScenarioData(string scenarioName, ConfigNode scenarioData)
         {
-            ScenarioEntry entry = new ScenarioEntry();
+			var entry = new ScenarioEntry();
             entry.scenarioName = scenarioName;
             entry.scenarioNode = scenarioData;
             scenarioQueue.Enqueue(entry);

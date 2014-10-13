@@ -516,7 +516,7 @@ namespace DarkMultiPlayer
 
         private Game CreateBlankGame()
         {
-            Game returnGame = new Game();
+            var returnGame = new Game();
             //KSP complains about a missing message system if we don't do this.
             returnGame.additionalSystems = new ConfigNode();
             returnGame.additionalSystems.AddNode("MESSAGESYSTEM");

@@ -20,7 +20,7 @@ namespace DarkMultiPlayerServer
                     string vesselID = Path.GetFileNameWithoutExtension(vesselFile);
                     bool landedAtKSC = false;
                     bool landedAtRunway = false;
-                    using (StreamReader sr = new StreamReader(vesselFile))
+					using (var sr = new StreamReader(vesselFile))
                     {
                         string currentLine = sr.ReadLine();
                         while (currentLine != null && !landedAtKSC && !landedAtRunway)
@@ -50,9 +50,9 @@ namespace DarkMultiPlayerServer
                             File.Delete(vesselFile);
                         }
                         //Send a vessel remove message
-                        ServerMessage newMessage = new ServerMessage();
+						var newMessage = new ServerMessage();
                         newMessage.type = ServerMessageType.VESSEL_REMOVE;
-                        using (MessageWriter mw = new MessageWriter())
+						using (var mw = new MessageWriter())
                         {
                             //Send it with a delete time of 0 so it shows up for all players.
                             mw.Write<int>(0);

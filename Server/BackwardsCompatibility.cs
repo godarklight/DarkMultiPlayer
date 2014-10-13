@@ -45,7 +45,7 @@ namespace DarkMultiPlayerServer
                 string oldKerbalFile = Path.Combine(kerbalPath, kerbalCount + ".txt");
                 string kerbalName = null;
 
-                using (StreamReader sr = new StreamReader(oldKerbalFile))
+				using (var sr = new StreamReader(oldKerbalFile))
                 {
                     string fileLine;
                     while ((fileLine = sr.ReadLine()) != null)

@@ -74,14 +74,14 @@ namespace DarkMultiPlayerServer
 
         public string GetJSON()
         {
-            DataContractJsonSerializer serializer = new DataContractJsonSerializer(typeof(ServerInfo));
+			var serializer = new DataContractJsonSerializer(typeof(ServerInfo));
 
-            MemoryStream outStream = new MemoryStream();
+			var outStream = new MemoryStream();
             serializer.WriteObject(outStream, this);
 
             outStream.Position = 0;
 
-            StreamReader sr = new StreamReader(outStream);
+			var sr = new StreamReader(outStream);
 
             return sr.ReadToEnd();
         }

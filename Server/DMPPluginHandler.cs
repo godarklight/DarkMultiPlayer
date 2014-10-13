@@ -40,7 +40,7 @@ namespace DarkMultiPlayerServer
             }
             DarkLog.Debug("Loading plugins!");
             //Load all the assemblies just in case they depend on each other during instantation
-            List<Assembly> loadedAssemblies = new List<Assembly>();
+			var loadedAssemblies = new List<Assembly>();
             string[] pluginFiles = Directory.GetFiles(pluginDirectory, "*", SearchOption.AllDirectories);
             foreach (string pluginFile in pluginFiles)
             {

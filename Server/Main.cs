@@ -88,8 +88,8 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
 
                     serverRunning = true;
-                    Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
-                    Thread clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
+					var commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));
+					var clientThread = new Thread(new ThreadStart(ClientHandler.ThreadMain));
                     commandThread.Start();
                     clientThread.Start();
                     while (serverStarting)
@@ -141,13 +141,13 @@ namespace DarkMultiPlayerServer
 
                 foreach (string kerbal in kerbals)
                 {
-                    FileInfo kInfo = new FileInfo(kerbal);
+					var kInfo = new FileInfo(kerbal);
                     directorySize += kInfo.Length;
                 }
 
                 foreach (string vessel in vessels)
                 {
-                    FileInfo vInfo = new FileInfo(vessel);
+					var vInfo = new FileInfo(vessel);
                     directorySize += vInfo.Length;
                 }
 
@@ -217,7 +217,7 @@ namespace DarkMultiPlayerServer
                 File.Move(modFile, modFile + ".bak");
             }
             string modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
-            using (StreamWriter sw = new StreamWriter(modFile))
+			using (var sw = new StreamWriter(modFile))
             {
                 sw.Write(modFileData);
             }
@@ -302,7 +302,7 @@ namespace DarkMultiPlayerServer
                             DarkLog.Debug("HTTP Server: access denied.");
                             DarkLog.Debug("Prompting user to switch to administrator mode.");
 
-                            ProcessStartInfo startInfo = new ProcessStartInfo("DMPServer.exe") { Verb = "runas" };
+							var startInfo = new ProcessStartInfo("DMPServer.exe") { Verb = "runas" };
                             Process.Start(startInfo);
 
                             Environment.Exit(0);

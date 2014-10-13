@@ -124,7 +124,7 @@ namespace DarkMultiPlayer
 
         public void HandlePlayerColorMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
                 switch (messageType)
@@ -165,7 +165,7 @@ namespace DarkMultiPlayer
 
         public void SendPlayerColorToServer()
         {
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)PlayerColorMessageType.SET);
                 mw.Write<string>(Settings.fetch.playerName);

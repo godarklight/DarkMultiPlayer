@@ -45,7 +45,7 @@ namespace DarkMultiPlayerServer
         {
             lock (lockObject)
             {
-                List<string> removeList = new List<string>();
+				var removeList = new List<string>();
                 foreach (KeyValuePair<string,string> kvp in playerLocks)
                 {
                     if (kvp.Value == playerName)

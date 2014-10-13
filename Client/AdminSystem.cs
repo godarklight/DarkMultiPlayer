@@ -22,7 +22,7 @@ namespace DarkMultiPlayer
 
         public void HandleAdminMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+			using (var mr = new MessageReader(messageData, false))
             {
                 AdminMessageType messageType = (AdminMessageType)mr.Read<int>();
                 switch (messageType)

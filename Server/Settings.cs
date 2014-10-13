@@ -21,9 +21,9 @@ namespace DarkMultiPlayerServer
             {
                 Save();
             }
-            using (FileStream fs = new FileStream(settingsFile, FileMode.Open))
+			using (var fs = new FileStream(settingsFile, FileMode.Open))
             {
-                using (StreamReader sr = new StreamReader(fs))
+				using (var sr = new StreamReader(fs))
                 {
                     string currentLine;
                     string trimmedLine;
@@ -100,9 +100,9 @@ namespace DarkMultiPlayerServer
             {
                 File.Delete(settingsFile + ".tmp");
             }
-            using (FileStream fs = new FileStream(settingsFile + ".tmp", FileMode.CreateNew))
+			using (var fs = new FileStream(settingsFile + ".tmp", FileMode.CreateNew))
             {
-                using (StreamWriter sw = new StreamWriter(fs))
+				using (var sw = new StreamWriter(fs))
                 {
                     sw.WriteLine("#Setting file format: (key),(value)");
                     sw.WriteLine("#This file will be re-written every time the server is started. Only known keys will be saved.");
@@ -148,33 +148,33 @@ namespace DarkMultiPlayerServer
         }
 
         private static Dictionary<string,string> GetSettingsDescriptions()
-        {
-            Dictionary<string, string> descriptionList = new Dictionary<string, string>();
-            descriptionList.Add("address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.");
-            descriptionList.Add("port", "The port the server listens on");
-            descriptionList.Add("warpMode", "Specify the warp type");
-            descriptionList.Add("gameMode", "Specify the game type");
-            descriptionList.Add("whitelisted", "Enable whitelisting");
-            descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
-            descriptionList.Add("keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shutdown");
-            descriptionList.Add("sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NB: This may cause time-paradoxes, and will not work across server restarts");
-            descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
-            descriptionList.Add("logLevel", "Minimum log level.");
-            descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
-            descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
-            descriptionList.Add("cheats", "Enable use of cheats ingame.");
-            descriptionList.Add("httpPort", "HTTP port for server status. 0 = Disabled");
-            descriptionList.Add("serverName", "Name of the server.");
-            descriptionList.Add("maxPlayers", "Maximum amount of players that can join the server.");
-            descriptionList.Add("screenshotDirectory", "Specify a custom screenshot directory.\n#This directory must exist in order to be used. Leave blank to store it in Universe.");
-            descriptionList.Add("autoNuke", "Specify in minutes how often /nukeksc automatically runs. 0 = Disabled");
-            descriptionList.Add("autoDekessler", "Specify in minutes how often /dekessler automatically runs. 0 = Disabled");
-            descriptionList.Add("numberOfAsteroids", "How many untracked asteroids to spawn into the universe. 0 = Disabled");
-            descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console.");
-            descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
-            descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
-            return descriptionList;
-        }
+		{
+			return new Dictionary<string, string> () { 
+				{"address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers."},
+	            {"port", "The port the server listens on"},
+	            {"warpMode", "Specify the warp type"},
+	            {"gameMode", "Specify the game type"},
+	            {"whitelisted", "Enable whitelisting"},
+	            {"modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods."},
+	            {"keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shutdown"},
+	            {"sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NB: This may cause time-paradoxes, and will not work across server restarts"},
+	            {"useUTCTimeInLog", "Use UTC instead of system time in the log."},
+	            {"logLevel", "Minimum log level."},
+	            {"screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited"},
+	            {"screenshotHeight", "Specify vertical resolution of screenshots."},
+	            {"cheats", "Enable use of cheats ingame."},
+	            {"httpPort", "HTTP port for server status. 0 = Disabled"},
+	            {"serverName", "Name of the server."},
+	            {"maxPlayers", "Maximum amount of players that can join the server."},
+	            {"screenshotDirectory", "Specify a custom screenshot directory.\n#This directory must exist in order to be used. Leave blank to store it in Universe."},
+	            {"autoNuke", "Specify in minutes how often /nukeksc automatically runs. 0 = Disabled"},
+	            {"autoDekessler", "Specify in minutes how often /dekessler automatically runs. 0 = Disabled"},
+	            {"numberOfAsteroids", "How many untracked asteroids to spawn into the universe. 0 = Disabled"},
+	            {"consoleIdentifier", "Specify the name that will appear when you send a message using the server's console."},
+				{"serverMotd", "Specify the server's MOTD (message of the day)."},
+				{"expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled"}
+			};
+		}
     }
 
     public class SettingsStore

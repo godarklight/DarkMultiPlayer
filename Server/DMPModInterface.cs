@@ -67,9 +67,9 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug(modName + " attemped to send a null message");
                 return;
             }
-            ServerMessage newMessage = new ServerMessage();
+			var newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.MOD_DATA;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<string>(modName);
                 mw.Write<byte[]>(messageData);
@@ -80,9 +80,9 @@ namespace DarkMultiPlayerServer
 
         public static void SendDMPModMessageToAll(ClientObject excludeClient, string modName, byte[] messageData, bool highPriority)
         {
-            ServerMessage newMessage = new ServerMessage();
+			var newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.MOD_DATA;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<string>(modName);
                 mw.Write<byte[]>(messageData);

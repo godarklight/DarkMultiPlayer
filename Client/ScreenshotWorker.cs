@@ -123,7 +123,7 @@ namespace DarkMultiPlayer
                 while (newScreenshotQueue.Count > 0)
                 {
                     ScreenshotEntry se = newScreenshotQueue.Dequeue();
-                    Texture2D screenshotTexture = new Texture2D(4, 4, TextureFormat.RGB24, false, true);
+					var screenshotTexture = new Texture2D(4, 4, TextureFormat.RGB24, false, true);
                     if (screenshotTexture.LoadImage(se.screenshotData))
                     {
                         screenshotTexture.Apply();
@@ -226,7 +226,7 @@ namespace DarkMultiPlayer
             int resizeHeight = (int)(Screen.height * .66);
             if (screenshotTexture.width > resizeWidth || screenshotTexture.height > resizeHeight)
             {
-                RenderTexture renderTexture = new RenderTexture(resizeWidth, resizeHeight, 24);
+				var renderTexture = new RenderTexture(resizeWidth, resizeHeight, 24);
                 renderTexture.useMipMap = false;
                 Graphics.Blit(screenshotTexture, renderTexture);
                 RenderTexture.active = renderTexture;
@@ -347,7 +347,7 @@ namespace DarkMultiPlayer
 
         private void WatchPlayer(string playerName)
         {
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)ScreenshotMessageType.WATCH);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -358,7 +358,7 @@ namespace DarkMultiPlayer
         //Called from main due to WaitForEndOfFrame timing.
         public void SendScreenshot()
         {
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)ScreenshotMessageType.SCREENSHOT);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -372,12 +372,12 @@ namespace DarkMultiPlayer
             int screenshotWidth = (int)(Screen.width * (screenshotHeight / (float)Screen.height));
 
             //Read the screen pixels into a texture
-            Texture2D fullScreenTexture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
+			var fullScreenTexture = new Texture2D(Screen.width, Screen.height, TextureFormat.RGB24, false);
             fullScreenTexture.filterMode = FilterMode.Bilinear;
             fullScreenTexture.ReadPixels(new Rect(0, 0, Screen.width, Screen.height), 0, 0, false);
             fullScreenTexture.Apply();
 
-            RenderTexture renderTexture = new RenderTexture(screenshotWidth, screenshotHeight, 24);
+			var renderTexture = new RenderTexture(screenshotWidth, screenshotHeight, 24);
             renderTexture.useMipMap = false;
 
             Graphics.Blit(fullScreenTexture, renderTexture); //Blit the screen texture to a render texture
@@ -385,8 +385,8 @@ namespace DarkMultiPlayer
             RenderTexture.active = renderTexture;
 
             //Read the pixels from the render texture into a Texture2D
-            Texture2D resizedTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
-            Texture2D ourTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
+			var resizedTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
+			var ourTexture = new Texture2D(screenshotWidth, screenshotHeight, TextureFormat.RGB24, false);
             resizedTexture.ReadPixels(new Rect(0, 0, screenshotWidth, screenshotHeight), 0, 0);
             resizedTexture.Apply();
             //Save a copy locally in case we need to resize it.
@@ -403,7 +403,7 @@ namespace DarkMultiPlayer
         public void QueueNewScreenshot(string fromPlayer, byte[] screenshotData)
         {
             downloadingScreenshotFromPlayer = null;
-            ScreenshotEntry se = new ScreenshotEntry();
+			var se = new ScreenshotEntry();
             se.fromPlayer = fromPlayer;
             se.screenshotData = screenshotData;
             newScreenshotQueue.Enqueue(se);
@@ -411,7 +411,7 @@ namespace DarkMultiPlayer
 
         public void QueueNewScreenshotWatch(string fromPlayer, string watchPlayer)
         {
-            ScreenshotWatchEntry swe = new ScreenshotWatchEntry();
+			var swe = new ScreenshotWatchEntry();
             swe.fromPlayer = fromPlayer;
             swe.watchPlayer = watchPlayer;
             newScreenshotWatchQueue.Enqueue(swe);

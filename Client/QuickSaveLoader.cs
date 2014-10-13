@@ -64,7 +64,7 @@ namespace DarkMultiPlayer
                     TimeSyncer.fetch.UnlockSubspace();
                     long serverClock = TimeSyncer.fetch.GetServerClock();
                     int newSubspace = TimeSyncer.fetch.LockNewSubspace(serverClock, savedSubspace.planetTime, savedSubspace.subspaceSpeed);
-                    using (MessageWriter mw = new MessageWriter())
+					using (var mw = new MessageWriter())
                     {
                         mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
                         mw.Write<string>(Settings.fetch.playerName);
