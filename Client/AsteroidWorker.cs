@@ -187,7 +187,7 @@ namespace DarkMultiPlayer
 
         private Vessel[] GetCurrentAsteroids()
         {
-            List<Vessel> currentAsteroids = new List<Vessel>();
+            var currentAsteroids = new List<Vessel>();
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
                 if (VesselIsAsteroid(checkVessel))
@@ -200,7 +200,7 @@ namespace DarkMultiPlayer
 
         private int GetAsteroidCount()
         {
-            List<string> seenAsteroids = new List<string>();
+            var seenAsteroids = new List<string>();
             foreach (Vessel checkAsteroid in GetCurrentAsteroids())
             {
                 if (!seenAsteroids.Contains(checkAsteroid.id.ToString()))

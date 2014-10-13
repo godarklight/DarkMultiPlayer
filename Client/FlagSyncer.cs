@@ -42,7 +42,7 @@ namespace DarkMultiPlayer
                 dmpSha[i] = Common.CalculateSHA256Hash(dmpFlags[i]);
                 dmpFlags[i] = Path.GetFileName(dmpFlags[i]);
             }
-            using (MessageWriter mw = new MessageWriter())
+            using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)FlagMessageType.LIST);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -54,7 +54,7 @@ namespace DarkMultiPlayer
 
         public void HandleMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (var mr = new MessageReader(messageData, false))
             {
                 FlagMessageType messageType = (FlagMessageType)mr.Read<int>();
                 switch (messageType)
@@ -67,7 +67,7 @@ namespace DarkMultiPlayer
                             string[] serverFlagShaSums = mr.Read<string[]>();
                             for (int i = 0; i < serverFlagFiles.Length; i++)
                             {
-                                FlagInfo fi = new FlagInfo();
+                                var fi = new FlagInfo();
                                 fi.owner = serverFlagOwners[i];
                                 fi.shaSum = serverFlagShaSums[i];
                                 serverFlags[Path.GetFileNameWithoutExtension(serverFlagFiles[i])] = fi;
@@ -79,7 +79,7 @@ namespace DarkMultiPlayer
                         break;
                     case FlagMessageType.FLAG_DATA:
                         {
-                            FlagRespondMessage frm = new FlagRespondMessage();
+                            var frm = new FlagRespondMessage();
                             frm.flagInfo.owner = mr.Read<string>();
                             frm.flagName = mr.Read<string>();
                             frm.flagData = mr.Read<byte[]>();
@@ -163,7 +163,7 @@ namespace DarkMultiPlayer
                     return;
                 }
                 DarkLog.Debug("Uploading " + Path.GetFileName(flagFile));
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)FlagMessageType.UPLOAD_FILE);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -171,7 +171,7 @@ namespace DarkMultiPlayer
                     mw.Write<byte[]>(File.ReadAllBytes(flagFile));
                     NetworkWorker.fetch.SendFlagMessage(mw.GetMessageBytes());
                 }
-                FlagInfo fi = new FlagInfo();
+                var fi = new FlagInfo();
                 fi.owner = Settings.fetch.playerName;
                 fi.shaSum = Common.CalculateSHA256Hash(flagFile);
                 serverFlags[flagName] = fi;
@@ -183,12 +183,12 @@ namespace DarkMultiPlayer
         {
             serverFlags[flagRespondMessage.flagName] = flagRespondMessage.flagInfo;
             string flagFile = Path.Combine(flagPath, flagRespondMessage.flagName);
-            Texture2D flagTexture = new Texture2D(4, 4);
+            var flagTexture = new Texture2D(4, 4);
             if (flagTexture.LoadImage(flagRespondMessage.flagData))
             {
                 flagTexture.name = "DarkMultiPlayer/Flags/" + Path.GetFileNameWithoutExtension(flagRespondMessage.flagName);
                 File.WriteAllBytes(flagFile, flagRespondMessage.flagData);
-                GameDatabase.TextureInfo ti = new GameDatabase.TextureInfo(flagTexture, false, true, false);
+                var ti = new GameDatabase.TextureInfo(flagTexture, false, true, false);
                 ti.name = flagTexture.name;
                 bool containsTexture = false;
                 foreach (GameDatabase.TextureInfo databaseTi in GameDatabase.Instance.databaseTexture)

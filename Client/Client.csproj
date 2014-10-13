@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{7AD735F5-A076-44D2-97EC-02ECAD827001}</ProjectGuid>
     <OutputType>Library</OutputType>
@@ -33,7 +33,6 @@
     <Reference Include="System" />
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\UnityEngine.dll</HintPath>

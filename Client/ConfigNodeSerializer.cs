@@ -57,9 +57,9 @@ namespace DarkMultiPlayer
             }
 
             //Call the insides of what ConfigNode would have called if we said Save(filename)
-            using (MemoryStream stream = new MemoryStream())
+            using (var stream = new MemoryStream())
             {
-                using (StreamWriter writer = new StreamWriter(stream))
+                using (var writer = new StreamWriter(stream))
                 {
                     //we late bind to the instance by passing the instance as the first argument
                     WriteNodeThunk(node, writer);
@@ -81,11 +81,11 @@ namespace DarkMultiPlayer
                 return null;
             }
 
-            using (MemoryStream stream = new MemoryStream(data))
+            using (var stream = new MemoryStream(data))
             {
-                using (StreamReader reader = new StreamReader(stream))
+				using (var reader = new StreamReader(stream))
                 {
-                    List<string> lines = new List<string>();
+                    var lines = new List<string>();
 
                     while (!reader.EndOfStream)
                     {

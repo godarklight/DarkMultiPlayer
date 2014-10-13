@@ -174,7 +174,7 @@ namespace DarkMultiPlayer
             if (File.Exists(filePath))
             {
                 byte[] fileData = File.ReadAllBytes(filePath);
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)CraftMessageType.UPLOAD_FILE);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -196,7 +196,7 @@ namespace DarkMultiPlayer
         private void DownloadCraftFile(string playerName, CraftType craftType, string craftName)
         {
 
-            using (MessageWriter mw = new MessageWriter())
+            using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)CraftMessageType.REQUEST_FILE);
                 mw.Write<string>(Settings.fetch.playerName);

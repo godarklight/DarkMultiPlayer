@@ -108,7 +108,7 @@ namespace DarkMultiPlayer
 
         public static string[] GetSavedNames()
         {
-            List<string> returnList = new List<string>();
+			var returnList = new List<string>();
             string[] possibleSaves = Directory.GetDirectories(savesFolder);
             foreach (string saveDirectory in possibleSaves)
             {

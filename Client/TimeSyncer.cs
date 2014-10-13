@@ -311,7 +311,7 @@ namespace DarkMultiPlayer
         {
             if (!subspaces.ContainsKey(subspaceID))
             {
-                Subspace newSubspace = new Subspace();
+				var newSubspace = new Subspace();
                 newSubspace.serverClock = serverTime;
                 newSubspace.planetTime = planetariumTime;
                 newSubspace.subspaceSpeed = subspaceSpeed;
@@ -327,7 +327,7 @@ namespace DarkMultiPlayer
                 TimeWarp.SetRate(0, true);
                 locked = true;
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
-                using (MessageWriter mw = new MessageWriter())
+				using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -343,7 +343,7 @@ namespace DarkMultiPlayer
             currentSubspace = -1;
             locked = false;
             Time.timeScale = 1f;
-            using (MessageWriter mw = new MessageWriter())
+			using (var mw = new MessageWriter())
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                 mw.Write<string>(Settings.fetch.playerName);
@@ -412,7 +412,7 @@ namespace DarkMultiPlayer
 
         public Subspace GetSubspace(int subspaceID)
         {
-            Subspace ss = new Subspace();
+			var ss = new Subspace();
             if (subspaces.ContainsKey(subspaceID))
             {
                 ss.serverClock = subspaces[subspaceID].serverClock;

@@ -37,7 +37,7 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.ACQUIRE);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -52,7 +52,7 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageWriter mw = new MessageWriter())
+                using (var mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.RELEASE);
                     mw.Write<string>(Settings.fetch.playerName);
@@ -70,7 +70,7 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                List<string> removeList = new List<string>();
+                var removeList = new List<string>();
                 foreach (KeyValuePair<string,string> kvp in serverLocks)
                 {
                     if (kvp.Value == playerName)
@@ -91,7 +91,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Releasing lock with prefix " + prefix + " for " + playerName);
             lock (lockObject)
             {
-                List<string> removeList = new List<string>();
+                var removeList = new List<string>();
                 foreach (KeyValuePair<string,string> kvp in serverLocks)
                 {
                     if (kvp.Key.StartsWith(prefix) && kvp.Value == playerName)
@@ -119,7 +119,7 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (var mr = new MessageReader(messageData, false))
                 {
                     LockMessageType lockMessageType = (LockMessageType)mr.Read<int>();
                     switch (lockMessageType)

@@ -237,7 +237,7 @@ namespace DarkMultiPlayer
                 }
 
                 //Kill any queued vessels
-                List<Vessel> deleteList = new List<Vessel>();
+				var deleteList = new List<Vessel>();
                 foreach (Vessel dyingVessel in delayKillVessels)
                 {
                     if (FlightGlobals.fetch.vessels.Contains(dyingVessel))
@@ -327,7 +327,7 @@ namespace DarkMultiPlayer
                 Vessel dockedVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == dockedID);
                 if (dockedVessel != null ? !dockedVessel.packed : false)
                 {
-                    ProtoVessel sendProto = new ProtoVessel(dockedVessel);
+					var sendProto = new ProtoVessel(dockedVessel);
                     if (sendProto != null)
                     {
                         DarkLog.Debug("Sending docked protovessel " + dockedID);
@@ -434,7 +434,7 @@ namespace DarkMultiPlayer
 
         private void ReleaseOldUpdateLocks()
         {
-            List<string> removeList = new List<string>();
+			var removeList = new List<string>();
             foreach (KeyValuePair<string, double> entry in latestUpdateSent)
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - entry.Value) > 5f)
@@ -454,7 +454,7 @@ namespace DarkMultiPlayer
 
         private void ProcessNewVesselMessages()
         {
-            Dictionary<string, double> removeList = new Dictionary<string, double>();
+			var removeList = new Dictionary<string, double>();
             foreach (KeyValuePair<string, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
             {
                 while (vesselRemoveSubspace.Value.Count > 0 ? (vesselRemoveSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
@@ -751,7 +751,7 @@ namespace DarkMultiPlayer
             {
                 SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel);
             }
-            SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
+			var secondryVessels = new SortedList<double, Vessel>();
 
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
@@ -797,7 +797,7 @@ namespace DarkMultiPlayer
         private void CheckVesselParts(Vessel checkVessel)
         {
             List<string> allowedParts = ModWorker.fetch.GetAllowedPartsList();
-            List<string> bannedParts = new List<string>();
+			var bannedParts = new List<string>();
             ProtoVessel checkProto = checkVessel.protoVessel;
             if (!checkVessel.packed)
             {
@@ -880,7 +880,7 @@ namespace DarkMultiPlayer
             if (notRecentlySentProtoUpdate)
             {
 
-                ProtoVessel checkProto = new ProtoVessel(checkVessel);
+				var checkProto = new ProtoVessel(checkVessel);
                 //TODO: Fix sending of flying vessels.
                 if (checkProto != null)
                 {
@@ -1032,7 +1032,7 @@ namespace DarkMultiPlayer
 
         private VesselUpdate GetVesselUpdate(Vessel updateVessel)
         {
-            VesselUpdate returnUpdate = new VesselUpdate();
+			var returnUpdate = new VesselUpdate();
             try
             {
                 returnUpdate.vesselID = updateVessel.id.ToString();
@@ -1152,7 +1152,7 @@ namespace DarkMultiPlayer
         {
             if (crewNode != null)
             {
-                ProtoCrewMember protoCrew = new ProtoCrewMember(crewNode);
+				var protoCrew = new ProtoCrewMember(crewNode);
                 if (protoCrew != null)
                 {
                     if (!String.IsNullOrEmpty(protoCrew.name))
@@ -1211,13 +1211,13 @@ namespace DarkMultiPlayer
                         DodgeVesselActionGroups(currentNode);
                         DodgeVesselCrewValues(currentNode);
                         RemoveManeuverNodesFromProtoVessel(currentNode);
-                        ProtoVessel pv = new ProtoVessel(currentNode, HighLogic.CurrentGame);
+						var pv = new ProtoVessel(currentNode, HighLogic.CurrentGame);
                         if (pv != null)
                         {
                             bool protovesselIsOk = true;
                             try
                             {
-                                ConfigNode cn = new ConfigNode();
+								var cn = new ConfigNode();
                                 pv.Save(cn);
                             }
                             catch
@@ -1254,7 +1254,7 @@ namespace DarkMultiPlayer
 
                 //Can be used for debugging incoming vessel config nodes.
                 //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
-                ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
+				var currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
 
                 if (kerbalsDodged && (NetworkWorker.fetch.state == ClientState.STARTING) && !LockSystem.fetch.LockExists("control-" + currentProto.vesselID) && !LockSystem.fetch.LockExists("update-" + currentProto.vesselID))
                 {
@@ -1454,7 +1454,7 @@ namespace DarkMultiPlayer
                             currentProto.vesselRef.distanceLandedUnpackThreshold = Vessel.loadDistance - 300;
                             currentProto.vesselRef.distancePackThreshold = Vessel.loadDistance - 100;
                             currentProto.vesselRef.distanceLandedPackThreshold = Vessel.loadDistance - 100;
-                            HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
+							var hfvl = new HackyFlyingVesselLoad();
                             hfvl.flyingVessel = currentProto.vesselRef;
                             hfvl.loadTime = UnityEngine.Time.realtimeSinceStartup;
                             loadingFlyingVessels.Add(hfvl);
@@ -1943,7 +1943,7 @@ namespace DarkMultiPlayer
 
         private void unassignKerbals(string vesselID)
         {
-            List<string> unassignKerbals = new List<string>();
+			var unassignKerbals = new List<string>();
             foreach (KeyValuePair<string, string> kerbalAssignment in assignedKerbals)
             {
                 if (kerbalAssignment.Value == vesselID)
@@ -2085,7 +2085,7 @@ namespace DarkMultiPlayer
             }
 
             //Rotation
-            Quaternion updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
+			var updateRotation = new Quaternion(update.rotation[0], update.rotation[1], update.rotation[2], update.rotation[3]);
             updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
 
             //Position/Velocity
@@ -2154,7 +2154,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                Orbit updateOrbit = new Orbit(update.orbit[0], update.orbit[1], update.orbit[2], update.orbit[3], update.orbit[4], update.orbit[5], update.orbit[6], updateBody);
+                var updateOrbit = new Orbit(update.orbit[0], update.orbit[1], update.orbit[2], update.orbit[3], update.orbit[4], update.orbit[5], update.orbit[6], updateBody);
                 updateOrbit.Init();
                 updateOrbit.UpdateFromUT(Planetarium.GetUniversalTime());
 
@@ -2178,7 +2178,7 @@ namespace DarkMultiPlayer
             }
 
             //Angular velocity
-            Vector3 angularVelocity = new Vector3(update.angularVelocity[0], update.angularVelocity[1], update.angularVelocity[2]);
+			var angularVelocity = new Vector3(update.angularVelocity[0], update.angularVelocity[1], update.angularVelocity[2]);
             if (updateVessel.parts != null)
             {
                 Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
@@ -2226,7 +2226,7 @@ namespace DarkMultiPlayer
         //Called from networkWorker
         public void QueueKerbal(double planetTime, string kerbalName, ConfigNode kerbalNode)
         {
-            KerbalEntry newEntry = new KerbalEntry();
+			var newEntry = new KerbalEntry();
             newEntry.planetTime = planetTime;
             newEntry.kerbalNode = kerbalNode;
             if (!kerbalProtoQueue.ContainsKey(kerbalName))
@@ -2244,7 +2244,7 @@ namespace DarkMultiPlayer
                 {
                     vesselRemoveQueue.Add(vesselID, new Queue<VesselRemoveEntry>());
                 }
-                VesselRemoveEntry vre = new VesselRemoveEntry();
+				var vre = new VesselRemoveEntry();
                 vre.planetTime = planetTime;
                 vre.vesselID = vesselID;
                 vre.isDockingUpdate = isDockingUpdate;
@@ -2267,7 +2267,7 @@ namespace DarkMultiPlayer
                     {
                         vesselProtoQueue.Add(vesselID, new Queue<VesselProtoUpdate>());
                     }
-                    VesselProtoUpdate vpu = new VesselProtoUpdate();
+					var vpu = new VesselProtoUpdate();
                     vpu.planetTime = planetTime;
                     vpu.vesselNode = vesselNode;
                     vesselProtoQueue[vesselID].Enqueue(vpu);
@@ -2297,7 +2297,7 @@ namespace DarkMultiPlayer
 
         public void QueueActiveVessel(string player, string vesselID)
         {
-            ActiveVesselEntry ave = new ActiveVesselEntry();
+			var ave = new ActiveVesselEntry();
             ave.player = player;
             ave.vesselID = vesselID;
             newActiveVessels.Enqueue(ave);

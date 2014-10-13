@@ -76,20 +76,20 @@ namespace DarkMultiPlayer
             lastModFileData = modFileData;
             //Err...
             string tempModFilePath = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data"), "DMPModControl.txt");
-            using (StreamWriter sw = new StreamWriter(tempModFilePath))
+            using (var sw = new StreamWriter(tempModFilePath))
             {
                 sw.WriteLine("#This file is downloaded from the server during connection. It is saved here for convenience.");
                 sw.WriteLine(lastModFileData);
             }
 
             //Parse
-            Dictionary<string,string> parseRequired = new Dictionary<string, string>();
-            Dictionary<string,string> parseOptional = new Dictionary<string, string>();
-            List<string> parseWhiteBlackList = new List<string>();
-            List<string> parsePartsList = new List<string>();
+            var parseRequired = new Dictionary<string, string>();
+            var parseOptional = new Dictionary<string, string>();
+			var parseWhiteBlackList = new List<string>();
+            var parsePartsList = new List<string>();
             bool isWhiteList = false;
             string readMode = "";
-            using (StringReader sr = new StringReader(modFileData))
+            using (var sr = new StringReader(modFileData))
             {
                 while (true)
                 {
@@ -222,8 +222,8 @@ namespace DarkMultiPlayer
             }
 
             string[] currentGameDataFiles = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
-            List<string> currentGameDataFilesNormal = new List<string>();
-            List<string> currentGameDataFilesLower = new List<string>();
+            var currentGameDataFilesNormal = new List<string>();
+            var currentGameDataFilesLower = new List<string>();
             foreach (string currentFile in currentGameDataFiles)
             {
                 string relativeFilePath = currentFile.Substring(currentFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
@@ -231,7 +231,7 @@ namespace DarkMultiPlayer
                 currentGameDataFilesLower.Add(relativeFilePath.ToLowerInvariant());
             }
             //Check
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             //Check Required
             foreach (KeyValuePair<string, string> requiredEntry in parseRequired)
             {
@@ -331,7 +331,7 @@ namespace DarkMultiPlayer
             if (isWhiteList)
             {
                 //Check Resource whitelist
-                List<string> autoAllowed = new List<string>();
+                var autoAllowed = new List<string>();
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer-common.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter.dll");
@@ -398,8 +398,8 @@ namespace DarkMultiPlayer
             string[] topLevelFiles = Directory.GetFiles(gameDataDir);
             string[] modDirectories = Directory.GetDirectories(gameDataDir);
 
-            List<string> requiredFiles = new List<string>();
-            List<string> optionalFiles = new List<string>();
+            var requiredFiles = new List<string>();
+            var optionalFiles = new List<string>();
             List<string> partsList = Common.GetStockParts();
              //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
             foreach (string dllFile in topLevelFiles)
@@ -427,8 +427,8 @@ namespace DarkMultiPlayer
                 }
                 bool modIsRequired = false;
                 string[] partFiles = Directory.GetFiles(Path.Combine(gameDataDir, modDirectory), "*", SearchOption.AllDirectories);
-                List<string> modDllFiles = new List<string>();
-                List<string> modPartCfgFiles = new List<string>();
+                var modDllFiles = new List<string>();
+                var modPartCfgFiles = new List<string>();
                 foreach (string partFile in partFiles)
                 {
                     bool fileIsPartFile = false;
@@ -487,7 +487,7 @@ namespace DarkMultiPlayer
             }
             string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
             string saveModFile = Path.Combine(KSPUtil.ApplicationRootPath, "DMPModControl.txt");
-            using (StreamWriter sw = new StreamWriter(saveModFile, false))
+            using (var sw = new StreamWriter(saveModFile, false))
             {
                 sw.Write(modFileData);
             }

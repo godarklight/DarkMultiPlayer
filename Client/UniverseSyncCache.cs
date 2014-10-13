@@ -68,7 +68,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    FileInfo fi = new FileInfo(cacheFile);
+					var fi = new FileInfo(cacheFile);
                     fileCreationTimes[cacheObject] = fi.CreationTime;
                     fileLengths[cacheObject] = fi.Length;
                     currentCacheSize += fi.Length;
