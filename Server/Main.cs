@@ -345,8 +345,7 @@ namespace DarkMultiPlayerServer
                 {
                     try
                     {
-                        httpListener.Stop();
-                        httpListener.Close();
+                        httpListener.Abort();
                     }
                     catch (Exception e)
                     {
