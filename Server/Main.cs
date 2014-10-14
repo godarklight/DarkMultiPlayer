@@ -282,9 +282,19 @@ namespace DarkMultiPlayerServer
                 httpListener = new HttpListener();
                 try
                 {
-                    if (Settings.settingsStore.address != "0.0.0.0")
+                    if (Settings.settingsStore.address != "0.0.0.0" && Settings.settingsStore.address != "::")
                     {
-                        httpListener.Prefixes.Add("http://" + Settings.settingsStore.address + ":" + Settings.settingsStore.httpPort + '/');
+                        string listenAddress = Settings.settingsStore.address;
+                        if (listenAddress.Contains(":"))
+                        {
+                            //Sorry
+                            DarkLog.Error("Error: The server status port does not support specific IPv6 addresses. Sorry.");
+                            //listenAddress = "[" + listenAddress + "]";
+                            return;
+
+                        }
+
+                        httpListener.Prefixes.Add("http://" + listenAddress + ":" + Settings.settingsStore.httpPort + '/');
                     }
                     else
                     {

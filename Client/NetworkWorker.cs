@@ -52,9 +52,12 @@ namespace DarkMultiPlayer
         private long bytesSent;
         private long bytesReceived;
         //Locking
+        private int connectingThreads = 0;
+        private object connectLock = new object();
         private object disconnectLock = new object();
         private object messageQueueLock = new object();
         private Thread connectThread;
+        private List<Thread> parallelConnectThreads = new List<Thread>();
         private Thread receiveThread;
         private Thread sendThread;
         private string serverMotd;
@@ -230,15 +233,26 @@ namespace DarkMultiPlayer
                         IPHostEntry dnsResult = Dns.GetHostEntry(address);
                         if (dnsResult.AddressList.Length > 0)
                         {
+                            List<IPEndPoint> addressToConnectTo = new List<IPEndPoint>();
                             foreach (IPAddress testAddress in dnsResult.AddressList)
                             {
-                                if (testAddress.AddressFamily == AddressFamily.InterNetwork)
+                                if (testAddress.AddressFamily == AddressFamily.InterNetwork || testAddress.AddressFamily == AddressFamily.InterNetworkV6)
                                 {
-                                    destinationAddress = testAddress;
-                                    break;
+                                    Interlocked.Increment(ref connectingThreads);
+                                    Client.fetch.status = "Connecting";
+                                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
+                                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                                    state = ClientState.CONNECTING;
+                                    addressToConnectTo.Add(new IPEndPoint(testAddress, port));
                                 }
                             }
-                            if (destinationAddress == null)
+                            foreach (IPEndPoint endpoint in addressToConnectTo)
+                            {
+                                Thread parallelConnectThread = new Thread(new ParameterizedThreadStart(ConnectToServerAddress));
+                                parallelConnectThreads.Add(parallelConnectThread);
+                                parallelConnectThread.Start(endpoint);
+                            }
+                            if (addressToConnectTo.Count == 0)
                             {
                                 DarkLog.Debug("DNS does not contain a valid address entry");
                                 Client.fetch.status = "DNS does not contain a valid address entry";
@@ -258,48 +272,88 @@ namespace DarkMultiPlayer
                         Client.fetch.status = "DNS Error: " + e.Message;
                         return;
                     }
-
                 }
-                IPEndPoint destination = new IPEndPoint(destinationAddress, port);
-                clientConnection = new TcpClient(destination.AddressFamily);
-                clientConnection.NoDelay = true;
-                try
+                else
                 {
-                    DarkLog.Debug("Connecting to " + destinationAddress + " port " + port + "...");
-                    Client.fetch.status = "Connecting to " + destinationAddress + " port " + port;
+                    Interlocked.Increment(ref connectingThreads);
+                    Client.fetch.status = "Connecting";
                     lastSendTime = UnityEngine.Time.realtimeSinceStartup;
                     lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
                     state = ClientState.CONNECTING;
-                    clientConnection.Connect(destination.Address, destination.Port);
-                    if (clientConnection.Connected)
+                    ConnectToServerAddress(new IPEndPoint(destinationAddress, port));
+                }
+            }
+
+            while (state == ClientState.CONNECTING)
+            {
+                Thread.Sleep(500);
+                CheckInitialDisconnection();
+            }
+        }
+
+        private void ConnectToServerAddress(object destinationObject)
+        {
+            IPEndPoint destination = (IPEndPoint)destinationObject;
+            TcpClient testConnection = new TcpClient(destination.AddressFamily);
+            testConnection.NoDelay = true;
+            try
+            {
+                DarkLog.Debug("Connecting to " + destination.Address + " port " + destination.Port + "...");
+                testConnection.Connect(destination.Address, destination.Port);
+                lock (connectLock)
+                {
+                    if (state == ClientState.CONNECTING)
                     {
-                        //Timeout didn't expire.
-                        DarkLog.Debug("Connected!");
-                        Client.fetch.status = "Connected";
-                        state = ClientState.CONNECTED;
-                        sendThread = new Thread(new ThreadStart(SendThreadMain));
-                        sendThread.IsBackground = true;
-                        sendThread.Start();
-                        receiveThread = new Thread(new ThreadStart(StartReceivingIncomingMessages));
-                        receiveThread.IsBackground = true;
-                        receiveThread.Start();
+                        if (testConnection.Connected)
+                        {
+                            clientConnection = testConnection;
+                            //Timeout didn't expire.
+                            DarkLog.Debug("Connected to " + destination.Address + " port " + destination.Port);
+                            Client.fetch.status = "Connected";
+                            state = ClientState.CONNECTED;
+                            sendThread = new Thread(new ThreadStart(SendThreadMain));
+                            sendThread.IsBackground = true;
+                            sendThread.Start();
+                            receiveThread = new Thread(new ThreadStart(StartReceivingIncomingMessages));
+                            receiveThread.IsBackground = true;
+                            receiveThread.Start();
+                        }
+                        else
+                        {
+                            //The connection actually comes good, but after the timeout, so we can send the disconnect message.
+                            if ((connectingThreads == 1) && (state == ClientState.CONNECTING))
+                            {
+                                DarkLog.Debug("Failed to connect within the timeout!");
+                                Disconnect("Initial connection timeout");
+                            }
+                        }
                     }
                     else
                     {
-                        //The connection actually comes good, but after the timeout, so we can send the disconnect message.
-                        DarkLog.Debug("Failed to connect within the timeout!");
-                        Disconnect("Initial connection timeout");
+                        if (testConnection.Connected)
+                        {
+                            testConnection.GetStream().Close();
+                            testConnection.GetStream().Dispose();
+                        }
                     }
                 }
-                catch (Exception e)
+            }
+            catch (Exception e)
+            {
+                if ((connectingThreads == 1) && (state == ClientState.CONNECTING))
                 {
                     HandleDisconnectException(e);
                 }
             }
+            Interlocked.Decrement(ref connectingThreads);
+            lock (parallelConnectThreads)
+            {
+                parallelConnectThreads.Remove(Thread.CurrentThread);
+            }
         }
         #endregion
         #region Connection housekeeping
-        private void CheckDisconnection()
+        private void CheckInitialDisconnection()
         {
             if (state == ClientState.CONNECTING)
             {
@@ -311,7 +365,15 @@ namespace DarkMultiPlayer
                     {
                         try
                         {
-                            connectThread.Abort();
+                            lock (parallelConnectThreads)
+                            {
+                                foreach (Thread parallelConnectThread in parallelConnectThreads)
+                                {
+                                    parallelConnectThread.Abort();
+                                }
+                                parallelConnectThreads.Clear();
+                                connectingThreads = 0;
+                            }
                         }
                         catch
                         {
@@ -319,6 +381,9 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+        }
+        private void CheckDisconnection()
+        {
             if (state >= ClientState.CONNECTED)
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
@@ -367,6 +432,19 @@ namespace DarkMultiPlayer
 
         private void TerminateThreads()
         {
+            foreach (Thread parallelConnectThread in parallelConnectThreads)
+            {
+                try
+                {
+                    parallelConnectThread.Abort();
+                }
+                catch
+                {
+                    //Don't care
+                }
+            }
+            parallelConnectThreads.Clear();
+            connectingThreads = 0;
             try
             {
                 connectThread.Abort();

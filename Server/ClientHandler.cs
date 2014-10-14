@@ -251,6 +251,18 @@ namespace DarkMultiPlayerServer
             {
                 IPAddress bindAddress = IPAddress.Parse(Settings.settingsStore.address);
                 TCPServer = new TcpListener(new IPEndPoint(bindAddress, Settings.settingsStore.port));
+                try
+                {
+                    if (System.Net.Sockets.Socket.OSSupportsIPv6)
+                    {
+                        //Windows defaults to v6 only, but this option does not exist in mono so it has to be in a try/catch block along with the casted int.
+                        TCPServer.Server.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, 0);
+                    }
+                }
+                catch
+                {
+                    //Don't care - On linux and mac this throws because it's already set, and on windows it just works.
+                }
                 TCPServer.Start(4);
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }

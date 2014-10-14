@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Net;
 using DarkMultiPlayerCommon;
 using System.Reflection;
 using System.Collections.Generic;
@@ -19,6 +20,18 @@ namespace DarkMultiPlayerServer
             FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
             if (!File.Exists(Path.Combine(serverPath, SETTINGS_FILE_NAME)))
             {
+                try
+                {
+                    if (System.Net.Sockets.Socket.OSSupportsIPv6)
+                    {
+                        //Default to listening on IPv4 and IPv6 if possible.
+                        settingsStore.address = "::";
+                    }
+                }
+                catch
+                {
+                    //May throw on Windows XP
+                }
                 Save();
             }
             using (FileStream fs = new FileStream(settingsFile, FileMode.Open))
@@ -62,7 +75,8 @@ namespace DarkMultiPlayerServer
                                             double doubleValue = Double.Parse(currentValue);
                                             settingField.SetValue(settingsStore, (double)doubleValue);
                                         }
-                                        if (settingField.FieldType == typeof(bool)) {
+                                        if (settingField.FieldType == typeof(bool))
+                                        {
                                             if (currentValue == "1")
                                             {
                                                 settingField.SetValue(settingsStore, true);
@@ -117,7 +131,8 @@ namespace DarkMultiPlayerServer
                         {
                             sw.WriteLine(settingField.Name.ToLower() + "," + settingField.GetValue(settingsStore));
                         }
-                        if (settingField.FieldType == typeof(bool)) {
+                        if (settingField.FieldType == typeof(bool))
+                        {
                             if ((bool)settingField.GetValue(settingsStore))
                             {
                                 sw.WriteLine(settingField.Name.ToLower() + ",1");
@@ -150,7 +165,7 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string,string> GetSettingsDescriptions()
         {
             Dictionary<string, string> descriptionList = new Dictionary<string, string>();
-            descriptionList.Add("address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.");
+            descriptionList.Add("address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\n#Change this setting to :: to listen on IPv4 and IPv6.");
             descriptionList.Add("port", "The port the server listens on");
             descriptionList.Add("warpMode", "Specify the warp type");
             descriptionList.Add("gameMode", "Specify the game type");
