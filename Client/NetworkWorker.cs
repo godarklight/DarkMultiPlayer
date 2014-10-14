@@ -1292,6 +1292,10 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Got a docking update!");
                     dockingPlayer = mr.Read<string>();
                 }
+                else
+                {
+                    DarkLog.Debug("Got removal command for vessel " + vesselID);
+                }
                 VesselWorker.fetch.QueueVesselRemove(vesselID, planetTime, isDockingUpdate, dockingPlayer);
             }
         }
