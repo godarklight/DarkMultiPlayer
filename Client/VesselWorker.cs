@@ -1201,6 +1201,8 @@ namespace DarkMultiPlayer
         public void LoadVesselsIntoGame()
         {
             DarkLog.Debug("Loading vessels into game");
+            int numberOfLoads = 0;
+
             foreach (KeyValuePair<string, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
             {
                 while (vesselQueue.Value.Count > 0)
@@ -1231,12 +1233,13 @@ namespace DarkMultiPlayer
                                 RegisterServerVessel(pv.vesselID.ToString());
                                 RegisterServerAsteriodIfVesselIsAsteroid(pv);
                                 HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
+                                numberOfLoads++;
                             }
                         }
                     }
                 }
             }
-            DarkLog.Debug("Vessels loaded into game");
+            DarkLog.Debug("Vessels (" + numberOfLoads + ") loaded into game");
         }
         //Also called from QuickSaveLoader
         public void LoadVessel(ConfigNode vesselNode)

@@ -43,7 +43,7 @@ namespace DarkMultiPlayerServer
                     }
                     if (landedAtKSC | landedAtRunway)
                     {
-                        DarkLog.Normal("Removing vessel: " + vesselID);
+                        DarkLog.Normal("Removing vessel " + vesselID + " from KSC");
                         //Delete it from the universe
                         if (File.Exists(vesselFile))
                         {
