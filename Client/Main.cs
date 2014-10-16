@@ -299,9 +299,9 @@ namespace DarkMultiPlayer
                         }
                     }
 
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.fetch.activeVessel != null)
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready)
                     {
-                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = (FlightGlobals.ClearToSave() == ClearToSaveStatus.CLEAR);
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
                     }
                     else
                     {
