@@ -40,6 +40,8 @@ namespace DarkMultiPlayer
         public const int WINDOW_OFFSET = 1664952404;
         //Hack gravity fix.
         private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody,double>();
+        //Command line connect
+        public static ServerEntry commandLineConnect;
 
         public Client()
         {
@@ -106,7 +108,82 @@ namespace DarkMultiPlayer
                 });
             }
             FireResetEvent();
+            HandleCommandLineArgs();
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
+        }
+
+        private void HandleCommandLineArgs()
+        {
+            bool nextLineIsAddress = false;
+            bool valid = true;
+            string address = null;
+            int port = 6702;
+            foreach (string commandLineArg in Environment.GetCommandLineArgs())
+            {
+                //Supporting IPv6 is FUN!
+                if (nextLineIsAddress)
+                {
+                    nextLineIsAddress = false;
+                    if (commandLineArg.Contains("dmp://"))
+                    {
+                        if (commandLineArg.Contains("[") && commandLineArg.Contains("]"))
+                        {
+                            //IPv6 literal
+                            address = commandLineArg.Substring("dmp://[".Length);
+                            address = address.Substring(0, address.LastIndexOf("]"));
+                            if (commandLineArg.Contains("]:"))
+                            {
+                                //With port
+                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf("]:") + 1);
+                                if (!Int32.TryParse(portString, out port))
+                                {
+                                    valid = false;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            //IPv4 literal or hostname
+                            if (commandLineArg.Substring("dmp://".Length).Contains(":"))
+                            {
+                                //With port
+                                address = commandLineArg.Substring("dmp://".Length);
+                                address = address.Substring(0, address.LastIndexOf(":"));
+                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf(":") + 1);
+                                if (!Int32.TryParse(portString, out port))
+                                {
+                                    valid = false;
+                                }
+                            }
+                            else
+                            {
+                                //Without port
+                                address = commandLineArg.Substring("dmp://".Length);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        valid = false;
+                    }
+                }
+
+                if (commandLineArg == "-dmp")
+                {
+                    nextLineIsAddress = true;
+                }
+            }
+            if (valid)
+            {
+                commandLineConnect = new ServerEntry();
+                commandLineConnect.address = address;
+                commandLineConnect.port = port;
+                DarkLog.Debug("Connecting via command line to: " + address + ", port: " + port);
+            }
+            else
+            {
+                DarkLog.Debug("Command line address is invalid: " + address + ", port: " + port);
+            }
         }
 
         public void Update()
@@ -184,6 +261,11 @@ namespace DarkMultiPlayer
                 {
                     ConnectionWindow.fetch.connectEventHandled = true;
                     NetworkWorker.fetch.ConnectToServer(Settings.fetch.servers[ConnectionWindow.fetch.selected].address, Settings.fetch.servers[ConnectionWindow.fetch.selected].port);
+                }
+                if (commandLineConnect != null && HighLogic.LoadedScene == GameScenes.MAINMENU && Time.timeSinceLevelLoad > 1f)
+                {
+                    NetworkWorker.fetch.ConnectToServer(commandLineConnect.address, commandLineConnect.port);
+                    commandLineConnect = null;
                 }
 
                 if (!ConnectionWindow.fetch.disconnectEventHandled)
