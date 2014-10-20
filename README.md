@@ -9,7 +9,9 @@ The DarkMultiPlayer server and client is cross platform, it runs under mono on l
 
 ###Installation / Updating
 Option a) Extract the DarkMultiPlayer zip to GameData.  
-Option b) Download DMPUpdater from http://chrisand.no-ip.info/dmp/downloads/dmpupdater/, place the program next to KSP.exe (Or KSP.app/KSP.x86_64), and run it.  
+Option b) Download DMPUpdater, place the program next to KSP.exe (Or KSP.app/KSP.x86_64), and run it.  
+
+You can download both options from http://dmp.52k.de/w/Download
 
 ####LINUX BUG
 The linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
