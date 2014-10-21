@@ -106,34 +106,37 @@ namespace DarkMultiPlayer
 
         private void OnVesselCreate(Vessel checkVessel)
         {
-            if (VesselIsAsteroid(checkVessel))
+            if (workerEnabled)
             {
-                lock (serverAsteroidListLock)
+                if (VesselIsAsteroid(checkVessel))
                 {
-                    if (LockSystem.fetch.LockIsOurs("asteroid-spawning"))
+                    lock (serverAsteroidListLock)
                     {
-                        if (!serverAsteroids.Contains(checkVessel.id.ToString()))
+                        if (LockSystem.fetch.LockIsOurs("asteroid-spawning"))
                         {
-                            if (GetAsteroidCount() <= maxNumberOfUntrackedAsteroids)
+                            if (!serverAsteroids.Contains(checkVessel.id.ToString()))
                             {
-                                DarkLog.Debug("Spawned in new server asteroid!");
-                                serverAsteroids.Add(checkVessel.id.ToString());
-                                VesselWorker.fetch.RegisterServerVessel(checkVessel.id.ToString());
-                                NetworkWorker.fetch.SendVesselProtoMessage(checkVessel.protoVessel, false, false);
-                            }
-                            else
-                            {
-                                DarkLog.Debug("Killing non-server asteroid " + checkVessel.id);
-                                checkVessel.Die();
+                                if (GetAsteroidCount() <= maxNumberOfUntrackedAsteroids)
+                                {
+                                    DarkLog.Debug("Spawned in new server asteroid!");
+                                    serverAsteroids.Add(checkVessel.id.ToString());
+                                    VesselWorker.fetch.RegisterServerVessel(checkVessel.id.ToString());
+                                    NetworkWorker.fetch.SendVesselProtoMessage(checkVessel.protoVessel, false, false);
+                                }
+                                else
+                                {
+                                    DarkLog.Debug("Killing non-server asteroid " + checkVessel.id);
+                                    checkVessel.Die();
+                                }
                             }
                         }
-                    }
-                    else
-                    {
-                        if (!serverAsteroids.Contains(checkVessel.id.ToString()))
+                        else
                         {
-                            DarkLog.Debug("Killing non-server asteroid " + checkVessel.id + ", we don't own the asteroid-spawning lock");
-                            checkVessel.Die();
+                            if (!serverAsteroids.Contains(checkVessel.id.ToString()))
+                            {
+                                DarkLog.Debug("Killing non-server asteroid " + checkVessel.id + ", we don't own the asteroid-spawning lock");
+                                checkVessel.Die();
+                            }
                         }
                     }
                 }
