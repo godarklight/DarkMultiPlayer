@@ -43,11 +43,12 @@ namespace DarkMultiPlayerCommon
 
         public static string ConvertConfigStringToGUIDString(string configNodeString)
         {
-            string[] returnString = new string[4];
+            string[] returnString = new string[5];
             returnString[0] = configNodeString.Substring(0, 8);
             returnString[1] = configNodeString.Substring(8, 4);
             returnString[2] = configNodeString.Substring(12, 4);
-            returnString[3] = configNodeString.Substring(16);
+            returnString[3] = configNodeString.Substring(16, 4);
+            returnString[4] = configNodeString.Substring(20);
             return String.Join("-", returnString);
         }
 
