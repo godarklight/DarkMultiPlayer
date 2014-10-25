@@ -1072,6 +1072,11 @@ namespace DarkMultiPlayer
                     returnUpdate.velocity[0] = srfVel.x;
                     returnUpdate.velocity[1] = srfVel.y;
                     returnUpdate.velocity[2] = srfVel.z;
+                    returnUpdate.acceleration = new double[3];
+                    Vector3d srfAcceleration = Quaternion.Inverse(updateVessel.mainBody.bodyTransform.rotation) * updateVessel.acceleration;
+                    returnUpdate.acceleration[0] = srfAcceleration.x;
+                    returnUpdate.acceleration[1] = srfAcceleration.y;
+                    returnUpdate.acceleration[2] = srfAcceleration.z;
                 }
                 else
                 {
@@ -2097,6 +2102,7 @@ namespace DarkMultiPlayer
                 //Get the new position/velocity
                 Vector3d updatePostion = updateBody.GetWorldSurfacePosition(update.position[0], update.position[1], update.position[2]);
                 Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(update.velocity[0], update.velocity[1], update.velocity[2]);
+                Vector3d updateAcceleration = updateBody.bodyTransform.rotation * new Vector3d(update.acceleration[0], update.acceleration[1], update.acceleration[2]);
                 //Figure out how far away we are if we can
                 double updateDistance = Double.PositiveInfinity;
                 if ((HighLogic.LoadedScene == GameScenes.FLIGHT) && (FlightGlobals.fetch.activeVessel != null))
@@ -2150,9 +2156,20 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
+                    double planetariumDifference = Planetarium.GetUniversalTime() - update.planetTime;
+                    Vector3d positionFudge = Vector3d.zero;
+                    Vector3d velocityFudge = Vector3d.zero;
+                    if (Math.Abs(planetariumDifference) < 3f)
+                    {
+                        DarkLog.Debug("Fudging update " + planetariumDifference + " seconds into the future");
+                        positionFudge = updateVelocity * planetariumDifference;
+                        velocityFudge = updateAcceleration * planetariumDifference;
+                        DarkLog.Debug("Position fudge " + positionFudge.magnitude);
+                        DarkLog.Debug("Velocity fudge " + velocityFudge.magnitude);
+                    }
                     Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
-                    updateVessel.SetPosition(updatePostion, true);
-                    updateVessel.ChangeWorldVelocity(velocityOffset);
+                    updateVessel.SetPosition(updatePostion + positionFudge, true);
+                    updateVessel.ChangeWorldVelocity(velocityOffset + velocityFudge);
                 }
             }
             else
@@ -2404,8 +2421,6 @@ namespace DarkMultiPlayer
         public string bodyName;
         //Found out KSP's magic rotation setting by browsing Vessel.FixedUpdate()
         public float[] rotation;
-        //public float[] vesselForward;
-        //public float[] vesselUp;
         public float[] angularVelocity;
         public FlightCtrlState flightState;
         public bool[] actiongroupControls;
@@ -2416,6 +2431,7 @@ namespace DarkMultiPlayer
         //Position = lat,long,alt.
         public double[] position;
         public double[] velocity;
+        public double[] acceleration;
     }
 }
 

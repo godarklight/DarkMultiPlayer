@@ -1253,6 +1253,7 @@ namespace DarkMultiPlayer
                 {
                     update.position = mr.Read<double[]>();
                     update.velocity = mr.Read<double[]>();
+                    update.acceleration = mr.Read<double[]>();
                 }
                 else
                 {
@@ -1680,6 +1681,7 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<double[]>(update.position);
                     mw.Write<double[]>(update.velocity);
+                    mw.Write<double[]>(update.acceleration);
                 }
                 else
                 {
