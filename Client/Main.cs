@@ -115,7 +115,7 @@ namespace DarkMultiPlayer
         private void HandleCommandLineArgs()
         {
             bool nextLineIsAddress = false;
-            bool valid = true;
+            bool valid = false;
             string address = null;
             int port = 6702;
             foreach (string commandLineArg in Environment.GetCommandLineArgs())
@@ -123,6 +123,7 @@ namespace DarkMultiPlayer
                 //Supporting IPv6 is FUN!
                 if (nextLineIsAddress)
                 {
+                    valid = true;
                     nextLineIsAddress = false;
                     if (commandLineArg.Contains("dmp://"))
                     {
