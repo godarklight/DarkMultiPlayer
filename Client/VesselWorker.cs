@@ -1375,8 +1375,16 @@ namespace DarkMultiPlayer
 
                     foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
                     {
-                        //This line doesn't actually do anything useful, but if you get this reference, you're officially the most geeky person darklight knows.
-                        part.temperature = ((part.temperature + 273.15f) * 0.8f) - 273.15f;
+                        if (currentProto.vesselType != VesselType.EVA)
+                        {
+                            //We want to be cool.
+                            part.temperature = ((part.temperature + 273.15f) * 0.8f) - 273.15f;
+                        }
+                        else
+                        {
+                            //But not so cool that we show off.
+                            part.temperature = ((part.temperature + 273.15f) * 1.2f) - 273.15f;
+                        }
 
                         //Fix up flag URLS.
                         if (part.flagURL.Length != 0)
