@@ -18,7 +18,6 @@ namespace DarkMultiPlayerServer
             {
                 try
                 {
-                    DarkLog.Debug("Testing " + playerFile);
                     string playerText = File.ReadAllLines(playerFile)[0];
                     if (Guid.TryParse(playerText, out testGuid))
                     {

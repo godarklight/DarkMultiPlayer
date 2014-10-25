@@ -2161,11 +2161,8 @@ namespace DarkMultiPlayer
                     Vector3d velocityFudge = Vector3d.zero;
                     if (Math.Abs(planetariumDifference) < 3f)
                     {
-                        DarkLog.Debug("Fudging update " + planetariumDifference + " seconds into the future");
                         positionFudge = updateVelocity * planetariumDifference;
                         velocityFudge = updateAcceleration * planetariumDifference;
-                        DarkLog.Debug("Position fudge " + positionFudge.magnitude);
-                        DarkLog.Debug("Velocity fudge " + velocityFudge.magnitude);
                     }
                     Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
                     updateVessel.SetPosition(updatePostion + positionFudge, true);
