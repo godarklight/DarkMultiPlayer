@@ -1901,9 +1901,11 @@ namespace DarkMultiPlayer
             {
                 if (partAction.from.vessel != null && partAction.to.vessel != null)
                 {
+                    bool fromVesselUpdateLockExists = LockSystem.fetch.LockExists("update-" + partAction.from.vessel.id.ToString());
+                    bool toVesselUpdateLockExists = LockSystem.fetch.LockExists("update-" + partAction.to.vessel.id.ToString());
                     bool fromVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.from.vessel.id.ToString());
                     bool toVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.to.vessel.id.ToString());
-                    if (fromVesselUpdateLockIsOurs || toVesselUpdateLockIsOurs)
+                    if (fromVesselUpdateLockIsOurs || toVesselUpdateLockIsOurs || !fromVesselUpdateLockExists || !toVesselUpdateLockExists)
                     {                    
                         DarkLog.Debug("Vessel docking, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
                         DarkLog.Debug("Vessel docking, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
