@@ -20,7 +20,7 @@ namespace DarkMultiPlayer
         private bool safeDisplay;
         private bool initialized;
         private bool showUpload;
-        private bool isEditorLocked = false;
+        private bool isWindowLocked = false;
         private string selectedPlayer;
         private List<string> playersWithCrafts = new List<string>();
         //Player -> Craft type -> Craft name
@@ -348,7 +348,7 @@ namespace DarkMultiPlayer
                     selectedPlayer = null;
                 }
             }
-            CheckEditorLock();
+            CheckWindowLock();
         }
 
         private void DrawPlayerContent(int windowID)
@@ -414,48 +414,50 @@ namespace DarkMultiPlayer
             GUILayout.EndVertical();
         }
 
-        private void CheckEditorLock()
+        private void CheckWindowLock()
         {
             if (!Client.fetch.gameRunning)
             {
+                RemoveWindowLock();
                 return;
             }
 
-            EditorLogic editor = EditorLogic.fetch;
-
-            if (editor == null)
+            if (HighLogic.LoadedSceneIsFlight)
             {
+                RemoveWindowLock();
                 return;
             }
 
-            if (display)
+            if (safeDisplay)
             {
                 Vector2 mousePos = Input.mousePosition;
                 mousePos.y = Screen.height - mousePos.y;
 
                 bool shouldLock = (playerWindowRect.Contains(mousePos) || libraryWindowRect.Contains(mousePos));
 
-
-                if (shouldLock && !isEditorLocked)
+                if (shouldLock && !isWindowLocked)
                 {
-                    EditorLogic.fetch.Lock(true, true, true, "DMP_CraftLock");
-                    isEditorLocked = true;
+                    InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, "DMP_CraftLock");
+                    isWindowLocked = true;
                 }
-                else if (!shouldLock)
+                if (!shouldLock && isWindowLocked)
                 {
-                    if (!isEditorLocked)
-                    {
-                        editor.Lock(true, true, true, "DMP_CraftLock");
-                    }
-                    editor.Unlock("DMP_CraftLock");
-                    isEditorLocked = false;
+                    RemoveWindowLock();
                 }
             }
 
-            if (!display && isEditorLocked)
+            if (!safeDisplay && isWindowLocked)
             {
-                editor.Unlock("DMP_CraftLock");
-                isEditorLocked = false;
+                RemoveWindowLock();
+            }
+        }
+
+        private void RemoveWindowLock()
+        {
+            if (isWindowLocked)
+            {
+                isWindowLocked = false;
+                InputLockManager.RemoveControlLock("DMP_CraftLock");
             }
         }
 

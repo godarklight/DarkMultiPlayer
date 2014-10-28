@@ -10,7 +10,7 @@ namespace DarkMultiPlayer
         public bool display = false;
         public bool disconnectEventHandled = true;
         public bool colorEventHandled = true;
-        private bool isEditorLocked = false;
+        private bool isWindowLocked = false;
         //private parts
         private static PlayerStatusWindow singleton;
         private bool initialized;
@@ -155,7 +155,7 @@ namespace DarkMultiPlayer
                     minWindowRect = GUILayout.Window(6703 + Client.WINDOW_OFFSET, minWindowRect, DrawMaximize, "DMP", windowStyle, minLayoutOptions);
                 }
             }
-            CheckEditorLock();
+            CheckWindowLock();
         }
 
         private void DrawContent(int windowID)
@@ -241,17 +241,17 @@ namespace DarkMultiPlayer
             GUILayout.EndVertical();
         }
 
-        private void CheckEditorLock()
+        private void CheckWindowLock()
         {
             if (!Client.fetch.gameRunning)
             {
+                RemoveWindowLock();
                 return;
             }
 
-            EditorLogic editor = EditorLogic.fetch;
-
-            if (editor == null)
+            if (HighLogic.LoadedSceneIsFlight)
             {
+                RemoveWindowLock();
                 return;
             }
 
@@ -262,27 +262,29 @@ namespace DarkMultiPlayer
 
                 bool shouldLock = (minmized ? minWindowRect.Contains(mousePos) : windowRect.Contains(mousePos));
 
-
-                if (shouldLock && !isEditorLocked)
+                if (shouldLock && !isWindowLocked)
                 {
-                    EditorLogic.fetch.Lock(true, true, true, "DMP_PlayerStatusLock");
-                    isEditorLocked = true;
+                    InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS,  "DMP_PlayerStatusLock");
+                    isWindowLocked = true;
                 }
-                else if (!shouldLock)
+                if (!shouldLock && isWindowLocked)
                 {
-                    if (!isEditorLocked)
-                    {
-                        editor.Lock(true, true, true, "DMP_PlayerStatusLock");
-                    }
-                    editor.Unlock("DMP_PlayerStatusLock");
-                    isEditorLocked = false;
+                    RemoveWindowLock();
                 }
             }
 
-            if (!display && isEditorLocked)
+            if (!display && isWindowLocked)
             {
-                editor.Unlock("DMP_PlayerStatusLock");
-                isEditorLocked = false;
+                RemoveWindowLock();
+            }
+        }
+
+        private void RemoveWindowLock()
+        {
+            if (isWindowLocked)
+            {
+                isWindowLocked = false;
+                InputLockManager.RemoveControlLock( "DMP_PlayerStatusLock");
             }
         }
 

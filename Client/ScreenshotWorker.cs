@@ -13,7 +13,7 @@ namespace DarkMultiPlayer
         private static ScreenshotWorker singleton;
         //GUI stuff
         private bool initialized;
-        private bool isEditorLocked = false;
+        private bool isWindowLocked = false;
         public bool workerEnabled;
         private GUIStyle windowStyle;
         private GUILayoutOption[] windowLayoutOption;
@@ -249,7 +249,7 @@ namespace DarkMultiPlayer
             {
                 windowRect = GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption);
             }
-            CheckEditorLock();
+            CheckWindowLock();
         }
 
         private void DrawContent(int windowID)
@@ -282,17 +282,17 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
         }
 
-        private void CheckEditorLock()
+        private void CheckWindowLock()
         {
             if (!Client.fetch.gameRunning)
             {
+                RemoveWindowLock();
                 return;
             }
 
-            EditorLogic editor = EditorLogic.fetch;
-
-            if (editor == null)
+            if (HighLogic.LoadedSceneIsFlight)
             {
+                RemoveWindowLock();
                 return;
             }
 
@@ -303,27 +303,29 @@ namespace DarkMultiPlayer
 
                 bool shouldLock = windowRect.Contains(mousePos);
 
-
-                if (shouldLock && !isEditorLocked)
+                if (shouldLock && !isWindowLocked)
                 {
-                    EditorLogic.fetch.Lock(true, true, true, "DMP_ScreenshotLock");
-                    isEditorLocked = true;
+                    InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, "DMP_ScreenshotLock");
+                    isWindowLocked = true;
                 }
-                else if (!shouldLock)
+                if (!shouldLock && isWindowLocked)
                 {
-                    if (!isEditorLocked)
-                    {
-                        editor.Lock(true, true, true, "DMP_ScreenshotLock");
-                    }
-                    editor.Unlock("DMP_ScreenshotLock");
-                    isEditorLocked = false;
+                    RemoveWindowLock();
                 }
             }
 
-            if (!safeDisplay && isEditorLocked)
+            if (!safeDisplay && isWindowLocked)
             {
-                editor.Unlock("DMP_ScreenshotLock");
-                isEditorLocked = false;
+                RemoveWindowLock();
+            }
+        }
+
+        private void RemoveWindowLock()
+        {
+            if (isWindowLocked)
+            {
+                isWindowLocked = false;
+                InputLockManager.RemoveControlLock("DMP_ScreenshotLock");
             }
         }
 
