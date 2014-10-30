@@ -2171,12 +2171,13 @@ namespace DarkMultiPlayer
                     Vector3d velocityFudge = Vector3d.zero;
                     if (Math.Abs(planetariumDifference) < 3f)
                     {
-                        positionFudge = updateVelocity * planetariumDifference;
                         velocityFudge = updateAcceleration * planetariumDifference;
+                        //Use the average velocity to determine the new position
+                        positionFudge = (updateVelocity + (velocityFudge / 2)) * planetariumDifference;
                     }
-                    Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
+                    Vector3d velocityOffset = (updateVelocity + velocityFudge) - updateVessel.srf_velocity;
                     updateVessel.SetPosition(updatePostion + positionFudge, true);
-                    updateVessel.ChangeWorldVelocity(velocityOffset + velocityFudge);
+                    updateVessel.ChangeWorldVelocity(velocityOffset);
                 }
             }
             else
