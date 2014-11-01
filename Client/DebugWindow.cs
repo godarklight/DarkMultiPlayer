@@ -262,6 +262,7 @@ namespace DarkMultiPlayer
                 if (singleton != null)
                 {
                     singleton.display = false;
+                    singleton.RemoveWindowLock();
                     Client.updateEvent.Remove(singleton.Update);
                     Client.drawEvent.Remove(singleton.Draw);
                 }

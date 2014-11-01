@@ -1,6 +1,6 @@
-#DarkMultiPlayer 0.1.6.0.
+#DarkMultiPlayer 0.1.6.1.
 
-DarkMultiPlayer is a multiplayer mod for KSP 0.24.2. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
+DarkMultiPlayer is a multiplayer mod for KSP 0.25. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
 The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.  
   
@@ -14,7 +14,7 @@ Option b) Download DMPUpdater from http://godarklight.info.tm/dmp/downloads/dmpu
 ####LINUX BUG
 The linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
   
-Make sure the sha256 sum is correct, these instructions are specifically for 0.24.2  
+Make sure the sha256 sum is correct, these instructions are specifically for 0.25  
 
     sha256sum KSP.x86_64
     17d395c8b2b30e2fdcca65a0078859f0422f1e36ba509f6bbf2f56b68b36148a KSP.x86_64
@@ -31,7 +31,7 @@ Check it patched correctly:
   
 ###Connecting to a server
 The connection window will appear on the main menu. Type in a username, press add server, type in the details, and then hit add.  
-A player token will be generated (At GameData/DarkMultiPlayer/Plugins/Data/token.txt) during the first DMP start. DMP registers your username to the server with this token. If you lose your token, you will no longer be able to connect to the server with that username until the server admin deletes you from Universe/Players/.  
+A player keypair will be generated (At GameData/DarkMultiPlayer/Plugins/Data/private.txt) during the first DMP start. DMP registers your username to the server with this keypair. If you lose your keypair, you will no longer be able to connect to the server with that username until the server admin deletes you from Universe/Players/.  
   
 ###Connecting, If you are also running a server
 If you are running the server locally, you will want to connect to 127.0.0.1/localhost.  
@@ -76,19 +76,24 @@ Option a) Extract the zip as above
 Option b) Place DMPUpdater next to DMPServer.exe and run it.  
   
 ###Server console commands
-ban       - Bans a player from the server  
-banguid   - Bans a Guid from the server  
-banip     - Bans an IP Address from the server  
-dekessler - Clears out debris from the server  
-exit      - Shuts down the server  
-help      - Displays this help  
-kick      - Kicks a player from the server  
-nukeksc   - Clears ALL vessels from KSC and the Runway  
-pm        - Sends a message to a player  
-quit      - Shuts down the server  
-say       - Broadcasts a message to clients  
-restart   - Restarts the server  
-shutdown  - Shuts down the server  
+admin           - Sets a player as admin/removes admin from the player  
+ban             - Bans a player from the server  
+banip           - Bans an IP Address from the server  
+bankey          - Bans a Guid from the server  
+connectionstats - Displays network traffic usage  
+countclients    - Counts connected clients  
+dekessler       - Clears out debris from the server  
+exit            - Shuts down the server  
+help            - Displays this help  
+kick            - Kicks a player from the server  
+listclients     - Lists connected clients  
+nukeksc         - Clears ALL vessels from KSC and the Runway  
+pm              - Sends a message to a player  
+quit            - Shuts down the server  
+restart         - Restarts the server  
+say             - Broadcasts a message to clients  
+shutdown        - Shuts down the server  
+whitelist       - Change the server whitelist  
   
 ###Options
 The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.  
