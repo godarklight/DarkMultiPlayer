@@ -8,7 +8,7 @@ The DarkMultiPlayer server and client is cross platform, it runs under mono on l
 ##Client
 
 ###Installation / Updating
-Option a) Extract the DarkMultiPlayer zip to GameData.  
+Option a) Extract the [DarkMultiPlayer zip](https://kerbalstuff.com/mod/4) to GameData.  
 Option b) Download DMPUpdater from http://godarklight.info.tm/dmp/downloads/dmpupdater/, place the program next to KSP.exe (Or KSP.app/KSP.x86_64), and run it.  
 
 ####LINUX BUG
