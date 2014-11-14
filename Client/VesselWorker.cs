@@ -2011,6 +2011,16 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Error unloading vessel: " + unloadException);
                     }
                 }
+                foreach (ProtoPartSnapshot pps in killVessel.protoVessel.protoPartSnapshots)
+                {
+                    foreach (ProtoCrewMember pcm in pps.protoModuleCrew)
+                    {
+                        DarkLog.Debug("Unassigning " + pcm.name + " from " + killVessel.id.ToString());
+                        pcm.rosterStatus = ProtoCrewMember.RosterStatus.Available;
+                        pcm.seatIdx = -1;
+                    }
+                    pps.protoModuleCrew.Clear();
+                }
                 try
                 {
                     killVessel.Die();
