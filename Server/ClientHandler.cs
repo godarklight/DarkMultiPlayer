@@ -256,7 +256,10 @@ namespace DarkMultiPlayerServer
                     if (System.Net.Sockets.Socket.OSSupportsIPv6)
                     {
                         //Windows defaults to v6 only, but this option does not exist in mono so it has to be in a try/catch block along with the casted int.
-                        TCPServer.Server.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, 0);
+                        if (Environment.OSVersion.Platform == PlatformID.Win32NT && Settings.settingsStore.address == "::")
+                        {
+                            TCPServer.Server.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, 0);
+                        }
                     }
                 }
                 catch
