@@ -2185,6 +2185,7 @@ namespace DarkMultiPlayerServer
                             if (playerName != client.playerName)
                             {
                                 SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                                return;
                             }
                             bool lockResult = lockSystem.AcquireLock(lockName, playerName, force);
                             using (MessageWriter mw = new MessageWriter())
@@ -2214,11 +2215,13 @@ namespace DarkMultiPlayerServer
                             if (playerName != client.playerName)
                             {
                                 SendConnectionEnd(client, "Kicked for sending a lock message for another player");
+                                return;
                             }
                             bool lockResult = lockSystem.ReleaseLock(lockName, playerName);
                             if (!lockResult)
                             {
                                 SendConnectionEnd(client, "Kicked for releasing a lock you do not own");
+                                return;
                             }
                             else
                             {
