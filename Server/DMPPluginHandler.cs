@@ -250,6 +250,23 @@ namespace DarkMultiPlayerServer
             }
             message.handled = handledByAny;
         }
+
+        //Fire OnMessageReceived
+        public static void FireOnMessageSent(ClientObject client, ServerMessage message)
+        {
+            foreach (var plugin in loadedPlugins)
+            {
+                try
+                {
+                    plugin.OnMessageSent(client, message);
+                }
+                catch (Exception e)
+                {
+                    Type type = plugin.GetType();
+                    DarkLog.Debug("Error thrown in OnMessageSent event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
+                }
+            }
+        }
     }
 }
 
