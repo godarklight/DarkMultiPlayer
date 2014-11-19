@@ -23,10 +23,14 @@ namespace DarkMultiPlayerServer
         public static object universeSizeLock = new object();
         public static string modFile;
 
+        private static int day;
+        private static DateTime startDate;
+
         public static void Main()
         {
             try
             {
+
                 //Start the server clock
                 serverClock = new Stopwatch();
                 serverClock.Start();
@@ -39,6 +43,12 @@ namespace DarkMultiPlayerServer
                 
                 //Periodic screenshot check
                 long lastScreenshotExpiredCheck = 0;
+
+                //Periodic log check
+                long lastLogExpiredCheck = 0;
+
+                //Periodic day check
+                long lastDayCheck = 0;
 
                 //Set universe directory and modfile path
                 universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
@@ -66,8 +76,11 @@ namespace DarkMultiPlayerServer
                 //Remove player tokens
                 BackwardsCompatibility.RemoveOldPlayerTokens();
 
+                day = DateTime.Now.Day;
+
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
+                startDate = DateTime.Now;
 
                 Console.Title = "DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION;
 
@@ -115,6 +128,25 @@ namespace DarkMultiPlayerServer
                             lastScreenshotExpiredCheck = serverClock.ElapsedMilliseconds;
                             ScreenshotExpire.ExpireCache();
                         }
+                        //Run the log expire function every 10 minutes
+                        if ((serverClock.ElapsedMilliseconds - lastLogExpiredCheck) > 600000)
+                        {
+                            lastLogExpiredCheck = serverClock.ElapsedMilliseconds;
+                            LogExpire.ExpireCache();
+                        }
+                        // Check if the day has changed, every minute
+                        if ((serverClock.ElapsedMilliseconds - lastDayCheck) > 60000)
+                        {
+                            lastDayCheck = serverClock.ElapsedMilliseconds;
+
+                            if (day != DateTime.Now.Day)
+                            {
+                                DarkLog.LogFilename = Path.Combine(DarkLog.LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+                                DarkLog.WriteToLog("Continued from logfile " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+                                day = DateTime.Now.Day;
+                            }
+                        }
+
                         Thread.Sleep(500);
                     }
                     DMPPluginHandler.FireOnServerStop();
