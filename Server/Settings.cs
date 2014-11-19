@@ -209,6 +209,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
             descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
             descriptionList.Add("compressionEnabled", "Specify wether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled");
+            descriptionList.Add("expireLogs", "Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled");
             return descriptionList;
         }
     }
@@ -239,5 +240,6 @@ namespace DarkMultiPlayerServer
         public string serverMotd = "Welcome, %name%!";
         public double expireScreenshots = 0;
         public bool compressionEnabled = true;
+        public double expireLogs = 0;
     }
 }

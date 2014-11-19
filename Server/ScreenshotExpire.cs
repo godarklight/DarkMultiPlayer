@@ -17,35 +17,24 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        private static string[] GetCachedObjects()
-        {
-            string[] cacheFiles = Directory.GetFiles(screenshotDirectory);
-            string[] cacheObjects = new string[cacheFiles.Length];
-            for (int i = 0; i < cacheFiles.Length; i++)
-            {
-                cacheObjects[i] = Path.GetFileNameWithoutExtension(cacheFiles[i]);
-            }
-            return cacheObjects;
-        }
-
-        public static void ExpireCache()
+        public static void ExpireScreenshots()
         {
             if (!Directory.Exists(screenshotDirectory))
             {
                 //Screenshot directory is missing so there will be no screenshots to delete.
                 return;
             }
-            string[] cacheObjects = GetCachedObjects();
-            foreach (string cacheObject in cacheObjects)
+            string[] screenshotFiles = Directory.GetFiles(screenshotDirectory);
+            foreach (string screenshotFile in screenshotFiles)
             {
-                string cacheFile = Path.Combine(screenshotDirectory, cacheObject + ".png");
+                string cacheFile = Path.Combine(screenshotDirectory, screenshotFile + ".png");
                 //Check if the expireScreenshots setting is enabled
                 if (Settings.settingsStore.expireScreenshots > 0)
                 {
                     //If the file is older than a day, delete it
                     if (File.GetCreationTime(cacheFile).AddDays(Settings.settingsStore.expireScreenshots) < DateTime.Now)
                     {
-                        DarkLog.Debug("Deleting saved screenshot '" + cacheObject + "', reason: Expired!");
+                        DarkLog.Debug("Deleting saved screenshot '" + screenshotFile + "', reason: Expired!");
                         try
                         {
                             File.Delete(cacheFile);
