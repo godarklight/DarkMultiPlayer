@@ -590,18 +590,19 @@ namespace DarkMultiPlayer
 
         private bool SendOutgoingMessages()
         {
-            ClientMessage sendMessage = null;
             lock (messageQueueLock)
             {
                 if (state >= ClientState.CONNECTED)
                 {
                     if (sendMessageQueueHigh.Count > 0)
                     {
-                        sendMessage = sendMessageQueueHigh.Dequeue();
+                        ClientMessage message = sendMessageQueueHigh.Dequeue();
+                        SendNetworkMessage(message);
+                        return true;
                     }
-                    if ((sendMessage == null) && (sendMessageQueueSplit.Count > 0))
+                    if (sendMessageQueueSplit.Count > 0)
                     {
-                        sendMessage = sendMessageQueueSplit.Dequeue();
+                        ClientMessage message = sendMessageQueueSplit.Dequeue();
                         //We just sent the last piece of a split message
                         if (sendMessageQueueSplit.Count == 0)
                         {
@@ -614,19 +615,18 @@ namespace DarkMultiPlayer
                                 ScreenshotWorker.fetch.finishedUploadingScreenshot = true;
                             }
                         }
+                        SendNetworkMessage(message);
+                        return true;
                     }
-                    if ((sendMessage == null) && (sendMessageQueueLow.Count > 0))
+                    if (sendMessageQueueLow.Count > 0)
                     {
-                        sendMessage = sendMessageQueueLow.Dequeue();
+                        ClientMessage message = sendMessageQueueLow.Dequeue();
                         //Splits large messages to higher priority messages can get into the queue faster
-                        SplitAndRewriteMessage(ref sendMessage);
+                        SplitAndRewriteMessage(ref message);
+                        SendNetworkMessage(message);
+                        return true;
                     }
                 }
-            }
-            if (sendMessage != null)
-            {
-                SendNetworkMessage(sendMessage);
-                return true;
             }
             return false;
         }
@@ -687,11 +687,8 @@ namespace DarkMultiPlayer
                 }
                 messageBytes = mw.GetMessageBytes();
             }
-            lock (messageQueueLock)
-            {
-                bytesQueuedOut -= messageBytes.Length;
-                bytesSent += messageBytes.Length;
-            }
+            bytesQueuedOut -= messageBytes.Length;
+            bytesSent += messageBytes.Length;
             //Disconnect after EndWrite completes
             if (message.type == ClientMessageType.CONNECTION_END)
             {
