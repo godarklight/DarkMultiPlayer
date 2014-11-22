@@ -36,12 +36,6 @@ namespace DarkMultiPlayerServer
         /// <param name="client">The client that has sent the message</param>
         /// <param name="messageData">The message payload (Null for certain types)</param>
         void OnMessageReceived(ClientObject client, ClientMessage messageData);
-        /// <summary>
-        /// Fires every time a message is received from a client
-        /// </summary>
-        /// <param name="client">The client that has sent the message</param>
-        /// <param name="messageData">The message payload (Null for certain types)</param>
-        void OnMessageSent(ClientObject client, ServerMessage messageData);
     }
 
     public abstract class DMPPlugin : IDMPPlugin
@@ -53,6 +47,5 @@ namespace DarkMultiPlayerServer
         public virtual void OnClientAuthenticated(ClientObject client) { }
         public virtual void OnClientDisconnect(ClientObject client) { }
         public virtual void OnMessageReceived(ClientObject client, ClientMessage messageData) { }
-        public virtual void OnMessageSent(ClientObject client, ServerMessage messageData) { }
     }
 }

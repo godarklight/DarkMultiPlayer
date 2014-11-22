@@ -129,7 +129,7 @@ namespace DarkMultiPlayerServer
         private static void Say(string sayText)
         {
             DarkLog.Normal("Broadcasting " + sayText);
-            Messages.Chat.SendChatMessageToAll(sayText);
+            ClientHandler.SendChatMessageToAll(sayText);
         }
 
         private static void ListClients(string commandArgs)

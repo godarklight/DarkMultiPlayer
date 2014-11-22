@@ -5,29 +5,16 @@ namespace DarkMultiPlayerServer
 {
     public class LockSystem
     {
-        private static LockSystem instance = new LockSystem();
-        private Dictionary<string, string> playerLocks;
+        private object lockObject = new object();
+        private Dictionary<string, string> playerLocks = new Dictionary<string, string>();
         //Lock types
         //control-vessel-(vesselid) - Replaces the old "inUse" messages, the active pilot will have the control-vessel lock.
         //update-vessel-(vesselid) - Replaces the "only the closest player can update a vessel" code, Now you acquire locks to update crafts around you.
         //asteroid-spawn - Held by the player that can spawn asteroids into the game.
 
-        public LockSystem()
-        {
-            playerLocks = new Dictionary<string, string>();
-        }
-
-        public static LockSystem fetch
-        {
-            get
-            {
-                return instance;
-            }
-        }
-
         public bool AcquireLock(string lockName, string playerName, bool force)
         {
-            lock (playerLocks)
+            lock (lockObject)
             {
                 if (force || !playerLocks.ContainsKey(lockName))
                 {
@@ -40,7 +27,7 @@ namespace DarkMultiPlayerServer
 
         public bool ReleaseLock(string lockName, string playerName)
         {
-            lock (playerLocks)
+            lock (lockObject)
             {
                 if (playerLocks.ContainsKey(lockName))
                 {
@@ -56,7 +43,7 @@ namespace DarkMultiPlayerServer
 
         public void ReleasePlayerLocks(string playerName)
         {
-            lock (playerLocks)
+            lock (lockObject)
             {
                 List<string> removeList = new List<string>();
                 foreach (KeyValuePair<string,string> kvp in playerLocks)
@@ -75,18 +62,10 @@ namespace DarkMultiPlayerServer
 
         public Dictionary<string,string> GetLockList()
         {
-            lock (playerLocks)
+            lock (lockObject)
             {
                 //Return a copy.
                 return new Dictionary<string, string>(playerLocks);
-            }
-        }
-
-        public static void Reset()
-        {
-            lock (fetch.playerLocks)
-            {
-                fetch.playerLocks.Clear();
             }
         }
     }

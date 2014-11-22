@@ -3,7 +3,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
+    <ProductVersion>10.0.0</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{F8BC0417-2D6C-4B57-BC87-787B10EF7950}</ProjectGuid>
     <OutputType>Exe</OutputType>
@@ -51,46 +51,11 @@
     <Compile Include="DMPPluginHandler.cs" />
     <Compile Include="BackwardsCompatibility.cs" />
     <Compile Include="DMPModInterface.cs" />
-    <Compile Include="Messages\Handshake.cs" />
-    <Compile Include="Messages\Heartbeat.cs" />
-    <Compile Include="BanSystem.cs" />
-    <Compile Include="WhitelistSystem.cs" />
-    <Compile Include="AdminSystem.cs" />
-    <Compile Include="Messages\Chat.cs" />
-    <Compile Include="Messages\PlayerStatus.cs" />
-    <Compile Include="Messages\PlayerColor.cs" />
-    <Compile Include="Messages\ScenarioData.cs" />
-    <Compile Include="Messages\SyncTimeRequest.cs" />
-    <Compile Include="Messages\KerbalsRequest.cs" />
-    <Compile Include="Messages\KerbalProto.cs" />
-    <Compile Include="Messages\VesselRequest.cs" />
-    <Compile Include="Messages\VesselProto.cs" />
-    <Compile Include="Messages\VesselUpdate.cs" />
-    <Compile Include="Messages\VesselRemove.cs" />
-    <Compile Include="Messages\CraftLibrary.cs" />
-    <Compile Include="Messages\ScreenshotLibrary.cs" />
-    <Compile Include="Messages\FlagSync.cs" />
-    <Compile Include="Messages\PingRequest.cs" />
-    <Compile Include="Messages\MotdRequest.cs" />
-    <Compile Include="Messages\WarpControl.cs" />
-    <Compile Include="Messages\LockSystem.cs" />
-    <Compile Include="Messages\ModData.cs" />
-    <Compile Include="Messages\SplitMessage.cs" />
-    <Compile Include="Messages\ConnectionEnd.cs" />
-    <Compile Include="Messages\AdminSystemMessage.cs" />
-    <Compile Include="Messages\ServerSettings.cs" />
-    <Compile Include="PMCommand.cs" />
-    <Compile Include="WhitelistCommand.cs" />
-    <Compile Include="AdminCommand.cs" />
-    <Compile Include="KickCommand.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj">
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>Common</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Messages\" />
   </ItemGroup>
 </Project>

@@ -49,13 +49,13 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("quit", Server.ShutDown, "Shuts down the server");
                 CommandHandler.RegisterCommand("shutdown", Server.ShutDown, "Shuts down the server");
                 CommandHandler.RegisterCommand("restart", Server.Restart, "Restarts the server");
-                CommandHandler.RegisterCommand("kick", KickCommand.KickPlayer, "Kicks a player from the server");
-                CommandHandler.RegisterCommand("ban", BanSystem.fetch.BanPlayer, "Bans a player from the server");
-                CommandHandler.RegisterCommand("banip", BanSystem.fetch.BanIP, "Bans an IP Address from the server");
-                CommandHandler.RegisterCommand("bankey", BanSystem.fetch.BanPublicKey, "Bans a Guid from the server");
-                CommandHandler.RegisterCommand("pm", PMCommand.HandleCommand, "Sends a message to a player");
-                CommandHandler.RegisterCommand("admin", AdminCommand.HandleCommand, "Sets a player as admin/removes admin from the player");
-                CommandHandler.RegisterCommand("whitelist", WhitelistCommand.HandleCommand, "Change the server whitelist");
+                CommandHandler.RegisterCommand("kick", ClientHandler.KickPlayer, "Kicks a player from the server");
+                CommandHandler.RegisterCommand("ban", ClientHandler.BanPlayer, "Bans a player from the server");
+                CommandHandler.RegisterCommand("banip", ClientHandler.BanIP, "Bans an IP Address from the server");
+                CommandHandler.RegisterCommand("bankey", ClientHandler.BanPublicKey, "Bans a Guid from the server");
+                CommandHandler.RegisterCommand("pm", ClientHandler.PMCommand, "Sends a message to a player");
+                CommandHandler.RegisterCommand("admin", ClientHandler.AdminCommand, "Sets a player as admin/removes admin from the player");
+                CommandHandler.RegisterCommand("whitelist", ClientHandler.WhitelistCommand, "Change the server whitelist");
                 //Register the ctrl+c event
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
@@ -130,7 +130,6 @@ namespace DarkMultiPlayerServer
                 throw;
             }
         }
-
         // Check universe folder size
         public static long GetUniverseSize()
         {
@@ -229,12 +228,12 @@ namespace DarkMultiPlayerServer
             if (commandArgs != "")
             {
                 DarkLog.Normal("Shutting down - " + commandArgs);
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is shutting down - " + commandArgs);
+                ClientHandler.SendConnectionEndToAll("Server is shutting down - " + commandArgs);
             }
             else
             {
                 DarkLog.Normal("Shutting down");
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is shutting down");
+                ClientHandler.SendConnectionEndToAll("Server is shutting down");
             }
             serverStarting = false;
             serverRunning = false;
@@ -246,12 +245,12 @@ namespace DarkMultiPlayerServer
             if (commandArgs != "")
             {
                 DarkLog.Normal("Restarting - " + commandArgs);
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is restarting - " + commandArgs);
+                ClientHandler.SendConnectionEndToAll("Server is restarting - " + commandArgs);
             }
             else
             {
                 DarkLog.Normal("Restarting");
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is restarting");
+                ClientHandler.SendConnectionEndToAll("Server is restarting");
             }
             serverRestarting = true;
             serverStarting = false;
