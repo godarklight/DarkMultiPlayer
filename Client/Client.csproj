@@ -39,10 +39,10 @@
       <HintPath>..\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="MessageWriter">
-      <HintPath>..\MessageWriter.dll</HintPath>
-    </Reference>
     <Reference Include="System.Xml" />
+    <Reference Include="MessageWriter2">
+      <HintPath>..\MessageWriter2.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />

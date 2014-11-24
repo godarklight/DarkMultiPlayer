@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {

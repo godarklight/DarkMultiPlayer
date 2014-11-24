@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {

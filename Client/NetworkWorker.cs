@@ -8,7 +8,7 @@ using System.Security.Cryptography;
 using System.Threading;
 using UnityEngine;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -501,18 +501,19 @@ namespace DarkMultiPlayer
                         if (!isReceivingMessage)
                         {
                             //We have the header
-                            using (MessageReader mr = new MessageReader(receiveMessage.data, true))
+                            using (MessageReader mr = new MessageReader(receiveMessage.data))
                             {
-                                if (mr.GetMessageType() > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
+                                int messageType = mr.Read<int>();
+                                int messageLength = mr.Read<int>();
+                                if (messageType > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
                                 {
                                     //Malformed message, most likely from a non DMP-server.
                                     Disconnect("Disconnected from non-DMP server");
                                     //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                     return;
                                 }
-                                receiveMessage.type = (ServerMessageType)mr.GetMessageType();
-                                int length = mr.GetMessageLength();
-                                if (length == 0)
+                                receiveMessage.type = (ServerMessageType)messageType;
+                                if (messageLength == 0)
                                 {
                                     //Null message, handle it.
                                     receiveMessage.data = null;
@@ -523,10 +524,10 @@ namespace DarkMultiPlayer
                                 }
                                 else
                                 {
-                                    if (length < Common.MAX_MESSAGE_SIZE)
+                                    if (messageLength < Common.MAX_MESSAGE_SIZE)
                                     {
                                         isReceivingMessage = true;
-                                        receiveMessage.data = new byte[length];
+                                        receiveMessage.data = new byte[messageLength];
                                         receiveMessageBytesLeft = receiveMessage.data.Length;
                                     }
                                     else
@@ -543,10 +544,6 @@ namespace DarkMultiPlayer
                         {
                             //We have the message data to a non-null message, handle it
                             isReceivingMessage = false;
-                            using (MessageReader mr = new MessageReader(receiveMessage.data, false))
-                            {
-                                receiveMessage.data = mr.Read<byte[]>();
-                            }
                             HandleMessage(receiveMessage);
                             receiveMessage.type = 0;
                             receiveMessage.data = new byte[8];
@@ -571,7 +568,7 @@ namespace DarkMultiPlayer
             {
                 //All messages have an 8 byte header
                 bytesQueuedOut += 8;
-                if (message.data != null)
+                if (message.data != null && message.data.Length > 0)
                 {
                     //Count the payload if we have one. Byte[] serialisation has a further 4 byte header
                     bytesQueuedOut += 4 + message.data.Length;
@@ -678,15 +675,8 @@ namespace DarkMultiPlayer
 
         private void SendNetworkMessage(ClientMessage message)
         {
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter((int)message.type))
-            {
-                if (message.data != null)
-                {
-                    mw.Write<byte[]>(message.data);
-                }
-                messageBytes = mw.GetMessageBytes();
-            }
+            byte[] messageBytes = Common.PrependNetworkFrame((int)message.type, message.data);
+
             lock (messageQueueLock)
             {
                 bytesQueuedOut -= messageBytes.Length;
@@ -695,7 +685,7 @@ namespace DarkMultiPlayer
             //Disconnect after EndWrite completes
             if (message.type == ClientMessageType.CONNECTION_END)
             {
-                using (MessageReader mr = new MessageReader(message.data, false))
+                using (MessageReader mr = new MessageReader(message.data))
                 {
                     terminateOnNextMessageSend = true;
                     connectionEndReason = mr.Read<string>();
@@ -844,7 +834,7 @@ namespace DarkMultiPlayer
         {
             try
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     byte[] challange = mr.Read<byte[]>();
                     using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
@@ -873,7 +863,7 @@ namespace DarkMultiPlayer
             string serverVersion = "Unknown";
             try
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     reply = mr.Read<int>();
                     reason = mr.Read<string>();
@@ -957,7 +947,7 @@ namespace DarkMultiPlayer
 
         private void HandleChatMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 ChatMessageType chatMessageType = (ChatMessageType)mr.Read<int>();
 
@@ -1021,7 +1011,7 @@ namespace DarkMultiPlayer
 
         private void HandleServerSettings(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 WarpWorker.fetch.warpMode = (WarpMode)mr.Read<int>();
                 Client.fetch.gameMode = (GameMode)mr.Read<int>();
@@ -1036,7 +1026,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerStatus(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
                 string vesselText = mr.Read<string>();
@@ -1051,7 +1041,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerJoin(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
                 ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has joined the server");
@@ -1060,7 +1050,7 @@ namespace DarkMultiPlayer
 
         private void HandlePlayerDisconnect(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
                 WarpWorker.fetch.RemovePlayer(playerName);
@@ -1073,7 +1063,7 @@ namespace DarkMultiPlayer
 
         private void HandleSyncTimeReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 long clientSend = mr.Read<long>();
                 long serverReceive = mr.Read<long>();
@@ -1084,7 +1074,7 @@ namespace DarkMultiPlayer
 
         private void HandleScenarioModuleData(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string[] scenarioName = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
@@ -1099,7 +1089,7 @@ namespace DarkMultiPlayer
         private void HandleKerbalReply(byte[] messageData)
         {
             numberOfKerbalsReceived++;
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
@@ -1134,7 +1124,7 @@ namespace DarkMultiPlayer
         {
             state = ClientState.SYNCING_VESSELS;
             Client.fetch.status = "Syncing vessels";
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 List<string> serverVessels = new List<string>(mr.Read<string[]>());
                 List<string> cacheObjects = new List<string>(UniverseSyncCache.fetch.GetCachedObjects());
@@ -1186,7 +1176,7 @@ namespace DarkMultiPlayer
         private void HandleVesselProto(byte[] messageData)
         {
             numberOfVesselsReceived++;
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
@@ -1231,7 +1221,7 @@ namespace DarkMultiPlayer
         private void HandleVesselUpdate(byte[] messageData)
         {
             VesselUpdate update = new VesselUpdate();
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 update.planetTime = mr.Read<double>();
                 update.vesselID = mr.Read<string>();
@@ -1278,7 +1268,7 @@ namespace DarkMultiPlayer
 
         private void HandleSetActiveVessel(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string player = mr.Read<string>();
                 string vesselID = mr.Read<string>();
@@ -1293,7 +1283,7 @@ namespace DarkMultiPlayer
 
         private void HandleVesselRemove(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 //We don't care about the subspace ID anymore.
                 mr.Read<int>();
@@ -1316,7 +1306,7 @@ namespace DarkMultiPlayer
 
         private void HandleCraftLibrary(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 CraftMessageType messageType = (CraftMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1412,7 +1402,7 @@ namespace DarkMultiPlayer
 
         private void HandleScreenshotLibrary(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1450,7 +1440,7 @@ namespace DarkMultiPlayer
 
         private void HandleSetSubspace(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 int subspaceID = mr.Read<int>();
                 TimeSyncer.fetch.LockSubspace(subspaceID);
@@ -1459,7 +1449,7 @@ namespace DarkMultiPlayer
 
         private void HandlePingReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
                 ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
@@ -1469,7 +1459,7 @@ namespace DarkMultiPlayer
 
         private void HandleMotdReply(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 serverMotd = mr.Read<string>();
                 if (serverMotd != "")
@@ -1490,7 +1480,7 @@ namespace DarkMultiPlayer
             if (!isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     receiveSplitMessage = new ServerMessage();
                     receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
@@ -1519,7 +1509,7 @@ namespace DarkMultiPlayer
         private void HandleConnectionEnd(byte[] messageData)
         {
             string reason = "";
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 reason = mr.Read<string>();
             }

@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using MessageStream;
+using MessageStream2;
 using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer.Messages
@@ -36,7 +36,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void HandleScenarioModuleData(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about subspace / send time.
                 string[] scenarioName = mr.Read<string[]>();

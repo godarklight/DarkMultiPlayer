@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -470,7 +470,7 @@ namespace DarkMultiPlayer
 
         private void HandleWarpMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 WarpMessageType messageType = (WarpMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();

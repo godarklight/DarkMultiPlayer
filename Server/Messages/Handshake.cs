@@ -4,7 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -38,7 +38,7 @@ namespace DarkMultiPlayerServer.Messages
             HandshakeReply handshakeReponse = HandshakeReply.HANDSHOOK_SUCCESSFULLY;
             try
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();

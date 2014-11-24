@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -38,7 +38,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void HandlePlayerColor(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
                 switch (messageType)

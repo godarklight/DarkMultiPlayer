@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -27,7 +27,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void HandleLockSystemMessage(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 //All of the messages need replies, let's create a message for it.
                 ServerMessage newMessage = new ServerMessage();

@@ -1,6 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -8,7 +8,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void HandleModDataMessage(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string modName = mr.Read<string>();
                 bool relay = mr.Read<bool>();

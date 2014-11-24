@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -119,7 +119,7 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     LockMessageType lockMessageType = (LockMessageType)mr.Read<int>();
                     switch (lockMessageType)

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -28,7 +28,7 @@ namespace DarkMultiPlayerServer.Messages
             }
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SCREENSHOT_LIBRARY;
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();

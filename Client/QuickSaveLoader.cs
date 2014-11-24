@@ -1,6 +1,6 @@
 using System;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 using UnityEngine;
 
 namespace DarkMultiPlayer

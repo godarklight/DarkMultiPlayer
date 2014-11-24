@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -22,7 +22,7 @@ namespace DarkMultiPlayer
 
         public void HandleAdminMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 AdminMessageType messageType = (AdminMessageType)mr.Read<int>();
                 switch (messageType)

@@ -1,6 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -12,7 +12,7 @@ namespace DarkMultiPlayerServer.Messages
             newMessage.type = ServerMessageType.SYNC_TIME_REPLY;
             using (MessageWriter mw = new MessageWriter())
             {
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     //Client send time
                     mw.Write<long>(mr.Read<long>());

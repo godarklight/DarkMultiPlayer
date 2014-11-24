@@ -1,6 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -31,7 +31,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void HandlePlayerStatus(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
                 if (playerName != client.playerName)

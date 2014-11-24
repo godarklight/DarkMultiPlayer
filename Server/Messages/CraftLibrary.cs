@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -82,7 +82,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void HandleCraftLibrary(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 CraftMessageType craftMessageType = (CraftMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();

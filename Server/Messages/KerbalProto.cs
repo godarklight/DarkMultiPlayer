@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -10,7 +10,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandleKerbalProto(ClientObject client, byte[] messageData)
         {
             //Send kerbal
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about subspace / send time.
                 mr.Read<double>();

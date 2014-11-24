@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using MessageStream;
+using MessageStream2;
 using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
@@ -124,7 +124,7 @@ namespace DarkMultiPlayer
 
         public void HandlePlayerColorMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
                 switch (messageType)

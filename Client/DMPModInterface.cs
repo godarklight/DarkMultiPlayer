@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -171,7 +171,7 @@ namespace DarkMultiPlayer
         /// </summary>
         public void HandleModData(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 string modName = mr.Read<string>();
                 byte[] modData = mr.Read<byte[]>();

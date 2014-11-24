@@ -2,7 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -40,7 +40,7 @@ namespace DarkMultiPlayerServer.Messages
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.WARP_CONTROL;
             newMessage.data = messageData;
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 WarpMessageType warpType = (WarpMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();

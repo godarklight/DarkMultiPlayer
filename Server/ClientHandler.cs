@@ -8,7 +8,7 @@ using System.Collections.ObjectModel;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Security.Cryptography;
-using MessageStream;
+using MessageStream2;
 using System.IO;
 using DarkMultiPlayerCommon;
 
@@ -268,8 +268,8 @@ namespace DarkMultiPlayerServer
                     mw.Write<byte[]>(firstSplit);
                     splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
                     newSplitMessage.data = mw.GetMessageBytes();
-                    //SPLIT_MESSAGE adds a 12 byte header.
-                    client.bytesQueuedOut += 12;
+                    //SPLIT_MESSAGE metadata header length.
+                    client.bytesQueuedOut += 8;
                     client.sendMessageQueueSplit.Enqueue(newSplitMessage);
                 }
 
@@ -281,8 +281,8 @@ namespace DarkMultiPlayerServer
                     currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
                     Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
                     splitBytesLeft -= currentSplitMessage.data.Length;
-                    //Add the SPLIT_MESSAGE header to the out queue count.
-                    client.bytesQueuedOut += 12;
+                    //SPLIT_MESSAGE network frame header length.
+                    client.bytesQueuedOut += 8;
                     client.sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
                 client.sendMessageQueueSplit.TryDequeue(out message);
@@ -298,7 +298,7 @@ namespace DarkMultiPlayerServer
                 {
                     using (MessageWriter mw = new MessageWriter())
                     {
-                        using (MessageReader mr = new MessageReader(message.data, false))
+                        using (MessageReader mr = new MessageReader(message.data))
                         {
                             client.bytesQueuedOut += 8;
                             //Client send time
@@ -317,15 +317,7 @@ namespace DarkMultiPlayerServer
                 }
             }
             //Continue sending
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter((int)message.type))
-            {
-                if (message.data != null)
-                {
-                    mw.Write<byte[]>(message.data);
-                }
-                messageBytes = mw.GetMessageBytes();
-            }
+            byte[] messageBytes = Common.PrependNetworkFrame((int)message.type, message.data);
             client.lastSendTime = Server.serverClock.ElapsedMilliseconds;
             client.bytesQueuedOut -= messageBytes.Length;
             client.bytesSent += messageBytes.Length;
@@ -344,7 +336,7 @@ namespace DarkMultiPlayerServer
             DMPPluginHandler.FireOnMessageSent(client, message);
             if (message.type == ServerMessageType.CONNECTION_END)
             {
-                using (MessageReader mr = new MessageReader(message.data, false))
+                using (MessageReader mr = new MessageReader(message.data))
                 {
                     string reason = mr.Read<string>();
                     DarkLog.Normal("Disconnecting client " + client.playerName + ", sent CONNECTION_END (" + reason + ") to endpoint " + client.endpoint);
@@ -354,7 +346,7 @@ namespace DarkMultiPlayerServer
             }
             if (message.type == ServerMessageType.HANDSHAKE_REPLY)
             {
-                using (MessageReader mr = new MessageReader(message.data, false))
+                using (MessageReader mr = new MessageReader(message.data))
                 {
                     int response = mr.Read<int>();
                     string reason = mr.Read<string>();
@@ -399,9 +391,12 @@ namespace DarkMultiPlayerServer
                     if (!client.isReceivingMessage)
                     {
                         //We have the header
-                        using (MessageReader mr = new MessageReader(client.receiveMessage.data, true))
+                        using (MessageReader mr = new MessageReader(client.receiveMessage.data))
                         {
-                            if (mr.GetMessageType() > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+
+                            int messageType = mr.Read<int>();
+                            int messageLength = mr.Read<int>();
+                            if (messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
                             {
                                 //Malformed message, most likely from a non DMP-client.
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
@@ -409,9 +404,8 @@ namespace DarkMultiPlayerServer
                                 //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                 return;
                             }
-                            client.receiveMessage.type = (ClientMessageType)mr.GetMessageType();
-                            int length = mr.GetMessageLength();
-                            if (length == 0)
+                            client.receiveMessage.type = (ClientMessageType)messageType;
+                            if (messageLength == 0)
                             {
                                 //Null message, handle it.
                                 client.receiveMessage.data = null;
@@ -422,10 +416,10 @@ namespace DarkMultiPlayerServer
                             }
                             else
                             {
-                                if (length < Common.MAX_MESSAGE_SIZE)
+                                if (messageLength < Common.MAX_MESSAGE_SIZE)
                                 {
                                     client.isReceivingMessage = true;
-                                    client.receiveMessage.data = new byte[length];
+                                    client.receiveMessage.data = new byte[messageLength];
                                     client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
                                 }
                                 else
@@ -443,10 +437,6 @@ namespace DarkMultiPlayerServer
                     {
                         //We have the message data to a non-null message, handle it
                         client.isReceivingMessage = false;
-                        using (MessageReader mr = new MessageReader(client.receiveMessage.data, false))
-                        {
-                            client.receiveMessage.data = mr.Read<byte[]>();
-                        }
                         HandleMessage(client, client.receiveMessage);
                         client.receiveMessage.type = 0;
                         client.receiveMessage.data = new byte[8];
@@ -509,7 +499,6 @@ namespace DarkMultiPlayerServer
                     if (client.playerName != null)
                     {
                         Messages.Chat.RemovePlayer(client.playerName);
-
                     }
                     client.connectionStatus = ConnectionStatus.DISCONNECTED;
                     if (client.authenticated)
@@ -673,8 +662,8 @@ namespace DarkMultiPlayerServer
                 client.bytesQueuedOut += 8;
                 if (message.data != null)
                 {
-                    //Count the payload if we have one. Byte[] serialisation has a further 4 byte header
-                    client.bytesQueuedOut += 4 + message.data.Length;
+                    //Count the payload if we have one.
+                    client.bytesQueuedOut += message.data.Length;
                 }
                 if (highPriority)
                 {
@@ -720,7 +709,7 @@ namespace DarkMultiPlayerServer
                                     //Message is proto or position
                                     if (currentMessage.type == ServerMessageType.VESSEL_PROTO)
                                     {
-                                        using (MessageReader mr = new MessageReader(currentMessage.data, false))
+                                        using (MessageReader mr = new MessageReader(currentMessage.data))
                                         {
                                             //Don't care about the send time, it's already the latest in the queue.
                                             mr.Read<double>();
@@ -739,7 +728,7 @@ namespace DarkMultiPlayerServer
 
                                     if (currentMessage.type == ServerMessageType.VESSEL_UPDATE)
                                     {
-                                        using (MessageReader mr = new MessageReader(currentMessage.data, false))
+                                        using (MessageReader mr = new MessageReader(currentMessage.data))
                                         {
                                             //Don't care about the send time, it's already the latest in the queue.
                                             mr.Read<double>();
@@ -751,8 +740,8 @@ namespace DarkMultiPlayerServer
                                             }
                                             else
                                             {
-                                                //8 byte message header plus 4 byte payload header
-                                                optimizedBytes += 12 + currentMessage.data.Length;
+                                                //8 byte message header plus payload
+                                                optimizedBytes += 8 + currentMessage.data.Length;
                                             }
                                         }
                                     }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -11,7 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             //TODO: Relay the message as is so we can optimize it
             //Send vessel
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about planet time
                 mr.Read<double>();

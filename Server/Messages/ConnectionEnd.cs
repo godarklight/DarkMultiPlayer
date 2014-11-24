@@ -1,6 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -32,7 +32,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandleConnectionEnd(ClientObject client, byte[] messageData)
         {
             string reason = "Unknown";
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 reason = mr.Read<string>();
             }

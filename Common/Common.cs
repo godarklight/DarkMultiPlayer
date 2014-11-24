@@ -41,6 +41,36 @@ namespace DarkMultiPlayerCommon
             return sb.ToString();
         }
 
+        public static byte[] PrependNetworkFrame(int messageType, byte[] messageData)
+        {
+            byte[] returnBytes;
+            //Get type bytes
+            byte[] typeBytes = BitConverter.GetBytes(messageType);
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(typeBytes);
+            }
+            if (messageData == null || messageData.Length == 0)
+            {
+                returnBytes = new byte[8];
+                typeBytes.CopyTo(returnBytes, 0);
+            }
+            else
+            {
+                //Get length bytes if we have a payload
+                byte[] lengthBytes = BitConverter.GetBytes(messageData.Length);
+                if (BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(lengthBytes);
+                }
+                returnBytes = new byte[8 + messageData.Length];
+                typeBytes.CopyTo(returnBytes, 0);
+                lengthBytes.CopyTo(returnBytes, 4);
+                messageData.CopyTo(returnBytes, 8);
+            }
+            return returnBytes;
+        }
+
         public static string ConvertConfigStringToGUIDString(string configNodeString)
         {
             string[] returnString = new string[5];

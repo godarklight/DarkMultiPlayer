@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -11,7 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandleFlagSync(ClientObject client, byte[] messageData)
         {
             string flagPath = Path.Combine(Server.universeDirectory, "Flags");
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 FlagMessageType messageType = (FlagMessageType)mr.Read<int>();
                 string playerName = mr.Read<string>();

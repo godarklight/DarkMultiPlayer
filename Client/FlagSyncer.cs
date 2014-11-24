@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using MessageStream;
+using MessageStream2;
 using DarkMultiPlayerCommon;
 using UnityEngine;
 
@@ -54,7 +54,7 @@ namespace DarkMultiPlayer
 
         public void HandleMessage(byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 FlagMessageType messageType = (FlagMessageType)mr.Read<int>();
                 switch (messageType)

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer
 {

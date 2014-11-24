@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using DarkMultiPlayerCommon;
-using MessageStream;
+using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -10,7 +10,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void HandleVesselsRequest(ClientObject client, byte[] messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData, false))
+            using (MessageReader mr = new MessageReader(messageData))
             {
                 int sendVesselCount = 0;
                 int cachedVesselCount = 0;

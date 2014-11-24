@@ -1,5 +1,5 @@
 ﻿using System;
-using MessageStream;
+using MessageStream2;
 using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer.Messages
@@ -11,7 +11,7 @@ namespace DarkMultiPlayerServer.Messages
             if (!client.isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData, false))
+                using (MessageReader mr = new MessageReader(messageData))
                 {
                     client.receiveSplitMessage = new ClientMessage();
                     client.receiveSplitMessage.type = (ClientMessageType)mr.Read<int>();
