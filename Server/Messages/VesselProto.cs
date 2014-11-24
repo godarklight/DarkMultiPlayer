@@ -13,7 +13,8 @@ namespace DarkMultiPlayerServer.Messages
             //Send vessel
             using (MessageReader mr = new MessageReader(messageData, false))
             {
-                double planetTime = mr.Read<double>();
+                //Don't care about planet time
+                mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();
                 bool isFlyingUpdate = mr.Read<bool>();
@@ -37,15 +38,10 @@ namespace DarkMultiPlayerServer.Messages
                         File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                     }
                 }
-                using (MessageWriter mw = new MessageWriter())
-                {
-                    mw.Write<double>(planetTime);
-                    mw.Write<byte[]>(vesselData);
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.VESSEL_PROTO;
-                    newMessage.data = mw.GetMessageBytes();
-                    ClientHandler.SendToAll(client, newMessage, false);
-                }
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.VESSEL_PROTO;
+                newMessage.data = messageData;
+                ClientHandler.SendToAll(client, newMessage, false);
             }
         }
     }

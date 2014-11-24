@@ -19,12 +19,13 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")))
                     {
+                        string vesselID = Path.GetFileNameWithoutExtension(file);
                         byte[] vesselData = File.ReadAllBytes(file);
                         string vesselObject = Common.CalculateSHA256Hash(vesselData);
                         if (clientRequested.Contains(vesselObject))
                         {
                             sendVesselCount++;
-                            SendVessel(client, vesselData);
+                            SendVessel(client, vesselID, vesselData);
                         }
                         else
                         {
@@ -55,17 +56,16 @@ namespace DarkMultiPlayerServer.Messages
             ClientHandler.SendToClient(client, newMessage, false);
         }
 
-
-
-
-
-        private static void SendVessel(ClientObject client, byte[] vesselData)
+        private static void SendVessel(ClientObject client, string vesselGUID, byte[] vesselData)
         {
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.VESSEL_PROTO;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<double>(0);
+                mw.Write<double>(0); 
+                mw.Write<string>(vesselGUID);
+                mw.Write<bool>(false);
+                mw.Write<bool>(false);
                 mw.Write<byte[]>(vesselData);
                 newMessage.data = mw.GetMessageBytes();
             }

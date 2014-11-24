@@ -704,15 +704,13 @@ namespace DarkMultiPlayerServer
                                 oldClientMessagesToSend.Add(stealMessage);
                             }
                             //Clear the client send queue
-                            //List<string> seenProtovesselUpdates = new List<string>();
+                            List<string> seenProtovesselUpdates = new List<string>();
                             List<string> seenPositionUpdates = new List<string>();
                             //Iterate backwards over the list
                             oldClientMessagesToSend.Reverse();
                             foreach (ServerMessage currentMessage in oldClientMessagesToSend)
                             {
-                                //TODO: Relay VESSEL_PROTO as is so we can filter them.
-                                if (currentMessage.type != ServerMessageType.VESSEL_UPDATE)
-                                //if (currentMessage.type != ServerMessageType.VESSEL_PROTO && currentMessage.type != ServerMessageType.VESSEL_UPDATE)
+                                if (currentMessage.type != ServerMessageType.VESSEL_PROTO && currentMessage.type != ServerMessageType.VESSEL_UPDATE)
                                 {
                                     //Message isn't proto or position, don't skip it.
                                     newClientMessagesToSend.Add(currentMessage);
@@ -720,8 +718,6 @@ namespace DarkMultiPlayerServer
                                 else
                                 {
                                     //Message is proto or position
-                                    //TODO: Uncomment and double check this block!
-                                    /*
                                     if (currentMessage.type == ServerMessageType.VESSEL_PROTO)
                                     {
                                         using (MessageReader mr = new MessageReader(currentMessage.data, false))
@@ -740,7 +736,6 @@ namespace DarkMultiPlayerServer
                                             }
                                         }
                                     }
-                                    */
 
                                     if (currentMessage.type == ServerMessageType.VESSEL_UPDATE)
                                     {

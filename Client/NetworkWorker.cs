@@ -1189,30 +1189,40 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData, false))
             {
                 double planetTime = mr.Read<double>();
+                string vesselID = mr.Read<string>();
+                //Docking - don't care.
+                mr.Read<bool>();
+                //Flying - don't care.
+                mr.Read<bool>();
                 byte[] vesselData = mr.Read<byte[]>();
                 UniverseSyncCache.fetch.SaveToCache(vesselData);
                 ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
-                    string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
-                    if (vesselID != null)
+                    string vesselIDConfigNode = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                    if ((vesselID != null) && (vesselID == vesselIDConfigNode))
                     {
                         VesselWorker.fetch.QueueVesselProto(vesselID, planetTime, vesselNode);
                     }
                     else
                     {
-                        DarkLog.Debug("Failed to load vessel!");
+                        DarkLog.Debug("Failed to load vessel " + vesselID + "!");
                     }
                 }
                 else
                 {
-                    DarkLog.Debug("Failed to load vessel!");
+                    DarkLog.Debug("Failed to load vessel" + vesselID + "!");
                 }
             }
             if (state == ClientState.SYNCING_VESSELS)
             {
                 if (numberOfVessels != 0)
                 {
+                    if (numberOfVesselsReceived > numberOfVessels)
+                    {
+                        //Received 102 / 101 vessels!
+                        numberOfVessels = numberOfVesselsReceived;
+                    }
                     Client.fetch.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
             }

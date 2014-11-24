@@ -103,8 +103,8 @@ namespace DarkMultiPlayerServer
                     DMPPluginHandler.FireOnServerStart();
                     while (serverRunning)
                     {
-                        //Run a garbage collection every 2 minutes.
-                        if ((serverClock.ElapsedMilliseconds - lastGarbageCollect) > 12000)
+                        //Run a garbage collection every 30 seconds.
+                        if ((serverClock.ElapsedMilliseconds - lastGarbageCollect) > 30000)
                         {
                             lastGarbageCollect = serverClock.ElapsedMilliseconds;
                             GC.Collect();
