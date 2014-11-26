@@ -29,11 +29,13 @@ namespace DarkMultiPlayer
         private string serverPort = "6702";
         //GUI Layout
         private Rect windowRect;
+        private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         private GUIStyle textAreaStyle;
         private GUIStyle statusStyle;
+        private Vector2 scrollPos;
         //const
         private const float WINDOW_HEIGHT = 200;
         private const float WINDOW_WIDTH = 400;
@@ -70,12 +72,41 @@ namespace DarkMultiPlayer
             selectedSafe = selected;
             addingServerSafe = addingServer;
             display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
+            #region Check if the GUI is out of the screen
+            if ((Screen.width - windowRect.position.x) < WINDOW_WIDTH)
+            {
+                float oldY = windowRect.position.y;
+                windowRect.position = new Vector2(Screen.width - (WINDOW_WIDTH + (WINDOW_WIDTH / 2)), oldY);
+            }
+            if (windowRect.position.x < 0)
+            {
+                if ((Screen.width + windowRect.position.x) > WINDOW_WIDTH)
+                {
+                    float oldY = windowRect.position.y;
+                    windowRect.position = new Vector2(Screen.width - 3 * (WINDOW_WIDTH + (WINDOW_WIDTH / 4)), oldY);
+                }
+            }
+            if ((Screen.height - windowRect.position.y) < WINDOW_HEIGHT)
+            {
+                float oldX = windowRect.position.x;
+                windowRect.position = new Vector2(oldX, Screen.height - (WINDOW_HEIGHT + (WINDOW_HEIGHT / 2)));
+            }
+            if (windowRect.position.y < 0)
+            {
+                if ((Screen.height + windowRect.position.y) > WINDOW_HEIGHT)
+                {
+                    float oldX = windowRect.position.x;
+                    windowRect.position = new Vector2(oldX, Screen.height - 3 * (WINDOW_HEIGHT + (WINDOW_HEIGHT / 4)));
+                }
+            }
+            #endregion
         }
 
         private void InitGUI()
         {
             //Setup GUI stuff
             windowRect = new Rect(Screen.width * 0.9f - WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
+            moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             textAreaStyle = new GUIStyle(GUI.skin.textArea);
@@ -101,13 +132,15 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
-                GUILayout.Window(6702 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer " + version(), windowStyle, layoutOptions);
+                windowRect = GUILayout.Window(6702 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer " + version(), windowStyle, layoutOptions);
             }
         }
 
         private void DrawContent(int windowID)
         {
             GUILayout.BeginVertical();
+            GUI.DragWindow(moveRect);
+            GUILayout.Space(20);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Player name:");
             string oldPlayerName = Settings.fetch.playerName;
@@ -205,6 +238,8 @@ namespace DarkMultiPlayer
                 GUILayout.Label("(None - Add a server first)");
             }
 
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(WINDOW_WIDTH - 5), GUILayout.Height(WINDOW_HEIGHT - 100));
+
             for (int serverPos = 0; serverPos < Settings.fetch.servers.Count; serverPos++)
             {
                 bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, Settings.fetch.servers[serverPos].name, buttonStyle);
@@ -225,7 +260,8 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            GUILayout.FlexibleSpace();
+            //GUILayout.FlexibleSpace(); // perhaps we should change it to a scrollbox instead?
+            GUI.EndScrollView();
 
             //Draw status message
             GUILayout.Label(status, statusStyle);
