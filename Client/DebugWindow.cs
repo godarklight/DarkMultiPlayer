@@ -77,7 +77,7 @@ namespace DarkMultiPlayer
                     initialized = true;
                     InitGUI();
                 }
-                windowRect = GUILayout.Window(6705 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer - Debug", windowStyle, layoutOptions);
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6705 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer - Debug", windowStyle, layoutOptions));
             }
             CheckWindowLock();
         }

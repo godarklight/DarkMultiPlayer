@@ -334,14 +334,14 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                playerWindowRect = GUILayout.Window(6707 + Client.WINDOW_OFFSET, playerWindowRect, DrawPlayerContent, "DarkMultiPlayer - Craft Library", windowStyle, playerLayoutOptions);
+                playerWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6707 + Client.WINDOW_OFFSET, playerWindowRect, DrawPlayerContent, "DarkMultiPlayer - Craft Library", windowStyle, playerLayoutOptions));
             }
             if (safeDisplay && selectedPlayer != null)
             {
                 //Sanity check
                 if (playersWithCrafts.Contains(selectedPlayer) || selectedPlayer == Settings.fetch.playerName)
                 {
-                    libraryWindowRect = GUILayout.Window(6708 + Client.WINDOW_OFFSET, libraryWindowRect, DrawLibraryContent, "DarkMultiPlayer - " + selectedPlayer + " Craft Library", windowStyle, libraryLayoutOptions);
+                    libraryWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6708 + Client.WINDOW_OFFSET, libraryWindowRect, DrawLibraryContent, "DarkMultiPlayer - " + selectedPlayer + " Craft Library", windowStyle, libraryLayoutOptions));
                 }
                 else
                 {

@@ -29,13 +29,16 @@ namespace DarkMultiPlayer
         private string serverPort = "6702";
         //GUI Layout
         private Rect windowRect;
+        private Rect moveRect;
+        private GUILayoutOption[] labelOptions;
         private GUILayoutOption[] layoutOptions;
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         private GUIStyle textAreaStyle;
         private GUIStyle statusStyle;
+        private Vector2 scrollPos;
         //const
-        private const float WINDOW_HEIGHT = 200;
+        private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 400;
         //version
         private string version()
@@ -76,6 +79,7 @@ namespace DarkMultiPlayer
         {
             //Setup GUI stuff
             windowRect = new Rect(Screen.width * 0.9f - WINDOW_WIDTH, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
+            moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             textAreaStyle = new GUIStyle(GUI.skin.textArea);
@@ -90,6 +94,9 @@ namespace DarkMultiPlayer
             layoutOptions[1] = GUILayout.MaxWidth(WINDOW_WIDTH);
             layoutOptions[2] = GUILayout.MinHeight(WINDOW_HEIGHT);
             layoutOptions[3] = GUILayout.MaxHeight(WINDOW_HEIGHT);
+
+            labelOptions = new GUILayoutOption[1];
+            labelOptions[0] = GUILayout.Width(100);
         }
 
         private void Draw()
@@ -101,21 +108,19 @@ namespace DarkMultiPlayer
             }
             if (display)
             {
-                GUILayout.Window(6702 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer " + version(), windowStyle, layoutOptions);
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6702 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer " + version(), windowStyle, layoutOptions));
             }
         }
 
         private void DrawContent(int windowID)
         {
             GUILayout.BeginVertical();
+            GUI.DragWindow(moveRect);
+            GUILayout.Space(20);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Player name:");
+            GUILayout.Label("Player name:", labelOptions);
             string oldPlayerName = Settings.fetch.playerName;
-            Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, textAreaStyle);
-            if (Settings.fetch.playerName.Length > 32)
-            {
-                Settings.fetch.playerName = Settings.fetch.playerName.Substring(0, 32);
-            }
+            Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, 32, textAreaStyle); // Max 32 characters
             if (oldPlayerName != Settings.fetch.playerName)
             {
                 renameEventHandled = false;
@@ -124,7 +129,12 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             //Draw add button
             string addMode = selectedSafe == -1 ? "Add" : "Edit";
-            addingServer = GUILayout.Toggle(addingServer, addMode, buttonStyle);
+            string buttonAddMode = addMode;
+            if (addingServer)
+            {
+                buttonAddMode = "Cancel";
+            }
+            addingServer = GUILayout.Toggle(addingServer, buttonAddMode, buttonStyle);
             if (addingServer && !addingServerSafe)
             {
                 if (selected != -1)
@@ -166,11 +176,15 @@ namespace DarkMultiPlayer
             if (addingServerSafe)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label("Name:");
+                GUILayout.Label("Name:", labelOptions);
                 serverName = GUILayout.TextArea(serverName, textAreaStyle);
-                GUILayout.Label("Address:");
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Address:", labelOptions);
                 serverAddress = GUILayout.TextArea(serverAddress, textAreaStyle);
-                GUILayout.Label("Port:");
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("Port:", labelOptions);
                 serverPort = GUILayout.TextArea(serverPort, textAreaStyle);
                 GUILayout.EndHorizontal();
                 if (GUILayout.Button(addMode + " server", buttonStyle))
@@ -205,6 +219,8 @@ namespace DarkMultiPlayer
                 GUILayout.Label("(None - Add a server first)");
             }
 
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(WINDOW_WIDTH - 5), GUILayout.Height(WINDOW_HEIGHT - 100));
+
             for (int serverPos = 0; serverPos < Settings.fetch.servers.Count; serverPos++)
             {
                 bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, Settings.fetch.servers[serverPos].name, buttonStyle);
@@ -225,7 +241,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            GUILayout.FlexibleSpace();
+            GUILayout.EndScrollView();
 
             //Draw status message
             GUILayout.Label(status, statusStyle);

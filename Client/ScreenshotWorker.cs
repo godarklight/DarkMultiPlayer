@@ -247,7 +247,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption);
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption));
             }
             CheckWindowLock();
         }
