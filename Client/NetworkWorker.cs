@@ -505,6 +505,14 @@ namespace DarkMultiPlayer
                             {
                                 int messageType = mr.Read<int>();
                                 int messageLength = mr.Read<int>();
+                                //This is from the little endian -> big endian format change.
+                                //The handshake challange type is 1, and the payload length is always 1032 bytes.
+                                //Little endian (the previous format) DMPServer sends 01 00 00 00 | 08 04 00 00 as the first message, the handshake challange.
+                                if (messageType == 16777216 && messageLength == 134479872)
+                                {
+                                    Disconnect("Disconnected from pre-v0.2 DMP server");
+                                    return;
+                                }
                                 if (messageType > (Enum.GetNames(typeof(ServerMessageType)).Length - 1))
                                 {
                                     //Malformed message, most likely from a non DMP-server.

@@ -66,12 +66,15 @@ namespace DarkMultiPlayer
             assemblyShouldBeInstalledAt = Path.Combine(Path.Combine(Path.Combine(Path.Combine(kspPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "DarkMultiPlayer.dll");
             UnityEngine.Debug.Log("KSP installed at " + kspPath);
             UnityEngine.Debug.Log("DMP installed at " + assemblyPath);
+            //Prevents symlink warning for development.
+            #if !DEBUG
             incorrectlyInstalled = (assemblyPath.ToLower() != assemblyShouldBeInstalledAt.ToLower());
             if (incorrectlyInstalled)
             {
                 UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '" + assemblyShouldBeInstalledAt + "'");
                 return;
             }
+            #endif
             if (Settings.fetch.disclaimerAccepted != 1)
             {
                 modDisabled = true;
