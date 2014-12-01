@@ -1193,7 +1193,7 @@ namespace DarkMultiPlayer
                 //Flying - don't care.
                 mr.Read<bool>();
                 byte[] vesselData = mr.Read<byte[]>();
-                UniverseSyncCache.fetch.SaveToCache(vesselData);
+                UniverseSyncCache.fetch.QueueToCache(vesselData);
                 ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
@@ -1633,7 +1633,7 @@ namespace DarkMultiPlayer
 
             if (vesselBytes != null && vesselBytes.Length > 0)
             {
-                UniverseSyncCache.fetch.SaveToCache(vesselBytes);
+                UniverseSyncCache.fetch.QueueToCache(vesselBytes);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
