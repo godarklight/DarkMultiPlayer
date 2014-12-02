@@ -327,42 +327,62 @@ namespace DarkMultiPlayer
                 Vessel dockedVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == dockedID);
                 if (dockedVessel != null ? !dockedVessel.packed : false)
                 {
+                    if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+                    {
+                        CheckVesselParts(dockedVessel);
+                    }
                     ProtoVessel sendProto = new ProtoVessel(dockedVessel);
                     if (sendProto != null)
                     {
-                        DarkLog.Debug("Sending docked protovessel " + dockedID);
-                        //Mark the vessel as sent
-                        serverVesselsProtoUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
-                        serverVesselsPositionUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
-                        RegisterServerVessel(dockedID);
-                        vesselPartCount[dockedID] = dockedVessel.parts.Count;
-                        vesselNames[dockedID] = dockedVessel.vesselName;
-                        vesselTypes[dockedID] = dockedVessel.vesselType;
-                        vesselSituations[dockedID] = dockedVessel.situation;
-                        //Update status if it's us.
-                        if (dockedVessel == FlightGlobals.fetch.activeVessel)
+                        if (ModWorker.fetch.modControl == ModControlMode.DISABLED || vesselPartsOk[dockedVessel.id.ToString()])
                         {
-                            //Release old control locks
-                            if (lastVesselID != FlightGlobals.fetch.activeVessel.id.ToString())
+                            DarkLog.Debug("Sending docked protovessel " + dockedID);
+                            //Mark the vessel as sent
+                            serverVesselsProtoUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                            serverVesselsPositionUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                            RegisterServerVessel(dockedID);
+                            vesselPartCount[dockedID] = dockedVessel.parts.Count;
+                            vesselNames[dockedID] = dockedVessel.vesselName;
+                            vesselTypes[dockedID] = dockedVessel.vesselType;
+                            vesselSituations[dockedID] = dockedVessel.situation;
+                            //Update status if it's us.
+                            if (dockedVessel == FlightGlobals.fetch.activeVessel)
                             {
-                                LockSystem.fetch.ReleasePlayerLocksWithPrefix(Settings.fetch.playerName, "control-");
-                                lastVesselID = FlightGlobals.fetch.activeVessel.id.ToString();
+                                //Release old control locks
+                                if (lastVesselID != FlightGlobals.fetch.activeVessel.id.ToString())
+                                {
+                                    LockSystem.fetch.ReleasePlayerLocksWithPrefix(Settings.fetch.playerName, "control-");
+                                    lastVesselID = FlightGlobals.fetch.activeVessel.id.ToString();
+                                }
+                                //Force the control lock off any other player
+                                LockSystem.fetch.AcquireLock("control-" + dockedID, true);
+                                PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.fetch.activeVessel.vesselName;
                             }
-                            //Force the control lock off any other player
-                            LockSystem.fetch.AcquireLock("control-" + dockedID, true);
-                            PlayerStatusWorker.fetch.myPlayerStatus.vesselText = FlightGlobals.fetch.activeVessel.vesselName;
+                            fromDockedVesselID = null;
+                            toDockedVesselID = null;
+                            sentDockingDestroyUpdate = false;
+
+                            bool isFlyingUpdate = (sendProto.situation == Vessel.Situations.FLYING);
+                            NetworkWorker.fetch.SendVesselProtoMessage(sendProto, true, isFlyingUpdate);
+                            if (dockingMessage != null)
+                            {
+                                dockingMessage.duration = 0f;
+                            }
+                            dockingMessage = ScreenMessages.PostScreenMessage("Docked!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                            DarkLog.Debug("Docking event over!");
                         }
-                        fromDockedVesselID = null;
-                        toDockedVesselID = null;
-                        sentDockingDestroyUpdate = false;
-                        bool isFlyingUpdate = (sendProto.situation == Vessel.Situations.FLYING);
-                        NetworkWorker.fetch.SendVesselProtoMessage(sendProto, true, isFlyingUpdate);
-                        if (dockingMessage != null)
+                        else
                         {
-                            dockingMessage.duration = 0f;
+                            fromDockedVesselID = null;
+                            toDockedVesselID = null;
+                            sentDockingDestroyUpdate = false;
+                            if (dockingMessage != null)
+                            {
+                                dockingMessage.duration = 0f;
+                            }
+                            dockingMessage = ScreenMessages.PostScreenMessage("Error sending vessel - vessel contains invalid parts!", 3f, ScreenMessageStyle.UPPER_CENTER);
+                            DarkLog.Debug("Docking event over - vessel contained invalid parts!");
                         }
-                        dockingMessage = ScreenMessages.PostScreenMessage("Docked!", 3f, ScreenMessageStyle.UPPER_CENTER);
-                        DarkLog.Debug("Docking event over!");
                     }
                     else
                     {
@@ -447,6 +467,23 @@ namespace DarkMultiPlayer
                 latestUpdateSent.Remove(removeEntry);
                 if (LockSystem.fetch.LockIsOurs("update-" + removeEntry))
                 {
+                    Vessel sendVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == removeEntry);
+                    if (sendVessel != null)
+                    {
+                        if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+                        {
+                            CheckVesselParts(sendVessel);
+                        }
+                        if (ModWorker.fetch.modControl == ModControlMode.DISABLED || vesselPartsOk[removeEntry])
+                        {
+                            ProtoVessel sendProto = sendVessel.BackupVessel();
+                            if (sendProto != null)
+                            {
+                                bool isFlyingUpdate = (sendProto.situation == Vessel.Situations.FLYING);
+                                NetworkWorker.fetch.SendVesselProtoMessage(sendProto, false, isFlyingUpdate);
+                            }
+                        }
+                    }
                     LockSystem.fetch.ReleaseLock("update-" + removeEntry);
                 }
             }
@@ -798,11 +835,7 @@ namespace DarkMultiPlayer
         {
             List<string> allowedParts = ModWorker.fetch.GetAllowedPartsList();
             List<string> bannedParts = new List<string>();
-            ProtoVessel checkProto = checkVessel.protoVessel;
-            if (!checkVessel.packed)
-            {
-                checkProto = new ProtoVessel(checkVessel);
-            }
+            ProtoVessel checkProto = checkVessel.BackupVessel();
             foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
             {
                 if (!allowedParts.Contains(part.partName))
@@ -813,14 +846,14 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            if (checkVessel.id.ToString() == FlightGlobals.fetch.activeVessel.id.ToString())
-            {
-                bannedPartsString = "";
-                foreach (string bannedPart in bannedParts)
+            if (checkVessel.isActiveVessel)
                 {
-                    bannedPartsString += bannedPart + "\n";
+                    bannedPartsString = "";
+                    foreach (string bannedPart in bannedParts)
+                    {
+                        bannedPartsString += bannedPart + "\n";
+                    }
                 }
-            }
             DarkLog.Debug("Checked vessel " + checkVessel.id.ToString() + " for banned parts, is ok: " + (bannedParts.Count == 0));
             vesselPartsOk[checkVessel.id.ToString()] = (bannedParts.Count == 0);
         }
