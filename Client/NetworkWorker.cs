@@ -1089,7 +1089,15 @@ namespace DarkMultiPlayer
                 {
                     byte[] scenarioData = mr.Read<byte[]>();
                     ConfigNode scenarioNode = ConfigNodeSerializer.fetch.Deserialize(scenarioData);
-                    ScenarioWorker.fetch.QueueScenarioData(scenarioName[i], scenarioNode);
+                    if (scenarioNode != null)
+                    {
+                        ScenarioWorker.fetch.QueueScenarioData(scenarioName[i], scenarioNode);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Scenario data has been lost for " + scenarioName[i]);
+                        ScreenMessages.PostScreenMessage("Scenario data has been lost for " + scenarioName[i], 5f, ScreenMessageStyle.UPPER_CENTER);
+                    }
                 }
             }
         }
@@ -1738,7 +1746,7 @@ namespace DarkMultiPlayer
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, false);
         }
-        //Called from vesselWorker
+        //Called from ScenarioWorker
         public void SendScenarioModuleData(string[] scenarioNames, byte[][] scenarioData)
         {
             ClientMessage newMessage = new ClientMessage();

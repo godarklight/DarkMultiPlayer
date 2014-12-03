@@ -91,6 +91,11 @@ namespace DarkMultiPlayer
                 sm.Save(scenarioNode);
                 byte[] scenarioBytes = ConfigNodeSerializer.fetch.Serialize(scenarioNode);
                 string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
+                if (scenarioBytes.Length == 0)
+                {
+                    DarkLog.Debug("Error writing scenario data for " + scenarioType);
+                    continue;
+                }
                 if (checkData.ContainsKey(scenarioType) ? (checkData[scenarioType] == scenarioHash) : false)
                 {
                     //Data is the same since last time - Skip it.
