@@ -8,12 +8,7 @@ namespace DarkMultiPlayerServer
     {
         private static AdminSystem instance;
         private static string adminListFile;
-        private List<string> serverAdmins;
-
-        public AdminSystem()
-        {
-            LoadAdmins();
-        }
+        private List<string> serverAdmins = new List<string>();
 
         public static AdminSystem fetch
         {
@@ -24,6 +19,7 @@ namespace DarkMultiPlayerServer
                 {
                     adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
                     instance = new AdminSystem();
+                    instance.LoadAdmins();
                 }
                 return instance;
             }
@@ -32,7 +28,7 @@ namespace DarkMultiPlayerServer
         private void LoadAdmins()
         {
             DarkLog.Debug("Loading admins");
-            serverAdmins = new List<string>();
+            serverAdmins.Clear();
 
             if (File.Exists(adminListFile))
             {
