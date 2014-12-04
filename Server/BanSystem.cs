@@ -8,10 +8,10 @@ namespace DarkMultiPlayerServer
 {
     public class BanSystem
     {
-        private static BanSystem instance = new BanSystem();
-        private string banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
-        private string ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
-        private string publicKeyBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPKeyBans.txt");
+        private static BanSystem instance;
+        private static string banlistFile;
+        private static string ipBanlistFile;
+        private static string publicKeyBanlistFile;
         private List<string> bannedNames = new List<string>();
         private List<IPAddress> bannedIPs = new List<IPAddress>();
         private List<string> bannedPublicKeys = new List<string>();
@@ -25,6 +25,14 @@ namespace DarkMultiPlayerServer
         {
             get
             {
+                //Lazy loading
+                if (instance == null)
+                {
+                    banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
+                    ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
+                    publicKeyBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPKeyBans.txt");
+                    instance = new BanSystem();
+                }
                 return instance;
             }
         }

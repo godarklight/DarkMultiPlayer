@@ -10,15 +10,34 @@ namespace DarkMultiPlayerServer
     public class Settings
     {
         private const string SETTINGS_FILE_NAME = "DMPServerSettings.txt";
-        public static string serverPath = AppDomain.CurrentDomain.BaseDirectory;
-        private static string settingsFile = Path.Combine(serverPath, SETTINGS_FILE_NAME);
+        private static string settingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, SETTINGS_FILE_NAME);
         //Port
-        public static SettingsStore settingsStore = new SettingsStore();
+        private static SettingsStore _settingsStore;
 
-        public static void Load()
+        public static SettingsStore settingsStore
         {
+            get
+            {
+                //Lazy loading
+                if (_settingsStore == null)
+                {
+                    _settingsStore = new SettingsStore();
+                    Load();
+                }
+                return _settingsStore;
+            }
+        }
+
+        public static void Reset()
+        {
+            _settingsStore = null;
+        }
+
+        private static void Load()
+        {
+            DarkLog.Debug("Loading settings");
             FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
-            if (!File.Exists(Path.Combine(serverPath, SETTINGS_FILE_NAME)))
+            if (!File.Exists(settingsFile))
             {
                 try
                 {
@@ -95,7 +114,7 @@ namespace DarkMultiPlayerServer
                                                 settingField.SetValue(settingsStore, enumValues.GetValue(intValue));
                                             }
                                         }
-                                        DarkLog.Debug(settingField.Name + ": " + currentValue);
+                                        //DarkLog.Debug(settingField.Name + ": " + currentValue);
                                     }
                                 }
                             }
@@ -106,8 +125,9 @@ namespace DarkMultiPlayerServer
             Save();
         }
 
-        public static void Save()
+        private static void Save()
         {
+            DarkLog.Debug("Saving settings");
             FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
             Dictionary<string,string> settingDescriptions = GetSettingsDescriptions();
             if (File.Exists(settingsFile + ".tmp"))
@@ -159,7 +179,7 @@ namespace DarkMultiPlayerServer
             {
                 File.Delete(settingsFile);
             }
-            File.Move(Path.Combine(serverPath, SETTINGS_FILE_NAME + ".tmp"), Path.Combine(serverPath, SETTINGS_FILE_NAME));
+            File.Move(settingsFile + ".tmp", settingsFile);
         }
 
         private static Dictionary<string,string> GetSettingsDescriptions()

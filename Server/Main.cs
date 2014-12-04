@@ -73,16 +73,17 @@ namespace DarkMultiPlayerServer
 
                 while (serverStarting || serverRestarting)
                 {
+                    if (serverRestarting)
+                    {
+                        Settings.Reset();
+                    }
+
                     serverRestarting = false;
                     DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
 
-                    //Load settings
+                    //Load universe
                     DarkLog.Normal("Loading universe... ");
                     CheckUniverse();
-                    DarkLog.Normal("Done!");
-
-                    DarkLog.Normal("Loading settings... ");
-                    Settings.Load();
                     DarkLog.Normal("Done!");
 
                     DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");

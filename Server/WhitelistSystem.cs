@@ -6,9 +6,9 @@ namespace DarkMultiPlayerServer
 {
     public class WhitelistSystem
     {
-        private static WhitelistSystem instance = new WhitelistSystem();
-        private static string whitelistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPWhitelist.txt");
-        private static List<string> serverWhitelist;
+        private static WhitelistSystem instance;
+        private static string whitelistFile;
+        private List<string> serverWhitelist;
 
         public WhitelistSystem()
         {
@@ -19,6 +19,12 @@ namespace DarkMultiPlayerServer
         {
             get
             {
+                //Lazy loading
+                if (instance == null)
+                {
+                    whitelistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPWhitelist.txt");
+                    instance = new WhitelistSystem();
+                }
                 return instance;
             }
         }
@@ -49,6 +55,7 @@ namespace DarkMultiPlayerServer
 
         private void LoadWhitelist()
         {
+            DarkLog.Debug("Loading Whitelist");
             serverWhitelist = new List<string>();
 
             if (File.Exists(whitelistFile))
@@ -63,6 +70,7 @@ namespace DarkMultiPlayerServer
 
         private void SaveWhitelist()
         {
+            DarkLog.Debug("Saving Whitelist");
             try
             {
                 if (File.Exists(whitelistFile))

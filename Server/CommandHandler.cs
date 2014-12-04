@@ -169,7 +169,7 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Server, queued out: " + bytesQueuedOutTotal + ", sent: " + bytesSentTotal + ", received: " + bytesReceivedTotal);
         }
 
-        private class Command : IComparable
+        private class Command
         {
             public string name;
             public Action<string> func;
@@ -180,12 +180,6 @@ namespace DarkMultiPlayerServer
                 this.name = name;
                 this.func = func;
                 this.description = description;
-            }
-
-            public int CompareTo(object obj)
-            {
-                var cmd = obj as Command;
-                return this.name.CompareTo(cmd.name);
             }
         }
     }
