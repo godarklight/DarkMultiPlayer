@@ -334,7 +334,9 @@ namespace DarkMultiPlayer
                 List<string> autoAllowed = new List<string>();
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer-common.dll");
+                //Leave the old one there if the user forgets to delete it.
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter.dll");
+                autoAllowed.Add("darkmultiplayer/plugins/messagewriter2.dll");
                 foreach (KeyValuePair<string, string> dllResource in dllList)
                 {
                     //Allow DMP files
