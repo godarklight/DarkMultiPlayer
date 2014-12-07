@@ -131,6 +131,7 @@ namespace DarkMultiPlayer
                 {
                     CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
                 }
+                CheckForBlankSceneSoTheGameDoesntBugOut(scenarioEntry);
                 ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
                 if (psm != null)
                 {
@@ -239,6 +240,18 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
+            }
+        }
+
+        //If the scene field is blank, KSP will throw an error while starting the game, meaning players will be unable to join the server.
+        private void CheckForBlankSceneSoTheGameDoesntBugOut(ScenarioEntry scenarioEntry)
+        {
+            if (scenarioEntry.scenarioNode.GetValue("scene") == string.Empty)
+            {
+                string nodeName = scenarioEntry.scenarioName;
+                ScreenMessages.PostScreenMessage(nodeName + " is badly behaved!");
+                DarkLog.Debug(nodeName + " is badly behaved!");
+                scenarioEntry.scenarioNode.SetValue("scene", "7, 8, 5, 6, 9");
             }
         }
 
