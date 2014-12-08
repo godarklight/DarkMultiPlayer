@@ -132,23 +132,30 @@ namespace DarkMultiPlayer
 
         private void JoinChannel(string commandArgs)
         {
-            if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier)
+            if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier && commandArgs != "#Global" && commandArgs != "#" + consoleIdentifier)
             {
-                DarkLog.Debug("Joining channel " + commandArgs);
-                joinedChannels.Add(commandArgs);
-                selectedChannel = commandArgs;
-                selectedPMChannel = null;
-                using (MessageWriter mw = new MessageWriter())
+                if (commandArgs.StartsWith("#"))
                 {
-                    mw.Write<int>((int)ChatMessageType.JOIN);
-                    mw.Write<string>(Settings.fetch.playerName);
-                    mw.Write<string>(commandArgs);
-                    NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    commandArgs = commandArgs.Substring(1);
+                }
+                if (!joinedChannels.Contains(commandArgs))
+                {
+                    DarkLog.Debug("Joining channel " + commandArgs);
+                    joinedChannels.Add(commandArgs);
+                    selectedChannel = commandArgs;
+                    selectedPMChannel = null;
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ChatMessageType.JOIN);
+                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(commandArgs);
+                        NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
+                    }
                 }
             }
             else
             {
-                ScreenMessages.PostScreenMessage("Couln't join '" + commandArgs + "', channel name not valid!");
+                ScreenMessages.PostScreenMessage("Couldn't join '" + commandArgs + "', channel name not valid!");
             }
         }
 
@@ -177,14 +184,17 @@ namespace DarkMultiPlayer
             }
             if (playerFound)
             {
-                DarkLog.Debug("Starting query with " + commandArgs);
-                joinedPMChannels.Add(commandArgs);
-                selectedChannel = null;
-                selectedPMChannel = commandArgs;
+                if (!joinedPMChannels.Contains(commandArgs))
+                {
+                    DarkLog.Debug("Starting query with " + commandArgs);
+                    joinedPMChannels.Add(commandArgs);
+                    selectedChannel = null;
+                    selectedPMChannel = commandArgs;
+                }
             }
             else
             {
-                DarkLog.Debug("Couln't start query with '" + commandArgs + "', player not found!");
+                ScreenMessages.PostScreenMessage("Couldn't start query with '" + commandArgs + "', player not found!");
             }
         }
 
