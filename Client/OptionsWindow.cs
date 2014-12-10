@@ -103,7 +103,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6711 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer - Options", windowStyle, layoutOptions));
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6711 + Client.WINDOW_OFFSET, windowRect, DrawContent, String.Format("DarkMultiPlayer - {0}", LanguageWorker.fetch.GetString("options")), windowStyle, layoutOptions));
             }
             CheckWindowLock();
         }
@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Player name color: ");
+            GUILayout.Label(LanguageWorker.fetch.GetString("playerNameColor"));
             GUILayout.Label(Settings.fetch.playerName, tempColorLabelStyle);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
@@ -138,11 +138,11 @@ namespace DarkMultiPlayer
             tempColorLabelStyle.active.textColor = tempColor;
             tempColorLabelStyle.normal.textColor = tempColor;
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Random", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("randomBtn"), buttonStyle))
             {
                 tempColor = PlayerColorWorker.GenerateRandomColor();
             }
-            if (GUILayout.Button("Set", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("setBtn"), buttonStyle))
             {
                 PlayerStatusWindow.fetch.colorEventHandled = false;
                 Settings.fetch.playerColor = tempColor;
@@ -155,12 +155,12 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             //Cache
-            GUILayout.Label("Cache size");
-            GUILayout.Label("Current size: " + Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3) + "MB.");
-            GUILayout.Label("Max size: " + Settings.fetch.cacheSize + "MB.");
+            GUILayout.Label(LanguageWorker.fetch.GetString("cacheSizeLabel"));
+            GUILayout.Label(String.Format("{0} ", LanguageWorker.fetch.GetString("currentCacheSizeLabel")) + Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3) + "MB.");
+            GUILayout.Label(String.Format("{0} ", LanguageWorker.fetch.GetString("maxCacheSizeLabel")) + Settings.fetch.cacheSize + "MB.");
             newCacheSize = GUILayout.TextArea(newCacheSize);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Set", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("setBtn"), buttonStyle))
             {
                 int tempCacheSize;
                 if (Int32.TryParse(newCacheSize, out tempCacheSize))
@@ -183,18 +183,18 @@ namespace DarkMultiPlayer
                     newCacheSize = Settings.fetch.cacheSize.ToString();
                 }
             }
-            if (GUILayout.Button("Expire cache"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("expireCacheButton")))
             {
                 UniverseSyncCache.fetch.ExpireCache();
             }
-            if (GUILayout.Button("Delete cache"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("deleteCacheButton")))
             {
                 UniverseSyncCache.fetch.DeleteCache();
             }
             GUILayout.EndHorizontal();
             //Key bindings
             GUILayout.Space(10);
-            string chatDescription = "Set chat key (current: " + Settings.fetch.chatKey + ")";
+            string chatDescription = String.Format("{0} ({1} {2})", LanguageWorker.fetch.GetString("setChatKeyBtn"), LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.chatKey.ToString());
             if (settingChat)
             {
                 chatDescription = "Setting chat key (click to cancel)...";
@@ -216,7 +216,7 @@ namespace DarkMultiPlayer
             {
                 settingChat = !settingChat;
             }
-            string screenshotDescription = "Set screenshot key (current: " + Settings.fetch.screenshotKey.ToString() + ")";
+            string screenshotDescription = String.Format("{0} ({1} {2})", LanguageWorker.fetch.GetString("setScrnShotKeyBtn"), LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.screenshotKey.ToString());
             if (settingScreenshot)
             {
                 screenshotDescription = "Setting screenshot key (click to cancel)...";
@@ -239,22 +239,22 @@ namespace DarkMultiPlayer
                 settingScreenshot = !settingScreenshot;
             }
             GUILayout.Space(10);
-            GUILayout.Label("Generate a server DMPModControl:");
-            if (GUILayout.Button("Generate blacklist DMPModControl.txt"))
+            GUILayout.Label(LanguageWorker.fetch.GetString("generateModCntrlLabel"));
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("generateModBlacklistBtn")))
             {
                 ModWorker.fetch.GenerateModControlFile(false);
             }
-            if (GUILayout.Button("Generate whitelist DMPModControl.txt"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("generateModWhitelistBtn")))
             {
                 ModWorker.fetch.GenerateModControlFile(true);
             }
-            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, "Generate Universe from saved game", buttonStyle);
-            if (GUILayout.Button("Reset disclaimer"))
+            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, LanguageWorker.fetch.GetString("generateUniverseSavedGameBtn"), buttonStyle);
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("resetDisclaimerBtn")))
             {
                 Settings.fetch.disclaimerAccepted = 0;
                 Settings.fetch.SaveSettings();
             }
-            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, "Enable compression", buttonStyle);
+            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, LanguageWorker.fetch.GetString("enableCompressionBtn"), buttonStyle);
             if (settingCompression != Settings.fetch.compressionEnabled)
             {
                 Settings.fetch.compressionEnabled = settingCompression;
@@ -283,7 +283,7 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Close", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("closeBtn"), buttonStyle))
             {
                 display = false;
             }

@@ -169,15 +169,15 @@ namespace DarkMultiPlayer
             {
                 chatButtonStyle = highlightStyle;
             }
-            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, "Chat", chatButtonStyle);
-            CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, "Craft", buttonStyle);
-            DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, "Debug", buttonStyle);
+            ChatWorker.fetch.display = GUILayout.Toggle(ChatWorker.fetch.display, LanguageWorker.fetch.GetString("chatBtn"), chatButtonStyle);
+            CraftLibraryWorker.fetch.display = GUILayout.Toggle(CraftLibraryWorker.fetch.display, LanguageWorker.fetch.GetString("craftBtn"), buttonStyle);
+            DebugWindow.fetch.display = GUILayout.Toggle(DebugWindow.fetch.display, LanguageWorker.fetch.GetString("debugBtn"), buttonStyle);
             GUIStyle screenshotButtonStyle = buttonStyle;
             if (ScreenshotWorker.fetch.screenshotButtonHighlighted)
             {
                 screenshotButtonStyle = highlightStyle;
             }
-            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, "Screenshot", screenshotButtonStyle);
+            ScreenshotWorker.fetch.display = GUILayout.Toggle(ScreenshotWorker.fetch.display, LanguageWorker.fetch.GetString("screenshotBtn"), screenshotButtonStyle);
             if (GUILayout.Button("-", buttonStyle))
             {
                 minmized = true;
@@ -190,17 +190,17 @@ namespace DarkMultiPlayer
             {
                 double ourtime = (TimeSyncer.fetch.currentSubspace != -1) ? TimeSyncer.fetch.GetUniverseTime() : Planetarium.GetUniversalTime();
                 double diffTime = TimeSyncer.fetch.GetUniverseTime(activeSubspace) - ourtime;
-                string diffState = "NOW";
+                string diffState = LanguageWorker.fetch.GetString("timeNow");
                 if (activeSubspace != -1)
                 {
                     if (activeSubspace != TimeSyncer.fetch.currentSubspace)
                     {
-                        diffState = (diffTime > 0) ? SecondsToVeryShortString((int)diffTime) + " in the future" : SecondsToVeryShortString(-(int)diffTime) + " in the past";
+                        diffState = (diffTime > 0) ? String.Format("{0} {1}", SecondsToVeryShortString((int)diffTime), LanguageWorker.fetch.GetString("inFuture")) : String.Format("{0} {1}", SecondsToVeryShortString(-(int)diffTime), LanguageWorker.fetch.GetString("inPast"));
                     }
                 }
                 else
                 {
-                    diffState = "Unknown";
+                    diffState = LanguageWorker.fetch.GetString("unknown");
                 }
                 GUILayout.BeginHorizontal(subspaceStyle);
                 GUILayout.Label("T+ " + SecondsToShortString((int)TimeSyncer.fetch.GetUniverseTime(activeSubspace)) + " - " + diffState);
@@ -210,7 +210,7 @@ namespace DarkMultiPlayer
                     //Only draw the subspace button in subspace mode, and only to the future.
                     if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE && (diffTime > 0))
                     {
-                        if (GUILayout.Button("Sync", buttonStyle))
+                        if (GUILayout.Button(LanguageWorker.fetch.GetString("syncBtn"), buttonStyle))
                         {
                             TimeSyncer.fetch.LockSubspace(activeSubspace);
                         }
@@ -232,11 +232,11 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Disconnect", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("disconnectBtn"), buttonStyle))
             {
                 disconnectEventHandled = false;
             }
-            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "Options", buttonStyle);
+            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, LanguageWorker.fetch.GetString("options"), buttonStyle);
             GUILayout.EndHorizontal();
             GUILayout.EndVertical();
         }
@@ -426,44 +426,44 @@ namespace DarkMultiPlayer
             {
                 if (years == 1)
                 {
-                    returnString += "1y, ";
+                    returnString += String.Format("1{0}, ", LanguageWorker.fetch.GetString("shortYear"));
                 }
                 else
                 {
-                    returnString += years + "y, ";
+                    returnString += String.Format("{0}{1}, ", years, LanguageWorker.fetch.GetString("shortYear"));
                 }
             }
             if (months > 0)
             {
                 if (months == 1)
                 {
-                    returnString += "1m, ";
+                    returnString += String.Format("1{0}, ", LanguageWorker.fetch.GetString("shortMonth"));
                 }
                 else
                 {
-                    returnString += months + "m, ";
+                    returnString += String.Format("{0}{1}, ", months, LanguageWorker.fetch.GetString("shortMonth"));
                 }
             }
             if (weeks > 0)
             {
                 if (weeks == 1)
                 {
-                    returnString += "1w, ";
+                    returnString += String.Format("1{0}, ", LanguageWorker.fetch.GetString("shortWeek"));
                 }
                 else
                 {
-                    returnString += weeks + "w, ";
+                    returnString += String.Format("{0}{1}, ", weeks, LanguageWorker.fetch.GetString("shortWeek"));
                 }
             }
             if (days > 0)
             {
                 if (days == 1)
                 {
-                    returnString += "1d, ";
+                    returnString += String.Format("1{0}, ", LanguageWorker.fetch.GetString("shortDay"));
                 }
                 else
                 {
-                    returnString += days + "d, ";
+                    returnString += String.Format("{0}{1}, ", days, LanguageWorker.fetch.GetString("shortDay"));
                 }
             }
             returnString += hours.ToString("00") + ":" + minutes.ToString("00") + ":" + seconds.ToString("00");
@@ -489,75 +489,75 @@ namespace DarkMultiPlayer
             {
                 if (years == 1)
                 {
-                    return "1 year";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularYear"));
                 }
                 else
                 {
-                    return years + " years";
+                    return String.Format("{0} {1}", years, LanguageWorker.fetch.GetString("pluralYear"));
                 }
             }
             if (months > 0)
             {
                 if (months == 1)
                 {
-                    return "1 month";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularMonth"));
                 }
                 else
                 {
-                    return months + " months";
+                    return String.Format("{0} {1}", months, LanguageWorker.fetch.GetString("pluralMonth"));
                 }
             }
             if (weeks > 0)
             {
                 if (weeks == 1)
                 {
-                    return "1 week";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularWeek"));
                 }
                 else
                 {
-                    return weeks + " weeks";
+                    return String.Format("{0} {1}", weeks, LanguageWorker.fetch.GetString("pluralWeek"));
                 }
             }
             if (days > 0)
             {
                 if (days == 1)
                 {
-                    return "1 day";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularDay"));
                 }
                 else
                 {
-                    return days + " days";
+                    return String.Format("{0} {1}", days, LanguageWorker.fetch.GetString("pluralDay"));
                 }
             }
             if (hours > 0)
             {
                 if (hours == 1)
                 {
-                    return "1 hour";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularHour"));
                 }
                 else
                 {
-                    return hours + " hours";
+                    return String.Format("{0} {1}", hours, LanguageWorker.fetch.GetString("pluralHour"));
                 }
             }
             if (minutes > 0)
             {
                 if (minutes == 1)
                 {
-                    return "1 minute";
+                    return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularMinute"));
                 }
                 else
                 {
-                    return minutes + " minutes";
+                    return String.Format("{0} {1}", minutes, LanguageWorker.fetch.GetString("pluralMinute"));
                 }
             }
             if (seconds == 1)
             {
-                return "1 second";
+                return String.Format("1 {0}", LanguageWorker.fetch.GetString("singularSecond"));
             }
             else
             {
-                return seconds + " seconds";
+                return String.Format("{0} {1}", seconds, LanguageWorker.fetch.GetString("pluralSecond"));
             }
         }
 
@@ -616,7 +616,7 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             if (playerStatus.vesselText != "")
             {
-                GUILayout.Label("Pilot: " + playerStatus.vesselText, vesselNameStyle);
+                GUILayout.Label(String.Format("{0} {1}", LanguageWorker.fetch.GetString("pilotLbl"), playerStatus.vesselText), vesselNameStyle);
             }
         }
 
