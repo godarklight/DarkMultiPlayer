@@ -43,6 +43,9 @@
     <Reference Include="MessageWriter2">
       <HintPath>..\MessageWriter2.dll</HintPath>
     </Reference>
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <HintPath>..\ICSharpCode.SharpZipLib.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -83,9 +86,9 @@
     <Compile Include="VesselProtoUpdate.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Common\Common.csproj">
+    <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
-      <Name>Common</Name>
+      <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

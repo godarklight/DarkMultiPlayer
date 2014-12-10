@@ -45,6 +45,15 @@ namespace DarkMultiPlayerServer.Messages
                     playerPublicKey = mr.Read<string>();
                     playerChallangeSignature = mr.Read<byte[]>();
                     clientVersion = mr.Read<string>();
+                    try
+                    {
+                        client.compressionEnabled = mr.Read<bool>();
+                    }
+                    catch
+                    {
+                        //This is safe to ignore. We want to tell people about version mismatches still.
+                        client.compressionEnabled = false;
+                    }
                 }
             }
             catch (Exception e)
@@ -229,6 +238,7 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 if (response == 0)
                 {
+                    mw.Write<bool>(Settings.settingsStore.compressionEnabled);
                     mw.Write<int>((int)Settings.settingsStore.modControl);
                     if (Settings.settingsStore.modControl != ModControlMode.DISABLED)
                     {

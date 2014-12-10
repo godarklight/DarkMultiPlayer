@@ -25,7 +25,7 @@ namespace DarkMultiPlayerServer.Messages
                         if (clientRequested.Contains(vesselObject))
                         {
                             sendVesselCount++;
-                            SendVessel(client, vesselID, vesselData);
+                            VesselProto.SendVessel(client, vesselID, vesselData);
                         }
                         else
                         {
@@ -56,21 +56,7 @@ namespace DarkMultiPlayerServer.Messages
             ClientHandler.SendToClient(client, newMessage, false);
         }
 
-        private static void SendVessel(ClientObject client, string vesselGUID, byte[] vesselData)
-        {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_PROTO;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<double>(0); 
-                mw.Write<string>(vesselGUID);
-                mw.Write<bool>(false);
-                mw.Write<bool>(false);
-                mw.Write<byte[]>(vesselData);
-                newMessage.data = mw.GetMessageBytes();
-            }
-            ClientHandler.SendToClient(client, newMessage, false);
-        }
+
 
         private static void SendVesselsComplete(ClientObject client)
         {

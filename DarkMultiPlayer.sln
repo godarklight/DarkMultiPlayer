@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{F8BC0417-2D6C-4B57-BC87-787B10EF7950}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Common", "Common\Common.csproj", "{423C5A4B-EA79-450D-BD86-5B46141D58D1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkMultiPlayerCommon", "Common\DarkMultiPlayerCommon.csproj", "{423C5A4B-EA79-450D-BD86-5B46141D58D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

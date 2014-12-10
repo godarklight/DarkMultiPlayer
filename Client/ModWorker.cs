@@ -337,6 +337,8 @@ namespace DarkMultiPlayer
                 //Leave the old one there if the user forgets to delete it.
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter2.dll");
+                //Compression
+                autoAllowed.Add("darkmultiplayer/plugins/icsharpcode.sharpziplib.dll");
                 foreach (KeyValuePair<string, string> dllResource in dllList)
                 {
                     //Allow DMP files

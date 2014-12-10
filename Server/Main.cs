@@ -66,6 +66,11 @@ namespace DarkMultiPlayerServer
                 //Remove player tokens
                 BackwardsCompatibility.RemoveOldPlayerTokens();
 
+                //Test compression
+                long testTime = Compression.TestSysIOCompression();
+                Compression.compressionEnabled = true;
+                DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
+
                 //Load plugins
                 DMPPluginHandler.LoadPlugins();
 

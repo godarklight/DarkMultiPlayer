@@ -15,11 +15,13 @@ namespace DarkMultiPlayerCommon
         //Any message bigger than 5MB will be invalid
         public const int MAX_MESSAGE_SIZE = 5242880;
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
-        public const int SPLIT_MESSAGE_LENGTH = 8096;
+        public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 31;
+        public const int PROTOCOL_VERSION = 32;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
+        //Compression threshold
+        public const int COMPRESSION_THRESHOLD = 4096;
 
         public static string CalculateSHA256Hash(string fileName)
         {

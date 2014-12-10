@@ -228,6 +228,12 @@ namespace DarkMultiPlayer
                 Settings.fetch.disclaimerAccepted = 0;
                 Settings.fetch.SaveSettings();
             }
+            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, "Enable compression", buttonStyle);
+            if (settingCompression != Settings.fetch.compressionEnabled)
+            {
+                Settings.fetch.compressionEnabled = settingCompression;
+                Settings.fetch.SaveSettings();
+            }
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

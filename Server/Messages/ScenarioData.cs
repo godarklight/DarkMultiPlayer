@@ -27,7 +27,14 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string[]>(scenarioNames);
                 foreach (byte[] scenarioData in scenarioDataArray)
                 {
-                    mw.Write<byte[]>(scenarioData);
+                    if (client.compressionEnabled)
+                    {
+                        mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioData));
+                    }
+                    else
+                    {
+                        mw.Write<byte[]>(Compression.AddCompressionHeader(scenarioData, false));
+                    }
                 }
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -44,7 +51,7 @@ namespace DarkMultiPlayerServer.Messages
 
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
-                    byte[] scenarioData = mr.Read<byte[]>();
+                    byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                     File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName, scenarioName[i] + ".txt"), scenarioData);
                 }
             }

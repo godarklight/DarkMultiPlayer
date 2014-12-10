@@ -887,6 +887,7 @@ namespace DarkMultiPlayer
                     //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
+                        Compression.compressionEnabled = Settings.fetch.compressionEnabled && mr.Read<bool>();
                         ModWorker.fetch.modControl = (ModControlMode)mr.Read<int>();
                         if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
                         {
@@ -1087,7 +1088,7 @@ namespace DarkMultiPlayer
                 string[] scenarioName = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
-                    byte[] scenarioData = mr.Read<byte[]>();
+                    byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                     ConfigNode scenarioNode = ConfigNodeSerializer.fetch.Deserialize(scenarioData);
                     if (scenarioNode != null)
                     {
@@ -1200,7 +1201,7 @@ namespace DarkMultiPlayer
                 mr.Read<bool>();
                 //Flying - don't care.
                 mr.Read<bool>();
-                byte[] vesselData = mr.Read<byte[]>();
+                byte[] vesselData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                 UniverseSyncCache.fetch.QueueToCache(vesselData);
                 ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
                 if (vesselNode != null)
@@ -1557,6 +1558,7 @@ namespace DarkMultiPlayer
                 mw.Write<string>(Settings.fetch.playerPublicKey);
                 mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
+                mw.Write<bool>(Settings.fetch.compressionEnabled);
                 messageBytes = mw.GetMessageBytes();
             }
             ClientMessage newMessage = new ClientMessage();
@@ -1648,7 +1650,7 @@ namespace DarkMultiPlayer
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<bool>(isDockingUpdate);
                     mw.Write<bool>(isFlyingUpdate);
-                    mw.Write<byte[]>(vesselBytes);
+                    mw.Write<byte[]>(Compression.CompressIfNeeded(vesselBytes));
                     newMessage.data = mw.GetMessageBytes();
                 }
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
@@ -1756,7 +1758,7 @@ namespace DarkMultiPlayer
                 mw.Write<string[]>(scenarioNames);
                 foreach (byte[] scenarioBytes in scenarioData)
                 {
-                    mw.Write<byte[]>(scenarioBytes);
+                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioBytes));
                 }
                 newMessage.data = mw.GetMessageBytes();
             }

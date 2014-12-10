@@ -649,6 +649,25 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        //Call with null client to send to all clients. Auto selects wether to use the compressed or decompressed message.
+        public static void SendToAllAutoCompressed(ClientObject ourClient, ServerMessage compressed, ServerMessage decompressed, bool highPriority)
+        {
+            foreach (ClientObject otherClient in clients)
+            {
+                if (ourClient != otherClient)
+                {
+                    if (otherClient.compressionEnabled && (compressed != null))
+                    {
+                        SendToClient(otherClient, compressed, highPriority);
+                    }
+                    else
+                    {
+                        SendToClient(otherClient, decompressed, highPriority);
+                    }
+                }
+            }
+        }
+
         public static void SendToClient(ClientObject client, ServerMessage message, bool highPriority)
         {
             //Because we dodge the queue, we need to lock it up again...
@@ -862,6 +881,8 @@ namespace DarkMultiPlayerServer
         public AutoResetEvent sendEvent = new AutoResetEvent(false);
         public object sendLock = new object();
         public object disconnectLock = new object();
+        //Compression
+        public bool compressionEnabled = false;
     }
 }
 

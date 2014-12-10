@@ -33,6 +33,7 @@ namespace DarkMultiPlayer
         private string privateKeyFile;
         private string backupPublicKeyFile;
         private string backupPrivateKeyFile;
+        public bool compressionEnabled;
 
         public static Settings fetch
         {
@@ -180,6 +181,16 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Adding selected flag to settings file");
                     saveXMLAfterLoad = true;
                     selectedFlag = "Squad/Flags/default";
+                }
+                try
+                {
+                    compressionEnabled = Boolean.Parse(xmlDoc.SelectSingleNode("/settings/global/@compression").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding compression flag to settings file");
+                    compressionEnabled = true;
+                    selectedFlag = "True";
                 }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
@@ -334,6 +345,16 @@ namespace DarkMultiPlayer
                 XmlAttribute selectedFlagAttribute = xmlDoc.CreateAttribute("selected-flag");
                 selectedFlagAttribute.Value = selectedFlag;
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(selectedFlagAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@compression").Value = compressionEnabled.ToString();
+            }
+            catch
+            {
+                XmlAttribute compressionAttribute = xmlDoc.CreateAttribute("compression");
+                compressionAttribute.Value = compressionEnabled.ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(compressionAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();
