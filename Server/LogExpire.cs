@@ -23,7 +23,6 @@ namespace DarkMultiPlayerServer
             string[] logFiles = Directory.GetFiles(logDirectory);
             foreach (string logFile in logFiles)
             {
-                Console.WriteLine("LogFile: " + logFile);
                 //Check if the expireScreenshots setting is enabled
                 if (Settings.settingsStore.expireLogs > 0)
                 {
