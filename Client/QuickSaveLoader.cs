@@ -75,7 +75,8 @@ namespace DarkMultiPlayer
                         NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
                     }
                     TimeSyncer.fetch.LockSubspace(newSubspace);
-                    VesselWorker.fetch.LoadVessel(savedVessel);
+                    string vesselID = Common.ConvertConfigStringToGUIDString(savedVessel.GetValue("pid"));
+                    VesselWorker.fetch.LoadVessel(savedVessel, vesselID);
                     ScreenMessages.PostScreenMessage("Quickloaded!", 3f, ScreenMessageStyle.UPPER_CENTER);
                 }
             }

@@ -530,7 +530,7 @@ namespace DarkMultiPlayer
                 //Apply it if there is any
                 if (vpu != null ? vpu.vesselNode != null : false)
                 {
-                    LoadVessel(vpu.vesselNode);
+                    LoadVessel(vpu.vesselNode, vpu.vesselID);
                 }
             }
             foreach (KeyValuePair<string, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
@@ -847,13 +847,13 @@ namespace DarkMultiPlayer
                 }
             }
             if (checkVessel.isActiveVessel)
+            {
+                bannedPartsString = "";
+                foreach (string bannedPart in bannedParts)
                 {
-                    bannedPartsString = "";
-                    foreach (string bannedPart in bannedParts)
-                    {
-                        bannedPartsString += bannedPart + "\n";
-                    }
+                    bannedPartsString += bannedPart + "\n";
                 }
+            }
             DarkLog.Debug("Checked vessel " + checkVessel.id.ToString() + " for banned parts, is ok: " + (bannedParts.Count == 0));
             vesselPartsOk[checkVessel.id.ToString()] = (bannedParts.Count == 0);
         }
@@ -1175,77 +1175,30 @@ namespace DarkMultiPlayer
             {
                 while (vesselQueue.Value.Count > 0)
                 {
-                    ConfigNode currentNode = vesselQueue.Value.Dequeue().vesselNode;
-                    if (currentNode != null)
+                    VesselProtoUpdate vpu = vesselQueue.Value.Dequeue();
+                    ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
+                    if (pv != null && pv.vesselID.ToString() == vpu.vesselID)
                     {
-                        DodgeVesselActionGroups(currentNode);
-                        DodgeVesselCrewValues(currentNode);
-                        RemoveManeuverNodesFromProtoVessel(currentNode);
-                        ProtoVessel pv = new ProtoVessel(currentNode, HighLogic.CurrentGame);
-                        if (pv != null)
-                        {
-                            bool protovesselIsOk = true;
-                            try
-                            {
-                                ConfigNode cn = new ConfigNode();
-                                pv.Save(cn);
-                            }
-                            catch
-                            {
-                                DarkLog.Debug("WARNING: Protovessel " + pv.vesselID + ", name: " + pv.vesselName + " is DAMAGED!. Skipping load.");
-                                ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + pv.vesselID + ", name: " + pv.vesselName + " is DAMAGED!. Skipping load.");
-                                protovesselIsOk = false;
-                            }
-                            if (protovesselIsOk)
-                            {
-                                RegisterServerVessel(pv.vesselID.ToString());
-                                RegisterServerAsteriodIfVesselIsAsteroid(pv);
-                                HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
-                                numberOfLoads++;
-                            }
-                        }
+                        RegisterServerVessel(pv.vesselID.ToString());
+                        RegisterServerAsteriodIfVesselIsAsteroid(pv);
+                        HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
+                        numberOfLoads++;
+                    }
+                    else
+                    {
+                        DarkLog.Debug("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
+                        ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
                     }
                 }
             }
             DarkLog.Debug("Vessels (" + numberOfLoads + ") loaded into game");
         }
         //Also called from QuickSaveLoader
-        public void LoadVessel(ConfigNode vesselNode)
+        public void LoadVessel(ConfigNode vesselNode, string protovesselID)
         {
             if (vesselNode != null)
             {
-                //Fix crew value numbers to Kerbal Names
-                bool kerbalsDodged = DodgeVesselCrewValues(vesselNode);
-
-                //Fix the "cannot control actiongroups bug" by dodging the last used time.
-                DodgeVesselActionGroups(vesselNode);
-
-                //Fix a bug where maneuver nodes make KSP throw an NRE flood.
-                RemoveManeuverNodesFromProtoVessel(vesselNode);
-
-                //Can be used for debugging incoming vessel config nodes.
-                //vesselNode.Save(Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("DMP-RX", Planetarium.GetUniversalTime() + ".txt")));
-                ProtoVessel currentProto = new ProtoVessel(vesselNode, HighLogic.CurrentGame);
-
-                if (kerbalsDodged && (NetworkWorker.fetch.state == ClientState.STARTING) && !LockSystem.fetch.LockExists("control-" + currentProto.vesselID) && !LockSystem.fetch.LockExists("update-" + currentProto.vesselID))
-                {
-                    DarkLog.Debug("Sending kerbal-dodged vessel " + currentProto.vesselID + ", name: " + currentProto.vesselName);
-                    NetworkWorker.fetch.SendVesselProtoMessage(currentProto, false, false);
-                    foreach (ProtoPartSnapshot pps in currentProto.protoPartSnapshots)
-                    {
-                        if (pps.protoModuleCrew != null)
-                        {
-                            foreach (ProtoCrewMember pcm in pps.protoModuleCrew)
-                            {
-                                if (pcm != null)
-                                {
-                                    NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
-                                }
-                            }
-                        }
-                    }
-                }
-
+                ProtoVessel currentProto = CreateSafeProtoVesselFromConfigNode(vesselNode, protovesselID);
                 if (currentProto != null)
                 {
                     //Skip already loaded EVA's
@@ -1476,6 +1429,46 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("vesselNode is null!");
             }
+        }
+
+        private ProtoVessel CreateSafeProtoVesselFromConfigNode(ConfigNode inputNode, string protovesselID)
+        {
+            ProtoVessel pv = null;
+            try
+            {
+                DodgeVesselActionGroups(inputNode);
+                DodgeVesselCrewValues(inputNode);
+                RemoveManeuverNodesFromProtoVessel(inputNode);
+                pv = new ProtoVessel(inputNode, HighLogic.CurrentGame);
+                ConfigNode cn = new ConfigNode();
+                pv.Save(cn);
+                List<string> partsList = ModWorker.fetch.GetAllowedPartsList();
+
+                foreach (ProtoPartSnapshot pps in pv.protoPartSnapshots)
+                {
+                    if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+                    {
+                        if (!partsList.Contains(pps.partName))
+                        {
+                            ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + protovesselID + " (" + pv.vesselName + ") contains the banned part '" + pps.partName + "'!. Skipping load.");
+                            pv = null;
+                            break;
+                        }
+                    }
+                    if (pps.partInfo == null)
+                    {
+                        ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + protovesselID + " (" + pv.vesselName + ") contains the missing part '" + pps.partName + "'!. Skipping load.");
+                        ScreenMessages.PostScreenMessage("Cannot load '" + pv.vesselName + "' - you are missing " + pps.partName, 10f, ScreenMessageStyle.UPPER_CENTER);
+                        pv = null;
+                        break;
+                    }
+                }
+            }
+            catch
+            {
+                pv = null;
+            }
+            return pv;
         }
 
         private void RegisterServerAsteriodIfVesselIsAsteroid(ProtoVessel possibleAsteroid)
@@ -2095,6 +2088,7 @@ namespace DarkMultiPlayer
                         vesselProtoQueue.Add(vesselID, new Queue<VesselProtoUpdate>());
                     }
                     VesselProtoUpdate vpu = new VesselProtoUpdate();
+                    vpu.vesselID = vesselID;
                     vpu.planetTime = planetTime;
                     vpu.vesselNode = vesselNode;
                     vesselProtoQueue[vesselID].Enqueue(vpu);
