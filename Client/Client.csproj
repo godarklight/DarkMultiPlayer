@@ -87,6 +87,7 @@
     <Compile Include="DMPGuiUtil.cs" />
     <Compile Include="ToolbarWrapper.cs" />
     <Compile Include="ToolbarSupport.cs" />
+    <Compile Include="3DDebug.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

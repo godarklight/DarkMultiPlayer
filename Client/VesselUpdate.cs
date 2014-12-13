@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -16,10 +17,11 @@ namespace DarkMultiPlayer
         //Orbital parameters
         public double[] orbit;
         //Surface parameters
-        //Position = lat,long,alt.
+        //Position = lat,long,alt,ground height.
         public double[] position;
         public double[] velocity;
         public double[] acceleration;
+        public float[] terrainNormal;
 
         public static VesselUpdate CopyFromVessel(Vessel updateVessel)
         {
@@ -54,10 +56,16 @@ namespace DarkMultiPlayer
                 {
                     //Use surface position under 10k
                     returnUpdate.isSurfaceUpdate = true;
-                    returnUpdate.position = new double[3];
+                    returnUpdate.position = new double[4];
                     returnUpdate.position[0] = updateVessel.latitude;
                     returnUpdate.position[1] = updateVessel.longitude;
                     returnUpdate.position[2] = updateVessel.altitude;
+                    VesselUtil.DMPRaycastPair groundRaycast = VesselUtil.RaycastGround(updateVessel.latitude, updateVessel.longitude, updateVessel.mainBody);
+                    returnUpdate.position[3] = groundRaycast.altitude;
+                    returnUpdate.terrainNormal = new float[3];
+                    returnUpdate.terrainNormal[0] = groundRaycast.terrainNormal.x;
+                    returnUpdate.terrainNormal[1] = groundRaycast.terrainNormal.y;
+                    returnUpdate.terrainNormal[2] = groundRaycast.terrainNormal.z;
                     returnUpdate.velocity = new double[3];
                     Vector3d srfVel = Quaternion.Inverse(updateVessel.mainBody.bodyTransform.rotation) * updateVessel.srf_velocity;
                     returnUpdate.velocity[0] = srfVel.x;
@@ -97,12 +105,10 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            //Get updating player
-            string updatePlayer = LockSystem.fetch.LockExists("update-" + vesselID.ToString()) ? LockSystem.fetch.LockOwner("update-" + vesselID.ToString()) : "Unknown";
+
             //Ignore updates to our own vessel if we are in flight and we aren't spectating
             if (!VesselWorker.fetch.isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id == vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
-                DarkLog.Debug("ApplyVesselUpdate - Ignoring update for active vessel from " + updatePlayer);
                 return;
             }
             Vessel updateVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id == vesselID);
@@ -114,32 +120,36 @@ namespace DarkMultiPlayer
             CelestialBody updateBody = FlightGlobals.Bodies.Find(b => b.bodyName == bodyName);
             if (updateBody == null)
             {
-                DarkLog.Debug("ApplyVesselUpdate - updateBody not found");
+                //DarkLog.Debug("ApplyVesselUpdate - updateBody not found");
                 return;
             }
 
-            //Rotation
-            Quaternion updateRotation = new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
-            updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
-            if (updateVessel.packed)
-            {
-                updateVessel.srfRelRotation = updateRotation;
-                updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
-            }
-
-
+            Quaternion normalRotate = Quaternion.identity;
             //Position/Velocity
             if (isSurfaceUpdate)
             {
                 //Get the new position/velocity
-                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2]);
+                double altitudeFudge = 0;
+                VesselUtil.DMPRaycastPair dmpRaycast = VesselUtil.RaycastGround(position[0], position[1], updateBody);
+                if (dmpRaycast.altitude != -1d && position[3] != -1d)
+                {
+
+                    Vector3 theirNormal = new Vector3(terrainNormal[0], terrainNormal[1], terrainNormal[2]);
+                    altitudeFudge = dmpRaycast.altitude - position[3];
+                    if (Math.Abs(position[2] - position[3]) < 50f)
+                    {
+                        normalRotate = Quaternion.FromToRotation(theirNormal, dmpRaycast.terrainNormal);
+                    }
+                }
+
+                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2] + altitudeFudge);
                 Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(velocity[0], velocity[1], velocity[2]);
                 Vector3d updateAcceleration = updateBody.bodyTransform.rotation * new Vector3d(acceleration[0], acceleration[1], acceleration[2]);
                 if (updateVessel.packed)
                 {
                     updateVessel.latitude = position[0];
                     updateVessel.longitude = position[1];
-                    updateVessel.altitude = position[2];
+                    updateVessel.altitude = position[2] + altitudeFudge;
                     updateVessel.protoVessel.latitude = updateVessel.latitude;
                     updateVessel.protoVessel.longitude = updateVessel.longitude;
                     updateVessel.protoVessel.altitude = updateVessel.altitude;
@@ -195,6 +205,16 @@ namespace DarkMultiPlayer
                 }
             }
 
+            //Rotation
+            Quaternion unfudgedRotation = new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
+            Quaternion updateRotation = normalRotate * unfudgedRotation;
+            updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
+            if (updateVessel.packed)
+            {
+                updateVessel.srfRelRotation = updateRotation;
+                updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
+            }
+
             //Angular velocity
             //Vector3 angularVelocity = new Vector3(this.angularVelocity[0], this.angularVelocity[1], this.angularVelocity[2]);
             if (updateVessel.parts != null)
@@ -230,4 +250,5 @@ namespace DarkMultiPlayer
         }
     }
 }
+
 

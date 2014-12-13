@@ -1297,6 +1297,7 @@ namespace DarkMultiPlayer
                     update.position = mr.Read<double[]>();
                     update.velocity = mr.Read<double[]>();
                     update.acceleration = mr.Read<double[]>();
+                    update.terrainNormal = mr.Read<float[]>();
                 }
                 else
                 {
@@ -1662,9 +1663,8 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             vessel.Save(vesselNode);
-
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
-
+            File.WriteAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "lastVessel.txt"), vesselBytes);
             if (vesselBytes != null && vesselBytes.Length > 0)
             {
                 UniverseSyncCache.fetch.QueueToCache(vesselBytes);
@@ -1727,6 +1727,7 @@ namespace DarkMultiPlayer
                     mw.Write<double[]>(update.position);
                     mw.Write<double[]>(update.velocity);
                     mw.Write<double[]>(update.acceleration);
+                    mw.Write<float[]>(update.terrainNormal);
                 }
                 else
                 {
