@@ -1,7 +1,7 @@
 This heavily depends on my MessageWriter/Reader serialiser: https://github.com/godarklight/BinarySerialiser
 
 All TCP messages include an int (4 byte) header for type, and an int (4 byte) for length, written by MessageWriter.
-All DMP messsage are built without a MessageWriter header, it gets added during the send.
+All DMP messages are built without a MessageWriter header, it gets added during the send.
 
 ===Shared format===
 HEARTBEAT: null - Just sends some data over the wire to keep the connection alive.
@@ -84,7 +84,7 @@ float - subspace rate.
 int - subspace ID.
 
 
-SPLIT_MESSAGE: This message comes in 2 formats, it's state tracked on the server and clients. When we fill the buffer, we unencapsulate it and handle it as another message type.
+SPLIT_MESSAGE: This message comes in 2 formats, it's state tracked on the server and clients. When we fill the buffer, we de-encapsulate it and handle it as another message type.
 --New split message--
 int - full message length, byte[] - First chunk.
 --Continuing split message--
@@ -133,7 +133,7 @@ int - subspace id
 double - planetarium clock
 string - kerbal ConfigNode data.
 
-KERBAL_COMPLETE: null - Signal to the client that there are no more kerbals to send so it can continue conecting
+KERBAL_COMPLETE: null - Signal to the client that there are no more kerbals to send so it can continue connecting
 
 VESSEL_PROTO:
 int - subspace id

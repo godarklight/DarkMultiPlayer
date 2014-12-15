@@ -185,19 +185,19 @@ namespace DarkMultiPlayerServer
         private static Dictionary<string,string> GetSettingsDescriptions()
         {
             Dictionary<string, string> descriptionList = new Dictionary<string, string>();
-            descriptionList.Add("address", "The address the server listens on\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\n#Change this setting to :: to listen on IPv4 and IPv6.");
-            descriptionList.Add("port", "The port the server listens on");
-            descriptionList.Add("warpMode", "Specify the warp type");
-            descriptionList.Add("gameMode", "Specify the game type");
-            descriptionList.Add("whitelisted", "Enable whitelisting");
-            descriptionList.Add("modControl", "Enable mod control\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
-            descriptionList.Add("keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shutdown");
-            descriptionList.Add("sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NB: This may cause time-paradoxes, and will not work across server restarts");
+            descriptionList.Add("address", "The address the server listens on.\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\n#Change this setting to :: to listen on IPv4 and IPv6.");
+            descriptionList.Add("port", "The port the server listens on.");
+            descriptionList.Add("warpMode", "Specify the warp type.");
+            descriptionList.Add("gameMode", "Specify the game type.");
+            descriptionList.Add("whitelisted", "Enable white-listing.");
+            descriptionList.Add("modControl", "Enable mod control.\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
+            descriptionList.Add("keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shut down.");
+            descriptionList.Add("sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NOTE: This may cause time-paradoxes, and will not work across server restarts.");
             descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
             descriptionList.Add("logLevel", "Minimum log level.");
             descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
             descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
-            descriptionList.Add("cheats", "Enable use of cheats ingame.");
+            descriptionList.Add("cheats", "Enable use of cheats in-game.");
             descriptionList.Add("httpPort", "HTTP port for server status. 0 = Disabled");
             descriptionList.Add("serverName", "Name of the server.");
             descriptionList.Add("maxPlayers", "Maximum amount of players that can join the server.");
@@ -208,7 +208,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console.");
             descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
             descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
-            descriptionList.Add("compressionEnabled", "Specify wether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled");
+            descriptionList.Add("compressionEnabled", "Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled");
             descriptionList.Add("expireLogs", "Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled");
             return descriptionList;
         }

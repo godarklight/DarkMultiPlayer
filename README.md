@@ -12,14 +12,14 @@ Option a) Extract the [DarkMultiPlayer zip](https://kerbalstuff.com/mod/4) to Ga
 Option b) Download DMPUpdater from http://godarklight.info.tm/dmp/downloads/dmpupdater/, place the program next to KSP.exe (Or KSP.app/KSP.x86_64), and run it.  
 
 ####LINUX BUG
-The linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
+The Linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
   
 Make sure the sha256 sum is correct, these instructions are specifically for 0.25  
 
     sha256sum KSP.x86_64
     17d395c8b2b30e2fdcca65a0078859f0422f1e36ba509f6bbf2f56b68b36148a KSP.x86_64
   
-Patch the executable  
+Patch the executable:  
 
     echo "0099f587: 00" | xxd -r - KSP.x86_64
     echo "0099f58c: 00" | xxd -r - KSP.x86_64
@@ -31,7 +31,7 @@ Check it patched correctly:
   
 ###Connecting to a server
 The connection window will appear on the main menu. Type in a username, press add server, type in the details, and then hit add.  
-A player keypair will be generated (At GameData/DarkMultiPlayer/Plugins/Data/private.txt) during the first DMP start. DMP registers your username to the server with this keypair. If you lose your keypair, you will no longer be able to connect to the server with that username until the server admin deletes you from Universe/Players/.  
+A player keypair will be generated (At GameData/DarkMultiPlayer/Plugins/Data/private.txt) during the first DMP start. DMP registers your username to the server with this keypair. If you lose your keypair, you will no longer be able to connect to the server with that username until the server administrator deletes you from Universe/Players/.  
   
 ###Connecting, If you are also running a server
 If you are running the server locally, you will want to connect to 127.0.0.1/localhost.  
@@ -63,7 +63,7 @@ If the server has screenshot saving enabled, The players name will go red when t
 If you try to connect to a modded server, DMP will tell you everything you are missing, and tell you everything you shouldn't have in order to connect. If there is any DLL's that need to be added, you will need to restart KSP.  
   
 ###Warping
-Both regular and phyiscs warp are available. When you warp, you will be put into your own "time" (called a subspace) which other players can sync to. All updates from the past affect future players, but future players will not affect players in the past.  
+Both regular and physics warp are available. When you warp, you will be put into your own "time" (called a subspace) which other players can sync to. All updates from the past affect future players, but future players will not affect players in the past.  
   
   
 ##Server
@@ -96,10 +96,10 @@ shutdown        - Shuts down the server
 whitelist       - Change the server whitelist  
   
 ###Options
-The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is offline. The file is created on the first server start.  
+The file is located at DMPServerSettings.txt next to DMPServer.exe. You will need to edit this file while the server is off-line. The file is created on the first server start.  
   
 ###address
-address - The address the server listens on  
+address - The address the server listens on.  
 WARNING: You do not need to change this unless you are running 2 servers on the same port.  
 Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.  
   
@@ -122,7 +122,7 @@ The warp type.
 - Mode 2: CAREER - Everyone has their own career mode points and funds. Shared science is currently not implemented.  
   
 ####whitelisted
-Enable whitelisting on the server. The commands are /whitelist [add|del] playername or /whitelist show
+Enable whitelisting on the server. The commands are /whitelist [add|del] playername or /whitelist show.  
 - 0 : Off  
 - 1 : On  
   
@@ -139,12 +139,12 @@ Use UTC instead of system time in the log. This is useful if you want to co-ordi
 
 
 ####loglevel
-Minimum log level to display. While DMP is in alpha, it's recommended to leave this on DEBUG (0) if you want to submit bug reports ;).
+Minimum log level to display. While DMP is in alpha, it's recommended to leave this on DEBUG (0) if you want to submit bug reports. ;)  
   
   
 ####screenshotsperplayer
 Number of screenshots to save. You need to have a number higher than -1 in order for players to view screenshots for players they are not currently watching.  
-- -1 is disabled  
+- -1 is disabled.  
 - 0 is unlimited.  
   
   
@@ -153,7 +153,7 @@ The height of the screenshot in pixels.
   
   
 ####cheats
-Enable use of cheats ingame.
+Enable use of cheats in-game.  
 - 0 : Off  
 - 1 : On  
   
@@ -187,10 +187,10 @@ Specify the server's MOTD (message of the day).
   
   
 ##Mods
-Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) - The file format is the same.  
+Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) as the file format is the same.  
   
 If you are running a private server, it's safe enough to just add the missing parts.  
   
-You can get the DMP client to make a DMPModControl.txt file specific for your gamedata directory by pressing Options -> Generate DMPModControl.txt file.
-The whitelist option will only allow you to connect with the mods in your gamedata directory.
+You can get the DMP client to make a DMPModControl.txt file specific for your GameData directory by pressing Options -> Generate DMPModControl.txt file.
+The whitelist option will only allow you to connect with the mods in your GameData directory.
 The blacklist option will allow you to connect with any mods.

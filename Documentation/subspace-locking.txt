@@ -26,7 +26,5 @@ eg:
 3s behind will give you a clock speed of 1.5x (due to the max limit).
 
 ==The server changes the subspace rate like this==
-The clients periodicly send how fast they think they can run (subspace rate / skew rate) in order to keep it in sync.
+The clients periodically send how fast they think they can run (subspace rate / skew rate) in order to keep it in sync.
 The server then sets the subspace rate to the slowest requested rate.
-
-
