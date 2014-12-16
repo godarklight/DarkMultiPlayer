@@ -95,7 +95,6 @@ namespace DarkMultiPlayer
                 resetEvent.Add(PlayerColorWorker.Reset);
                 resetEvent.Add(PlayerStatusWindow.Reset);
                 resetEvent.Add(PlayerStatusWorker.Reset);
-                resetEvent.Add(QuickSaveLoader.Reset);
                 resetEvent.Add(ScenarioWorker.Reset);
                 resetEvent.Add(ScreenshotWorker.Reset);
                 resetEvent.Add(TimeSyncer.Reset);
@@ -389,7 +388,7 @@ namespace DarkMultiPlayer
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready)
                     {
-                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = Settings.fetch.revertEnabled || (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
                     }
                     else
                     {
@@ -628,9 +627,18 @@ namespace DarkMultiPlayer
             returnGame.startScene = GameScenes.SPACECENTER;
             returnGame.flagURL = Settings.fetch.selectedFlag;
             returnGame.Title = "DarkMultiPlayer";
-            returnGame.Parameters.Flight.CanQuickLoad = false;
-            returnGame.Parameters.Flight.CanRestart = false;
-            returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
+            {
+                returnGame.Parameters.Flight.CanQuickLoad = true;
+                returnGame.Parameters.Flight.CanRestart = true;
+                returnGame.Parameters.Flight.CanLeaveToEditor = true;
+            }
+            else
+            {
+                returnGame.Parameters.Flight.CanQuickLoad = false;
+                returnGame.Parameters.Flight.CanRestart = false;
+                returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            }
             HighLogic.SaveFolder = "DarkMultiPlayer";
 
             return returnGame;

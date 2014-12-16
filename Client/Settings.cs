@@ -34,6 +34,7 @@ namespace DarkMultiPlayer
         private string backupPublicKeyFile;
         private string backupPrivateKeyFile;
         public bool compressionEnabled;
+        public bool revertEnabled;
 
         public static Settings fetch
         {
@@ -190,7 +191,15 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Adding compression flag to settings file");
                     compressionEnabled = true;
-                    selectedFlag = "True";
+                }
+                try
+                {
+                    revertEnabled = Boolean.Parse(xmlDoc.SelectSingleNode("/settings/global/@revert").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding revert flag to settings file");
+                    revertEnabled = true;
                 }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
@@ -355,6 +364,16 @@ namespace DarkMultiPlayer
                 XmlAttribute compressionAttribute = xmlDoc.CreateAttribute("compression");
                 compressionAttribute.Value = compressionEnabled.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(compressionAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@revert").Value = revertEnabled.ToString();
+            }
+            catch
+            {
+                XmlAttribute revertAttribute = xmlDoc.CreateAttribute("revert");
+                revertAttribute.Value = revertEnabled.ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(revertAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();

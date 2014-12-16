@@ -33,6 +33,17 @@ namespace DarkMultiPlayer
         private Dictionary<string, Queue<VesselProtoUpdate>> vesselProtoQueue = new Dictionary<string, Queue<VesselProtoUpdate>>();
         private Dictionary<string, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<string, Queue<VesselUpdate>>();
         private Dictionary<string, Queue<KerbalEntry>> kerbalProtoQueue = new Dictionary<string, Queue<KerbalEntry>>();
+        //Incoming revert support
+        private Dictionary<string, List<VesselRemoveEntry>> vesselRemoveHistory = new Dictionary<string, List<VesselRemoveEntry>>();
+        private Dictionary<string, double> vesselRemoveHistoryTime = new Dictionary<string, double>();
+        private Dictionary<string, List<VesselProtoUpdate>> vesselProtoHistory = new Dictionary<string, List<VesselProtoUpdate>>();
+        private Dictionary<string, double> vesselProtoHistoryTime = new Dictionary<string, double>();
+        private Dictionary<string, List<VesselUpdate>> vesselUpdateHistory = new Dictionary<string, List<VesselUpdate>>();
+        private Dictionary<string, double> vesselUpdateHistoryTime = new Dictionary<string, double>();
+        private Dictionary<string, List<KerbalEntry>> kerbalProtoHistory = new Dictionary<string, List<KerbalEntry>>();
+        private Dictionary<string, double> kerbalProtoHistoryTime = new Dictionary<string, double>();
+        private double lastUniverseTime = double.NegativeInfinity;
+        //Vessel tracking
         private Queue<ActiveVesselEntry> newActiveVessels = new Queue<ActiveVesselEntry>();
         private List<string> serverVessels = new List<string>();
         private Dictionary<string, bool> vesselPartsOk = new Dictionary<string, bool>();
@@ -492,13 +503,16 @@ namespace DarkMultiPlayer
         private void ProcessNewVesselMessages()
         {
             Dictionary<string, double> removeList = new Dictionary<string, double>();
-            foreach (KeyValuePair<string, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
+            lock (vesselRemoveQueue)
             {
-                while (vesselRemoveSubspace.Value.Count > 0 ? (vesselRemoveSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
+                foreach (KeyValuePair<string, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
                 {
-                    VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
-                    RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
-                    removeList[removeVessel.vesselID] = removeVessel.planetTime;
+                    while (vesselRemoveSubspace.Value.Count > 0 ? (vesselRemoveSubspace.Value.Peek().planetTime < Planetarium.GetUniversalTime()) : false)
+                    {
+                        VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
+                        RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
+                        removeList[removeVessel.vesselID] = removeVessel.planetTime;
+                    }
                 }
             }
 
@@ -547,6 +561,148 @@ namespace DarkMultiPlayer
                     vu.Apply();
                 }
             }
+        }
+
+        public void DetectReverting()
+        {
+            double newUniverseTime = Planetarium.GetUniversalTime();
+            if (newUniverseTime < lastUniverseTime)
+            {
+                int updatesReverted = 0;
+                DarkLog.Debug("Revert detected!");
+                TimeSyncer.fetch.LockNewSubspaceToCurrentTime();
+                if (!Settings.fetch.revertEnabled)
+                {
+                    DarkLog.Debug("Unsafe revert detected!");
+                    ScreenMessages.PostScreenMessage("Unsafe revert detected!", 5f, ScreenMessageStyle.UPPER_CENTER);
+                }
+                else
+                {
+                    kerbalProtoQueue.Clear();
+                    vesselProtoQueue.Clear();
+                    vesselUpdateQueue.Clear();
+                    vesselRemoveQueue.Clear();
+                    //Kerbal queue
+                    KerbalEntry lastKerbalEntry = null;
+                    foreach (KeyValuePair<string, List<KerbalEntry>> kvp in kerbalProtoHistory)
+                    {
+                        bool adding = false;
+                        kerbalProtoQueue.Add(kvp.Key, new Queue<KerbalEntry>());
+                        foreach (KerbalEntry ke in kvp.Value)
+                        {
+                            if (ke.planetTime > newUniverseTime)
+                            {
+                                if (!adding)
+                                {
+                                    //One shot - add the previous update before the time to apply instantly
+                                    if (lastKerbalEntry != null)
+                                    {
+                                        kerbalProtoQueue[kvp.Key].Enqueue(lastKerbalEntry);
+                                        updatesReverted++;
+                                    }
+                                }
+                                adding = true;
+                            }
+                            if (adding)
+                            {
+                                kerbalProtoQueue[kvp.Key].Enqueue(ke);
+                                updatesReverted++;
+                            }
+                            lastKerbalEntry = ke;
+                        }
+                    }
+                    //Vessel proto queue
+                    VesselProtoUpdate lastVesselProtoEntry = null;
+                    foreach (KeyValuePair<string, List<VesselProtoUpdate>> kvp in vesselProtoHistory)
+                    {
+                        bool adding = false;
+                        vesselProtoQueue.Add(kvp.Key, new Queue<VesselProtoUpdate>());
+                        foreach (VesselProtoUpdate vpu in kvp.Value)
+                        {
+                            if (vpu.planetTime > newUniverseTime)
+                            {
+                                if (!adding)
+                                {
+                                    //One shot - add the previous update before the time to apply instantly
+                                    if (lastKerbalEntry != null)
+                                    {
+                                        vesselProtoQueue[kvp.Key].Enqueue(lastVesselProtoEntry);
+                                        updatesReverted++;
+                                    }
+                                }
+                                adding = true;
+                            }
+                            if (adding)
+                            {
+                                vesselProtoQueue[kvp.Key].Enqueue(vpu);
+                                updatesReverted++;
+                            }
+                            lastVesselProtoEntry = vpu;
+                        }
+                    }
+                    //Vessel update queue
+                    VesselUpdate lastVesselUpdateEntry = null;
+                    foreach (KeyValuePair<string, List<VesselUpdate>> kvp in vesselUpdateHistory)
+                    {
+                        bool adding = false;
+                        vesselUpdateQueue.Add(kvp.Key, new Queue<VesselUpdate>());
+                        foreach (VesselUpdate vu in kvp.Value)
+                        {
+                            if (vu.planetTime > newUniverseTime)
+                            {
+                                if (!adding)
+                                {
+                                    //One shot - add the previous update before the time to apply instantly
+                                    if (lastKerbalEntry != null)
+                                    {
+                                        vesselUpdateQueue[kvp.Key].Enqueue(lastVesselUpdateEntry);
+                                        updatesReverted++;
+                                    }
+                                }
+                                adding = true;
+                            }
+                            if (adding)
+                            {
+                                vesselUpdateQueue[kvp.Key].Enqueue(vu);
+                                updatesReverted++;
+                            }
+                            lastVesselUpdateEntry = vu;
+                        }
+                    }
+                    //Remove entries
+                    VesselRemoveEntry lastRemoveEntry = null;
+                    foreach (KeyValuePair<string, List<VesselRemoveEntry>> kvp in vesselRemoveHistory)
+                    {
+                        bool adding = false;
+                        vesselRemoveQueue.Add(kvp.Key, new Queue<VesselRemoveEntry>());
+                        foreach (VesselRemoveEntry vre in kvp.Value)
+                        {
+                            if (vre.planetTime > newUniverseTime)
+                            {
+                                if (!adding)
+                                {
+                                    //One shot - add the previous update before the time to apply instantly
+                                    if (lastRemoveEntry != null)
+                                    {
+                                        vesselRemoveQueue[kvp.Key].Enqueue(lastRemoveEntry);
+                                        updatesReverted++;
+                                    }
+                                }
+                                adding = true;
+                            }
+                            if (adding)
+                            {
+                                vesselRemoveQueue[kvp.Key].Enqueue(vre);
+                                updatesReverted++;
+                            }
+                            lastRemoveEntry = vre;
+                        }
+                    }
+                }
+                DarkLog.Debug("Reverted " + updatesReverted + " updates");
+                ScreenMessages.PostScreenMessage("Reverted " + updatesReverted + " updates", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
+            lastUniverseTime = newUniverseTime;
         }
 
         private void UpdateOnScreenSpectateMessage()
@@ -2030,39 +2186,136 @@ namespace DarkMultiPlayer
             }
         }
 
-
-
         //Called from networkWorker
         public void QueueKerbal(double planetTime, string kerbalName, ConfigNode kerbalNode)
         {
-            KerbalEntry newEntry = new KerbalEntry();
-            newEntry.planetTime = planetTime;
-            newEntry.kerbalNode = kerbalNode;
-            if (!kerbalProtoQueue.ContainsKey(kerbalName))
+            lock (updateQueueLock)
             {
-                kerbalProtoQueue.Add(kerbalName, new Queue<KerbalEntry>());
+                KerbalEntry newEntry = new KerbalEntry();
+                newEntry.planetTime = planetTime;
+                newEntry.kerbalNode = kerbalNode;
+                if (!kerbalProtoQueue.ContainsKey(kerbalName))
+                {
+                    kerbalProtoQueue.Add(kerbalName, new Queue<KerbalEntry>());
+                }
+
+                Queue<KerbalEntry> keQueue = kerbalProtoQueue[kerbalName];
+                if (kerbalProtoHistoryTime.ContainsKey(kerbalName))
+                {
+                    //If we get a remove older than the current queue peek, then someone has gone back in time and the timeline needs to be fixed.
+                    if (planetTime < kerbalProtoHistoryTime[kerbalName])
+                    {
+                        DarkLog.Debug("Kerbal " + kerbalName + " went back in time - rewriting the remove history for it.");
+                        Queue<KerbalEntry> newQueue = new Queue<KerbalEntry>();
+                        while (keQueue.Count > 0)
+                        {
+                            KerbalEntry oldKe = keQueue.Dequeue();
+                            //Save the updates from before the revert
+                            if (oldKe.planetTime < planetTime)
+                            {
+                                newQueue.Enqueue(oldKe);
+                            }
+                        }
+                        keQueue = newQueue;
+                        kerbalProtoQueue[kerbalName] = newQueue;
+                        //Clean the history too
+                        if (Settings.fetch.revertEnabled)
+                        {
+                            if (kerbalProtoHistory.ContainsKey(kerbalName))
+                            {
+                                List<KerbalEntry> keh = kerbalProtoHistory[kerbalName];
+                                foreach (KerbalEntry oldKe in keh.ToArray())
+                                {
+                                    if (oldKe.planetTime > planetTime)
+                                    {
+                                        keh.Remove(oldKe);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                keQueue.Enqueue(newEntry);
+                if (Settings.fetch.revertEnabled)
+                {
+                    if (!kerbalProtoHistory.ContainsKey(kerbalName))
+                    {
+                        kerbalProtoHistory.Add(kerbalName, new List<KerbalEntry>());
+                    }
+                    kerbalProtoHistory[kerbalName].Add(newEntry);
+                }
+                kerbalProtoHistoryTime[kerbalName] = planetTime;
             }
-            kerbalProtoQueue[kerbalName].Enqueue(newEntry);
         }
+
         //Called from networkWorker
         public void QueueVesselRemove(string vesselID, double planetTime, bool isDockingUpdate, string dockingPlayer)
         {
             lock (updateQueueLock)
             {
+
                 if (!vesselRemoveQueue.ContainsKey(vesselID))
                 {
                     vesselRemoveQueue.Add(vesselID, new Queue<VesselRemoveEntry>());
                 }
+
+                Queue<VesselRemoveEntry> vrQueue = vesselRemoveQueue[vesselID];
+                if (vesselRemoveHistoryTime.ContainsKey(vesselID))
+                {
+                    //If we get a remove older than the current queue peek, then someone has gone back in time and the timeline needs to be fixed.
+                    if (planetTime < vesselRemoveHistoryTime[vesselID])
+                    {
+                        DarkLog.Debug("Vessel " + vesselID + " went back in time - rewriting the remove history for it.");
+                        Queue<VesselRemoveEntry> newQueue = new Queue<VesselRemoveEntry>();
+                        while (vrQueue.Count > 0)
+                        {
+                            VesselRemoveEntry oldVre = vrQueue.Dequeue();
+                            //Save the updates from before the revert
+                            if (oldVre.planetTime < planetTime)
+                            {
+                                newQueue.Enqueue(oldVre);
+                            }
+                        }
+                        vrQueue = newQueue;
+                        vesselRemoveQueue[vesselID] = newQueue;
+                        //Clean the history too
+                        if (Settings.fetch.revertEnabled)
+                        {
+                            if (vesselRemoveHistory.ContainsKey(vesselID))
+                            {
+                                List<VesselRemoveEntry> vrh = vesselRemoveHistory[vesselID];
+                                foreach (VesselRemoveEntry oldVr in vrh.ToArray())
+                                {
+                                    if (oldVr.planetTime > planetTime)
+                                    {
+                                        vrh.Remove(oldVr);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
                 VesselRemoveEntry vre = new VesselRemoveEntry();
                 vre.planetTime = planetTime;
                 vre.vesselID = vesselID;
                 vre.isDockingUpdate = isDockingUpdate;
                 vre.dockingPlayer = dockingPlayer;
-                vesselRemoveQueue[vesselID].Enqueue(vre);
+                vrQueue.Enqueue(vre);
                 if (latestVesselUpdate.ContainsKey(vesselID) ? latestVesselUpdate[vesselID] < planetTime : true)
                 {
                     latestVesselUpdate[vesselID] = planetTime;
                 }
+                if (Settings.fetch.revertEnabled)
+                {
+                    if (!vesselRemoveHistory.ContainsKey(vesselID))
+                    {
+                        vesselRemoveHistory.Add(vesselID, new List<VesselRemoveEntry>());
+                    }
+                    vesselRemoveHistory[vesselID].Add(vre);
+                }
+                vesselRemoveHistoryTime[vesselID] = planetTime;
             }
         }
 
@@ -2076,11 +2329,58 @@ namespace DarkMultiPlayer
                     {
                         vesselProtoQueue.Add(vesselID, new Queue<VesselProtoUpdate>());
                     }
+                    Queue<VesselProtoUpdate> vpuQueue = vesselProtoQueue[vesselID];
+                    if (vesselProtoHistoryTime.ContainsKey(vesselID))
+                    {
+                        //If we get an update older than the current queue peek, then someone has gone back in time and the timeline needs to be fixed.
+                        if (planetTime < vesselProtoHistoryTime[vesselID])
+                        {
+                            DarkLog.Debug("Vessel " + vesselID + " went back in time - rewriting the proto update history for it.");
+                            Queue<VesselProtoUpdate> newQueue = new Queue<VesselProtoUpdate>();
+                            while (vpuQueue.Count > 0)
+                            {
+                                VesselProtoUpdate oldVpu = vpuQueue.Dequeue();
+                                //Save the updates from before the revert
+                                if (oldVpu.planetTime < planetTime)
+                                {
+                                    newQueue.Enqueue(oldVpu);
+                                }
+                            }
+                            vpuQueue = newQueue;
+                            vesselProtoQueue[vesselID] = newQueue;
+                            //Clean the history too
+                            if (Settings.fetch.revertEnabled)
+                            {
+                                if (vesselProtoHistory.ContainsKey(vesselID))
+                                {
+                                    List<VesselProtoUpdate> vpuh = vesselProtoHistory[vesselID];
+                                    foreach (VesselProtoUpdate oldVpu in vpuh.ToArray())
+                                    {
+                                        if (oldVpu.planetTime > planetTime)
+                                        {
+                                            vpuh.Remove(oldVpu);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //Create new VPU to be stored.
                     VesselProtoUpdate vpu = new VesselProtoUpdate();
                     vpu.vesselID = vesselID;
                     vpu.planetTime = planetTime;
                     vpu.vesselNode = vesselNode;
-                    vesselProtoQueue[vesselID].Enqueue(vpu);
+                    vpuQueue.Enqueue(vpu);
+                    //Revert support
+                    if (Settings.fetch.revertEnabled)
+                    {
+                        if (!vesselProtoHistory.ContainsKey(vesselID))
+                        {
+                            vesselProtoHistory.Add(vesselID, new List<VesselProtoUpdate>());
+                        }
+                        vesselProtoHistory[vesselID].Add(vpu);
+                    }
+                    vesselProtoHistoryTime[vesselID] = planetTime;
                 }
             }
             else
@@ -2097,11 +2397,58 @@ namespace DarkMultiPlayer
                 {
                     vesselUpdateQueue.Add(update.vesselID, new Queue<VesselUpdate>());
                 }
-                vesselUpdateQueue[update.vesselID].Enqueue(update);
+                Queue<VesselUpdate> vuQueue = vesselUpdateQueue[update.vesselID];
+                if (vesselUpdateHistoryTime.ContainsKey(update.vesselID))
+                {
+                    //If we get an update older than the current queue peek, then someone has gone back in time and the timeline needs to be fixed.
+                    if (update.planetTime < vesselUpdateHistoryTime[update.vesselID])
+                    {
+                        DarkLog.Debug("Vessel " + update.vesselID + " went back in time - rewriting the update history for it.");
+                        Queue<VesselUpdate> newQueue = new Queue<VesselUpdate>();
+                        while (vuQueue.Count > 0)
+                        {
+                            VesselUpdate oldVu = vuQueue.Dequeue();
+                            //Save the updates from before the revert
+                            if (oldVu.planetTime < update.planetTime)
+                            {
+                                newQueue.Enqueue(oldVu);
+                            }
+                        }
+                        vuQueue = newQueue;
+                        vesselUpdateQueue[update.vesselID] = newQueue;
+                        //Clean the history too
+                        if (Settings.fetch.revertEnabled)
+                        {
+                            if (vesselUpdateHistory.ContainsKey(update.vesselID))
+                            {
+                                List<VesselUpdate> vuh = vesselUpdateHistory[update.vesselID];
+                                foreach (VesselUpdate oldVu in vuh.ToArray())
+                                {
+                                    if (oldVu.planetTime > update.planetTime)
+                                    {
+                                        vuh.Remove(oldVu);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                vuQueue.Enqueue(update);
+                //Mark the last update time
                 if (latestVesselUpdate.ContainsKey(update.vesselID) ? latestVesselUpdate[update.vesselID] < update.planetTime : true)
                 {
                     latestVesselUpdate[update.vesselID] = update.planetTime;
                 }
+                //Revert support
+                if (Settings.fetch.revertEnabled)
+                {
+                    if (!vesselUpdateHistory.ContainsKey(update.vesselID))
+                    {
+                        vesselUpdateHistory.Add(update.vesselID, new List<VesselUpdate>());
+                    }
+                    vesselUpdateHistory[update.vesselID].Add(update);
+                }
+                vesselUpdateHistoryTime[update.vesselID] = update.planetTime;
             }
         }
 

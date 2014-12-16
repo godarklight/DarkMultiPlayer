@@ -234,6 +234,12 @@ namespace DarkMultiPlayer
                 Settings.fetch.compressionEnabled = settingCompression;
                 Settings.fetch.SaveSettings();
             }
+            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, "Enable revert", buttonStyle);
+            if (settingRevert != Settings.fetch.revertEnabled)
+            {
+                Settings.fetch.revertEnabled = settingRevert;
+                Settings.fetch.SaveSettings();
+            }
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

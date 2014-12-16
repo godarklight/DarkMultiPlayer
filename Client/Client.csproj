@@ -59,7 +59,6 @@
     <Compile Include="WarpWorker.cs" />
     <Compile Include="PlayerStatusWindow.cs" />
     <Compile Include="PlayerStatusWorker.cs" />
-    <Compile Include="QuickSaveLoader.cs" />
     <Compile Include="ScenarioWorker.cs" />
     <Compile Include="DebugWindow.cs" />
     <Compile Include="DynamicTickWorker.cs" />
