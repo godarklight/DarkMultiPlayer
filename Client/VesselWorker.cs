@@ -928,7 +928,7 @@ namespace DarkMultiPlayer
                                 {
                                     //New kerbal
                                     DarkLog.Debug("Found new kerbal, sending...");
-                                    serverKerbals[pcm.name] = new ProtoCrewMember(pcm);
+                                    serverKerbals[pcm.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, pcm);
                                     NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
                                 }
                                 else
@@ -1085,11 +1085,11 @@ namespace DarkMultiPlayer
 
             if (serverKerbals.Count == 0)
             {
-                KerbalRoster newRoster = KerbalRoster.GenerateInitialCrewRoster();
+                KerbalRoster newRoster = KerbalRoster.GenerateInitialCrewRoster(HighLogic.CurrentGame.Mode);
                 foreach (ProtoCrewMember pcm in newRoster.Crew)
                 {
                     AddCrewMemberToRoster(pcm);
-                    serverKerbals[pcm.name] = new ProtoCrewMember(pcm);
+                    serverKerbals[pcm.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, pcm);
                     NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
                 }
             }
@@ -1108,7 +1108,7 @@ namespace DarkMultiPlayer
                 {
                     ProtoCrewMember newKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
                     AddCrewMemberToRoster(newKerbal);
-                    serverKerbals[protoKerbal.name] = new ProtoCrewMember(protoKerbal);
+                    serverKerbals[protoKerbal.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoKerbal);
                     NetworkWorker.fetch.SendKerbalProtoMessage(protoKerbal);
                     generateKerbals--;
                 }
@@ -1120,7 +1120,7 @@ namespace DarkMultiPlayer
         {
             if (crewNode != null)
             {
-                ProtoCrewMember protoCrew = new ProtoCrewMember(crewNode);
+                ProtoCrewMember protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
                 if (protoCrew != null)
                 {
                     if (!String.IsNullOrEmpty(protoCrew.name))
@@ -1137,7 +1137,7 @@ namespace DarkMultiPlayer
                         if (!HighLogic.CurrentGame.CrewRoster.Exists(protoCrew.name))
                         {
                             AddCrewMemberToRoster(protoCrew);
-                            serverKerbals[protoCrew.name] = (new ProtoCrewMember(protoCrew));
+                            serverKerbals[protoCrew.name] = (new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoCrew));
                         }
                         else
                         {

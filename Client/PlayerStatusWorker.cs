@@ -144,13 +144,18 @@ namespace DarkMultiPlayer
                         switch (HighLogic.LoadedScene)
                         {
                             case (GameScenes.EDITOR):
-                                myPlayerStatus.statusText = "Building in VAB";
+                                myPlayerStatus.statusText = "Building";
+                                if (EditorDriver.editorFacility == EditorFacility.VAB)
+                                {
+                                    myPlayerStatus.statusText = "Building in VAB";
+                                }
+                                if (EditorDriver.editorFacility == EditorFacility.SPH)
+                                {
+                                    myPlayerStatus.statusText = "Building in SPH";
+                                }
                                 break;
                             case (GameScenes.SPACECENTER):
                                 myPlayerStatus.statusText = "At Space Center";
-                                break;
-                            case (GameScenes.SPH):
-                                myPlayerStatus.statusText = "Building in SPH";
                                 break;
                             case (GameScenes.TRACKSTATION):
                                 myPlayerStatus.statusText = "At Tracking Station";

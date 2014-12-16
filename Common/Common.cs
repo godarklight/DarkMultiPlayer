@@ -306,6 +306,26 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("wingConnector4");
             stockPartList.Add("wingConnector5");
             stockPartList.Add("wingStrake");
+            //0.90 parts
+            stockPartList.Add("adapterMk3-Mk2");
+            stockPartList.Add("adapterMk3-Size2");
+            stockPartList.Add("adapterMk3-Size2Slant");
+            stockPartList.Add("adapterSize2-Mk2");
+            stockPartList.Add("adapterSize2-Size1");
+            stockPartList.Add("adapterSize2-Size1Slant");
+            stockPartList.Add("adapterSize3-Mk3");
+            stockPartList.Add("mk3CargoBayL");
+            stockPartList.Add("mk3CargoBayM");
+            stockPartList.Add("mk3CargoBayS");
+            stockPartList.Add("mk3Cockpit.Shuttle");
+            stockPartList.Add("mk3CrewCabin");
+            stockPartList.Add("mk3FuselageLF.100");
+            stockPartList.Add("mk3FuselageLF.25");
+            stockPartList.Add("mk3FuselageLF.50");
+            stockPartList.Add("mk3FuselageLFO.100");
+            stockPartList.Add("mk3FuselageLFO.25");
+            stockPartList.Add("mk3FuselageLFO.50");
+            stockPartList.Add("mk3FuselageMONO");
             return stockPartList;
         }
 
