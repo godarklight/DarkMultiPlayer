@@ -21,6 +21,9 @@ namespace DarkMultiPlayer
         public KeyCode screenshotKey;
         public KeyCode chatKey;
         public string selectedFlag;
+        public bool compressionEnabled;
+        public bool revertEnabled;
+        public DMPToolbarType toolbarType;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string PUBLIC_KEY_FILE = "publickey.txt";
@@ -33,8 +36,6 @@ namespace DarkMultiPlayer
         private string privateKeyFile;
         private string backupPublicKeyFile;
         private string backupPrivateKeyFile;
-        public bool compressionEnabled;
-        public bool revertEnabled;
 
         public static Settings fetch
         {
@@ -200,6 +201,15 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Adding revert flag to settings file");
                     revertEnabled = true;
+                }
+                try
+                {
+                    toolbarType = (DMPToolbarType)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@toolbar").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding toolbar flag to settings file");
+                    toolbarType = DMPToolbarType.BLIZZY_IF_INSTALLED;
                 }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
@@ -374,6 +384,16 @@ namespace DarkMultiPlayer
                 XmlAttribute revertAttribute = xmlDoc.CreateAttribute("revert");
                 revertAttribute.Value = revertEnabled.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(revertAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@toolbar").Value = ((int)toolbarType).ToString();
+            }
+            catch
+            {
+                XmlAttribute toolbarAttribute = xmlDoc.CreateAttribute("toolbar");
+                toolbarAttribute.Value = revertEnabled.ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(toolbarAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();

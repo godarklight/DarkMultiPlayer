@@ -15,6 +15,7 @@ namespace DarkMultiPlayer
         private Rect windowRect;
         private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
+        private GUILayoutOption[] smallOption;
         //Styles
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
@@ -29,6 +30,7 @@ namespace DarkMultiPlayer
         //Keybindings
         private bool settingChat;
         private bool settingScreenshot;
+        private string toolbarMode;
 
         public OptionsWindow()
         {
@@ -59,8 +61,32 @@ namespace DarkMultiPlayer
             layoutOptions[2] = GUILayout.ExpandWidth(true);
             layoutOptions[3] = GUILayout.ExpandHeight(true);
 
+            smallOption = new GUILayoutOption[2];
+            smallOption[0] = GUILayout.Width(100);
+            smallOption[1] = GUILayout.ExpandWidth(false);
+
             tempColor = new Color();
             tempColorLabelStyle = new GUIStyle(GUI.skin.label);
+            UpdateToolbarString();
+        }
+
+        private void UpdateToolbarString()
+        {
+            switch (Settings.fetch.toolbarType)
+            {
+                case DMPToolbarType.DISABLED:
+                    toolbarMode = "Disabled";
+                    break;
+                case DMPToolbarType.FORCE_STOCK:
+                    toolbarMode = "Stock";
+                    break;
+                case DMPToolbarType.BLIZZY_IF_INSTALLED:
+                    toolbarMode = "Blizzy if installed";
+                    break;
+                case DMPToolbarType.BOTH_IF_INSTALLED:
+                    toolbarMode = "Both if installed";
+                    break;
+            }
         }
 
         private void Update()
@@ -240,6 +266,22 @@ namespace DarkMultiPlayer
                 Settings.fetch.revertEnabled = settingRevert;
                 Settings.fetch.SaveSettings();
             }
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("Toolbar:", smallOption);
+            if (GUILayout.Button(toolbarMode, buttonStyle))
+            {
+                int newSetting = (int)Settings.fetch.toolbarType + 1;
+                //Overflow to 0
+                if (!Enum.IsDefined(typeof(DMPToolbarType), newSetting))
+                {
+                    newSetting = 0;
+                }
+                Settings.fetch.toolbarType = (DMPToolbarType)newSetting;
+                Settings.fetch.SaveSettings();
+                UpdateToolbarString();
+                ToolbarSupport.fetch.DetectSettingsChange();
+            }
+            GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

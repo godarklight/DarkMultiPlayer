@@ -16,6 +16,7 @@ namespace DarkMultiPlayer
         public bool startGame;
         public bool forceQuit;
         public bool showGUI = true;
+        public bool toolbarShowGUI = true;
         public bool incorrectlyInstalled = false;
         public bool modDisabled = false;
         public bool displayedIncorrectMessage = false;
@@ -98,6 +99,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(ScenarioWorker.Reset);
                 resetEvent.Add(ScreenshotWorker.Reset);
                 resetEvent.Add(TimeSyncer.Reset);
+                resetEvent.Add(ToolbarSupport.Reset);
                 resetEvent.Add(VesselWorker.Reset);
                 resetEvent.Add(WarpWorker.Reset);
                 GameEvents.onHideUI.Add(() =>
@@ -480,7 +482,7 @@ namespace DarkMultiPlayer
             //Converter window: 6712
             //Disclaimer window: 6713
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
-            if (showGUI)
+            if (showGUI && toolbarShowGUI)
             {
                 foreach (Action drawAction in drawEvent)
                 {

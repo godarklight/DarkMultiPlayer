@@ -84,6 +84,8 @@
     <Compile Include="VesselUtil.cs" />
     <Compile Include="VesselProtoUpdate.cs" />
     <Compile Include="DMPGuiUtil.cs" />
+    <Compile Include="ToolbarWrapper.cs" />
+    <Compile Include="ToolbarSupport.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

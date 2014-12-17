@@ -157,6 +157,7 @@ namespace DarkMultiPlayer
                 CraftLibraryWorker.fetch.workerEnabled = true;
                 ScreenshotWorker.fetch.workerEnabled = true;
                 SendMotdRequest();
+                ToolbarSupport.fetch.EnableToolbar();
             }
             if (displayMotd && (HighLogic.LoadedScene != GameScenes.LOADING) && (Time.timeSinceLevelLoad > 2f))
             {
