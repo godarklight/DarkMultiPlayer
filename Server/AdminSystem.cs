@@ -71,6 +71,7 @@ namespace DarkMultiPlayerServer
                 if (!serverAdmins.Contains(playerName))
                 {
                     serverAdmins.Add(playerName);
+                    SaveAdmins();
                 }
             }
         }
@@ -82,6 +83,7 @@ namespace DarkMultiPlayerServer
                 if (serverAdmins.Contains(playerName))
                 {
                     serverAdmins.Remove(playerName);
+                    SaveAdmins();
                 }
             }
         }
