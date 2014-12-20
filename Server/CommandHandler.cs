@@ -119,7 +119,6 @@ namespace DarkMultiPlayerServer
                     longestName = cmd.name.Length;
                 }
             }
-            commands.Sort();
             foreach (Command cmd in commands)
             {
                 DarkLog.Normal(cmd.name.PadRight(longestName) + " - " + cmd.description);

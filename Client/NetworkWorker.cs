@@ -578,8 +578,8 @@ namespace DarkMultiPlayer
                 bytesQueuedOut += 8;
                 if (message.data != null && message.data.Length > 0)
                 {
-                    //Count the payload if we have one. Byte[] serialisation has a further 4 byte header
-                    bytesQueuedOut += 4 + message.data.Length;
+                    //Count the payload if we have one.
+                    bytesQueuedOut += message.data.Length;
                 }
                 if (highPriority)
                 {
@@ -674,7 +674,7 @@ namespace DarkMultiPlayer
                     Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
                     splitBytesLeft -= currentSplitMessage.data.Length;
                     //Add the SPLIT_MESSAGE header to the out queue count.
-                    bytesQueuedOut += 12;
+                    bytesQueuedOut += 8;
                     sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
                 message = sendMessageQueueSplit.Dequeue();
