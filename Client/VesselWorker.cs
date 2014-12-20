@@ -1589,7 +1589,11 @@ namespace DarkMultiPlayer
                 pv = new ProtoVessel(inputNode, HighLogic.CurrentGame);
                 ConfigNode cn = new ConfigNode();
                 pv.Save(cn);
-                List<string> partsList = ModWorker.fetch.GetAllowedPartsList();
+                List<string> partsList = null;
+                if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+                {
+                    partsList = ModWorker.fetch.GetAllowedPartsList();
+                }
 
                 foreach (ProtoPartSnapshot pps in pv.protoPartSnapshots)
                 {
@@ -1611,8 +1615,9 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            catch
+            catch (Exception e)
             {
+                DarkLog.Debug("Damaged vessel " + protovesselID + ", exception: " + e);
                 pv = null;
             }
             return pv;

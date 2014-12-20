@@ -393,6 +393,10 @@ namespace DarkMultiPlayer
         public List<string> GetAllowedPartsList()
         {
             //Return a copy
+            if (modControl == ModControlMode.DISABLED)
+            {
+                return null;
+            }
             return new List<string>(allowedParts);
         }
 
