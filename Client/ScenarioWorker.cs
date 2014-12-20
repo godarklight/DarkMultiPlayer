@@ -17,7 +17,7 @@ namespace DarkMultiPlayer
         private float lastScenarioSendTime = 0f;
         private const float SEND_SCENARIO_DATA_INTERVAL = 30f;
         //ScenarioType list to check.
-        private List<KSPScenarioType> allScenarioTypesInAssemblies;
+        private Dictionary<string, Type> allScenarioTypesInAssemblies;
         //System.Reflection hackiness for loading kerbals into the crew roster:
         private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
 
@@ -43,42 +43,67 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void LoadScenarioTypes()
+        {
+            allScenarioTypesInAssemblies = new Dictionary<string, Type>();
+            foreach (AssemblyLoader.LoadedAssembly something in AssemblyLoader.loadedAssemblies)
+            {
+                foreach (Type scenarioType in something.assembly.GetTypes())
+                {
+                    if (scenarioType.IsSubclassOf(typeof(ScenarioModule)))
+                    {
+                        if (!allScenarioTypesInAssemblies.ContainsKey(scenarioType.Name))
+                        {
+                            allScenarioTypesInAssemblies.Add(scenarioType.Name, scenarioType);
+                        }
+                    }
+                }
+            }
+        }
+
         private bool IsScenarioModuleAllowed(string scenarioName)
         {
             //Blacklist asteroid module from every game mode
             if (scenarioName == "ScenarioDiscoverableObjects")
             {
+                //We hijack this and enable / disable it if we need to.
                 return false;
             }
             if (allScenarioTypesInAssemblies == null)
             {
-                allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
+                //Load type dictionary on first use
+                LoadScenarioTypes();
             }
-            foreach (KSPScenarioType scenarioType in allScenarioTypesInAssemblies)
+            if (!allScenarioTypesInAssemblies.ContainsKey(scenarioName))
             {
-                if (scenarioName != scenarioType.ModuleType.Name)
-                {
-                    continue;
-                }
+                //Module missing
+                return false;
+            }
+            Type scenarioType = allScenarioTypesInAssemblies[scenarioName];
+            KSPScenario[] scenarioAttributes = (KSPScenario[])scenarioType.GetCustomAttributes(typeof(KSPScenario), true);
+            if (scenarioAttributes.Length > 0)
+            {
+                KSPScenario attribute = scenarioAttributes[0];
                 bool protoAllowed = false;
                 if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
                 {
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToExistingCareerGames);
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToExistingCareerGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
                 }
                 if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
                 {
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToExistingScienceSandboxGames);
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToExistingScienceSandboxGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
                 }
                 if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
                 {
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToExistingSandboxGames);
-                    protoAllowed = protoAllowed || scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToExistingSandboxGames);
+                    protoAllowed = protoAllowed || attribute.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
                 }
                 return protoAllowed;
             }
-            return false;
+            //Scenario is not marked with KSPScenario - let's load it anyway.
+            return true;
         }
 
         private void SendScenarioModules()
@@ -263,33 +288,30 @@ namespace DarkMultiPlayer
 
         public void LoadMissingScenarioDataIntoGame()
         {
-            if (allScenarioTypesInAssemblies == null)
+            List<KSPScenarioType> validScenarios = KSPScenarioType.GetAllScenarioTypesInAssemblies();
+            foreach (KSPScenarioType validScenario in validScenarios)
             {
-                allScenarioTypesInAssemblies = KSPScenarioType.GetAllScenarioTypesInAssemblies();
-            }
-            foreach (KSPScenarioType scenarioType in allScenarioTypesInAssemblies)
-            {
-                if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == scenarioType.ModuleType.Name))
+                if (HighLogic.CurrentGame.scenarios.Exists(psm => psm.moduleName == validScenario.ModuleType.Name))
                 {
                     continue;
                 }
                 bool loadModule = false;
                 if (HighLogic.CurrentGame.Mode == Game.Modes.CAREER)
                 {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
+                    loadModule = validScenario.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewCareerGames);
                 }
                 if (HighLogic.CurrentGame.Mode == Game.Modes.SCIENCE_SANDBOX)
                 {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
+                    loadModule = validScenario.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewScienceSandboxGames);
                 }
                 if (HighLogic.CurrentGame.Mode == Game.Modes.SANDBOX)
                 {
-                    loadModule = scenarioType.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
+                    loadModule = validScenario.ScenarioAttributes.HasCreateOption(ScenarioCreationOptions.AddToNewSandboxGames);
                 }
                 if (loadModule)
                 {
-                    DarkLog.Debug("Creating new scenario module " + scenarioType.ModuleType.Name);
-                    HighLogic.CurrentGame.AddProtoScenarioModule(scenarioType.ModuleType, scenarioType.ScenarioAttributes.TargetScenes);
+                    DarkLog.Debug("Creating new scenario module " + validScenario.ModuleType.Name);
+                    HighLogic.CurrentGame.AddProtoScenarioModule(validScenario.ModuleType, validScenario.ScenarioAttributes.TargetScenes);
                 }
             }
         }
