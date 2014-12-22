@@ -7,6 +7,9 @@ using System.Collections.Generic;
 
 namespace DarkMultiPlayerServer
 {
+    using System.ComponentModel;
+    using System.Linq;
+
     public class Settings
     {
         private const string SETTINGS_FILE_NAME = "DMPServerSettings.txt";
@@ -36,210 +39,274 @@ namespace DarkMultiPlayerServer
         private static void Load()
         {
             DarkLog.Debug("Loading settings");
-            FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
+
+            var settingFields = typeof(SettingsStore).GetProperties();
             if (!File.Exists(settingsFile))
             {
                 try
                 {
                     if (System.Net.Sockets.Socket.OSSupportsIPv6)
                     {
-                        //Default to listening on IPv4 and IPv6 if possible.
+                        // Default to listening on IPv4 and IPv6 if possible.
                         settingsStore.address = "::";
                     }
                 }
                 catch
                 {
-                    //May throw on Windows XP
+                    // May throw on Windows XP
                 }
+
                 Save();
             }
-            using (FileStream fs = new FileStream(settingsFile, FileMode.Open))
+
+            using (var fs = new FileStream(settingsFile, FileMode.Open))
             {
-                using (StreamReader sr = new StreamReader(fs))
+                using (var sr = new StreamReader(fs))
                 {
-                    string currentLine;
-                    string trimmedLine;
-                    string currentKey;
-                    string currentValue;
-                    while (true)
+                    while (!sr.EndOfStream)
                     {
-                        currentLine = sr.ReadLine();
+                        var currentLine = sr.ReadLine();
                         if (currentLine == null)
                         {
                             break;
                         }
-                        trimmedLine = currentLine.Trim();
-                        if (!String.IsNullOrEmpty(trimmedLine))
-                        {
-                            if (trimmedLine.Contains(",") && !trimmedLine.StartsWith("#"))
-                            {
-                                currentKey = trimmedLine.Substring(0, trimmedLine.IndexOf(","));
-                                currentValue = trimmedLine.Substring(trimmedLine.IndexOf(",") + 1);
 
-                                foreach (FieldInfo settingField in settingFields)
-                                {
-                                    if (settingField.Name.ToLower() == currentKey)
-                                    {
-                                        if (settingField.FieldType == typeof(string))
-                                        {
-                                            settingField.SetValue(settingsStore, currentValue);
-                                        }
-                                        if (settingField.FieldType == typeof(int))
-                                        {
-                                            int intValue = Int32.Parse(currentValue);
-                                            settingField.SetValue(settingsStore, (int)intValue);
-                                        }
-                                        if (settingField.FieldType == typeof(double))
-                                        {
-                                            double doubleValue = Double.Parse(currentValue);
-                                            settingField.SetValue(settingsStore, (double)doubleValue);
-                                        }
-                                        if (settingField.FieldType == typeof(bool))
-                                        {
-                                            if (currentValue == "1")
-                                            {
-                                                settingField.SetValue(settingsStore, true);
-                                            }
-                                            else
-                                            {
-                                                settingField.SetValue(settingsStore, false);
-                                            }
-                                        }
-                                        if (settingField.FieldType.IsEnum)
-                                        {
-                                            int intValue = Int32.Parse(currentValue);
-                                            Array enumValues = settingField.FieldType.GetEnumValues();
-                                            if (intValue <= enumValues.Length)
-                                            {
-                                                settingField.SetValue(settingsStore, enumValues.GetValue(intValue));
-                                            }
-                                        }
-                                        //DarkLog.Debug(settingField.Name + ": " + currentValue);
-                                    }
-                                }
+                        var trimmedLine = currentLine.Trim();
+                        if (string.IsNullOrEmpty(trimmedLine))
+                        {
+                            continue;
+                        }
+
+                        if (!trimmedLine.Contains(",") || trimmedLine.StartsWith("#"))
+                        {
+                            continue;
+                        }
+
+                        var currentKey = trimmedLine.Substring(0, trimmedLine.IndexOf(",", System.StringComparison.Ordinal));
+                        var currentValue = trimmedLine.Substring(trimmedLine.IndexOf(",", System.StringComparison.Ordinal) + 1);
+
+                        foreach (var settingField in settingFields)
+                        {
+                            if (settingField.Name.ToLower() != currentKey)
+                            {
+                                continue;
                             }
+
+                            if (settingField.PropertyType == typeof(string))
+                            {
+                                settingField.SetValue(settingsStore, currentValue, null);
+                            }
+
+                            if (settingField.PropertyType == typeof(int))
+                            {
+                                settingField.SetValue(settingsStore, int.Parse(currentValue), null);
+                            }
+
+                            if (settingField.PropertyType == typeof(double))
+                            {
+                                var doubleValue = double.Parse(currentValue);
+                                settingField.SetValue(settingsStore, doubleValue, null);
+                            }
+
+                            if (settingField.PropertyType == typeof(bool))
+                            {
+                                settingField.SetValue(settingsStore, currentValue == "1", null);
+                            }
+
+                            if (!settingField.PropertyType.IsEnum)
+                            {
+                                continue;
+                            }
+
+                            var intValue = int.Parse(currentValue);
+                            var enumValues = settingField.PropertyType.GetEnumValues();
+                            if (intValue <= enumValues.Length)
+                            {
+                                settingField.SetValue(settingsStore, enumValues.GetValue(intValue), null);
+                            }
+
+                            //DarkLog.Debug(settingField.Name + ": " + currentValue);
                         }
                     }
                 }
             }
+
             Save();
         }
 
         private static void Save()
         {
             DarkLog.Debug("Saving settings");
-            FieldInfo[] settingFields = typeof(SettingsStore).GetFields();
-            Dictionary<string,string> settingDescriptions = GetSettingsDescriptions();
+            var settingFields = typeof(SettingsStore).GetProperties();
             if (File.Exists(settingsFile + ".tmp"))
             {
                 File.Delete(settingsFile + ".tmp");
             }
-            using (FileStream fs = new FileStream(settingsFile + ".tmp", FileMode.CreateNew))
+
+            using (var fileStream = new FileStream(settingsFile + ".tmp", FileMode.CreateNew))
             {
-                using (StreamWriter sw = new StreamWriter(fs))
+                using (var streamWriter = new StreamWriter(fileStream))
                 {
-                    sw.WriteLine("#Setting file format: (key),(value)");
-                    sw.WriteLine("#This file will be re-written every time the server is started. Only known keys will be saved.");
-                    sw.WriteLine("");
-                    foreach (FieldInfo settingField in settingFields)
+                    streamWriter.WriteLine("#Setting file format: (key),(value)");
+                    streamWriter.WriteLine("#This file will be re-written every time the server is started. Only known keys will be saved.");
+                    streamWriter.WriteLine(string.Empty);
+
+                    foreach (var settingField in settingFields)
                     {
-                        if (settingDescriptions.ContainsKey(settingField.Name))
+                        var descriptionAttribute = settingField.GetCustomAttributes(typeof(DescriptionAttribute), true).FirstOrDefault();
+                        var description = descriptionAttribute != null ? ((DescriptionAttribute)descriptionAttribute).Description : null;
+
+                        if (!string.IsNullOrEmpty(description))
                         {
-                            sw.WriteLine("#" + settingField.Name.ToLower() + " - " + settingDescriptions[settingField.Name]);
+                            streamWriter.WriteLine("#" + settingField.Name.ToLower() + " - " + description);
                         }
-                        if (settingField.FieldType == typeof(string) || settingField.FieldType == typeof(int) || settingField.FieldType == typeof(double))
+
+                        if (settingField.PropertyType == typeof(string) || settingField.PropertyType == typeof(int) || settingField.PropertyType == typeof(double))
                         {
-                            sw.WriteLine(settingField.Name.ToLower() + "," + settingField.GetValue(settingsStore));
+                            streamWriter.WriteLine(settingField.Name.ToLower() + "," + settingField.GetValue(settingsStore, null));
                         }
-                        if (settingField.FieldType == typeof(bool))
+
+                        if (settingField.PropertyType == typeof(bool))
                         {
-                            if ((bool)settingField.GetValue(settingsStore))
+                            if ((bool)settingField.GetValue(settingsStore, null))
                             {
-                                sw.WriteLine(settingField.Name.ToLower() + ",1");
+                                streamWriter.WriteLine(settingField.Name.ToLower() + ",1");
                             }
                             else
                             {
-                                sw.WriteLine(settingField.Name.ToLower() + ",0");
+                                streamWriter.WriteLine(settingField.Name.ToLower() + ",0");
                             }
                         }
-                        if (settingField.FieldType.IsEnum)
+
+                        if (settingField.PropertyType.IsEnum)
                         {
-                            sw.WriteLine("#Valid values are:");
-                            foreach (int enumValue in settingField.FieldType.GetEnumValues())
+                            streamWriter.WriteLine("#Valid values are:");
+                            foreach (int enumValue in settingField.PropertyType.GetEnumValues())
                             {
-                                sw.WriteLine("#" + enumValue + " - " + settingField.FieldType.GetEnumValues().GetValue(enumValue).ToString());
+                                streamWriter.WriteLine("#" + enumValue + " - " + settingField.PropertyType.GetEnumValues().GetValue(enumValue).ToString());
                             }
-                            sw.WriteLine(settingField.Name.ToLower() + "," + (int)settingField.GetValue(settingsStore));
+
+                            streamWriter.WriteLine(settingField.Name.ToLower() + "," + (int)settingField.GetValue(settingsStore, null));
                         }
-                        sw.WriteLine("");
+
+                        streamWriter.WriteLine(string.Empty);
                     }
                 }
             }
+
             if (File.Exists(settingsFile))
             {
                 File.Delete(settingsFile);
             }
-            File.Move(settingsFile + ".tmp", settingsFile);
-        }
 
-        private static Dictionary<string,string> GetSettingsDescriptions()
-        {
-            Dictionary<string, string> descriptionList = new Dictionary<string, string>();
-            descriptionList.Add("address", "The address the server listens on.\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\n#Change this setting to :: to listen on IPv4 and IPv6.");
-            descriptionList.Add("port", "The port the server listens on.");
-            descriptionList.Add("warpMode", "Specify the warp type.");
-            descriptionList.Add("gameMode", "Specify the game type.");
-            descriptionList.Add("whitelisted", "Enable white-listing.");
-            descriptionList.Add("modControl", "Enable mod control.\n#WARNING: Only consider turning off mod control for private servers.\n#The game will constantly complain about missing parts if there are missing mods.");
-            descriptionList.Add("keepTickingWhileOffline", "Specify if the the server universe 'ticks' while nobody is connected or the server is shut down.");
-            descriptionList.Add("sendPlayerToLatestSubspace", "If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n#NOTE: This may cause time-paradoxes, and will not work across server restarts.");
-            descriptionList.Add("useUTCTimeInLog", "Use UTC instead of system time in the log.");
-            descriptionList.Add("logLevel", "Minimum log level.");
-            descriptionList.Add("screenshotsPerPlayer", "Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited");
-            descriptionList.Add("screenshotHeight", "Specify vertical resolution of screenshots.");
-            descriptionList.Add("cheats", "Enable use of cheats in-game.");
-            descriptionList.Add("httpPort", "HTTP port for server status. 0 = Disabled");
-            descriptionList.Add("serverName", "Name of the server.");
-            descriptionList.Add("maxPlayers", "Maximum amount of players that can join the server.");
-            descriptionList.Add("screenshotDirectory", "Specify a custom screenshot directory.\n#This directory must exist in order to be used. Leave blank to store it in Universe.");
-            descriptionList.Add("autoNuke", "Specify in minutes how often /nukeksc automatically runs. 0 = Disabled");
-            descriptionList.Add("autoDekessler", "Specify in minutes how often /dekessler automatically runs. 0 = Disabled");
-            descriptionList.Add("numberOfAsteroids", "How many untracked asteroids to spawn into the universe. 0 = Disabled");
-            descriptionList.Add("consoleIdentifier", "Specify the name that will appear when you send a message using the server's console.");
-            descriptionList.Add("serverMotd", "Specify the server's MOTD (message of the day).");
-            descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
-            descriptionList.Add("compressionEnabled", "Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled");
-            descriptionList.Add("expireLogs", "Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled");
-            return descriptionList;
+            File.Move(settingsFile + ".tmp", settingsFile);
         }
     }
 
     public class SettingsStore
     {
-        public string address = "0.0.0.0";
-        public int port = 6702;
-        public WarpMode warpMode = WarpMode.SUBSPACE;
-        public GameMode gameMode = GameMode.SANDBOX;
-        public bool whitelisted = false;
-        public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
-        public bool keepTickingWhileOffline = true;
-        public bool sendPlayerToLatestSubspace = true;
-        public bool useUTCTimeInLog = false;
-        public DarkLog.LogLevels logLevel = DarkLog.LogLevels.DEBUG;
-        public int screenshotsPerPlayer = 20;
-        public int screenshotHeight = 720;
-        public bool cheats = true;
-        public int httpPort = 0;
-        public string serverName = "DMP Server";
-        public int maxPlayers = 20;
-        public string screenshotDirectory = "";
-        public int autoNuke = 0;
-        public int autoDekessler = 30;
-        public int numberOfAsteroids = 30;
-        public string consoleIdentifier = "Server";
-        public string serverMotd = "Welcome, %name%!";
-        public double expireScreenshots = 0;
-        public bool compressionEnabled = true;
-        public double expireLogs = 0;
+        public SettingsStore()
+        {
+            this.address = "0.0.0.0";
+            this.port = 6702;
+            this.warpMode = WarpMode.SUBSPACE;
+            this.gameMode = GameMode.SANDBOX;
+            this.whitelisted = false;
+            this.modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
+            this.keepTickingWhileOffline = true;
+            this.sendPlayerToLatestSubspace = true;
+            this.useUTCTimeInLog = false;
+            this.logLevel = DarkLog.LogLevels.DEBUG;
+            this.screenshotsPerPlayer = 20;
+            this.screenshotHeight = 720;
+            this.cheats = true;
+            this.httpPort = 0;
+            this.serverName = "DMP Server";
+            this.maxPlayers = 20;
+            this.screenshotDirectory = string.Empty;
+            this.autoNuke = 0;
+            this.autoDekessler = 30;
+            this.numberOfAsteroids = 30;
+            this.consoleIdentifier = "Server";
+            this.serverMotd = "Welcome, %name%!";
+            this.expireScreenshots = 0;
+            this.compressionEnabled = true;
+            this.expireLogs = 0;
+        }
+
+        [Description("The address the server listens on.\r\n#WARNING: You do not need to change this unless you are running 2 servers on the same port.\r\n#Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\r\n#Change this setting to :: to listen on IPv4 and IPv6.")]
+        public string address { get; set; }
+
+        [Description("The port the server listens on.")]
+        public int port { get; set; }
+
+        [Description("Specify the warp type.")]
+        public WarpMode warpMode { get; set; }
+
+        [Description("Specify the game type.")]
+        public GameMode gameMode { get; set; }
+
+        [Description("Enable white-listing.")]
+        public bool whitelisted { get; set; }
+
+        [Description("Enable mod control.\r\n#WARNING: Only consider turning off mod control for private servers.\r\n#The game will constantly complain about missing parts if there are missing mods.")]
+        public ModControlMode modControl { get; set; }
+
+        [Description("Specify if the the server universe 'ticks' while nobody is connected or the server is shut down.")]
+        public bool keepTickingWhileOffline { get; set; }
+
+        [Description("If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\r\n#NOTE: This may cause time-paradoxes, and will not work across server restarts.")]
+        public bool sendPlayerToLatestSubspace { get; set; }
+
+        [Description("Use UTC instead of system time in the log.")]
+        public bool useUTCTimeInLog { get; set; }
+
+        [Description("Minimum log level.")]
+        public DarkLog.LogLevels logLevel { get; set; }
+
+        [Description("Specify maximum number of screenshots to save per player. -1 = None, 0 = Unlimited")]
+        public int screenshotsPerPlayer { get; set; }
+
+        [Description("Specify vertical resolution of screenshots.")]
+        public int screenshotHeight { get; set; }
+
+        [Description("Enable use of cheats in-game.")]
+        public bool cheats { get; set; }
+
+        [Description("HTTP port for server status. 0 = Disabled")]
+        public int httpPort { get; set; }
+
+        [Description("Name of the server.")]
+        public string serverName { get; set; }
+
+        [Description("Maximum amount of players that can join the server.")]
+        public int maxPlayers { get; set; }
+
+        [Description("Specify a custom screenshot directory.\r\n#This directory must exist in order to be used. Leave blank to store it in Universe.")]
+        public string screenshotDirectory { get; set; }
+
+        [Description("Specify in minutes how often /nukeksc automatically runs. 0 = Disabled")]
+        public int autoNuke { get; set; }
+
+        [Description("Specify in minutes how often /dekessler automatically runs. 0 = Disabled")]
+        public int autoDekessler { get; set; }
+
+        [Description("How many untracked asteroids to spawn into the universe. 0 = Disabled")]
+        public int numberOfAsteroids { get; set; }
+
+        [Description("Specify the name that will appear when you send a message using the server's console.")]
+        public string consoleIdentifier { get; set; }
+
+        [Description("Specify the server's MOTD (message of the day).")]
+        public string serverMotd { get; set; }
+
+        [Description("Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled")]
+        public double expireScreenshots { get; set; }
+
+        [Description("Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled")]
+        public bool compressionEnabled { get; set; }
+
+        [Description("Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled")]
+        public double expireLogs { get; set; }
     }
 }

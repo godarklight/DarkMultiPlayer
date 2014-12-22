@@ -3,6 +3,8 @@ using System.Text;
 using System.Security.Cryptography;
 using System.IO;
 using System.Collections.Generic;
+using System.Reflection;
+using System.Linq;
 
 namespace DarkMultiPlayerCommon
 {
@@ -329,84 +331,67 @@ namespace DarkMultiPlayerCommon
             return stockPartList;
         }
 
+        public static string GetDefaultConfigurationFile(string name)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            var singleOrDefault = assembly.GetTypes().FirstOrDefault(t => t == typeof(Common));
+            if (singleOrDefault == null)
+            {
+                throw new Exception("Failed to find Common class in current assembly.");
+            }
+
+            var @namespace = singleOrDefault.Namespace;
+            var resourceName = string.Format("{0}.ConfigurationFiles.{1}", @namespace, name);
+            if (!assembly.GetManifestResourceNames().Contains(resourceName))
+            {
+                throw new Exception(string.Format("Resource \"{0}\" not found.", resourceName));
+            }
+
+            var stream = assembly.GetManifestResourceStream(resourceName);
+            if (stream == null)
+            {
+                throw new Exception(string.Format("Failed to get stream of resource file \"{0}\".", resourceName));
+            }
+
+            using (var reader = new StreamReader(stream))
+            {
+                var content = reader.ReadToEnd();
+                stream.Flush();
+                stream.Dispose();
+                return content;
+            }
+        }
+
         public static string GenerateModFileStringData(string[] requiredFiles, string[] optionalFiles, bool isWhiteList, string[] whitelistBlacklistFiles, string[] partsList)
         {
-            //This is the same format as KMPModControl.txt. It's a fairly sane format, and it makes sense to remain compatible.
-            StringBuilder sb = new StringBuilder();
-            //Header stuff
-            sb.AppendLine("#You can comment by starting a line with a #, these are ignored by the server.");
-            sb.AppendLine("#Commenting will NOT work unless the line STARTS with a '#'.");
-            sb.AppendLine("#You can also indent the file with tabs or spaces.");
-            sb.AppendLine("#Sections supported are required-files, optional-files, partslist, resource-blacklist and resource-whitelist.");
-            sb.AppendLine("#The client will be required to have the files found in required-files, and they must match the SHA hash if specified (this is where part mod files and play-altering files should go, like KWRocketry or Ferram Aerospace Research#The client may have the files found in optional-files, but IF they do then they must match the SHA hash (this is where mods that do not affect other players should go, like EditorExtensions or part catalogue managers");
-            sb.AppendLine("#You cannot use both resource-blacklist AND resource-whitelist in the same file.");
-            sb.AppendLine("#resource-blacklist bans ONLY the files you specify");
-            sb.AppendLine("#resource-whitelist bans ALL resources except those specified in the resource-whitelist section OR in the SHA sections. A file listed in resource-whitelist will NOT be checked for SHA hash. This is useful if you want a mod that modifies files in its own directory as you play.");
-            sb.AppendLine("#Each section has its own type of formatting. Examples have been given.");
-            sb.AppendLine("#Sections are defined as follows:");
-            sb.AppendLine("");
-            //Required section
-            sb.AppendLine("!required-files");
-            sb.AppendLine("#To generate the SHA256 of a file you can use a utility such as this one: http://hash.online-convert.com/sha256-generator (use the 'hex' string), or use sha256sum on linux.");
-            sb.AppendLine("#File paths are read from inside GameData.");
-            sb.AppendLine("#If there is no SHA256 hash listed here (i.e. blank after the equals sign or no equals sign), SHA matching will not be enforced.");
-            sb.AppendLine("#You may not specify multiple SHAs for the same file. Do not put spaces around equals sign. Follow the example carefully.");
-            sb.AppendLine("#Syntax:");
-            sb.AppendLine("#[File Path]=[SHA] or [File Path]");
-            sb.AppendLine("#Example: MechJeb2/Plugins/MechJeb2.dll=B84BB63AE740F0A25DA047E5EDA35B26F6FD5DF019696AC9D6AF8FC3E031F0B9");
-            sb.AppendLine("#Example: MechJeb2/Plugins/MechJeb2.dll");
-            foreach (string requiredFile in requiredFiles)
-            {
-                sb.AppendLine(requiredFile);
-            }
-            sb.AppendLine("");
-            sb.AppendLine("");
-            sb.AppendLine("!optional-files");
-            sb.AppendLine("#Formatting for this section is the same as the 'required-files' section");
-            foreach (string optionalFile in optionalFiles)
-            {
-                sb.AppendLine(optionalFile);
-            }
-            sb.AppendLine("");
-            sb.AppendLine("");
-            //Whitelist or blacklist section
-            if (isWhiteList)
-            {
-                sb.AppendLine("!resource-whitelist");
-                sb.AppendLine("#!resource-blacklist");
-            }
-            else
-            {
-                sb.AppendLine("!resource-blacklist");
-                sb.AppendLine("#!resource-whitelist");
-            }
-            sb.AppendLine("#Only select one of these modes.");
-            sb.AppendLine("#Resource blacklist: clients will be allowed to use any dll's, So long as they are not listed in this section");
-            sb.AppendLine("#Resource whitelist: clients will only be allowed to use dll's listed here or in the 'required-files' and 'optional-files' sections.");
-            sb.AppendLine("#Syntax:");
-            sb.AppendLine("#[File Path]");
-            sb.AppendLine("#Example: MechJeb2/Plugins/MechJeb2.dll");
-            foreach (string whitelistBlacklistFile in whitelistBlacklistFiles)
-            {
-                sb.AppendLine(whitelistBlacklistFile);
-            }
-            sb.AppendLine("");
-            sb.AppendLine("");
-            //Parts section
-            sb.AppendLine("!partslist");
-            sb.AppendLine("#This is a list of parts to allow users to put on their ships.");
-            sb.AppendLine("#If a part the client has doesn't appear on this list, they can still join the server but not use the part.");
-            sb.AppendLine("#The default stock parts have been added already for you.");
-            sb.AppendLine("#To add a mod part, add the name from the part's .cfg file. The name is the name from the PART{} section, where underscores are replaced with periods.");
-            sb.AppendLine("#[partname]");
-            sb.AppendLine("#Example: mumech.MJ2.Pod (NOTE: In the part.cfg this MechJeb2 pod is named mumech_MJ2_Pod. The _ have been replaced with .)");
-            sb.AppendLine("#You can use this application to generate partlists from a KSP installation if you want to add mod parts: http://forum.kerbalspaceprogram.com/threads/57284 ");
-            foreach (string partName in partsList)
-            {
-                sb.AppendLine(partName);
-            }
-            sb.AppendLine("");
-            return sb.ToString();
+            var settingsFile = GetDefaultConfigurationFile("DMPModControl.txt");
+
+            // required-files
+            // {0}
+            settingsFile = settingsFile.Replace(
+                "{required-files}", requiredFiles.Any() ? requiredFiles.Aggregate((full, part) => full + Environment.NewLine + part) : string.Empty);
+
+            // optional-files
+            // {1}
+            settingsFile = settingsFile.Replace(
+                "{optional-files}", optionalFiles.Any() ? optionalFiles.Aggregate((full, part) => full + Environment.NewLine + part) : string.Empty);
+
+            // Whitelist or blacklist section
+            // {2}
+            settingsFile = settingsFile.Replace(
+                "{whitelist-blacklist}", isWhiteList ? "!resource-whitelist" + Environment.NewLine + "#!resource-blacklist" : "#!resource-whitelist" + Environment.NewLine + "!resource-blacklist");
+
+            // Whitelist/blacklist files
+            // {3}
+            settingsFile = settingsFile.Replace(
+                "{whitelist-blacklist-files}", whitelistBlacklistFiles.Any() ? whitelistBlacklistFiles.Aggregate((full, part) => full + Environment.NewLine + part) : string.Empty);
+
+            // partslist
+            // {4}
+            settingsFile = settingsFile.Replace(
+                "{partslist}", partsList.Any() ? partsList.Aggregate((full, part) => full + Environment.NewLine + part) : string.Empty);
+
+            return settingsFile;
         }
     }
 
