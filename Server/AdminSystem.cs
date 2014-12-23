@@ -17,7 +17,7 @@ namespace DarkMultiPlayerServer
                 //Lazy loading
                 if (instance == null)
                 {
-                    adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPAdmins.txt");
+                    adminListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPAdmins.txt");
                     instance = new AdminSystem();
                     instance.LoadAdmins();
                 }
