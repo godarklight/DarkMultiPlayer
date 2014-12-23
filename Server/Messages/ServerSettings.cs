@@ -26,6 +26,7 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
                 mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
+                mw.Write<int>((int)Settings.settingsStore.gameDifficulty);
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

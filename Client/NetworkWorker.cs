@@ -751,6 +751,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.SERVER_SETTINGS:
                         HandleServerSettings(message.data);
                         break;
+                    case ServerMessageType.GAMEPLAY_SETTINGS_REPLY:
+                        HandleGameplaySettings(message.data);
+                        break;
                     case ServerMessageType.PLAYER_STATUS:
                         HandlePlayerStatus(message.data);
                         break;
@@ -1030,7 +1033,29 @@ namespace DarkMultiPlayer
                 ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
                 AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
                 ChatWorker.fetch.consoleIdentifier = mr.Read<string>();
+                Client.fetch.serverDifficulty = (GameDifficulty)mr.Read<int>();
             }
+        }
+
+        private void HandleGameplaySettings(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                Client.fetch.allowStockVessels = mr.Read<bool>();
+                Client.fetch.autoHireCrews = mr.Read<bool>();
+                Client.fetch.bypassEntryPurchaseAfterResearch = mr.Read<bool>();
+                Client.fetch.indestructibleFacilities = mr.Read<bool>();
+                Client.fetch.missingCrewsRespawn = mr.Read<bool>();
+                Client.fetch.fundsGainMultiplier = mr.Read<float>();
+                Client.fetch.fundsLossMultiplier = mr.Read<float>();
+                Client.fetch.repGainMultiplier = mr.Read<float>();
+                Client.fetch.repLossMultiplier = mr.Read<float>();
+                Client.fetch.scienceGainMultiplier = mr.Read<float>();
+                Client.fetch.startingFunds = mr.Read<float>();
+                Client.fetch.startingReputation = mr.Read<float>();
+                Client.fetch.startingScience = mr.Read<float>();
+            }
+            DarkLog.Debug("Received gameplay settings!");
         }
 
         private void HandlePlayerStatus(byte[] messageData)
@@ -1629,6 +1654,13 @@ namespace DarkMultiPlayer
                 mw.Write<string[]>(requestList);
                 newMessage.data = mw.GetMessageBytes();
             }
+            QueueOutgoingMessage(newMessage, true);
+        }
+
+        public void SendGameplaySettingsRequest()
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.GAMEPLAY_SETTINGS_REQUEST;
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from vesselWorker

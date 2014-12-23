@@ -92,6 +92,10 @@ namespace DarkMultiPlayerServer
                     if (serverRestarting)
                     {
                         Settings.Reset();
+                        if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
+                        {
+                            GameplaySettings.Reset();
+                        }
                     }
 
                     serverRestarting = false;
@@ -103,6 +107,13 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Done!");
 
                     DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
+
+                    if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
+                    {
+                        DarkLog.Debug("Gameplay difficulty set to CUSTOM");
+                        // just to load gameplay settings
+                        float unusedval = GameplaySettings.settingsStore.fundsGainMultiplier;
+                    }
 
                     serverRunning = true;
                     Thread commandThread = new Thread(new ThreadStart(CommandHandler.ThreadMain));

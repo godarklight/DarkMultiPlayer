@@ -44,6 +44,24 @@ namespace DarkMultiPlayer
         //Command line connect
         public static ServerEntry commandLineConnect;
 
+        // Server setting
+        public GameDifficulty serverDifficulty;
+
+        // Gameplay settings
+        public bool allowStockVessels;
+        public bool autoHireCrews;
+        public bool bypassEntryPurchaseAfterResearch;
+        public bool indestructibleFacilities;
+        public bool missingCrewsRespawn;
+        public float fundsGainMultiplier;
+        public float fundsLossMultiplier;
+        public float repGainMultiplier;
+        public float repLossMultiplier;
+        public float scienceGainMultiplier;
+        public float startingFunds;
+        public float startingReputation;
+        public float startingScience;
+
         public Client()
         {
             singleton = this;
@@ -507,11 +525,30 @@ namespace DarkMultiPlayer
             //Set the game mode
             SetGameMode();
 
-            //Found in KSP's files. Makes a crapton of sense :)
-            if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
+            
+            if (serverDifficulty != GameDifficulty.CUSTOM)
             {
-                HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = false;
+                HighLogic.CurrentGame.Parameters = GameParameters.GetDefaultParameters(HighLogic.CurrentGame.Mode, (GameParameters.Preset)serverDifficulty);
             }
+            else
+            {
+                NetworkWorker.fetch.SendGameplaySettingsRequest();
+                HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = allowStockVessels; // Found in KSP files, makes a crapton of sense
+                HighLogic.CurrentGame.Parameters.Difficulty.AutoHireCrews = autoHireCrews;
+                HighLogic.CurrentGame.Parameters.Difficulty.BypassEntryPurchaseAfterResearch = bypassEntryPurchaseAfterResearch;
+                HighLogic.CurrentGame.Parameters.Difficulty.IndestructibleFacilities = indestructibleFacilities;
+                HighLogic.CurrentGame.Parameters.Difficulty.MissingCrewsRespawn = missingCrewsRespawn;
+                HighLogic.CurrentGame.Parameters.Career.FundsGainMultiplier = fundsGainMultiplier;
+                HighLogic.CurrentGame.Parameters.Career.FundsLossMultiplier = fundsLossMultiplier;
+                HighLogic.CurrentGame.Parameters.Career.RepGainMultiplier = repGainMultiplier;
+                HighLogic.CurrentGame.Parameters.Career.RepLossMultiplier = repLossMultiplier;
+                HighLogic.CurrentGame.Parameters.Career.ScienceGainMultiplier = scienceGainMultiplier;
+                HighLogic.CurrentGame.Parameters.Career.StartingFunds = startingFunds;
+                HighLogic.CurrentGame.Parameters.Career.StartingReputation = startingReputation;
+                HighLogic.CurrentGame.Parameters.Career.StartingScience = startingScience;
+            }
+
+
             HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
 
             //Load DMP stuff

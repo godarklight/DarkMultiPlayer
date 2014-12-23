@@ -210,6 +210,7 @@ namespace DarkMultiPlayerServer
             descriptionList.Add("expireScreenshots", "Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled");
             descriptionList.Add("compressionEnabled", "Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled");
             descriptionList.Add("expireLogs", "Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled");
+            descriptionList.Add("gameDifficulty", "Specify the gameplay difficulty of the server.");
             return descriptionList;
         }
     }
@@ -241,5 +242,6 @@ namespace DarkMultiPlayerServer
         public double expireScreenshots = 0;
         public bool compressionEnabled = true;
         public double expireLogs = 0;
+        public GameDifficulty gameDifficulty = GameDifficulty.NORMAL;
     }
 }

@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 32;
+        public const int PROTOCOL_VERSION = 33;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Compression threshold
@@ -431,6 +431,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_PROTO,
         VESSEL_UPDATE,
         VESSEL_REMOVE,
+        GAMEPLAY_SETTINGS_REQUEST,
         CRAFT_LIBRARY,
         SCREENSHOT_LIBRARY,
         FLAG_SYNC,
@@ -450,6 +451,7 @@ namespace DarkMultiPlayerCommon
         HANDSHAKE_CHALLANGE,
         HANDSHAKE_REPLY,
         SERVER_SETTINGS,
+        GAMEPLAY_SETTINGS_REPLY,
         CHAT_MESSAGE,
         PLAYER_STATUS,
         PLAYER_COLOR,
@@ -636,5 +638,14 @@ namespace DarkMultiPlayerCommon
         NOT_WHITELISTED = 7,
         INVALID_PLAYERNAME = 98,
         MALFORMED_HANDSHAKE = 99
+    }
+
+    public enum GameDifficulty : int
+    {
+        EASY,
+        NORMAL,
+        MODERATE,
+        HARD,
+        CUSTOM
     }
 }
