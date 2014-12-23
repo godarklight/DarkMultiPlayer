@@ -44,6 +44,10 @@ namespace DarkMultiPlayer
         //Command line connect
         public static ServerEntry commandLineConnect;
 
+        // Server setting
+        public GameDifficulty serverDifficulty;
+        public GameParameters serverParameters;
+
         public Client()
         {
             singleton = this;
@@ -507,11 +511,10 @@ namespace DarkMultiPlayer
             //Set the game mode
             SetGameMode();
 
-            //Found in KSP's files. Makes a crapton of sense :)
-            if (HighLogic.CurrentGame.Mode != Game.Modes.SANDBOX)
-            {
-                HighLogic.CurrentGame.Parameters.Difficulty.AllowStockVessels = false;
-            }
+            //Set difficulty
+            HighLogic.CurrentGame.Parameters = serverParameters;
+
+            //Set universe time
             HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
 
             //Load DMP stuff

@@ -1030,7 +1030,39 @@ namespace DarkMultiPlayer
                 ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
                 AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
                 ChatWorker.fetch.consoleIdentifier = mr.Read<string>();
+                Client.fetch.serverDifficulty = (GameDifficulty)mr.Read<int>();
+                if (Client.fetch.serverDifficulty != GameDifficulty.CUSTOM)
+                {
+                    Client.fetch.serverParameters = GameParameters.GetDefaultParameters(HighLogic.CurrentGame.Mode, (GameParameters.Preset)Client.fetch.serverDifficulty);
+                }
+                else
+                {
+                    GameParameters newParameters = new GameParameters();
+                    newParameters.Difficulty.AllowStockVessels = mr.Read<bool>();
+                    newParameters.Difficulty.AutoHireCrews = mr.Read<bool>();
+                    newParameters.Difficulty.BypassEntryPurchaseAfterResearch = mr.Read<bool>();
+                    newParameters.Difficulty.IndestructibleFacilities = mr.Read<bool>();
+                    newParameters.Difficulty.MissingCrewsRespawn = mr.Read<bool>();
+                    newParameters.Career.FundsGainMultiplier = mr.Read<float>();
+                    newParameters.Career.FundsLossMultiplier = mr.Read<float>();
+                    newParameters.Career.RepGainMultiplier = mr.Read<float>();
+                    newParameters.Career.RepLossMultiplier = mr.Read<float>();
+                    newParameters.Career.ScienceGainMultiplier = mr.Read<float>();
+                    newParameters.Career.StartingFunds = mr.Read<float>();
+                    newParameters.Career.StartingReputation = mr.Read<float>();
+                    newParameters.Career.StartingScience = mr.Read<float>();
+                    Client.fetch.serverParameters = newParameters;
+                }
             }
+        }
+
+        private void HandleGameplaySettings(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+
+            }
+            DarkLog.Debug("Received gameplay settings!");
         }
 
         private void HandlePlayerStatus(byte[] messageData)
@@ -1631,6 +1663,7 @@ namespace DarkMultiPlayer
             }
             QueueOutgoingMessage(newMessage, true);
         }
+
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate, bool isFlyingUpdate)
         {

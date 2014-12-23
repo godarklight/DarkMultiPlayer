@@ -26,6 +26,23 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<int>(Settings.settingsStore.screenshotHeight);
                 mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
+                mw.Write<int>((int)Settings.settingsStore.gameDifficulty);
+                if (Settings.settingsStore.gameDifficulty != 0)
+                {
+                    mw.Write<bool>(GameplaySettings.settingsStore.allowStockVessels);
+                    mw.Write<bool>(GameplaySettings.settingsStore.autoHireCrews);
+                    mw.Write<bool>(GameplaySettings.settingsStore.bypassEntryPurchaseAfterResearch);
+                    mw.Write<bool>(GameplaySettings.settingsStore.missingCrewsRespawn);
+                    mw.Write<bool>(GameplaySettings.settingsStore.indestructibleFacilities);
+                    mw.Write<float>(GameplaySettings.settingsStore.fundsGainMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.fundsLossMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.repGainMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.repLossMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.scienceGainMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.startingFunds);
+                    mw.Write<float>(GameplaySettings.settingsStore.startingReputation);
+                    mw.Write<float>(GameplaySettings.settingsStore.startingScience);
+                }
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);

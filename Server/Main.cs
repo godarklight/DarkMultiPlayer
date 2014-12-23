@@ -92,10 +92,20 @@ namespace DarkMultiPlayerServer
                     if (serverRestarting)
                     {
                         Settings.Reset();
+                        if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
+                        {
+                            GameplaySettings.Reset();
+                        }
                     }
 
                     serverRestarting = false;
                     DarkLog.Normal("Starting DMPServer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION);
+
+                    if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
+                    {
+                        //Generate the config file by accessing the object.
+                        GameplaySettings.settingsStore.ToString();
+                    }
 
                     //Load universe
                     DarkLog.Normal("Loading universe... ");

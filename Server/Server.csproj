@@ -40,6 +40,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GameplaySettings.cs" />
     <Compile Include="LogExpire.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="CommandHandler.cs" />
