@@ -579,6 +579,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.KERBALS_REQUEST:
                         Messages.KerbalsRequest.HandleKerbalsRequest(client);
                         break;
+                    case ClientMessageType.GAMEPLAY_SETTINGS_REQUEST:
+                        Messages.GameplaySettingsMessage.HandleGameplaySettingsRequest(client);
+                        break;
                     case ClientMessageType.KERBAL_PROTO:
                         Messages.KerbalProto.HandleKerbalProto(client, message.data);
                         break;
