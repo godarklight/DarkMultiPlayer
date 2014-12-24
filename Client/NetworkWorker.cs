@@ -1056,15 +1056,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleGameplaySettings(byte[] messageData)
-        {
-            using (MessageReader mr = new MessageReader(messageData))
-            {
-
-            }
-            DarkLog.Debug("Received gameplay settings!");
-        }
-
         private void HandlePlayerStatus(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData))

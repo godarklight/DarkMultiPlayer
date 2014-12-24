@@ -27,7 +27,7 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<int>(Settings.settingsStore.numberOfAsteroids);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 mw.Write<int>((int)Settings.settingsStore.gameDifficulty);
-                if (Settings.settingsStore.gameDifficulty != 0)
+                if (Settings.settingsStore.gameDifficulty == GameDifficulty.CUSTOM)
                 {
                     mw.Write<bool>(GameplaySettings.settingsStore.allowStockVessels);
                     mw.Write<bool>(GameplaySettings.settingsStore.autoHireCrews);
