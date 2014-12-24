@@ -1,6 +1,6 @@
 #DarkMultiPlayer 0.1.6.2.
 
-DarkMultiPlayer is a multiplayer mod for KSP 0.25. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
+DarkMultiPlayer is a multiplayer mod for KSP 0.90. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
 The DarkMultiPlayer server and client is cross platform, it runs under mono on linux and mac.  
   
@@ -11,24 +11,6 @@ The DarkMultiPlayer server and client is cross platform, it runs under mono on l
 Option a) Extract the [DarkMultiPlayer zip](https://kerbalstuff.com/mod/4) to GameData.  
 Option b) Download DMPUpdater from http://godarklight.info.tm/dmp/downloads/dmpupdater/, place the program next to KSP.exe (Or KSP.app/KSP.x86_64), and run it.  
 
-####LINUX BUG
-The Linux version of KSP ships with a bugged libpng, which can be disabled by hex editing the executable.  
-  
-Make sure the sha256 sum is correct, these instructions are specifically for 0.25  
-
-    sha256sum KSP.x86_64
-    17d395c8b2b30e2fdcca65a0078859f0422f1e36ba509f6bbf2f56b68b36148a KSP.x86_64
-  
-Patch the executable:  
-
-    echo "0099f587: 00" | xxd -r - KSP.x86_64
-    echo "0099f58c: 00" | xxd -r - KSP.x86_64
-
-Check it patched correctly:  
-
-    sha256sum KSP.x86_64
-    7342792efa6e0390ceba1db7b92dce84811091d8436087f27697073a25277f92 KSP.x86_64
-  
 ###Connecting to a server
 The connection window will appear on the main menu. Type in a username, press add server, type in the details, and then hit add.  
 A player keypair will be generated (At GameData/DarkMultiPlayer/Plugins/Data/private.txt) during the first DMP start. DMP registers your username to the server with this keypair. If you lose your keypair, you will no longer be able to connect to the server with that username until the server administrator deletes you from Universe/Players/.  
@@ -121,6 +103,15 @@ The warp type.
 - Mode 1: SCIENCE - Everyone has their own science points. Shared science is currently not implemented.  
 - Mode 2: CAREER - Everyone has their own career mode points and funds. Shared science is currently not implemented.  
   
+
+####gamedifficulty - Specify the gameplay difficulty of the server.
+- Mode 0: EASY
+- Mode 1: NORMAL
+- Mode 2: MODERATE
+- Mode 3: HARD
+- Mode 4: CUSTOM - This will generate a DMPGameplaySettings.txt file you can edit.
+  
+
 ####whitelisted
 Enable whitelisting on the server. The commands are /whitelist [add|del] playername or /whitelist show.  
 - 0 : Off  
@@ -133,7 +124,7 @@ Enables or disables modcontrol - Only turn this off if you are running a private
 - 1 : On (Don't sync vessels with invalid parts)  
 - 2 : On (Prevent vessels with invalid parts from launching)  
   
-  
+
 ####useutctimeinlog
 Use UTC instead of system time in the log. This is useful if you want to co-ordinate logging between the server and client.  
 
