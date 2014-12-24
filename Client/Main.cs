@@ -509,7 +509,7 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame = CreateBlankGame();
 
             //Set the game mode
-            SetGameMode();
+            HighLogic.CurrentGame.Mode = ConvertGameMode(gameMode);
 
             //Set difficulty
             HighLogic.CurrentGame.Parameters = serverParameters;
@@ -559,20 +559,21 @@ namespace DarkMultiPlayer
             bodiesGees.Clear();
         }
 
-        private void SetGameMode()
+        public Game.Modes ConvertGameMode(GameMode inputMode)
         {
-            switch (gameMode)
+            if (inputMode == GameMode.SANDBOX)
             {
-                case GameMode.CAREER:
-                    HighLogic.CurrentGame.Mode = Game.Modes.CAREER;
-                    break;
-                case GameMode.SANDBOX:
-                    HighLogic.CurrentGame.Mode = Game.Modes.SANDBOX;
-                    break;
-                case GameMode.SCIENCE:
-                    HighLogic.CurrentGame.Mode = Game.Modes.SCIENCE_SANDBOX;
-                    break;
+                return Game.Modes.SANDBOX;
             }
+            if (inputMode == GameMode.SCIENCE)
+            {
+                return Game.Modes.SCIENCE_SANDBOX;
+            }
+            if (inputMode == GameMode.CAREER)
+            {
+                return Game.Modes.CAREER;
+            }
+            return Game.Modes.SANDBOX;
         }
 
         private void FireResetEvent()

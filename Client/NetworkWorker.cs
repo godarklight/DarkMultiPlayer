@@ -1033,7 +1033,7 @@ namespace DarkMultiPlayer
                 Client.fetch.serverDifficulty = (GameDifficulty)mr.Read<int>();
                 if (Client.fetch.serverDifficulty != GameDifficulty.CUSTOM)
                 {
-                    Client.fetch.serverParameters = GameParameters.GetDefaultParameters(HighLogic.CurrentGame.Mode, (GameParameters.Preset)Client.fetch.serverDifficulty);
+                    Client.fetch.serverParameters = GameParameters.GetDefaultParameters(Client.fetch.ConvertGameMode(Client.fetch.gameMode), (GameParameters.Preset)Client.fetch.serverDifficulty);
                 }
                 else
                 {
