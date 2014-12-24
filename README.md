@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.1.6.2.
+#DarkMultiPlayer 0.2.0.0
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.90. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
