@@ -1259,15 +1259,10 @@ namespace DarkMultiPlayer
 
             while (generateKerbals > 0)
             {
-                ProtoCrewMember protoKerbal = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
-                if (!HighLogic.CurrentGame.CrewRoster.Exists(protoKerbal.name))
-                {
-                    ProtoCrewMember newKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
-                    AddCrewMemberToRoster(newKerbal);
-                    serverKerbals[protoKerbal.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoKerbal);
-                    NetworkWorker.fetch.SendKerbalProtoMessage(protoKerbal);
-                    generateKerbals--;
-                }
+                ProtoCrewMember protoKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
+                serverKerbals[protoKerbal.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoKerbal);
+                NetworkWorker.fetch.SendKerbalProtoMessage(protoKerbal);
+                generateKerbals--;
             }
             DarkLog.Debug("Kerbals loaded");
         }
