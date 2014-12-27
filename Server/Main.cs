@@ -75,9 +75,12 @@ namespace DarkMultiPlayerServer
                 BackwardsCompatibility.RemoveOldPlayerTokens();
 
                 //Test compression
-                long testTime = Compression.TestSysIOCompression();
-                Compression.compressionEnabled = true;
-                DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
+                if (Settings.settingsStore.compressionEnabled)
+                {
+                    long testTime = Compression.TestSysIOCompression();
+                    Compression.compressionEnabled = true;
+                    DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
+                }
 
                 //Set day for log change
                 day = DateTime.Now.Day;
