@@ -32,8 +32,8 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<bool>(GameplaySettings.settingsStore.allowStockVessels);
                     mw.Write<bool>(GameplaySettings.settingsStore.autoHireCrews);
                     mw.Write<bool>(GameplaySettings.settingsStore.bypassEntryPurchaseAfterResearch);
-                    mw.Write<bool>(GameplaySettings.settingsStore.missingCrewsRespawn);
                     mw.Write<bool>(GameplaySettings.settingsStore.indestructibleFacilities);
+                    mw.Write<bool>(GameplaySettings.settingsStore.missingCrewsRespawn);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsGainMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsLossMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.repGainMultiplier);
