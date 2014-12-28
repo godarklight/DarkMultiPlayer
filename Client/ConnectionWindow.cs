@@ -181,11 +181,11 @@ namespace DarkMultiPlayer
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Address:", labelOptions);
-                serverAddress = GUILayout.TextArea(serverAddress, textAreaStyle);
+                serverAddress = GUILayout.TextArea(serverAddress, textAreaStyle).Trim();
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Port:", labelOptions);
-                serverPort = GUILayout.TextArea(serverPort, textAreaStyle);
+                serverPort = GUILayout.TextArea(serverPort, textAreaStyle).Trim();
                 GUILayout.EndHorizontal();
                 if (GUILayout.Button(addMode + " server", buttonStyle))
                 {
