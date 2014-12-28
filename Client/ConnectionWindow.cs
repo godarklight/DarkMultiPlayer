@@ -177,7 +177,7 @@ namespace DarkMultiPlayer
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Name:", labelOptions);
-                serverName = GUILayout.TextArea(serverName, textAreaStyle);
+                serverName = GUILayout.TextArea(serverName, textAreaStyle).Trim();
                 GUILayout.EndHorizontal();
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("Address:", labelOptions);
