@@ -887,7 +887,7 @@ namespace DarkMultiPlayer
                     //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
-                        Compression.compressionEnabled = Settings.fetch.compressionEnabled && mr.Read<bool>();
+                        Compression.compressionEnabled = mr.Read<bool>() && Settings.fetch.compressionEnabled;
                         ModWorker.fetch.modControl = (ModControlMode)mr.Read<int>();
                         if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
                         {
