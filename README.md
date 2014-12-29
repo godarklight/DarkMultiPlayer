@@ -1,4 +1,4 @@
-#DarkMultiPlayer 0.2.0.0
+#DarkMultiPlayer 0.2.0.1
 
 DarkMultiPlayer is a multiplayer mod for KSP 0.90. It supports subspace-style (and master controlled warp) warping & career mode, with an easy-to-edit server database.  
   
@@ -125,6 +125,15 @@ Enables or disables modcontrol - Only turn this off if you are running a private
 - 2 : On (Prevent vessels with invalid parts from launching)  
   
 
+####keeptickingwhileoffline
+Specify if the the server universe 'ticks' while nobody is connected or the server is shut down.
+
+
+####sendplayertolatestsubspace
+If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.
+NOTE: This may cause time-paradoxes, and will not work across server restarts.
+
+
 ####useutctimeinlog
 Use UTC instead of system time in the log. This is useful if you want to co-ordinate logging between the server and client.  
 
@@ -177,6 +186,20 @@ Specify the name that will appear when you send a message using the server's con
 Specify the server's MOTD (message of the day).  
   
   
+####expirescreenshots
+Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled
+
+
+####compressionenabled
+Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled
+
+
+####expirelogs
+Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled
+
+
+
+
 ##Mods
 Read DMPModControl.txt, it's commented/documented. The file can be copied from a *development* KMPServer (The one where you can use SHA sums, not the one with the !md5 section) as the file format is the same.  
   
