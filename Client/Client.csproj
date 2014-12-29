@@ -51,6 +51,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ConfigNodeSerializer.cs" />
+    <Compile Include="Utilities\CompatibilityChecker.cs" />
     <Compile Include="VesselWorker.cs" />
     <Compile Include="TimeSyncer.cs" />
     <Compile Include="NetworkWorker.cs" />
@@ -74,7 +75,7 @@
     <Compile Include="OptionsWindow.cs" />
     <Compile Include="UniverseConverter.cs" />
     <Compile Include="UniverseConverterWindow.cs" />
-    <Compile Include="IncorrectInstallWindow.cs" />
+    <Compile Include="Utilities\InstallChecker.cs" />
     <Compile Include="FlagSyncer.cs" />
     <Compile Include="DisclaimerWindow.cs" />
     <Compile Include="DMPModInterface.cs" />

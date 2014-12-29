@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 using System.Reflection;
+using DarkMultiPlayer.Utilities;
 
 namespace DarkMultiPlayer
 {
@@ -17,12 +18,9 @@ namespace DarkMultiPlayer
         public bool forceQuit;
         public bool showGUI = true;
         public bool toolbarShowGUI = true;
-        public bool incorrectlyInstalled = false;
         public bool modDisabled = false;
-        public bool displayedIncorrectMessage = false;
         public bool dmpSaveChecked = false;
         public string assemblyPath;
-        public string assemblyShouldBeInstalledAt;
         //Game running is directly set from NetworkWorker.fetch after a successful connection
         public bool gameRunning;
         public bool fireReset;
@@ -68,22 +66,17 @@ namespace DarkMultiPlayer
             assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
             string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
             //I find my abuse of Path.Combine distrubing.
-            assemblyShouldBeInstalledAt = Path.Combine(Path.Combine(Path.Combine(Path.Combine(kspPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "DarkMultiPlayer.dll");
             UnityEngine.Debug.Log("KSP installed at " + kspPath);
             UnityEngine.Debug.Log("DMP installed at " + assemblyPath);
             //Prevents symlink warning for development.
-            #if !DEBUG
-            incorrectlyInstalled = (assemblyPath.ToLower() != assemblyShouldBeInstalledAt.ToLower());
-            if (incorrectlyInstalled)
-            {
-                UnityEngine.Debug.LogError("DMP is installed at '" + assemblyPath + "', It should be installed at '" + assemblyShouldBeInstalledAt + "'");
-                return;
-            }
-            #endif
             if (Settings.fetch.disclaimerAccepted != 1)
             {
                 modDisabled = true;
                 DisclaimerWindow.Enable();
+            }
+            if (!InstallChecker.IsCorrectlyInstalled() || !CompatibilityChecker.IsCompatible())
+            {
+                modDisabled = true;
             }
             SetupDirectoriesIfNeeded();
             //Register events needed to bootstrap the workers.
@@ -203,15 +196,6 @@ namespace DarkMultiPlayer
             DarkLog.Update();
             if (modDisabled)
             {
-                return;
-            }
-            if (incorrectlyInstalled)
-            {
-                if (!displayedIncorrectMessage)
-                {
-                    displayedIncorrectMessage = true;
-                    IncorrectInstallWindow.Enable();
-                }
                 return;
             }
             try
