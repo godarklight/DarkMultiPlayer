@@ -1581,6 +1581,7 @@ namespace DarkMultiPlayer
                 DodgeVesselActionGroups(inputNode);
                 DodgeVesselCrewValues(inputNode);
                 RemoveManeuverNodesFromProtoVessel(inputNode);
+                DodgeVesselLandedStatus(inputNode);
                 pv = new ProtoVessel(inputNode, HighLogic.CurrentGame);
                 ConfigNode cn = new ConfigNode();
                 pv.Save(cn);
@@ -1654,6 +1655,25 @@ namespace DarkMultiPlayer
                             actiongroupNode.SetValue(keyName, valueDodge);
                         }
                     }
+                }
+            }
+        }
+
+        private void DodgeVesselLandedStatus(ConfigNode vesselNode)
+        {
+            if (vesselNode != null)
+            {
+                string situation = vesselNode.GetValue("sit");
+                switch (situation)
+                {
+                    case "LANDED":
+                        vesselNode.SetValue("landed", "True");
+                        vesselNode.SetValue("splashed", "False");
+                        break;
+                    case "SPLASHED":
+                        vesselNode.SetValue("splashed", "True");
+                        vesselNode.SetValue("landed", "False");
+                        break;
                 }
             }
         }
