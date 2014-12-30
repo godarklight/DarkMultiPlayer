@@ -16,12 +16,13 @@ namespace DarkMultiPlayer
         private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
         private GUILayoutOption[] smallOption;
+        private Vector2 scrollPos;
         //Styles
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         //const
         private const float WINDOW_HEIGHT = 400;
-        private const float WINDOW_WIDTH = 300;
+        private const float WINDOW_WIDTH = 305;
         //TempColour
         private Color tempColor = new Color(1f, 1f, 1f, 1f);
         private GUIStyle tempColorLabelStyle;
@@ -51,6 +52,8 @@ namespace DarkMultiPlayer
             //Setup GUI stuff
             windowRect = new Rect(Screen.width / 2f - WINDOW_WIDTH / 2f, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
             moveRect = new Rect(0, 0, 10000, 20);
+            
+            GUI.backgroundColor = new Color(GUI.backgroundColor.r, GUI.backgroundColor.g, GUI.backgroundColor.b, 191.25f);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
@@ -75,16 +78,16 @@ namespace DarkMultiPlayer
             switch (Settings.fetch.toolbarType)
             {
                 case DMPToolbarType.DISABLED:
-                    toolbarMode = "Disabled";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbDisabled");
                     break;
                 case DMPToolbarType.FORCE_STOCK:
-                    toolbarMode = "Stock";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbStock");
                     break;
                 case DMPToolbarType.BLIZZY_IF_INSTALLED:
-                    toolbarMode = "Blizzy if installed";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbBlizzy");
                     break;
                 case DMPToolbarType.BOTH_IF_INSTALLED:
-                    toolbarMode = "Both if installed";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbBoth");
                     break;
             }
         }
@@ -119,6 +122,7 @@ namespace DarkMultiPlayer
             //Player color
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(WINDOW_WIDTH - 5), GUILayout.Height(WINDOW_HEIGHT - 25));
             GUILayout.BeginHorizontal();
             GUILayout.Label(LanguageWorker.fetch.GetString("playerNameColor"));
             GUILayout.Label(Settings.fetch.playerName, tempColorLabelStyle);
@@ -156,8 +160,8 @@ namespace DarkMultiPlayer
             GUILayout.Space(10);
             //Cache
             GUILayout.Label(LanguageWorker.fetch.GetString("cacheSizeLabel"));
-            GUILayout.Label(String.Format("{0} ", LanguageWorker.fetch.GetString("currentCacheSizeLabel")) + Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3) + "MB.");
-            GUILayout.Label(String.Format("{0} ", LanguageWorker.fetch.GetString("maxCacheSizeLabel")) + Settings.fetch.cacheSize + "MB.");
+            GUILayout.Label(LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("currentCacheSizeLabel"), new string[] { Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3).ToString() }));
+            GUILayout.Label(LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("maxCacheSizeLabel"), new string[] { Settings.fetch.cacheSize.ToString() }));
             newCacheSize = GUILayout.TextArea(newCacheSize);
             GUILayout.BeginHorizontal();
             if (GUILayout.Button(LanguageWorker.fetch.GetString("setBtn"), buttonStyle))
@@ -194,7 +198,7 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             //Key bindings
             GUILayout.Space(10);
-            string chatDescription = String.Format("{0} ({1} {2})", LanguageWorker.fetch.GetString("setChatKeyBtn"), LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.chatKey.ToString());
+            string chatDescription = LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("setChatKeyBtn"), new string[] { LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.chatKey.ToString() });
             if (settingChat)
             {
                 chatDescription = "Setting chat key (click to cancel)...";
@@ -216,7 +220,7 @@ namespace DarkMultiPlayer
             {
                 settingChat = !settingChat;
             }
-            string screenshotDescription = String.Format("{0} ({1} {2})", LanguageWorker.fetch.GetString("setScrnShotKeyBtn"), LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.screenshotKey.ToString());
+            string screenshotDescription = LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("setScrnShotKeyBtn"), new string[]{ LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.screenshotKey.ToString() });
             if (settingScreenshot)
             {
                 screenshotDescription = "Setting screenshot key (click to cancel)...";
@@ -254,20 +258,20 @@ namespace DarkMultiPlayer
                 Settings.fetch.disclaimerAccepted = 0;
                 Settings.fetch.SaveSettings();
             }
-            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, LanguageWorker.fetch.GetString("enableCompressionBtn"), buttonStyle);
+            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("enableCompressionBtn"), new string[] { (Settings.fetch.compressionEnabled ? LanguageWorker.fetch.GetString("disable") : LanguageWorker.fetch.GetString("enable")) }), buttonStyle);
             if (settingCompression != Settings.fetch.compressionEnabled)
             {
                 Settings.fetch.compressionEnabled = settingCompression;
                 Settings.fetch.SaveSettings();
             }
-            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, "Enable revert", buttonStyle);
+            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("enableRevertBtn"), new string[] { (Settings.fetch.revertEnabled ? LanguageWorker.fetch.GetString("disable") : LanguageWorker.fetch.GetString("enable")) }), buttonStyle);
             if (settingRevert != Settings.fetch.revertEnabled)
             {
                 Settings.fetch.revertEnabled = settingRevert;
                 Settings.fetch.SaveSettings();
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Toolbar:", smallOption);
+            GUILayout.Label(LanguageWorker.fetch.GetString("toolbarModeLabel"), smallOption);
             if (GUILayout.Button(toolbarMode, buttonStyle))
             {
                 int newSetting = (int)Settings.fetch.toolbarType + 1;
@@ -282,11 +286,27 @@ namespace DarkMultiPlayer
                 ToolbarSupport.fetch.DetectSettingsChange();
             }
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(LanguageWorker.fetch.GetString("langLabel"), smallOption);
+            if (GUILayout.Button(LanguageWorker.fetch.GetLanguageById(Settings.fetch.useLanguage), buttonStyle))
+            {
+                int newSetting = (int)Settings.fetch.useLanguage + 1;
+
+                if (!Enum.IsDefined(typeof(DMPLanguage), newSetting))
+                {
+                    newSetting = 0;
+                }
+                Settings.fetch.useLanguage = (DMPLanguage)newSetting;
+                Settings.fetch.SaveSettings();
+                LanguageWorker.fetch.LoadLanguage(Settings.fetch.useLanguage);
+            }
+            GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
             if (GUILayout.Button(LanguageWorker.fetch.GetString("closeBtn"), buttonStyle))
             {
                 display = false;
             }
+            GUILayout.EndScrollView();
             GUILayout.EndVertical();
         }
 

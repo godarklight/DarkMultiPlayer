@@ -195,7 +195,7 @@ namespace DarkMultiPlayer
                 {
                     if (activeSubspace != TimeSyncer.fetch.currentSubspace)
                     {
-                        diffState = (diffTime > 0) ? String.Format("{0} {1}", SecondsToVeryShortString((int)diffTime), LanguageWorker.fetch.GetString("inFuture")) : String.Format("{0} {1}", SecondsToVeryShortString(-(int)diffTime), LanguageWorker.fetch.GetString("inPast"));
+                        diffState = (diffTime > 0) ? LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("inFuture"), new string[] { SecondsToVeryShortString((int)diffTime ) } ) : LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("inPast"), new string[] { SecondsToVeryShortString(-(int)diffTime) } );
                     }
                 }
                 else
@@ -616,7 +616,7 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             if (playerStatus.vesselText != "")
             {
-                GUILayout.Label(String.Format("{0} {1}", LanguageWorker.fetch.GetString("pilotLbl"), playerStatus.vesselText), vesselNameStyle);
+                GUILayout.Label(LanguageWorker.fetch.GetFormattedString("pilotLabel", new string[] { playerStatus.vesselText }), vesselNameStyle);
             }
         }
 
