@@ -74,10 +74,16 @@ namespace DarkMultiPlayer
                 modDisabled = true;
                 DisclaimerWindow.Enable();
             }
-            if (!InstallChecker.IsCorrectlyInstalled() || !CompatibilityChecker.IsCompatible())
+            if (!CompatibilityChecker.IsCompatible())
             {
                 modDisabled = true;
             }
+            #if !DEBUG
+            if (!InstallChecker.IsCorrectlyInstalled())
+            {
+                modDisabled = true;
+            }
+            #endif
             SetupDirectoriesIfNeeded();
             //Register events needed to bootstrap the workers.
             lock (eventLock)
