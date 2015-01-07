@@ -174,17 +174,9 @@ namespace DarkMultiPlayer
             }
             if (HighLogic.LoadedSceneIsFlight)
             {
-                if (FlightGlobals.fetch.activeVessel != null)
+                if (FlightGlobals.fetch.activeVessel == null || !FlightGlobals.ready)
                 {
-                    if (FlightGlobals.fetch.activeVessel.patchedConicRenderer == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver.maneuverNodes == null)
-                    {
-                        DarkLog.Debug("Skipping StepClock (standalone map viewer workaround)");
-                        return;
-                    }
-                }
-                else
-                {
-                    DarkLog.Debug("Skipping StepClock (active vessel is null)");
+                    DarkLog.Debug("Skipping StepClock (active vessel is null or not ready)");
                     return;
                 }
                 try
