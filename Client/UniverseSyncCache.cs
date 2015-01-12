@@ -46,7 +46,6 @@ namespace DarkMultiPlayer
 
         private void ProcessingThreadMain()
         {
-            ExpireCache();
             while (true)
             {
                 if (incomingQueue.Count == 0)

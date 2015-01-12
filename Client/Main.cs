@@ -85,6 +85,8 @@ namespace DarkMultiPlayer
             }
             #endif
             SetupDirectoriesIfNeeded();
+            //UniverseSyncCache needs to run expiry here
+            UniverseSyncCache.fetch.ExpireCache();
             //Register events needed to bootstrap the workers.
             lock (eventLock)
             {
