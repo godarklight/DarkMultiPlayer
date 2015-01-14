@@ -234,6 +234,11 @@ namespace DarkMultiPlayer
             removeStatusQueue.Enqueue(playerName);
         }
 
+        public int GetPlayerCount()
+        {
+            return playerStatusList.Count;
+        }
+
         public PlayerStatus GetPlayerStatus(string playerName)
         {
             PlayerStatus returnStatus = null;

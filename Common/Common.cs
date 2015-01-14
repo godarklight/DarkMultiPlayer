@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 33;
+        public const int PROTOCOL_VERSION = 34;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Compression threshold
@@ -531,10 +531,18 @@ namespace DarkMultiPlayerCommon
 
     public enum WarpMessageType
     {
+        //MCW_VOTE
         REQUEST_VOTE,
         REPLY_VOTE,
+        //ALL
         CHANGE_WARP,
+        //MCW_VOTE/FORCE
+        REQUEST_CONTROLLER,
+        RELEASE_CONTROLLER,
+        //MCW_VOTE/FORCE/LOWEST
+        IGNORE_WARP,
         SET_CONTROLLER,
+        //ALL
         NEW_SUBSPACE,
         CHANGE_SUBSPACE,
         RELOCK_SUBSPACE,
@@ -622,6 +630,14 @@ namespace DarkMultiPlayerCommon
         public long serverClock;
         public double planetTime;
         public float subspaceSpeed;
+    }
+
+    public class PlayerWarpRate
+    {
+        public bool isPhysWarp = false;
+        public int rateIndex = 0;
+        public long serverClock = 0;
+        public double planetTime = 0;
     }
 
     public enum HandshakeReply : int

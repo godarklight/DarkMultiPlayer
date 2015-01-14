@@ -566,11 +566,12 @@ namespace DarkMultiPlayer
         public void DetectReverting()
         {
             double newUniverseTime = Planetarium.GetUniversalTime();
-            if (newUniverseTime < lastUniverseTime)
+            //10 second fudge to ignore TimeSyncer skips
+            if (newUniverseTime < (lastUniverseTime - 10f))
             {
                 int updatesReverted = 0;
                 DarkLog.Debug("Revert detected!");
-                TimeSyncer.fetch.LockNewSubspaceToCurrentTime();
+                TimeSyncer.fetch.UnlockSubspace();
                 if (!Settings.fetch.revertEnabled)
                 {
                     DarkLog.Debug("Unsafe revert detected!");

@@ -122,7 +122,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessels Synced!");
                 Client.fetch.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
-                //The subspaces are held in the wrap control messages, but the warp worker will create a new subspace if we aren't locked.
+                //The subspaces are held in the warp control messages, but the warp worker will create a new subspace if we aren't locked.
                 //Process the messages so we get the subspaces, but don't enable the worker until the game is started.
                 WarpWorker.fetch.ProcessWarpMessages();
                 TimeSyncer.fetch.workerEnabled = true;

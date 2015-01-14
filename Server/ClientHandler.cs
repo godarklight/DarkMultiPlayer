@@ -1,13 +1,10 @@
 using System;
 using System.Threading;
-using System.Text;
 using System.Net;
 using System.Net.Sockets;
 using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
-using System.Text.RegularExpressions;
 using System.Collections.Generic;
-using System.Security.Cryptography;
 using MessageStream2;
 using System.IO;
 using DarkMultiPlayerCommon;
@@ -45,6 +42,7 @@ namespace DarkMultiPlayerServer
                     //Check timers
                     NukeKSC.CheckTimer();
                     Dekessler.CheckTimer();
+                    Messages.WarpControl.CheckTimer();
                     //Run plugin update
                     DMPPluginHandler.FireOnUpdate();
                     Thread.Sleep(10);
@@ -380,23 +378,56 @@ namespace DarkMultiPlayerServer
         private static void ReceiveCallback(IAsyncResult ar)
         {
             ClientObject client = (ClientObject)ar.AsyncState;
+            int bytesRead = 0;
             try
             {
-                int bytesRead = client.connection.GetStream().EndRead(ar);
-                client.bytesReceived += bytesRead;
-                client.receiveMessageBytesLeft -= bytesRead;
-                if (client.receiveMessageBytesLeft == 0)
+                bytesRead = client.connection.GetStream().EndRead(ar);
+            }
+            catch (Exception e)
+            {
+                HandleDisconnectException("ReceiveCallback", client, e);
+                return;
+            }
+            client.bytesReceived += bytesRead;
+            client.receiveMessageBytesLeft -= bytesRead;
+            if (client.receiveMessageBytesLeft == 0)
+            {
+                //We either have the header or the message data, let's do something
+                if (!client.isReceivingMessage)
                 {
-                    //We either have the header or the message data, let's do something
-                    if (!client.isReceivingMessage)
+                    //We have the header
+                    using (MessageReader mr = new MessageReader(client.receiveMessage.data))
                     {
-                        //We have the header
-                        using (MessageReader mr = new MessageReader(client.receiveMessage.data))
-                        {
 
-                            int messageType = mr.Read<int>();
-                            int messageLength = mr.Read<int>();
-                            if (messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+                        int messageType = mr.Read<int>();
+                        int messageLength = mr.Read<int>();
+                        if (messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+                        {
+                            //Malformed message, most likely from a non DMP-client.
+                            Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
+                            DarkLog.Normal("Invalid DMP message from " + client.endpoint);
+                            //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
+                            return;
+                        }
+                        client.receiveMessage.type = (ClientMessageType)messageType;
+                        if (messageLength == 0)
+                        {
+                            //Null message, handle it.
+                            client.receiveMessage.data = null;
+                            HandleMessage(client, client.receiveMessage);
+                            client.receiveMessage.type = 0;
+                            client.receiveMessage.data = new byte[8];
+                            client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
+                        }
+                        else
+                        {
+                            if (messageLength < Common.MAX_MESSAGE_SIZE)
+                            {
+                                client.isReceivingMessage = true;
+                                client.receiveMessage.data = new byte[messageLength];
+                                client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
+                            }
+                            else
                             {
                                 //Malformed message, most likely from a non DMP-client.
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
@@ -404,54 +435,43 @@ namespace DarkMultiPlayerServer
                                 //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
                                 return;
                             }
-                            client.receiveMessage.type = (ClientMessageType)messageType;
-                            if (messageLength == 0)
-                            {
-                                //Null message, handle it.
-                                client.receiveMessage.data = null;
-                                HandleMessage(client, client.receiveMessage);
-                                client.receiveMessage.type = 0;
-                                client.receiveMessage.data = new byte[8];
-                                client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
-                            }
-                            else
-                            {
-                                if (messageLength < Common.MAX_MESSAGE_SIZE)
-                                {
-                                    client.isReceivingMessage = true;
-                                    client.receiveMessage.data = new byte[messageLength];
-                                    client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
-                                }
-                                else
-                                {
-                                    //Malformed message, most likely from a non DMP-client.
-                                    Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
-                                    DarkLog.Normal("Invalid DMP message from " + client.endpoint);
-                                    //Returning from ReceiveCallback will break the receive loop and stop processing any further messages.
-                                    return;
-                                }
-                            }
                         }
                     }
-                    else
-                    {
-                        //We have the message data to a non-null message, handle it
-                        client.isReceivingMessage = false;
-                        HandleMessage(client, client.receiveMessage);
-                        client.receiveMessage.type = 0;
-                        client.receiveMessage.data = new byte[8];
-                        client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
-                    }
                 }
-                if (client.connectionStatus == ConnectionStatus.CONNECTED)
+                else
                 {
-                    client.lastReceiveTime = Server.serverClock.ElapsedMilliseconds;
-                    client.connection.GetStream().BeginRead(client.receiveMessage.data, client.receiveMessage.data.Length - client.receiveMessageBytesLeft, client.receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), client);
+                    //We have the message data to a non-null message, handle it
+                    client.isReceivingMessage = false;
+                    #if !DEBUG
+                    try
+                    {
+                    #endif
+                        HandleMessage(client, client.receiveMessage);
+                    #if !DEBUG
+                    }
+                    catch (Exception e)
+                    {
+                        HandleDisconnectException("ReceiveCallback", client, e);
+                        return;
+                    }
+                    #endif
+                    client.receiveMessage.type = 0;
+                    client.receiveMessage.data = new byte[8];
+                    client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
                 }
             }
-            catch (Exception e)
+            if (client.connectionStatus == ConnectionStatus.CONNECTED)
             {
-                HandleDisconnectException("ReceiveCallback", client, e);
+                client.lastReceiveTime = Server.serverClock.ElapsedMilliseconds;
+                try
+                {
+                    client.connection.GetStream().BeginRead(client.receiveMessage.data, client.receiveMessage.data.Length - client.receiveMessageBytesLeft, client.receiveMessageBytesLeft, new AsyncCallback(ReceiveCallback), client);
+                }
+                catch (Exception e)
+                {
+                    HandleDisconnectException("ReceiveCallback", client, e);
+                    return;
+                }
             }
         }
 
@@ -491,6 +511,7 @@ namespace DarkMultiPlayerServer
                     {
                         Messages.WarpControl.HoldSubspace();
                     }
+                    Messages.WarpControl.DisconnectPlayer(client.playerName);
                 }
                 //Disconnect
                 if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
@@ -551,8 +572,10 @@ namespace DarkMultiPlayerServer
                 return;
             }
 
+            #if !DEBUG
             try
             {
+                #endif
                 switch (message.type)
                 {
                     case ClientMessageType.HEARTBEAT:
@@ -627,14 +650,20 @@ namespace DarkMultiPlayerServer
                     default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);
+                        #if DEBUG
+                        throw new NotImplementedException("Message type not implemented");
+                        #else
                         break;
+                        #endif
                 }
+                #if !DEBUG
             }
             catch (Exception e)
             {
                 DarkLog.Debug("Error handling " + message.type + " from " + client.playerName + ", exception: " + e);
                 Messages.ConnectionEnd.SendConnectionEnd(client, "Server failed to process " + message.type + " message");
             }
+            #endif
         }
 
         //Call with null client to send to all clients. Also called from Dekessler and NukeKSC.
