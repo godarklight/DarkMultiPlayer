@@ -70,6 +70,35 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("Kerbal database upgraded to 0.24 format");
             }
         }
+
+        public static void ConvertSettings(string oldSettings, string newSettings)
+        {
+            if (!File.Exists(oldSettings))
+            {
+                return;
+            }
+
+            using (StreamWriter sw = new StreamWriter(newSettings))
+            {
+                using (StreamReader sr = new StreamReader(oldSettings))
+                {
+
+                    string currentLine;
+                    while ((currentLine = sr.ReadLine()) != null)
+                    {
+                        string trimmedLine = currentLine.Trim();
+                        if (!trimmedLine.Contains(",") || trimmedLine.StartsWith("#") || trimmedLine == string.Empty)
+                        {
+                            continue;
+                        }
+                        int seperatorIndex = trimmedLine.IndexOf(",");
+                        sw.WriteLine(trimmedLine.Remove(seperatorIndex,1).Insert(seperatorIndex, "="));
+                    }
+                }
+            }
+            File.Delete(oldSettings);
+            DarkLog.Debug("Converted settings to DMP v0.2.1.0 format");
+        }
     }
 }
 
