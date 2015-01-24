@@ -36,6 +36,8 @@ namespace DarkMultiPlayerServer
                 serverClock = new Stopwatch();
                 serverClock.Start();
 
+                Settings.Reset();
+
                 //Set the last player activity time to server start
                 lastPlayerActivity = serverClock.ElapsedMilliseconds;
 
@@ -97,8 +99,6 @@ namespace DarkMultiPlayerServer
 
                 //Remove player tokens
                 BackwardsCompatibility.RemoveOldPlayerTokens();
-
-                Settings.Reset();
 
                 if (System.Net.Sockets.Socket.OSSupportsIPv6)
                 {
