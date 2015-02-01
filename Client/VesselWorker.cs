@@ -1586,6 +1586,7 @@ namespace DarkMultiPlayer
                 ConfigNode cn = new ConfigNode();
                 pv.Save(cn);
                 List<string> partsList = null;
+                PartResourceLibrary partResourceLibrary = PartResourceLibrary.Instance;
                 if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
                 {
                     partsList = ModWorker.fetch.GetAllowedPartsList();
@@ -1608,6 +1609,16 @@ namespace DarkMultiPlayer
                         ScreenMessages.PostScreenMessage("Cannot load '" + pv.vesselName + "' - you are missing " + pps.partName, 10f, ScreenMessageStyle.UPPER_CENTER);
                         pv = null;
                         break;
+                    }
+                    foreach (ProtoPartResourceSnapshot resource in pps.resources)
+                    {
+                        if (!partResourceLibrary.resourceDefinitions.Contains(resource.resourceName))
+                        {
+                            ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + protovesselID + " (" + pv.vesselName + ") contains the missing resource '" + resource.resourceName + "'!. Skipping load.");
+                            ScreenMessages.PostScreenMessage("Cannot load '" + pv.vesselName + "' - you are missing the resource " + resource.resourceName, 10f, ScreenMessageStyle.UPPER_CENTER);
+                            pv = null;
+                            break;
+                        }
                     }
                 }
             }
