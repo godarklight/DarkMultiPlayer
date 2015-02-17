@@ -58,7 +58,6 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             mw.Write<int>((int)WarpMessageType.REPORT_RATE);
                             mw.Write<string>(otherClient.playerName);
-                            mw.Write<float>(otherClient.subspace);
                             mw.Write<float>(otherClient.subspaceRate);
                             newMessage.data = mw.GetMessageBytes();
                         }
@@ -359,7 +358,6 @@ namespace DarkMultiPlayerServer.Messages
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
-                    mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                     mw.Write<int>(reportedSubspace);
                     mw.Write<long>(subspaces[reportedSubspace].serverClock);
                     mw.Write<double>(subspaces[reportedSubspace].planetTime);
@@ -369,8 +367,18 @@ namespace DarkMultiPlayerServer.Messages
                 ClientHandler.SendToAll(null, relockMessage, true);
                 //Save to disk
                 SaveLatestSubspace();
-
             }
+            //Tell other players about the reported rate
+            ServerMessage reportMessage = new ServerMessage();
+            reportMessage.type = ServerMessageType.WARP_CONTROL;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)WarpMessageType.REPORT_RATE);
+                mw.Write<string>(client.playerName);
+                mw.Write<float>(client.subspaceRate);
+                reportMessage.data = mw.GetMessageBytes();
+            }
+            ClientHandler.SendToAll(client, reportMessage, true);
         }
 
         private static void HandleChangeWarp(ClientObject client, bool physWarp, int rateIndex, long serverClock, double planetTime)

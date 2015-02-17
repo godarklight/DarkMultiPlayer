@@ -356,7 +356,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                DarkLog.Debug("Failed to relock non-existant subspace!");
+                DarkLog.Debug("Failed to relock non-existant subspace " + subspaceID);
             }
         }
 
