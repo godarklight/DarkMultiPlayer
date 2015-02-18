@@ -5,7 +5,7 @@ namespace DarkMultiPlayer
 {
     public class VesselUpdate
     {
-        public string vesselID;
+        public Guid vesselID;
         public double planetTime;
         public string bodyName;
         public float[] rotation;
@@ -26,7 +26,7 @@ namespace DarkMultiPlayer
             VesselUpdate returnUpdate = new VesselUpdate();
             try
             {
-                returnUpdate.vesselID = updateVessel.id.ToString();
+                returnUpdate.vesselID = updateVessel.id;
                 returnUpdate.planetTime = Planetarium.GetUniversalTime();
                 returnUpdate.bodyName = updateVessel.mainBody.bodyName;
 
@@ -98,14 +98,14 @@ namespace DarkMultiPlayer
                 return;
             }
             //Get updating player
-            string updatePlayer = LockSystem.fetch.LockExists(vesselID) ? LockSystem.fetch.LockOwner(vesselID) : "Unknown";
+            string updatePlayer = LockSystem.fetch.LockExists("update-" + vesselID.ToString()) ? LockSystem.fetch.LockOwner("update-" + vesselID.ToString()) : "Unknown";
             //Ignore updates to our own vessel if we are in flight and we aren't spectating
-            if (!VesselWorker.fetch.isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id.ToString() == vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
+            if (!VesselWorker.fetch.isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id == vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 DarkLog.Debug("ApplyVesselUpdate - Ignoring update for active vessel from " + updatePlayer);
                 return;
             }
-            Vessel updateVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == vesselID);
+            Vessel updateVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id == vesselID);
             if (updateVessel == null)
             {
                 //DarkLog.Debug("ApplyVesselUpdate - Got vessel update for " + vesselID + " but vessel does not exist");

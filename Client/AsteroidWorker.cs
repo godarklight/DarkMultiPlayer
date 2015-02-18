@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
                                 {
                                     DarkLog.Debug("Spawned in new server asteroid!");
                                     serverAsteroids.Add(checkVessel.id.ToString());
-                                    VesselWorker.fetch.RegisterServerVessel(checkVessel.id.ToString());
+                                    VesselWorker.fetch.RegisterServerVessel(checkVessel.id);
                                     NetworkWorker.fetch.SendVesselProtoMessage(checkVessel.protoVessel, false, false);
                                 }
                                 else
