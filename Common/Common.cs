@@ -566,7 +566,8 @@ namespace DarkMultiPlayerCommon
         LEAVE,
         CHANNEL_MESSAGE,
         PRIVATE_MESSAGE,
-        CONSOLE_MESSAGE
+        CONSOLE_MESSAGE,
+        SYNTAX_BRIDGE
     }
 
     public enum AdminMessageType

@@ -127,10 +127,13 @@ namespace DarkMultiPlayerServer
                         Thread.Sleep(500);
                     }
                     DarkLog.Normal("Done!");
-
+                    DarkLog.Normal("Starting Syntaxcodes Permissions System..");
+                    SyntaxMPProtection.SyntaxCode permissionsystems = new SyntaxMPProtection.SyntaxCode(); 
+                    DarkLog.Normal("Starting Syntaxcodes Permissions System started.");
                     StartHTTPServer();
                     DarkLog.Normal("Done!");
                     DMPPluginHandler.FireOnServerStart();
+
                     while (serverRunning)
                     {
                         //Run a garbage collection every 30 seconds.
@@ -286,6 +289,7 @@ namespace DarkMultiPlayerServer
             }
             serverStarting = false;
             serverRunning = false;
+            SyntaxMPProtection.SyntaxCode.SaveToFile(); // Added to save all current memory data in respect to the permissions system
             StopHTTPServer();
         }
         //Restart
@@ -304,6 +308,7 @@ namespace DarkMultiPlayerServer
             serverRestarting = true;
             serverStarting = false;
             serverRunning = false;
+            SyntaxMPProtection.SyntaxCode.SaveToFile(); // Added to save all current memory data in respect to the permissions system 
             ForceStopHTTPServer();
         }
         //Gracefully shut down

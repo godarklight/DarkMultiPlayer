@@ -4,7 +4,7 @@ namespace DarkMultiPlayer
 {
     public class VesselProtoUpdate
     {
-        public Guid vesselID;
+        public string vesselID;
         public double planetTime;
         public ConfigNode vesselNode;
     }

@@ -8,6 +8,7 @@ namespace DarkMultiPlayerServer.Messages
 {
     public class VesselRequest
     {
+        // Updated by MrSyntax to include the Syntax Anti Cheat System
         public static void HandleVesselsRequest(ClientObject client, byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData))
@@ -25,7 +26,11 @@ namespace DarkMultiPlayerServer.Messages
                         if (clientRequested.Contains(vesselObject))
                         {
                             sendVesselCount++;
-                            VesselProto.SendVessel(client, vesselID, vesselData);
+                            // Syntax Anti Cheat System added
+                            if (SyntaxMPProtection.SyntaxCode.SyntaxAntiCheatSystem.SAHSCheck(client, vesselID))
+                            {
+                                VesselProto.SendVessel(client, vesselID, vesselData);
+                            }
                         }
                         else
                         {

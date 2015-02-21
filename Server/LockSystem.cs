@@ -53,7 +53,6 @@ namespace DarkMultiPlayerServer
                 return false;
             }
         }
-
         public void ReleasePlayerLocks(string playerName)
         {
             lock (playerLocks)

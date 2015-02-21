@@ -11,6 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             //TODO: Relay the message as is so we can optimize it
             //Send vessel
+            
             using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about planet time

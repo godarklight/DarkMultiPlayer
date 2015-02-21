@@ -1184,8 +1184,8 @@ namespace DarkMultiPlayer
                             ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselBytes);
                             if (vesselNode != null)
                             {
-                                Guid vesselID = new Guid(Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid")));
-                                if (vesselID != Guid.Empty)
+                                string vesselID = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                                if (vesselID != null)
                                 {
                                     VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
                                 }
@@ -1229,10 +1229,10 @@ namespace DarkMultiPlayer
                 ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
-                    string configGuid = vesselNode.GetValue("pid");
-                    if (!String.IsNullOrEmpty(configGuid) && vesselID == Common.ConvertConfigStringToGUIDString(configGuid))
+                    string vesselIDConfigNode = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                    if ((vesselID != null) && (vesselID == vesselIDConfigNode))
                     {
-                        VesselWorker.fetch.QueueVesselProto(new Guid(vesselID), planetTime, vesselNode);
+                        VesselWorker.fetch.QueueVesselProto(vesselID, planetTime, vesselNode);
                     }
                     else
                     {
@@ -1264,7 +1264,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 update.planetTime = mr.Read<double>();
-                update.vesselID = new Guid(mr.Read<string>());
+                update.vesselID = mr.Read<string>();
                 update.bodyName = mr.Read<string>();
                 update.rotation = mr.Read<float[]>();
                 update.angularVelocity = mr.Read<float[]>();
@@ -1311,7 +1311,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 string player = mr.Read<string>();
-                Guid vesselID = new Guid(mr.Read<string>());
+                string vesselID = mr.Read<string>();
                 VesselWorker.fetch.QueueActiveVessel(player, vesselID);
             }
         }
@@ -1328,7 +1328,7 @@ namespace DarkMultiPlayer
                 //We don't care about the subspace ID anymore.
                 mr.Read<int>();
                 double planetTime = mr.Read<double>();
-                Guid vesselID = new Guid(mr.Read<string>());
+                string vesselID = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();
                 string dockingPlayer = null;
                 if (isDockingUpdate)
@@ -1693,7 +1693,7 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<double>(update.planetTime);
-                mw.Write<string>(update.vesselID.ToString());
+                mw.Write<string>(update.vesselID);
                 mw.Write<string>(update.bodyName);
                 mw.Write<float[]>(update.rotation);
                 //mw.Write<float[]>(update.vesselForward);
@@ -1737,7 +1737,7 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
-        public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
+        public void SendVesselRemove(string vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
@@ -1746,7 +1746,7 @@ namespace DarkMultiPlayer
             {
                 mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(Planetarium.GetUniversalTime());
-                mw.Write<string>(vesselID.ToString());
+                mw.Write<string>(vesselID);
                 mw.Write<bool>(isDockingUpdate);
                 if (isDockingUpdate)
                 {
