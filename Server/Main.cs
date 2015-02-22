@@ -113,6 +113,7 @@ namespace DarkMultiPlayerServer
                     //Load universe
                     DarkLog.Normal("Loading universe... ");
                     CheckUniverse();
+                    PermissionSystem.Core.InitializePermissionFolder();
                     DarkLog.Normal("Done!");
 
                     DarkLog.Normal("Starting " + Settings.settingsStore.warpMode + " server on port " + Settings.settingsStore.port + "... ");
@@ -128,7 +129,7 @@ namespace DarkMultiPlayerServer
                     }
                     DarkLog.Normal("Done!");
                     DarkLog.Normal("Starting Syntaxcodes Permissions System..");
-                    SyntaxMPProtection.SyntaxCode permissionsystems = new SyntaxMPProtection.SyntaxCode(); 
+                    PermissionSystem.Core permissionsystems = new PermissionSystem.Core(); 
                     DarkLog.Normal("Starting Syntaxcodes Permissions System started.");
                     StartHTTPServer();
                     DarkLog.Normal("Done!");
@@ -289,7 +290,7 @@ namespace DarkMultiPlayerServer
             }
             serverStarting = false;
             serverRunning = false;
-            SyntaxMPProtection.SyntaxCode.SaveToFile(); // Added to save all current memory data in respect to the permissions system
+            PermissionSystem.Core.SaveToFile(); // Added to save all current memory data in respect to the permissions system
             StopHTTPServer();
         }
         //Restart
@@ -308,7 +309,7 @@ namespace DarkMultiPlayerServer
             serverRestarting = true;
             serverStarting = false;
             serverRunning = false;
-            SyntaxMPProtection.SyntaxCode.SaveToFile(); // Added to save all current memory data in respect to the permissions system 
+            PermissionSystem.Core.SaveToFile(); // Added to save all current memory data in respect to the permissions system 
             ForceStopHTTPServer();
         }
         //Gracefully shut down

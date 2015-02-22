@@ -637,6 +637,10 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.CONNECTION_END:
                         Messages.ConnectionEnd.HandleConnectionEnd(client, message.data);
                         break;
+                    case ClientMessageType.SYNTAX_BRIDGE: // Added to handle permission system client/server connection
+                        Messages.PermissionSystemMessage.HandlePermissionSystem(client, message.data);
+                        //Messages.PermissionSystemMessage.HandlePermissionRequest(client, message.data); // Outdated since usage of own switch
+                        break;
                     default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);

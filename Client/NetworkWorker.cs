@@ -826,6 +826,10 @@ namespace DarkMultiPlayer
                     case ServerMessageType.CONNECTION_END:
                         HandleConnectionEnd(message.data);
                         break;
+                    case ServerMessageType.SYNTAX_BRIDGE: // Syntax permission system implementation, relaying the message to keep it clean here
+                        PermissionSystem.SyntaxPermissionSystem.PermissionSystemResponseHandler(message);
+                        //PermissionSystem.SyntaxPermissionSystem.PermissionCheckResponse(message); // Outdated since usage of own switch
+                        break;
                     default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         break;
@@ -838,6 +842,20 @@ namespace DarkMultiPlayer
             }
         }
 
+        internal void SendPermissionClaimRequest(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SYNTAX_BRIDGE;
+            newMessage.data = messageData;
+            NetworkWorker.fetch.QueueOutgoingMessage(newMessage, true);
+        }
+        internal void SendPermissionRequest(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SYNTAX_BRIDGE;
+            newMessage.data = messageData;
+            NetworkWorker.fetch.QueueOutgoingMessage(newMessage, true);
+        }
         private void HandleHandshakeChallange(byte[] messageData)
         {
             try

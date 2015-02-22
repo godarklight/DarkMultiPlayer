@@ -3,20 +3,25 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace SyntaxMPProtection
+namespace PermissionSystem
 {
     /// <summary>
     /// Access codes for the player vessel protection codes
     /// </summary>
-    public partial class SyntaxCode
+    public partial class Core
     {
         // Used for programmatic access to the syntax permission system
         static private PlayerSecurity ps = new PlayerSecurity();
 
+        public static void InitializePermissionFolder()
+        {
+            ps.InitialDirectoryAndFileCreation();
+        }
+
         /// <summary>
         ///  Initializes the SyntaxCode permission system automaticly
         /// </summary>
-        public SyntaxCode()
+        public Core()
         {
 
         }
@@ -39,7 +44,7 @@ namespace SyntaxMPProtection
         /// <summary>
         /// Contains all player specific access codes
         /// </summary>
-        static public class SyntaxPlayer
+        static public class Player
         {
             /// <summary>
             /// Saves player credentials to the protection list, if playername exists, updates the pass/keyword
@@ -61,11 +66,28 @@ namespace SyntaxMPProtection
             {
                 return ps.CheckPlayerIsProtected(playername);
             }
+
+            /// <summary>
+            /// Determine wether the player is part of a group
+            /// </summary>
+            /// <param name="playername">The player to check</param>
+            /// <returns></returns>
+            static public bool HasGroup(string playername)
+            {
+                bool flag = false;
+
+                if(ps.HasGroup(playername))
+                {
+                    flag = true;
+                }
+
+                return flag;
+            }
         }
         /// <summary>
         /// Contains all player specific vessel access codes
         /// </summary>
-        static public class SyntaxPlayerVessel
+        static public class PVessel
         {
             /// <summary>
             /// Claims a specific vessel for the given player
@@ -76,7 +98,7 @@ namespace SyntaxMPProtection
             static public bool ClaimVessel(string playername, string vesselid, VesselAccessibilityTypes _vat)
             {
                 bool flag = false;
-                if (SyntaxPlayer.isProtected(playername))
+                if (Player.isProtected(playername))
                 {
                     DarkMultiPlayerServer.DarkLog.Normal("Syntax Codes - Creating object - Claiming vessel: " + vesselid);
                     // Reports false if player isn't in the protection list or vessel has already been claimed
@@ -95,16 +117,29 @@ namespace SyntaxMPProtection
             static public bool IsProtected(string playername, string vesselid)
             {
                 bool flag = false;
-
-                // todo
+                string owner = "";
+               if(ps.CheckVesselIsClaimed(vesselid))
+               {
+                   flag = true;
+               }
 
                 return flag;
+            }
+            static public bool IsProtected(string vesselid)
+            {
+                return ps.CheckVesselIsClaimed(vesselid);
             }
             static public bool IsOwner(string playername, string vesselid)
             {
                 bool flag = false;
-
-                // todo
+                string ownername = "";
+                if(ps.CheckVesselIsClaimed(vesselid,out ownername))
+                {
+                    if(ownername == playername)
+                    {
+                        flag = true;
+                    }
+                }
 
                 return flag;
             }
@@ -112,8 +147,8 @@ namespace SyntaxMPProtection
             {
                 bool flag = false;
                 string vesselAccessType = ps.GetVesselAccessType(vesselid);
-                
-                if(vesselAccessType != "")
+
+                if (vesselAccessType != "") // maybe add :  || vesselAccessType != "private" ????
                 {
                     flag = true;
                 }
@@ -151,6 +186,17 @@ namespace SyntaxMPProtection
                 }
                 return returndata;
             }
+            static public bool SpectatingAllowed(string vesselid)
+            {
+                string accesstype = ps.GetVesselAccessType(vesselid);
+                bool flag = false;
+
+                if(accesstype == "spectate")
+                {
+                    flag = true;
+                }
+                return flag;
+            }
 
             static public bool FindPlayerVessel(string playername, string vesselid,out KeyValuePair<string,PlayerVessel> playerVesselEntry)
             {
@@ -187,7 +233,7 @@ namespace SyntaxMPProtection
         /// <summary>
         /// Contains all player group access codes
         /// </summary>
-        static public class SyntaxPlayerGroup
+        static public class PGroup
         {
             static public bool AddGroup(string _gname, string _gadmin, VesselAccessibilityTypes _gvat)
             {
@@ -207,13 +253,16 @@ namespace SyntaxMPProtection
             static public bool ClaimVesselForGroup(string _playername, string _vesselid, VesselAccessibilityTypes _vat)
             {
                 bool flag = false;
+                DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method. SystemAccess Code 1.");
                 if (ps.CheckPlayerIsProtected(_playername))
                 {
                     string _playergroup;
                     if (ps.CheckPlayerGroup(_playername, out _playergroup))
                     {
+                        DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method. SystemAccess Code 2.");
                         if (ps.ProtectGroupVessel(_playername, _playergroup, _vesselid, _vat))
                         {
+                            DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method. SystemAccess Code 3.");
                             flag = true;
                         }
                     }

@@ -3,22 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using DarkMultiPlayerServer;
+using DarkMultiPlayerServer.Messages;
 
-namespace SyntaxMPProtection
+namespace PermissionSystem
 {
-    public partial class SyntaxCode
+    public partial class Core
     {
         // Access codes for the codes behind the anti hijack and cheat system.
-        public static class SyntaxAntiCheatSystem
+        public static class AntiCheatSystem
         {
-            static private SyntaxPermissionSystemHandler SPSHandler = new SyntaxPermissionSystemHandler();
-            static internal LockSystem ls = new LockSystem();
-            static private Dictionary<string, string> LockList = LockSystem.fetch.GetLockList();
-
-            //static internal LockSystem LS
-            //{
-            //    get { return ls; }
-            //}
+            static private PermissionSystemHandler SPSHandler = new PermissionSystemHandler();
 
             static public bool init()
             {
@@ -44,7 +38,6 @@ namespace SyntaxMPProtection
             {
                 bool flag = false;
                 bool spectatingIsAllowed = false;
-                bool entryAlreadyExists = false;
 
                 if (SPSHandler.SAHSCheck(client, requestedVesselGuid, out spectatingIsAllowed))
                 {
@@ -52,82 +45,53 @@ namespace SyntaxMPProtection
                 }
                 else
                 {
-                    if(spectatingIsAllowed)
+                    if (spectatingIsAllowed)
                     {
                         // Allow spectating of the vessel but lock the spectator out of the controls.
-                        KeyValuePair<string, string> newLockEntry = new KeyValuePair<string, string>();
+                        //KeyValuePair<string, string> newLockEntry = new KeyValuePair<string, string>();
                         KeyValuePair<string, PlayerVessel> foundVesselEntry = new KeyValuePair<string, PlayerVessel>();
-                        if(SyntaxPlayerVessel.FindLockedPlayerVessel(requestedVesselGuid, out foundVesselEntry))
+                        if (PVessel.FindLockedPlayerVessel(requestedVesselGuid, out foundVesselEntry))
                         {
-                            newLockEntry = new KeyValuePair<string, string>(foundVesselEntry.Key, foundVesselEntry.Value.VesselID);
-                            foreach(KeyValuePair<string,string> lockentry in LockList)
-                            {
-                                if((lockentry.Key == newLockEntry.Key) && (lockentry.Value == newLockEntry.Value))
-                                {
-                                    entryAlreadyExists = true;
-                                    break;
-                                }
-                            }
-                            if(!entryAlreadyExists)
-                            {
-                                LockList.Add(newLockEntry.Key, newLockEntry.Value);
-                            }
+                            //newLockEntry = new KeyValuePair<string, string>(foundVesselEntry.Key, foundVesselEntry.Value.VesselID);
+                            // TODO: lock controls
+                            //LockVesselControls(newLockEntry.Value);
+                            flag = true;
                         }
                     }
                     else
                     {
-                        // deny access and spectating because of permissions set on the vessel
-                        if(entryAlreadyExists)
-                        {
-                            // Report attempt to overwrite a lock has been diagnosed
-                        }
+                        // Report attempt to overwrite a lock has been diagnosed
+                        // Or an attempt to take over a protected vessel
+                        client.disconnectClient = true;
+                        ConnectionEnd.SendConnectionEnd(client, "Kicked for trying to take over a protected vessel.");
+                        ClientHandler.DisconnectClient(client);
+                        DarkLog.Debug("Client kicked from permission handler. Section 2");
+                        return false;
                     }
                 }
                 return flag;
+            }
+
+            // Locks the vessel controls to allow for spectatemode
+            internal static void LockVesselControls(string vesselGuid)
+            {
+                throw new NotImplementedException();
             }
         }
 
         // Codes behind the Syntax Anti cheat/hijack system
         // handles the requests to and from the syntax permission system to avoid abuse on clientside
-        private class SyntaxPermissionSystemHandler
+        private class PermissionSystemHandler
         {
-            //private LockSystem ls;
-            //protected SyntaxPermissionSystemHandler()
-            //{
-            //    ls = new LockSystem();
-            //}
-
             public bool SAHSCheck(ClientObject client, string requestedVesselid, out bool SpectatingAllowed)
             {
                 bool flag = false;
                 bool spectateIsAllowed = false;
 
-                if(AntiHijackVessel(client,requestedVesselid,out spectateIsAllowed))
+                if (AntiHijackVessel(client, requestedVesselid, out spectateIsAllowed))
                 {
-                    if(!spectateIsAllowed)
-                    {
-                        // Allow request because requesting client is the confirmed owner or requested vesselid has permissions set to public
-                        KeyValuePair<string,PlayerVessel> pvEntry;
-                        if(SyntaxPlayerVessel.FindPlayerVessel(client.playerName,requestedVesselid,out pvEntry))
-                        {
-                            // allow locking of the player vessel entry for the owner or public usage
-                            // lock the vessel here or allow DMP to lock it as active vessel ?? ..
-                            
-                        }
-                        flag = true;
-                    }
-                    else
-                    {
-                        // Allow request because requested vesselid has permissions set to spectate, but lock the vessel to block interaction.
-                        // todo: lock vessel
-                        //lock(SyntaxCode.SyntaxPlayerVessel.SpectateMode(requestedVesselid))
-                        //{
-
-                        //}
-
-                        flag = true;
-                    }
-
+                    // Allow request because requesting client is the confirmed owner or requested vesselid has permissions set to public
+                    flag = true;
 
                 }
                 else
@@ -144,9 +108,14 @@ namespace SyntaxMPProtection
             {
                 bool flag = false;
                 bool spectate = false;
-                if(SyntaxPlayerVessel.IsProtected(client.playerName,requestedvesselid))
+                if(!PVessel.IsProtected(requestedvesselid))
                 {
-                    if(SyntaxPlayerVessel.IsOwner(client.playerName,requestedvesselid))
+                    spectateAllowed = true;
+                    return true;
+                }
+                if(PVessel.IsProtected(requestedvesselid))
+                {
+                    if(PVessel.IsOwner(client.playerName,requestedvesselid))
                     {
                         // allow vessel request
                         flag = true;
@@ -155,7 +124,7 @@ namespace SyntaxMPProtection
                     else
                     {
                         string accesstype;
-                        if(SyntaxPlayerVessel.GetAccessibility(requestedvesselid,out accesstype))
+                        if(PVessel.GetAccessibility(requestedvesselid,out accesstype))
                         {
                             if(accesstype.ToString() == "public")
                             {
@@ -165,14 +134,23 @@ namespace SyntaxMPProtection
                             else if(accesstype.ToString() == "spectate")
                             {
                                 // allow vessel spectate, but lock vessel
+                                flag = true;
                                 spectate = true;
                             }
                             else
                             {
                                 // deny vessel request
+                                flag = false;
                             }
                         }
                     }
+                }
+                else
+                {
+                    // Vessel has not been claimed so allow control and spectating
+                    DarkLog.Debug("SyntaxCode: SAHS Check passed - Vessel not claimed.");
+                    flag = true;
+                    spectate = true;
                 }
                 spectateAllowed = spectate;
                 return flag;
@@ -185,16 +163,16 @@ namespace SyntaxMPProtection
 
                 foreach(ClientObject client in clients)
                 {
-                    if(SyntaxPlayerVessel.IsProtected(client.playerName,client.activeVessel))
+                    if(PVessel.IsProtected(client.playerName,client.activeVessel))
                     {
-                        if(SyntaxPlayerVessel.IsOwner(client.playerName,client.activeVessel))
+                        if(PVessel.IsOwner(client.playerName,client.activeVessel))
                         {
                             // give control over the vessel
                         }
                         else
                         {
                             string accesstype;
-                            if(SyntaxPlayerVessel.GetAccessibility(client.activeVessel,out accesstype))
+                            if(PVessel.GetAccessibility(client.activeVessel,out accesstype))
                             {
                                 if(accesstype.ToString() == "public")
                                 {

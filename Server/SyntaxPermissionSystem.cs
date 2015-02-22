@@ -4,9 +4,9 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace SyntaxMPProtection
+namespace PermissionSystem
 {
-    public partial class SyntaxCode
+    public partial class Core
     {
         // Contains all the core codes behind the syntax permission system
         private class PlayerSecurity
@@ -17,7 +17,30 @@ namespace SyntaxMPProtection
             List<PlayerGroup> playerGroups = new List<PlayerGroup>(); // All existing playing groups
             Dictionary<string, List<PlayerVessel>> groupVessels = new Dictionary<string, List<PlayerVessel>>(); // All existing group vessels
 
+            internal bool HasGroup(string playername)
+            {
+                bool flag = false;
 
+                foreach(PlayerDetails pdetails in playercredentials)
+                {
+                    if(pdetails.PlayerName == playername)
+                    {
+                        if(pdetails.GroupName != "")
+                        {
+                            flag = true;
+                        }
+                    }
+                }
+
+
+                return flag;
+            }
+            internal bool ExistingVessel(string vesselid)
+            {
+                bool flag = false;
+                // todo;
+                return flag;
+            }
             internal KeyValuePair<string, PlayerVessel> ReturnPlayerVessel(string playername, string vesselid)
             {
                 KeyValuePair<string, PlayerVessel> returndata = new KeyValuePair<string, PlayerVessel>();
@@ -104,12 +127,15 @@ namespace SyntaxMPProtection
             // Constructor
             internal PlayerSecurity()
             {
-                init();
+                if(DirectoriesAndFilesCheck())
+                {
+                    init();
+                }
                 // TODO // How doe sthe locking mechanism work?
-                lock (playercredentials) { };
-                lock (playerVessels) { };
-                lock (playerGroups) { };
-                lock (groupVessels) { };
+                //lock (playercredentials) { };
+                //lock (playerVessels) { };
+                //lock (playerGroups) { };
+                //lock (groupVessels) { };
             }
 
             /// <summary>
@@ -118,8 +144,13 @@ namespace SyntaxMPProtection
             protected void init()
             {
                 RetrieveCredentialsFromFile();
+                DarkMultiPlayerServer.DarkLog.Debug(string.Format("Retrieved {0} clients from credentials file.",playercredentials.Count.ToString()));
                 RetrieveProtectedVessels();
+                DarkMultiPlayerServer.DarkLog.Debug(string.Format("Retrieved {0} protected personal vessel lists from protected vessels file.", playerVessels.Count.ToString()));
                 ReadGroupsFromFile();
+                DarkMultiPlayerServer.DarkLog.Debug(string.Format("Retrieved {0} groups from usergroups file.", playerGroups.Count.ToString()));
+                RetrieveGroupVessels();
+                DarkMultiPlayerServer.DarkLog.Debug(string.Format("Retrieved {0} group protected vessels from group vessels file.", groupVessels.Count.ToString()));
             }
 
             public bool SaveAll()
@@ -146,7 +177,7 @@ namespace SyntaxMPProtection
             /// </summary>
             /// <param name="_playername">player name</param>
             /// <param name="_vesselid">vessel to protect</param>
-            internal bool ProtectVessel(string _playername, string _vesselid, SyntaxMPProtection.VesselAccessibilityTypes _at)
+            internal bool ProtectVessel(string _playername, string _vesselid, PermissionSystem.VesselAccessibilityTypes _at)
             {
                 bool flag = false;
 
@@ -168,7 +199,7 @@ namespace SyntaxMPProtection
                         if (!CheckVesselIsClaimed(_vesselid))
                         {
                             DarkMultiPlayerServer.DarkLog.Normal("Syntax Codes - Adding vessel to player vessel list.");
-                            playerVessels[_playername].Add(new PlayerVessel(_vesselid, _at));
+                            playerVessels[_playername].Add(new PlayerVessel(_vesselid, _at,_playername));
                             flag = true;
                             WriteProtectedVesselsToFile();
 
@@ -184,7 +215,7 @@ namespace SyntaxMPProtection
                         if (!CheckVesselIsClaimed(_vesselid))
                         {
                             DarkMultiPlayerServer.DarkLog.Normal("Syntax Codes - Vessel has not been claimed yet, claiming(adding) it for the player.");
-                            playerVessels.Add(_playername, new List<PlayerVessel>() { new PlayerVessel(_vesselid, _at) });
+                            playerVessels.Add(_playername, new List<PlayerVessel>() { new PlayerVessel(_vesselid, _at,_playername) });
                             flag = true;
                             WriteProtectedVesselsToFile();
                             DarkMultiPlayerServer.DarkLog.Normal("Syntax Codes - Vessel added.");
@@ -207,11 +238,12 @@ namespace SyntaxMPProtection
             /// <param name="_vesselid">VesselID</param>
             /// <param name="_at">Chosen Vessel Accesstype</param>
             /// <returns>Succesful or not</returns>
-            internal bool ProtectGroupVessel(string pname, string _gname, string _vesselid, SyntaxMPProtection.VesselAccessibilityTypes _at)
+            internal bool ProtectGroupVessel(string pname, string _gname, string _vesselid, PermissionSystem.VesselAccessibilityTypes _at)
             {
                 bool flag = false;
                 bool vesselalreadyclaimed = false;
                 // first check if the vessel is already claimed by a group
+                DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method, looping through existing vessels. SyntaxPermissionSystem Code 1.");
                 foreach (string group in groupVessels.Keys)
                 {
                     foreach (PlayerVessel vessel in groupVessels[group])
@@ -229,33 +261,32 @@ namespace SyntaxMPProtection
                     }
                 }
 
+                DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method. SyntaxPermissionSystem Code 5.");
                 // Determine if the vessel is already claimed and if not it will protect it as requested
                 if (!vesselalreadyclaimed)
                 {
-                    string playername = "";
-                    if (CheckVesselIsClaimed(_vesselid, out playername))
+                    if(!CheckPlayerIsProtected(pname))
                     {
-                        if (playername == pname)
-                        {
-                            string _groupname;
-                            if (CheckPlayerIsProtected(playername, out _groupname))
-                            {
-                                if (_groupname == _gname)
-                                {
-                                    PlayerVessel vesselobject;
-                                    if (FindPlayerVessel(playername, _vesselid, out vesselobject))
-                                    {
-                                        groupVessels[_gname].Add(vesselobject);
-                                        playerVessels[playername].Remove(vesselobject);
-                                        flag = true;
-                                    }
-                                }
-                            }
-                        }
+                        SaveCredentials(pname);
                     }
+                    PlayerVessel vesselobject = new PlayerVessel(_vesselid, _at, pname) { GroupName = _gname };
+                    DarkMultiPlayerServer.DarkLog.Debug("Entering claiming for vessel method. SyntaxPermissionSystem Code 6.");
+                    if(!groupVessels.ContainsKey(_gname))
+                    {
+                        groupVessels.Add(_gname, new List<PlayerVessel>());
+                    }
+                    groupVessels[_gname].Add(vesselobject);
+                    if(playerVessels.ContainsKey(pname))
+                    {
+                        playerVessels[pname].Remove(vesselobject);
+                    }
+                    flag = true;
+
+                    WriteGroupVesselsToFile();
                 }
                 else
                 {
+                    DarkMultiPlayerServer.DarkLog.Debug("Exiting claiming for vessel method. SyntaxPermissionSystem Code 9.");
                     flag = false; // Can't claim the vessel because it has already been claimed by either someone not part of the same group or another group.
                 }
 
@@ -319,7 +350,7 @@ namespace SyntaxMPProtection
             /// <param name="_vesselid">vesselid</param>
             /// <param name="_at">Access Type to change to</param>
             /// <returns></returns>
-            internal bool ChangeAccessibility(string _pname, string _vesselid, SyntaxMPProtection.VesselAccessibilityTypes _at)
+            internal bool ChangeAccessibility(string _pname, string _vesselid, PermissionSystem.VesselAccessibilityTypes _at)
             {
                 bool flag = false;
                 if (CheckPlayerIsProtected(_pname))
@@ -351,7 +382,7 @@ namespace SyntaxMPProtection
             /// <param name="_vesselid">vesselid</param>
             /// <param name="_at">Access type to change to</param>
             /// <returns></returns>
-            internal bool ChangeAccessibility(string _pname, string _gname, string _vesselid, SyntaxMPProtection.VesselAccessibilityTypes _at)
+            internal bool ChangeAccessibility(string _pname, string _gname, string _vesselid, PermissionSystem.VesselAccessibilityTypes _at)
             {
                 bool flag = false;
                 string groupname;
@@ -393,10 +424,47 @@ namespace SyntaxMPProtection
                 {
                     playercredentials.Add(new PlayerDetails(_playername, ""));
                 }
+                WriteCredentialsToFile();
             }
             #endregion
 
             #region File read/write methods
+
+            #region Directory control
+            public void InitialDirectoryAndFileCreation()
+            {
+                DirectoriesAndFilesCheck();
+            }
+            protected bool DirectoriesAndFilesCheck()
+            {
+                bool flag = false;
+                if (!Directory.Exists(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity")))
+                {
+                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
+                    if (!File.Exists(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity" + "playercredentials.txt")))
+                    {
+                        File.CreateText(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "playercredentials.txt"));
+                    }
+                    if (!File.Exists(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity" + "protectedvessels.txt")))
+                    {
+                        File.CreateText(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "protectedvessels.txt"));
+                    }
+                    if (!File.Exists(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity" + "groupvessels.txt")))
+                    {
+                        File.CreateText(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groupvessels.txt"));
+                    }
+                    if (!File.Exists(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity" + "groups.txt")))
+                    {
+                        File.CreateText(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groups.txt"));
+                    }
+                }
+                else
+                {
+                    flag = true;
+                }
+                return flag;
+            }
+            #endregion
 
             #region Credentials
             /// <summary>
@@ -407,24 +475,18 @@ namespace SyntaxMPProtection
             {
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "playercredentials.txt"); // DMP server subfolder
                 StreamReader sr = new StreamReader(filepath);
-
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    File.Create(filepath);
-                }
+                DirectoriesAndFilesCheck();
                 while (!sr.EndOfStream)
                 {
                     string line = sr.ReadLine();
-                    string[] credentials = line.Split(',');
-
-                    if (!CheckPlayerIsProtected(credentials[0]))
+                    if (line != "" && line != null)
                     {
-                        playercredentials.Add(new PlayerDetails(credentials[0], credentials[1]));
+                        string[] credentials = line.Split(',');
+
+                        if (!CheckPlayerIsProtected(credentials[0]))
+                        {
+                            playercredentials.Add(new PlayerDetails(credentials[0], credentials[1]));
+                        }
                     }
                 }
                 sr.Close();
@@ -434,16 +496,7 @@ namespace SyntaxMPProtection
             {
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "playercredentials.txt");
                 StreamWriter sw = new StreamWriter(filepath);
-
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    File.Create(filepath);
-                }
+                DirectoriesAndFilesCheck();
                 foreach (PlayerDetails pdetails in playercredentials)
                 {
                     sw.WriteLine(pdetails.ToString());
@@ -455,96 +508,72 @@ namespace SyntaxMPProtection
             #region Vessels
             /// <summary>
             /// Retrieves user protected vessels
-            /// Format: username#vesselid1,vesselid2,vesselid3 ..
+            /// Format: username$vesselid1$vesselid2$vesselid3, ..
             /// </summary>
             protected void RetrieveProtectedVessels()
             {
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "protectedvessels.txt"); // DMP server subfolder
-
                 StreamReader sr = new StreamReader(filepath);
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    File.Create(filepath);
-                }
+                DirectoriesAndFilesCheck();
                 while (!sr.EndOfStream)
                 {
                     // Read and seperate playername and protected vessels
                     string line = sr.ReadLine();
-                    string[] seperatedLine = line.Split('#');
-                    string playername = seperatedLine[0];
-                    string[] playervessels = seperatedLine[1].Split(',');
 
-                    // Retrieve player specific vessels
-                    List<PlayerVessel> foundPlayerVessels = new List<PlayerVessel>();
-
-                    #region Retrieve player vessels
-                    foreach (string vesselDetails in playervessels)
+                    if (line != "" && line != null)
                     {
-                        // Split each vessel into seperate string
-                        string[] vesselInfo = vesselDetails.Split('$');
-                        SyntaxMPProtection.VesselAccessibilityTypes vesseltype;
+                        string[] playervessels = line.Split(',');
+                        string playername = "";
+                        // Retrieve player specific vessels
+                        List<PlayerVessel> foundPlayerVessels = new List<PlayerVessel>();
 
-                        // Define the vessel accesstype
-                        if (Enum.IsDefined(typeof(SyntaxMPProtection.VesselAccessibilityTypes), vesselInfo[1]))
+                        #region Retrieve player vessels
+                        foreach (string vesselDetails in playervessels)
                         {
-                            vesseltype = (SyntaxMPProtection.VesselAccessibilityTypes)Enum.Parse(typeof(SyntaxMPProtection.VesselAccessibilityTypes), vesselInfo[1]);
-                        }
-                        else
-                        {
-                            vesseltype = SyntaxMPProtection.VesselAccessibilityTypes.Private;
-                        }
+                            // Split each vessel into seperate string
+                            string[] vesseldata = vesselDetails.Split('$');
+                            foreach (string part in vesseldata)
+                            {
+                                DarkMultiPlayerServer.DarkLog.Debug("QUICK DEBUG : " + part);
+                            }
+                            playername = vesseldata[0];
+                            string vesselid = vesseldata[1];
+                            VesselAccessibilityTypes vesseltype = (VesselAccessibilityTypes)Enum.Parse(typeof(VesselAccessibilityTypes), vesseldata[2]);
+                            
 
-                        // Add the vessel to the list under the user
-                        PlayerVessel retrievedVessel = new PlayerVessel(vesselInfo[0], vesseltype);
-                        foundPlayerVessels.Add(retrievedVessel);
+                            // Add the vessel to the list under the user
+                            PlayerVessel retrievedVessel = new PlayerVessel(vesselid, vesseltype, playername);
+                            foundPlayerVessels.Add(retrievedVessel);
+                        }
+                        #endregion
+
+                        // Add the player vessel list to the register
+                        // No check for existance of player because method is used upon initialization of the server
+                        playerVessels.Add(playername, foundPlayerVessels);
                     }
-                    #endregion
-
-                    // Add the player vessel list to the register
-                    // No check for existance of player because method is used upon initialization of the server
-                    playerVessels.Add(playername, foundPlayerVessels);
                 }
                 sr.Close();
             }
-
             protected void WriteProtectedVesselsToFile()
             {
                 DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Protected vessels - Writing vessels to file..");
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "protectedvessels.txt");
                 StreamWriter sw = new StreamWriter(filepath);
-
-                DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Checking Directory and file existance..");
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Directory doesn't exist, creating it..");
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: File doesn't exist, creating it..");
-                    File.Create(filepath);
-                }
-                DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Looping through all players with a playervessel..");
+                DirectoriesAndFilesCheck();
                 foreach (string playerWithProtectedVessels in playerVessels.Keys)
                 {
                     DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Player with protected vessel: " + playerWithProtectedVessels);
-                    string playervesselsLine = playerWithProtectedVessels + "#";
+                    string playervesselsLine = "";
                     foreach (PlayerVessel vessel in playerVessels[playerWithProtectedVessels])
                     {
                         DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Playervessel: Owner: " + vessel.Owner + ", vesselid: " + vessel.VesselID);
-                        if (playerVessels[playerWithProtectedVessels].IndexOf(vessel) != playerVessels[playerWithProtectedVessels].Count)
+                        if (playerVessels[playerWithProtectedVessels].IndexOf(vessel) == playerVessels[playerWithProtectedVessels].Count)
                         {
-                            playervesselsLine += vessel.ToString() + ",";
+                            playervesselsLine += vessel.ToString();
                         }
                         else
                         {
-                            playervesselsLine += vessel.ToString();
+                            playervesselsLine += vessel.ToString() + ",";
                         }
 
                         DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Added playervessel " + vessel.VesselID + " to player vessellist.");
@@ -555,6 +584,71 @@ namespace SyntaxMPProtection
                 DarkMultiPlayerServer.DarkLog.Normal("SyntaxCodes: Saved all players with protected vessels to file.");
                 sw.Close();
             }
+
+            protected void RetrieveGroupVessels()
+            {
+                string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groupvessels.txt");
+                StreamReader sr = new StreamReader(filepath);
+                DirectoriesAndFilesCheck();
+                while(!sr.EndOfStream)
+                {
+                    string readLine = sr.ReadLine();
+
+                    if(readLine != "" && readLine != null)
+                    {
+                        DarkMultiPlayerServer.DarkLog.Debug("Retrieving vessel line..");
+                        // split groupname from vesseldata
+                        string[] vessels = readLine.Split(',');
+                        foreach (string vessel in vessels)
+                        {
+                            if (vessel.Length > 1)
+                            {
+                                string[] vesselDetails = vessel.Split('#');
+                                string groupname = vesselDetails[0];
+                                DarkMultiPlayerServer.DarkLog.Debug("Retrieving vessel line vessel details..");
+                                // split vesseldetails and reuse container
+                                string[] vesselDetails2 = vesselDetails[1].Split('$');
+                                string ownername = vesselDetails2[0];
+                                string vesselguid = vesselDetails2[1];
+                                string vesselAccesstype = vesselDetails2[2];
+
+                                DarkMultiPlayerServer.DarkLog.Debug("Done assigning vessel details.");
+                                if (!groupVessels.Keys.Contains(groupname))
+                                {
+                                    DarkMultiPlayerServer.DarkLog.Debug("group doesn't exist yet , so adding it and the vessel to it.");
+                                    groupVessels.Add(groupname, new List<PlayerVessel>() { new PlayerVessel(vesselguid, (VesselAccessibilityTypes)Enum.Parse(typeof(VesselAccessibilityTypes), vesselAccesstype), ownername) { GroupName = groupname } });
+                                    DarkMultiPlayerServer.DarkLog.Debug("Retrieved vessel for non-existing group. Created group in the process.");
+                                }
+                                else
+                                {
+                                    DarkMultiPlayerServer.DarkLog.Debug("group exists , so adding it and the vessel to it.");
+                                    groupVessels[groupname].Add(new PlayerVessel(vesselguid, (VesselAccessibilityTypes)Enum.Parse(typeof(VesselAccessibilityTypes), vesselAccesstype), ownername) { GroupName = groupname });
+                                    DarkMultiPlayerServer.DarkLog.Debug("Retrieved vessel for existing group.");
+                                }
+                            }
+                        }
+                    }
+                }
+
+            }
+
+            protected void WriteGroupVesselsToFile()
+            {
+                string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groupvessels.txt");
+                StreamWriter sw = new StreamWriter(filepath);
+                DirectoriesAndFilesCheck();
+                foreach(string groupname in groupVessels.Keys)
+                {
+                    foreach(PlayerVessel groupvessel in groupVessels[groupname])
+                    {
+                        string newline = string.Format("{0}#{1}",groupname,groupvessel.ToString());
+                        sw.WriteLine(newline);
+                    }
+                }
+                DarkMultiPlayerServer.DarkLog.Debug("Permission System: Groupvessels written to file.");
+                sw.Close();
+            }
+
             #endregion
 
             #region Groups
@@ -566,45 +660,27 @@ namespace SyntaxMPProtection
             {
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groups.txt");
                 StreamWriter sw = new StreamWriter(filepath);
-
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    File.Create(filepath);
-                }
+                DirectoriesAndFilesCheck();
                 foreach (PlayerGroup group in playerGroups)
                 {
                     sw.WriteLine(group.ToString());
                 }
                 sw.Close();
-
+                DarkMultiPlayerServer.DarkLog.Debug("Writing groups to file..");
             }
             protected void ReadGroupsFromFile()
             {
                 string filepath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity", "groups.txt");
                 StreamReader sr = new StreamReader(filepath);
-
-                string dirpath = Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity");
-                if (!Directory.Exists(dirpath))
-                {
-                    Directory.CreateDirectory(Path.Combine(DarkMultiPlayerServer.Server.universeDirectory, "SyntaxSecurity"));
-                }
-                if (!File.Exists(filepath))
-                {
-                    File.Create(filepath);
-                }
+                DirectoriesAndFilesCheck();
                 while (!sr.EndOfStream)
                 {
                     string line = sr.ReadLine();
 
-                    if (line != "")
+                    if (line != "" && line != null)
                     {
                         string[] groupinfo = line.Split(',');
-                        playerGroups.Add(new PlayerGroup(groupinfo[1], groupinfo[0], (SyntaxMPProtection.VesselAccessibilityTypes)Enum.Parse(typeof(SyntaxMPProtection.VesselAccessibilityTypes), groupinfo[2])));
+                        playerGroups.Add(new PlayerGroup(groupinfo[1], groupinfo[0], (PermissionSystem.VesselAccessibilityTypes)Enum.Parse(typeof(PermissionSystem.VesselAccessibilityTypes), groupinfo[2])));
                     }
                 }
                 sr.Close();
@@ -708,7 +784,7 @@ namespace SyntaxMPProtection
             #endregion
 
             #region Group methods
-            internal bool AddPlayerGroup(string _groupName, SyntaxMPProtection.VesselAccessibilityTypes _groupVesselAccessType, string _groupAdmin)
+            internal bool AddPlayerGroup(string _groupName, PermissionSystem.VesselAccessibilityTypes _groupVesselAccessType, string _groupAdmin)
             {
                 bool flag = false;
                 bool groupExists = false;
@@ -731,7 +807,7 @@ namespace SyntaxMPProtection
                 return flag;
             }
 
-            internal bool EditPlayerGroupVesselAccess(string _groupName, string _groupAdmin, SyntaxMPProtection.VesselAccessibilityTypes _groupVesselAccessType)
+            internal bool EditPlayerGroupVesselAccess(string _groupName, string _groupAdmin, PermissionSystem.VesselAccessibilityTypes _groupVesselAccessType)
             {
                 bool flag = false;
 
@@ -804,22 +880,23 @@ namespace SyntaxMPProtection
             string ownername;
             string vesselid;
             string groupname;
-            SyntaxMPProtection.VesselAccessibilityTypes accessType;
+            PermissionSystem.VesselAccessibilityTypes accessType;
 
             internal PlayerVessel()
             {
 
             }
-            internal PlayerVessel(string _vid, SyntaxMPProtection.VesselAccessibilityTypes _at)
+            internal PlayerVessel(string _vid, PermissionSystem.VesselAccessibilityTypes _at, string owner)
             {
                 vesselid = _vid;
                 accessType = _at;
+                ownername = owner;
             }
             public string VesselID
             {
                 get { return vesselid; }
             }
-            public SyntaxMPProtection.VesselAccessibilityTypes AccessType
+            public PermissionSystem.VesselAccessibilityTypes AccessType
             {
                 get { return accessType; }
                 set { accessType = value; }
@@ -832,11 +909,15 @@ namespace SyntaxMPProtection
             public string Owner
             {
                 get { return ownername; }
-                set { ownername = value; }
             }
+
+            /// <summary>
+            /// Returns Vessel in format: vesselid$groupname$accesstype
+            /// </summary>
+            /// <returns></returns>
             public override string ToString()
             {
-                return string.Format("{0}${1}${2}", vesselid, groupname, accessType);
+                return string.Format("{0}#{1}${2}${3}", ownername, groupname, vesselid, accessType);
             }
         }
 
@@ -844,10 +925,10 @@ namespace SyntaxMPProtection
         {
             string groupname;
             string groupadmin;
-            SyntaxMPProtection.VesselAccessibilityTypes vesselAccessType;
+            PermissionSystem.VesselAccessibilityTypes vesselAccessType;
             //int membercount; extra feature for lateron
 
-            internal PlayerGroup(string _gname, string _gadmin, SyntaxMPProtection.VesselAccessibilityTypes _vat)
+            internal PlayerGroup(string _gname, string _gadmin, PermissionSystem.VesselAccessibilityTypes _vat)
             {
                 groupname = _gname;
                 groupadmin = _gadmin;
@@ -864,7 +945,7 @@ namespace SyntaxMPProtection
                 get { return groupadmin; }
                 set { groupadmin = value; }
             }
-            public SyntaxMPProtection.VesselAccessibilityTypes VesselAccessType
+            public PermissionSystem.VesselAccessibilityTypes VesselAccessType
             {
                 get { return vesselAccessType; }
                 set { vesselAccessType = value; }

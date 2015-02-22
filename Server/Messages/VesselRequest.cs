@@ -27,10 +27,10 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             sendVesselCount++;
                             // Syntax Anti Cheat System added
-                            if (SyntaxMPProtection.SyntaxCode.SyntaxAntiCheatSystem.SAHSCheck(client, vesselID))
-                            {
+                            //if (SyntaxMPProtection.SyntaxCode.SyntaxAntiCheatSystem.SAHSCheck(client, vesselID))
+                            //{
                                 VesselProto.SendVessel(client, vesselID, vesselData);
-                            }
+                            //}
                         }
                         else
                         {

@@ -108,17 +108,12 @@ namespace DarkMultiPlayer
         private void ClaimVessel(string commandArgs)
         {
             string[] args = commandArgs.Split(' ');
+            string playername = Settings.fetch.playerName;
+            string personalOrGroup = args[0];
+            string privateOrPublic = args[1];
             string vesselid = FlightGlobals.ActiveVessel.id.ToString();
-            string commandargsFormatted = string.Format("{0},{1},{2}", args[0], args[1],vesselid); // third param is vesselid
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<int>((int)ChatMessageType.SYNTAX_BRIDGE);
-                mw.Write<string>(Settings.fetch.playerName);
-                mw.Write<string>(commandargsFormatted);
-                NetworkWorker.fetch.SendChatMessage(mw.GetMessageBytes());
-            }
+            PermissionSystem.SyntaxPermissionSystem.PermissionClaim(playername, personalOrGroup, privateOrPublic, vesselid);
             
-
         }
 
         private void DisplayHelp(string commandArgs)
