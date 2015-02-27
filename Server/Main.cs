@@ -314,7 +314,7 @@ namespace DarkMultiPlayerServer
             {
                 ctrlCTime = DateTime.UtcNow.Ticks;
                 args.Cancel = true;
-                ShutDown("Caught Crtl+C");
+                ShutDown("Caught Ctrl+C");
             }
             else
             {
