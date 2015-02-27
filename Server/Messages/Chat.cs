@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
+
 namespace DarkMultiPlayerServer.Messages
 {
     public class Chat
@@ -193,10 +194,63 @@ namespace DarkMultiPlayerServer.Messages
                             }
                         }
                         break;
+                        // Outdated since migration to clientmessagetype
+                    //case ChatMessageType.SYNTAX_BRIDGE:
+                    //    {
+                    //        string message = mr.Read<string>();
+                    //        string playername = client.playerName;
+                    //        if (!SyntaxMPProtection.SyntaxCode.SyntaxPlayer.isProtected(client.playerName))
+                    //        {
+                    //            // TODO: popup a window or warning for the user that wants to protect a vessel.
+                    //            playername = client.playerName;
+                    //            SyntaxMPProtection.SyntaxCode.SyntaxPlayer.SaveCredentials(playername);
+                    //        }
+                    //        string[] args = message.Split(',');
+
+                    //        DarkLog.Normal("Determining player vessel arguments");
+                    //        DarkLog.Normal(string.Format("SyntaxCode: For debug sake show arguments: {0},{1},{2}", args[0], args[1], args[2]));
+                    //        if (args[0] == "personal")
+                    //        {
+                    //            if (args[1] == "private")
+                    //            {
+                    //                DarkLog.Normal("SyntaxCodes: Claiming vessel: " + args[2] + " for player " + playername);
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerVessel.ClaimVessel(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Private);
+                    //                DarkLog.Normal("SyntaxCodes: Vessel claimed.");
+                    //            }
+                    //            else if (args[1] == "public")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerVessel.ClaimVessel(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Public);
+                    //            }
+                    //            else if (args[1] == "spectate")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerVessel.ClaimVessel(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Spectate);
+                    //            }
+                    //        }
+                    //        else if (args[0] == "group")
+                    //        {
+                    //            if (args[1] == "private")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerGroup.ClaimVesselForGroup(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Private);
+                    //            }
+                    //            else if (args[1] == "group")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerGroup.ClaimVesselForGroup(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Group);
+                    //            }
+                    //            else if (args[1] == "public")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerGroup.ClaimVesselForGroup(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Public);
+                    //            }
+                    //            else if (args[1] == "spectate")
+                    //            {
+                    //                SyntaxMPProtection.SyntaxCode.SyntaxPlayerVessel.ClaimVessel(playername, args[2], SyntaxMPProtection.VesselAccessibilityTypes.Spectate);
+                    //            }
+                    //        }
+                    //    }
+                    //    break;
                 }
             }
         }
-
+        
         public static void SendPlayerChatChannels(ClientObject client)
         {
             List<string> playerList = new List<string>();

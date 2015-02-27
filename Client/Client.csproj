@@ -30,15 +30,10 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="System" />
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>..\UnityEngine.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
+    <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="MessageWriter2">
       <HintPath>..\MessageWriter2.dll</HintPath>
@@ -46,11 +41,15 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\UnityEngine.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ConfigNodeSerializer.cs" />
+    <Compile Include="SyntaxPermissionSystem.cs" />
     <Compile Include="Utilities\CompatibilityChecker.cs" />
     <Compile Include="VesselWorker.cs" />
     <Compile Include="TimeSyncer.cs" />

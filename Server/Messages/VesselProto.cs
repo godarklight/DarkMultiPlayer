@@ -11,6 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             //TODO: Relay the message as is so we can optimize it
             //Send vessel
+            
             using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about planet time
@@ -20,6 +21,17 @@ namespace DarkMultiPlayerServer.Messages
                 bool isFlyingUpdate = mr.Read<bool>();
                 byte[] possibleCompressedBytes = mr.Read<byte[]>();
                 byte[] vesselData = Compression.DecompressIfNeeded(possibleCompressedBytes);
+                // SAHSCheck returns true if either the client is the owner or the vessel is set to either public or spectate
+                // In case of spectate, it returns true -after- locking the vessel controls to prevent vessel abuse.
+                if (!PermissionSystem.Core.AntiCheatSystem.SAHSCheck(client, vesselGuid))
+                {
+                    client.disconnectClient = true;
+                    ConnectionEnd.SendConnectionEnd(client, "Kicked for hijacking protected vessel.");
+                    ClientHandler.DisconnectClient(client);
+                    DarkLog.Debug("Player kicked for trying to hijack a vessel: " + vesselGuid + " client kicked: " + client.playerName);
+                    return;
+                }
+                DarkLog.Debug("Relaying SPECTATING vessel " + vesselGuid + " from " + client.playerName);
                 if (isFlyingUpdate)
                 {
                     DarkLog.Debug("Relaying FLYING vessel " + vesselGuid + " from " + client.playerName);
@@ -39,6 +51,7 @@ namespace DarkMultiPlayerServer.Messages
                         File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Vessels", vesselGuid + ".txt"), vesselData);
                     }
                 }
+                
 
                 ServerMessage newCompressedMessage = null;
                 ServerMessage newDecompressedMessage = null;

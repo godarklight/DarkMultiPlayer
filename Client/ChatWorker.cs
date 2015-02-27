@@ -82,6 +82,7 @@ namespace DarkMultiPlayer
             RegisterChatCommand("motd", ServerMOTD, "Gets the current Message of the Day");
             RegisterChatCommand("resize", ResizeChat, "Resized the chat window");
             RegisterChatCommand("version", DisplayVersion, "Displays the current version of DMP");
+            RegisterChatCommand("claim", ClaimVessel, "Claims the current vessel. Format: /claim [personal/group] [private/public]");
         }
 
         private void PrintToSelectedChannel(string text)
@@ -102,6 +103,17 @@ namespace DarkMultiPlayer
             {
                 QueuePrivateMessage(Settings.fetch.playerName, selectedPMChannel, text);
             }
+        }
+
+        private void ClaimVessel(string commandArgs)
+        {
+            string[] args = commandArgs.Split(' ');
+            string playername = Settings.fetch.playerName;
+            string personalOrGroup = args[0];
+            string privateOrPublic = args[1];
+            string vesselid = FlightGlobals.ActiveVessel.id.ToString();
+            PermissionSystem.SyntaxPermissionSystem.PermissionClaim(playername, personalOrGroup, privateOrPublic, vesselid);
+            
         }
 
         private void DisplayHelp(string commandArgs)
@@ -473,6 +485,7 @@ namespace DarkMultiPlayer
                     }
                     commandPart = commandPart.Substring(0, commandPart.IndexOf(' '));
                 }
+                
                 if (commandPart.Length > 0)
                 {
                     if (registeredChatCommands.ContainsKey(commandPart))

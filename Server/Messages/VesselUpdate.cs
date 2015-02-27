@@ -8,11 +8,11 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void HandleVesselUpdate(ClientObject client, byte[] messageData)
         {
-            //We only relay this message.
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_UPDATE;
-            newMessage.data = messageData;
-            ClientHandler.SendToAll(client, newMessage, false);
+                //We only relay this message.
+                ServerMessage newMessage = new ServerMessage();
+                newMessage.type = ServerMessageType.VESSEL_UPDATE;
+                newMessage.data = messageData;
+                ClientHandler.SendToAll(client, newMessage, false);
         }
     }
 }

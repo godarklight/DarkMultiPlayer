@@ -1,0 +1,9 @@
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\SyntaxLibrary.dll
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\SyntaxLibrary.pdb
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\DarkMultiPlayer-Common.dll
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\DMPServer.exe
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\ICSharpCode.SharpZipLib.dll
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\bin\Release\MessageWriter2.dll
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\obj\Release\SyntaxLibrary.csprojResolveAssemblyReference.cache
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\obj\Release\SyntaxLibrary.dll
+C:\Users\Admin\Desktop\Studie\DarkMultiPlayer-master\DarkMultiPlayer-master\SyntaxLibrary\obj\Release\SyntaxLibrary.pdb

@@ -40,6 +40,8 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Messages\PermissionSystemMessage.cs" />
+    <Compile Include="SyntaxPermissionSystemAccess.cs" />
     <Compile Include="GameplaySettings.cs" />
     <Compile Include="LogExpire.cs" />
     <Compile Include="Main.cs" />
@@ -59,6 +61,8 @@
     <Compile Include="Messages\Handshake.cs" />
     <Compile Include="Messages\Heartbeat.cs" />
     <Compile Include="BanSystem.cs" />
+    <Compile Include="SyntaxPermissionSystem.cs" />
+    <Compile Include="SyntaxPermissionSystemHandler.cs" />
     <Compile Include="WhitelistSystem.cs" />
     <Compile Include="AdminSystem.cs" />
     <Compile Include="Messages\Chat.cs" />
@@ -95,7 +99,5 @@
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="Messages\" />
-  </ItemGroup>
+  <ItemGroup />
 </Project>

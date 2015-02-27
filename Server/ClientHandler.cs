@@ -140,6 +140,8 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        // MrSyntax: Implemented permissions system checks when a client connects wether he/she already exists in the permission systems list
+        // IF not, it will add it to it without a password to smooth things out. Password can be changed via ingame GUI
         private static void SetupClient(TcpClient newClientConnection)
         {
             ClientObject newClientObject = new ClientObject();
@@ -153,6 +155,17 @@ namespace DarkMultiPlayerServer
             StartReceivingIncomingMessages(newClientObject);
             StartSendingOutgoingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
+
+            //// If the client has not been added to the permissions system, add it for future usage.
+            //if(!SyntaxCode.SyntaxPlayer.isProtected(newClientObject.playerName))
+            //{
+            //    SyntaxCode.SyntaxPlayer.SaveCredentials(newClientObject.playerName);
+            //    DarkLog.Debug(string.Format("SyntaxCode: Permissions System added new client: {0}",newClientObject.playerName));
+            //}
+            //else
+            //{
+            //    DarkLog.Debug(string.Format("SyntaxCode: Permissions System recognised existing client: {0}",newClientObject.playerName));
+            //}
             Messages.Handshake.SendHandshakeChallange(newClientObject);
             lock (clients)
             {
@@ -623,6 +636,10 @@ namespace DarkMultiPlayerServer
                         break;
                     case ClientMessageType.CONNECTION_END:
                         Messages.ConnectionEnd.HandleConnectionEnd(client, message.data);
+                        break;
+                    case ClientMessageType.SYNTAX_BRIDGE: // Added to handle permission system client/server connection
+                        Messages.PermissionSystemMessage.HandlePermissionSystem(client, message.data);
+                        //Messages.PermissionSystemMessage.HandlePermissionRequest(client, message.data); // Outdated since usage of own switch
                         break;
                     default:
                         DarkLog.Debug("Unhandled message type " + message.type);
