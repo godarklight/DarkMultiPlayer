@@ -16,12 +16,13 @@ namespace DarkMultiPlayer
         private Rect moveRect;
         private GUILayoutOption[] layoutOptions;
         private GUILayoutOption[] smallOption;
+        private Vector2 scrollPos;
         //Styles
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         //const
         private const float WINDOW_HEIGHT = 400;
-        private const float WINDOW_WIDTH = 300;
+        private const float WINDOW_WIDTH = 305;
         //TempColour
         private Color tempColor = new Color(1f, 1f, 1f, 1f);
         private GUIStyle tempColorLabelStyle;
@@ -51,6 +52,8 @@ namespace DarkMultiPlayer
             //Setup GUI stuff
             windowRect = new Rect(Screen.width / 2f - WINDOW_WIDTH / 2f, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
             moveRect = new Rect(0, 0, 10000, 20);
+            
+            GUI.backgroundColor = new Color(GUI.backgroundColor.r, GUI.backgroundColor.g, GUI.backgroundColor.b, 191.25f);
 
             windowStyle = new GUIStyle(GUI.skin.window);
             buttonStyle = new GUIStyle(GUI.skin.button);
@@ -75,16 +78,16 @@ namespace DarkMultiPlayer
             switch (Settings.fetch.toolbarType)
             {
                 case DMPToolbarType.DISABLED:
-                    toolbarMode = "Disabled";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbDisabled");
                     break;
                 case DMPToolbarType.FORCE_STOCK:
-                    toolbarMode = "Stock";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbStock");
                     break;
                 case DMPToolbarType.BLIZZY_IF_INSTALLED:
-                    toolbarMode = "Blizzy if installed";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbBlizzy");
                     break;
                 case DMPToolbarType.BOTH_IF_INSTALLED:
-                    toolbarMode = "Both if installed";
+                    toolbarMode = LanguageWorker.fetch.GetString("tbBoth");
                     break;
             }
         }
@@ -103,7 +106,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6711 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer - Options", windowStyle, layoutOptions));
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6711 + Client.WINDOW_OFFSET, windowRect, DrawContent, String.Format("DarkMultiPlayer - {0}", LanguageWorker.fetch.GetString("options")), windowStyle, layoutOptions));
             }
             CheckWindowLock();
         }
@@ -119,8 +122,9 @@ namespace DarkMultiPlayer
             //Player color
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(WINDOW_WIDTH - 5), GUILayout.Height(WINDOW_HEIGHT - 25));
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Player name color: ");
+            GUILayout.Label(LanguageWorker.fetch.GetString("playerNameColor"));
             GUILayout.Label(Settings.fetch.playerName, tempColorLabelStyle);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
@@ -138,11 +142,11 @@ namespace DarkMultiPlayer
             tempColorLabelStyle.active.textColor = tempColor;
             tempColorLabelStyle.normal.textColor = tempColor;
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Random", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("randomBtn"), buttonStyle))
             {
                 tempColor = PlayerColorWorker.GenerateRandomColor();
             }
-            if (GUILayout.Button("Set", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("setBtn"), buttonStyle))
             {
                 PlayerStatusWindow.fetch.colorEventHandled = false;
                 Settings.fetch.playerColor = tempColor;
@@ -155,12 +159,12 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             GUILayout.Space(10);
             //Cache
-            GUILayout.Label("Cache size");
-            GUILayout.Label("Current size: " + Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3) + "MB.");
-            GUILayout.Label("Max size: " + Settings.fetch.cacheSize + "MB.");
+            GUILayout.Label(LanguageWorker.fetch.GetString("cacheSizeLabel"));
+            GUILayout.Label(LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("currentCacheSizeLabel"), new string[] { Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3).ToString() }));
+            GUILayout.Label(LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("maxCacheSizeLabel"), new string[] { Settings.fetch.cacheSize.ToString() }));
             newCacheSize = GUILayout.TextArea(newCacheSize);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Set", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("setBtn"), buttonStyle))
             {
                 int tempCacheSize;
                 if (Int32.TryParse(newCacheSize, out tempCacheSize))
@@ -183,18 +187,18 @@ namespace DarkMultiPlayer
                     newCacheSize = Settings.fetch.cacheSize.ToString();
                 }
             }
-            if (GUILayout.Button("Expire cache"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("expireCacheButton")))
             {
                 UniverseSyncCache.fetch.ExpireCache();
             }
-            if (GUILayout.Button("Delete cache"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("deleteCacheButton")))
             {
                 UniverseSyncCache.fetch.DeleteCache();
             }
             GUILayout.EndHorizontal();
             //Key bindings
             GUILayout.Space(10);
-            string chatDescription = "Set chat key (current: " + Settings.fetch.chatKey + ")";
+            string chatDescription = LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("setChatKeyBtn"), new string[] { LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.chatKey.ToString() });
             if (settingChat)
             {
                 chatDescription = "Setting chat key (click to cancel)...";
@@ -216,7 +220,7 @@ namespace DarkMultiPlayer
             {
                 settingChat = !settingChat;
             }
-            string screenshotDescription = "Set screenshot key (current: " + Settings.fetch.screenshotKey.ToString() + ")";
+            string screenshotDescription = LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("setScrnShotKeyBtn"), new string[]{ LanguageWorker.fetch.GetString("currentKey"), Settings.fetch.screenshotKey.ToString() });
             if (settingScreenshot)
             {
                 screenshotDescription = "Setting screenshot key (click to cancel)...";
@@ -239,35 +243,35 @@ namespace DarkMultiPlayer
                 settingScreenshot = !settingScreenshot;
             }
             GUILayout.Space(10);
-            GUILayout.Label("Generate a server DMPModControl:");
-            if (GUILayout.Button("Generate blacklist DMPModControl.txt"))
+            GUILayout.Label(LanguageWorker.fetch.GetString("generateModCntrlLabel"));
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("generateModBlacklistBtn")))
             {
                 ModWorker.fetch.GenerateModControlFile(false);
             }
-            if (GUILayout.Button("Generate whitelist DMPModControl.txt"))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("generateModWhitelistBtn")))
             {
                 ModWorker.fetch.GenerateModControlFile(true);
             }
-            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, "Generate Universe from saved game", buttonStyle);
-            if (GUILayout.Button("Reset disclaimer"))
+            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, LanguageWorker.fetch.GetString("generateUniverseSavedGameBtn"), buttonStyle);
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("resetDisclaimerBtn")))
             {
                 Settings.fetch.disclaimerAccepted = 0;
                 Settings.fetch.SaveSettings();
             }
-            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, "Enable compression", buttonStyle);
+            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("enableCompressionBtn"), new string[] { (Settings.fetch.compressionEnabled ? LanguageWorker.fetch.GetString("disable") : LanguageWorker.fetch.GetString("enable")) }), buttonStyle);
             if (settingCompression != Settings.fetch.compressionEnabled)
             {
                 Settings.fetch.compressionEnabled = settingCompression;
                 Settings.fetch.SaveSettings();
             }
-            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, "Enable revert", buttonStyle);
+            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("enableRevertBtn"), new string[] { (Settings.fetch.revertEnabled ? LanguageWorker.fetch.GetString("disable") : LanguageWorker.fetch.GetString("enable")) }), buttonStyle);
             if (settingRevert != Settings.fetch.revertEnabled)
             {
                 Settings.fetch.revertEnabled = settingRevert;
                 Settings.fetch.SaveSettings();
             }
             GUILayout.BeginHorizontal();
-            GUILayout.Label("Toolbar:", smallOption);
+            GUILayout.Label(LanguageWorker.fetch.GetString("toolbarModeLabel"), smallOption);
             if (GUILayout.Button(toolbarMode, buttonStyle))
             {
                 int newSetting = (int)Settings.fetch.toolbarType + 1;
@@ -282,11 +286,27 @@ namespace DarkMultiPlayer
                 ToolbarSupport.fetch.DetectSettingsChange();
             }
             GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(LanguageWorker.fetch.GetString("langLabel"), smallOption);
+            if (GUILayout.Button(LanguageWorker.fetch.GetLanguageById(Settings.fetch.useLanguage), buttonStyle))
+            {
+                int newSetting = (int)Settings.fetch.useLanguage + 1;
+
+                if (!Enum.IsDefined(typeof(DMPLanguage), newSetting))
+                {
+                    newSetting = 0;
+                }
+                Settings.fetch.useLanguage = (DMPLanguage)newSetting;
+                Settings.fetch.SaveSettings();
+                LanguageWorker.fetch.LoadLanguage(Settings.fetch.useLanguage);
+            }
+            GUILayout.EndHorizontal();
             GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Close", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetString("closeBtn"), buttonStyle))
             {
                 display = false;
             }
+            GUILayout.EndScrollView();
             GUILayout.EndVertical();
         }
 

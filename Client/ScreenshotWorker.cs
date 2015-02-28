@@ -105,7 +105,7 @@ namespace DarkMultiPlayer
                             highlightedPlayers.Add(notifyPlayer);
                         }
                     }
-                    ChatWorker.fetch.QueueChannelMessage("Server", "", notifyPlayer + " shared screenshot");
+                    ChatWorker.fetch.QueueChannelMessage("Server", "", LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("sharedScreenshotMsg"), new string[] {notifyPlayer}));
                 }
 
                 //Update highlights
@@ -193,11 +193,11 @@ namespace DarkMultiPlayer
                         if (finishedUploadingScreenshot)
                         {
                             displayScreenshotUploadingMessage = false;
-                            screenshotUploadMessage = ScreenMessages.PostScreenMessage("Screenshot uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                            screenshotUploadMessage = ScreenMessages.PostScreenMessage(LanguageWorker.fetch.GetString("screenshotUploadedMsg"), 2f, ScreenMessageStyle.UPPER_CENTER);
                         }
                         else
                         {
-                            screenshotUploadMessage = ScreenMessages.PostScreenMessage("Uploading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                            screenshotUploadMessage = ScreenMessages.PostScreenMessage(LanguageWorker.fetch.GetString("uploadingScreenshotMsg"), 1f, ScreenMessageStyle.UPPER_CENTER);
                         }
                     }
 
@@ -207,7 +207,7 @@ namespace DarkMultiPlayer
                         {
                             screenshotDownloadMessage.duration = 0f;
                         }
-                        screenshotDownloadMessage = ScreenMessages.PostScreenMessage("Downloading screenshot...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                        screenshotDownloadMessage = ScreenMessages.PostScreenMessage(LanguageWorker.fetch.GetString("downloadingScreenshotMsg"), 1f, ScreenMessageStyle.UPPER_CENTER);
                     }
                 }
 
@@ -247,7 +247,7 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption));
+                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, LanguageWorker.fetch.GetString("screenshots"), windowStyle, windowLayoutOption));
             }
             CheckWindowLock();
         }
@@ -266,7 +266,7 @@ namespace DarkMultiPlayer
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
             GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
-            if (GUILayout.Button("Upload (" + Settings.fetch.screenshotKey.ToString() + ")", buttonStyle))
+            if (GUILayout.Button(LanguageWorker.fetch.GetFormattedString(LanguageWorker.fetch.GetString("uploadBtnKey"), new string[] { Settings.fetch.screenshotKey.ToString() }), buttonStyle))
             {
                 uploadEventHandled = false;
             }

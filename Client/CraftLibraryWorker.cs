@@ -144,11 +144,11 @@ namespace DarkMultiPlayer
                     if (finishedUploadingCraft)
                     {
                         displayCraftUploadingMessage = false;
-                        craftUploadMessage = ScreenMessages.PostScreenMessage("Craft uploaded!", 2f, ScreenMessageStyle.UPPER_CENTER);
+                        craftUploadMessage = ScreenMessages.PostScreenMessage(LanguageWorker.fetch.GetString("uploadedCraftMsg"), 2f, ScreenMessageStyle.UPPER_CENTER);
                     }
                     else
                     {
-                        craftUploadMessage = ScreenMessages.PostScreenMessage("Uploading craft...", 1f, ScreenMessageStyle.UPPER_CENTER);
+                        craftUploadMessage = ScreenMessages.PostScreenMessage(LanguageWorker.fetch.GetString("uploadingCraftMsg"), 1f, ScreenMessageStyle.UPPER_CENTER);
                     }
                 }
 
@@ -334,14 +334,14 @@ namespace DarkMultiPlayer
             }
             if (safeDisplay)
             {
-                playerWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6707 + Client.WINDOW_OFFSET, playerWindowRect, DrawPlayerContent, "DarkMultiPlayer - Craft Library", windowStyle, playerLayoutOptions));
+                playerWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6707 + Client.WINDOW_OFFSET, playerWindowRect, DrawPlayerContent, String.Format("DarkMultiPlayer - {0}", LanguageWorker.fetch.GetString("craftLibrary")), windowStyle, playerLayoutOptions));
             }
             if (safeDisplay && selectedPlayer != null)
             {
                 //Sanity check
                 if (playersWithCrafts.Contains(selectedPlayer) || selectedPlayer == Settings.fetch.playerName)
                 {
-                    libraryWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6708 + Client.WINDOW_OFFSET, libraryWindowRect, DrawLibraryContent, "DarkMultiPlayer - " + selectedPlayer + " Craft Library", windowStyle, libraryLayoutOptions));
+                    libraryWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6708 + Client.WINDOW_OFFSET, libraryWindowRect, DrawLibraryContent, String.Format("DarkMultiPlayer - {0}", LanguageWorker.fetch.GetFormattedString("plrCraftLibrary", new string[] { selectedPlayer })), windowStyle, libraryLayoutOptions));
                 }
                 else
                 {
@@ -391,7 +391,7 @@ namespace DarkMultiPlayer
             bool newShowUpload = false;
             if (selectedPlayer == Settings.fetch.playerName)
             {
-                newShowUpload = GUILayout.Toggle(showUpload, "Upload", buttonStyle);
+                newShowUpload = GUILayout.Toggle(showUpload, LanguageWorker.fetch.GetString("uploadBtn"), buttonStyle);
             }
             if (newShowUpload && !showUpload)
             {
@@ -541,7 +541,7 @@ namespace DarkMultiPlayer
                                 downloadCraftType = entry.Key;
                                 downloadCraftName = craftName;
                             }
-                            if (GUILayout.Button("Remove", buttonStyle))
+                            if (GUILayout.Button(LanguageWorker.fetch.GetString("removeBtn"), buttonStyle))
                             {
                                 deleteCraftType = entry.Key;
                                 deleteCraftName = craftName;

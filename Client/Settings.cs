@@ -24,6 +24,7 @@ namespace DarkMultiPlayer
         public bool compressionEnabled;
         public bool revertEnabled;
         public DMPToolbarType toolbarType;
+        public DMPLanguage useLanguage;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string PUBLIC_KEY_FILE = "publickey.txt";
@@ -211,6 +212,15 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Adding toolbar flag to settings file");
                     toolbarType = DMPToolbarType.BLIZZY_IF_INSTALLED;
                 }
+                try
+                {
+                    useLanguage = (DMPLanguage)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@language").Value);
+                }
+                catch
+                {
+                    DarkLog.Debug("Adding language flag to settings file");
+                    useLanguage = DMPLanguage.ENGLISH;
+                }
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
                 foreach (XmlNode xmlNode in serverNodeList)
@@ -394,6 +404,16 @@ namespace DarkMultiPlayer
                 XmlAttribute toolbarAttribute = xmlDoc.CreateAttribute("toolbar");
                 toolbarAttribute.Value = revertEnabled.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(toolbarAttribute);
+            }
+            try
+            {
+                xmlDoc.SelectSingleNode("/settings/global/@language").Value = ((int)useLanguage).ToString();
+            }
+            catch
+            {
+                XmlAttribute langAttribute = xmlDoc.CreateAttribute("language");
+                langAttribute.Value = ((int)useLanguage).ToString();
+                xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(langAttribute);
             }
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();
