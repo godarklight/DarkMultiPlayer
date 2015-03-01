@@ -247,6 +247,7 @@ namespace DarkMultiPlayer
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, actiongroupControls[2]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.SAS, actiongroupControls[3]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.RCS, actiongroupControls[4]);
+            HackyInAtmoLoader.fetch.SetVesselUpdate(updateVessel.id, this);
         }
     }
 }

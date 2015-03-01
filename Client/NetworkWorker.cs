@@ -150,6 +150,7 @@ namespace DarkMultiPlayer
                 Client.fetch.gameRunning = true;
                 AsteroidWorker.fetch.workerEnabled = true;
                 VesselWorker.fetch.workerEnabled = true;
+                HackyInAtmoLoader.fetch.workerEnabled = true;
                 PlayerStatusWorker.fetch.workerEnabled = true;
                 ScenarioWorker.fetch.workerEnabled = true;
                 DynamicTickWorker.fetch.workerEnabled = true;
