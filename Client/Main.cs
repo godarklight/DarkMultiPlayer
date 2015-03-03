@@ -102,6 +102,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(PlayerColorWorker.Reset);
                 resetEvent.Add(PlayerStatusWindow.Reset);
                 resetEvent.Add(PlayerStatusWorker.Reset);
+                resetEvent.Add(PartKiller.Reset);
                 resetEvent.Add(ScenarioWorker.Reset);
                 resetEvent.Add(ScreenshotWorker.Reset);
                 resetEvent.Add(TimeSyncer.Reset);

@@ -131,6 +131,7 @@ namespace DarkMultiPlayer
                 FlagSyncer.fetch.workerEnabled = true;
                 FlagSyncer.fetch.SendFlagList();
                 PlayerColorWorker.fetch.SendPlayerColorToServer();
+                PartKiller.fetch.RegisterGameHooks();
             }
             if (state == ClientState.TIME_LOCKING)
             {

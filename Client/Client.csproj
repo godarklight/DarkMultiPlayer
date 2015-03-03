@@ -89,6 +89,7 @@
     <Compile Include="ToolbarSupport.cs" />
     <Compile Include="3DDebug.cs" />
     <Compile Include="HackyInAtmoLoader.cs" />
+    <Compile Include="PartKiller.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

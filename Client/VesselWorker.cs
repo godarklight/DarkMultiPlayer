@@ -53,8 +53,6 @@ namespace DarkMultiPlayer
         private Dictionary <Guid, string> vesselNames = new Dictionary<Guid, string>();
         private Dictionary <Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
         private Dictionary <Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
-        //Part tracking
-        private Dictionary<uint, Guid> vesselParts = new Dictionary<uint, Guid>();
         //Known kerbals
         private Dictionary<string, ProtoCrewMember> serverKerbals = new Dictionary<string, ProtoCrewMember>();
         private Dictionary<string, Guid> assignedKerbals = new Dictionary<string, Guid>();
@@ -77,9 +75,6 @@ namespace DarkMultiPlayer
         private Guid fromDockedVesselID;
         private Guid toDockedVesselID;
         private bool sentDockingDestroyUpdate;
-        private bool isSpectatorDocking;
-        private string spectatorDockingPlayer;
-        private string spectatorDockingID;
         //System.Reflection hackiness for loading kerbals into the crew roster:
         private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
 
@@ -151,12 +146,13 @@ namespace DarkMultiPlayer
                             activeVesselLoadUpdates++;
                             return;
                         }
-                        activeVesselLoadUpdates = 0;
-                        if (FlightGlobals.fetch.activeVessel.patchedConicRenderer == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver == null || FlightGlobals.fetch.activeVessel.patchedConicRenderer.solver.maneuverNodes == null)
+                        //Wait 10 updates maybe?
+                        if (activeVesselLoadUpdates < 10)
                         {
-                            DarkLog.Debug("Waiting for new active vessel to be sane");
+                            activeVesselLoadUpdates++;
                             return;
                         }
+                        activeVesselLoadUpdates = 0;
                         DarkLog.Debug("Switching to active vessel!");
                         FlightGlobals.ForceSetActiveVessel(newActiveVessel);
                         newActiveVessel = null;
@@ -187,11 +183,6 @@ namespace DarkMultiPlayer
                 if (fromDockedVesselID != Guid.Empty || toDockedVesselID != Guid.Empty)
                 {
                     HandleDocking();
-                }
-
-                if (isSpectatorDocking)
-                {
-                    HandleSpectatorDocking();
                 }
 
                 //Process new messages
@@ -226,9 +217,6 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
-            GameEvents.onVesselCreate.Add(this.OnVesselCreate);
-            GameEvents.onVesselLoaded.Add(this.OnVesselLoaded);
-            GameEvents.onPartDestroyed.Add(this.OnPartDestroy);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
         }
@@ -239,9 +227,6 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
-            GameEvents.onVesselCreate.Remove(this.OnVesselCreate);
-            GameEvents.onVesselLoaded.Remove(this.OnVesselLoaded);
-            GameEvents.onPartDestroyed.Remove(this.OnPartDestroy);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
         }
@@ -340,44 +325,6 @@ namespace DarkMultiPlayer
                     dockingMessage.duration = 0f;
                 }
                 dockingMessage = ScreenMessages.PostScreenMessage("Docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
-            }
-        }
-
-        private void HandleSpectatorDocking()
-        {
-            if (spectatorDockingID == null)
-            {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
-                {
-                    lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
-                    if (dockingMessage != null)
-                    {
-                        dockingMessage.duration = 0f;
-                    }
-                    dockingMessage = ScreenMessages.PostScreenMessage("Spectating docking in progress...", 3f, ScreenMessageStyle.UPPER_CENTER);
-                }
-            }
-            else
-            {
-                Vessel switchToVessel = null;
-                switchToVessel = FlightGlobals.fetch.vessels.FindLast(v => v.id.ToString() == spectatorDockingID);
-                if (switchToVessel != null)
-                {
-                    KillVessel(FlightGlobals.fetch.activeVessel);
-                    FlightGlobals.ForceSetActiveVessel(switchToVessel);
-                    isSpectatorDocking = false;
-                    spectatorDockingID = null;
-                    spectatorDockingPlayer = null;
-                }
-            }
-        }
-
-        private void CheckMasterAcquire(string playerName, string lockName, bool lockResult)
-        {
-            if (isSpectatorDocking && playerName == spectatorDockingPlayer && lockName.StartsWith("control-") && lockResult)
-            {
-                //Cut off the control- part of the lock, that's our new masters ID.
-                spectatorDockingID = lockName.Substring(8);
             }
         }
 
@@ -842,14 +789,10 @@ namespace DarkMultiPlayer
                 //Don't send updates in spectate mode
                 return;
             }
+
             if (fromDockedVesselID != Guid.Empty || toDockedVesselID != Guid.Empty)
             {
                 //Don't send updates while docking
-                return;
-            }
-            if (isSpectatorDocking)
-            {
-                //Definitely dont send updates while spectating a docking
                 return;
             }
 
@@ -1066,11 +1009,6 @@ namespace DarkMultiPlayer
                 {
                     if (FlightGlobals.fetch.activeVessel != null)
                     {
-                        if (isSpectatorDocking)
-                        {
-                            spectateType = 1;
-                            return true;
-                        }
                         if (LockSystem.fetch.LockExists("control-" + FlightGlobals.fetch.activeVessel.id.ToString()) && !LockSystem.fetch.LockIsOurs("control-" + FlightGlobals.fetch.activeVessel.id.ToString()))
                         {
                             spectateType = 1;
@@ -1389,6 +1327,8 @@ namespace DarkMultiPlayer
                     }
                     //Don't kill the active vessel - Kill it after we switch.
                     //Killing the active vessel causes all sorts of crazy problems.
+                    PartKiller.fetch.ForgetVessel(oldVessel);
+
                     if (wasActive)
                     {
                         delayKillVessels.Add(oldVessel);
@@ -1810,88 +1750,6 @@ namespace DarkMultiPlayer
             NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
         }
 
-        public void OnVesselCreate(Vessel createdVessel)
-        {
-            try
-            {
-                //DarkLog.Debug("Vessel creation detected: " + createdVessel.id + ", name: " + createdVessel.vesselName);
-                ProtoVessel pv = createdVessel.BackupVessel();
-                bool killShip = false;
-                bool spawnDebris = false;
-                Guid createdVesselID = pv.vesselID;
-                foreach (ProtoPartSnapshot vesselPart in pv.protoPartSnapshots)
-                {
-                    if (vesselPart != null)
-                    {
-                        if (vesselParts.ContainsKey(vesselPart.flightID))
-                        {
-                            Guid partOwner = vesselParts[vesselPart.flightID];
-                            if (!killShip && (createdVesselID != partOwner))
-                            {
-                                if (LockSystem.fetch.LockIsOurs("control-" + partOwner) || LockSystem.fetch.LockIsOurs("update-" + partOwner) || !LockSystem.fetch.LockExists("update-" + partOwner))
-                                {
-                                    //Vessel is ours, update the part owner.
-                                    spawnDebris = true;
-                                    vesselParts[vesselPart.flightID] = createdVesselID;
-                                }
-                                else
-                                {
-                                    DarkLog.Debug("Detected debris for a vessel we do not control, removing " + createdVesselID);
-                                    killShip = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-                if (killShip)
-                {
-                    createdVessel.Die();
-                }
-                if (spawnDebris)
-                {
-                    //DarkLog.Debug("Spawned debris " + createdVesselID + " from " + partOwner);
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Threw in OnVesselCreate: " + e);
-            }
-        }
-
-        public void OnVesselLoaded(Vessel createdVessel)
-        {
-            try
-            {
-                //DarkLog.Debug("Vessel load detected: " + createdVessel.id + ", name: " + createdVessel.vesselName + ", parts: " + createdVessel.parts.Count);
-                Guid loadedVesselID = createdVessel.id;
-                foreach (Part vesselPart in createdVessel.parts)
-                {
-                    if (vesselPart != null)
-                    {
-                        if (!vesselParts.ContainsKey(vesselPart.flightID))
-                        {
-                            //DarkLog.Debug("Loaded part " + vesselPart.name + ", id " + vesselPart.flightID + " belongs to " + loadedVesselID);
-                            vesselParts.Add(vesselPart.flightID, loadedVesselID);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                DarkLog.Debug("Threw in OnVesselLoaded: " + e);
-            }
-        }
-
-        public void OnPartDestroy(Part dyingPart)
-        {
-            if (vesselParts.ContainsKey(dyingPart.flightID))
-            {
-                //DarkLog.Debug("Dying part " + dyingPart.name + ", id " + dyingPart.flightID + " belongs to " + vesselParts[dyingPart.flightID.ToString()]);
-                vesselParts.Remove(dyingPart.flightID);
-            }
-        }
-
         private bool VesselRecentlyLoaded(Guid vesselID)
         {
             return lastLoadVessel.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f) : false;
@@ -1946,19 +1804,11 @@ namespace DarkMultiPlayer
             }
             else
             {
-                //We need to get the spectator to stay spectating until the master has docked.
-                DarkLog.Debug("Docked during spectate mode");
-                if (LockSystem.fetch.LockExists("control-" + FlightGlobals.fetch.activeVessel.id.ToString()))
-                {
-                    isSpectatorDocking = true;
-                    spectatorDockingPlayer = LockSystem.fetch.LockOwner("control-" + FlightGlobals.fetch.activeVessel.id.ToString());
-                }
-                else
-                {
-                    HighLogic.LoadScene(GameScenes.TRACKSTATION);
-                }
+                DarkLog.Debug("Spectator docking happened. This needs to be fixed later.");
             }
         }
+
+
 
         private void OnCrewBoard(GameEvents.FromToAction<Part, Part> partAction)
         {
@@ -2397,7 +2247,6 @@ namespace DarkMultiPlayer
                 }
                 singleton = new VesselWorker();
                 Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
-                LockSystem.fetch.RegisterAcquireHook(singleton.CheckMasterAcquire);
             }
         }
 
