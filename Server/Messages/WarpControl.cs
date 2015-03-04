@@ -11,7 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         //SUBSPACE
         private static int freeID;
         private static Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
-        private static Dictionary<string, int> playerSubspace = new Dictionary<string, int>();
+        private static Dictionary<string, int> offlinePlayerSubspaces = new Dictionary<string, int>();
         private static object createLock = new object();
 
         //MCW (Uses subspace internally)
@@ -550,18 +550,18 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     subspace.Value.serverClock = currentTime;
                     subspace.Value.subspaceSpeed = 1f;
-                    SaveLatestSubspace();
                 }
+                SaveLatestSubspace();
             }
             int targetSubspace = -1;
-            if (Settings.settingsStore.sendPlayerToLatestSubspace || !playerSubspace.ContainsKey(client.playerName))
+            if (Settings.settingsStore.sendPlayerToLatestSubspace || !offlinePlayerSubspaces.ContainsKey(client.playerName))
             {
                 targetSubspace = GetLatestSubspace();
             }
             else
             {
                 DarkLog.Debug("Sending " + client.playerName + " to the previous subspace " + targetSubspace);
-                targetSubspace = playerSubspace[client.playerName];
+                targetSubspace = offlinePlayerSubspaces[client.playerName];
             }
             SendSetSubspace(client, targetSubspace);
         }
@@ -570,6 +570,10 @@ namespace DarkMultiPlayerServer.Messages
         {
             DarkLog.Debug("Sending " + client.playerName + " to subspace " + subspace);
             client.subspace = subspace;
+            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
+            {
+                offlinePlayerSubspaces[client.playerName] = subspace;
+            }
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SET_SUBSPACE;
             using (MessageWriter mw = new MessageWriter())
@@ -714,10 +718,6 @@ namespace DarkMultiPlayerServer.Messages
 
         internal static void DisconnectPlayer(string playerName)
         {
-            if (!Settings.settingsStore.sendPlayerToLatestSubspace && playerSubspace.ContainsKey(playerName))
-            {
-                playerSubspace.Remove(playerName);
-            }
             if (warpList.ContainsKey(playerName))
             {
                 warpList.Remove(playerName);
@@ -745,10 +745,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void Reset()
         {
             subspaces.Clear();
-            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
-            {
-                playerSubspace.Clear();
-            }
+            offlinePlayerSubspaces.Clear();
             warpList.Clear();
             ignoreList = null;
             LoadSavedSubspace();

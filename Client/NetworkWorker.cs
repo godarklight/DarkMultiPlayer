@@ -192,7 +192,9 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Send thread error: " + e);
             }
         }
+
         #region Connecting to server
+
         //Called from main
         public void ConnectToServer(string address, int port)
         {
@@ -353,8 +355,11 @@ namespace DarkMultiPlayer
                 parallelConnectThreads.Remove(Thread.CurrentThread);
             }
         }
+
         #endregion
+
         #region Connection housekeeping
+
         private void CheckInitialDisconnection()
         {
             if (state == ClientState.CONNECTING)
@@ -384,6 +389,7 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
         private void CheckDisconnection()
         {
             if (state >= ClientState.CONNECTED)
@@ -472,8 +478,11 @@ namespace DarkMultiPlayer
                 //Don't care
             }
         }
+
         #endregion
+
         #region Network writers/readers
+
         private void StartReceivingIncomingMessages()
         {
             lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
@@ -731,8 +740,11 @@ namespace DarkMultiPlayer
                 Disconnect("Connection error: " + e.Message);
             }
         }
+
         #endregion
+
         #region Message Handling
+
         private void HandleMessage(ServerMessage message)
         {
             try
@@ -799,7 +811,7 @@ namespace DarkMultiPlayer
                         FlagSyncer.fetch.HandleMessage(message.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
-                        HandleSetSubspace(message.data);
+                        WarpWorker.fetch.HandleSetSubspace(message.data);
                         break;
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
@@ -1328,8 +1340,6 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData))
             {
-                //We don't care about the subspace ID anymore.
-                mr.Read<int>();
                 double planetTime = mr.Read<double>();
                 Guid vesselID = new Guid(mr.Read<string>());
                 bool isDockingUpdate = mr.Read<bool>();
@@ -1481,15 +1491,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleSetSubspace(byte[] messageData)
-        {
-            using (MessageReader mr = new MessageReader(messageData))
-            {
-                int subspaceID = mr.Read<int>();
-                TimeSyncer.fetch.LockSubspace(subspaceID);
-            }
-        }
-
         private void HandlePingReply(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData))
@@ -1558,8 +1559,11 @@ namespace DarkMultiPlayer
             }
             Disconnect("Server closed connection: " + reason);
         }
+
         #endregion
+
         #region Message Sending
+
         private void SendHeartBeat()
         {
             if (state >= ClientState.CONNECTED && sendMessageQueueHigh.Count == 0)
@@ -1747,7 +1751,6 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_REMOVE;
             using (MessageWriter mw = new MessageWriter())
             {
-                mw.Write<int>(TimeSyncer.fetch.currentSubspace);
                 mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(vesselID.ToString());
                 mw.Write<bool>(isDockingUpdate);
@@ -1915,6 +1918,7 @@ namespace DarkMultiPlayer
             }
             return 0;
         }
+
         #endregion
     }
 

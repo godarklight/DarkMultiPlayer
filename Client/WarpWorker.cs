@@ -350,7 +350,7 @@ namespace DarkMultiPlayer
             }
             if ((TimeWarp.CurrentRateIndex > 0) && resetWarp)
             {
-                DarkLog.Debug("Resetting warp rate back to 0");
+                //DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
             }
             if ((TimeWarp.CurrentRateIndex > 0) && (TimeWarp.CurrentRate > 1.1f) && !resetWarp && TimeSyncer.fetch.locked)
@@ -366,7 +366,12 @@ namespace DarkMultiPlayer
 
         public static void SendNewSubspace()
         {
-            SendNewSubspace(TimeSyncer.fetch.GetServerClock(), Planetarium.GetUniversalTime(), TimeSyncer.fetch.requestedRate);
+            long serverClock = TimeSyncer.fetch.GetServerClock();
+            double planetClock = Planetarium.GetUniversalTime();
+            float requestedRate = TimeSyncer.fetch.requestedRate;
+            TimeSyncer.fetch.LockTemporarySubspace(serverClock, planetClock, requestedRate);
+            SendNewSubspace(serverClock, planetClock, requestedRate);
+
         }
 
         public static void SendNewSubspace(long serverClock, double planetTime, float subspaceRate)
@@ -378,6 +383,15 @@ namespace DarkMultiPlayer
                 mw.Write<double>(planetTime);
                 mw.Write<float>(subspaceRate);
                 NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+            }
+        }
+
+        public void HandleSetSubspace(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                int subspaceID = mr.Read<int>();
+                TimeSyncer.fetch.LockSubspace(subspaceID);
             }
         }
 
@@ -620,7 +634,7 @@ namespace DarkMultiPlayer
                             long serverTime = mr.Read<long>();
                             double planetariumTime = mr.Read<double>();
                             float gameSpeed = mr.Read<float>();
-                            TimeSyncer.fetch.LockNewSubspace(newSubspaceID, serverTime, planetariumTime, gameSpeed);
+                            TimeSyncer.fetch.AddNewSubspace(newSubspaceID, serverTime, planetariumTime, gameSpeed);
                         }
                         break;
                     case WarpMessageType.CHANGE_SUBSPACE:

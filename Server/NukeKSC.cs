@@ -55,7 +55,6 @@ namespace DarkMultiPlayerServer
                         using (MessageWriter mw = new MessageWriter())
                         {
                             //Send it with a delete time of 0 so it shows up for all players.
-                            mw.Write<int>(0);
                             mw.Write<double>(0);
                             mw.Write<string>(vesselID);
                             mw.Write<bool>(false);

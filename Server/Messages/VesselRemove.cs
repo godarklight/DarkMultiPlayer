@@ -12,7 +12,6 @@ namespace DarkMultiPlayerServer.Messages
             using (MessageReader mr = new MessageReader(messageData))
             {
                 //Don't care about the subspace on the server.
-                mr.Read<int>();
                 mr.Read<double>();
                 string vesselID = mr.Read<string>();
                 bool isDockingUpdate = mr.Read<bool>();

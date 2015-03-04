@@ -171,7 +171,14 @@ namespace DarkMultiPlayer
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
                     ntpText += "Current subspace: " + TimeSyncer.fetch.currentSubspace + ".\n";
-                    ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.GetSubspace(TimeSyncer.fetch.currentSubspace).subspaceSpeed, 3) + "x.\n";
+                    if (TimeSyncer.fetch.locked)
+                    {
+                        ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.lockedSubspace.subspaceSpeed, 3) + "x.\n";
+                    }
+                    else
+                    {
+                        ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.requestedRate, 3) + "x.\n";
+                    }
                     ntpText += "Current Error: " + Math.Round((TimeSyncer.fetch.GetCurrentError() * 1000), 0) + " ms.\n";
                     ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                     ntpText += "Network latency: " + Math.Round((TimeSyncer.fetch.networkLatencyAverage / 10000f), 3) + " ms\n";

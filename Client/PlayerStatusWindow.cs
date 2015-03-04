@@ -180,7 +180,7 @@ namespace DarkMultiPlayer
             GUILayout.EndHorizontal();
             scrollPosition = GUILayout.BeginScrollView(scrollPosition, scrollStyle);
             //Draw subspaces
-            double ourTime = (TimeSyncer.fetch.currentSubspace != -1) ? TimeSyncer.fetch.GetUniverseTime() : Planetarium.GetUniversalTime();
+            double ourTime = TimeSyncer.fetch.locked ? TimeSyncer.fetch.GetUniverseTime() : Planetarium.GetUniversalTime();
             long serverClock = TimeSyncer.fetch.GetServerClock();
             foreach (SubspaceDisplayEntry currentEntry in subspaceDisplay)
             {
