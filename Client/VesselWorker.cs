@@ -423,6 +423,7 @@ namespace DarkMultiPlayer
                 //Apply it if there is any
                 if (vu != null)
                 {
+                    HackyInAtmoLoader.fetch.SetVesselUpdate(vesselQueue.Key, vu);
                     vu.Apply();
                 }
             }

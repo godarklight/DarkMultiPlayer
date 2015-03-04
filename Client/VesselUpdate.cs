@@ -142,17 +142,42 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2] + altitudeFudge);
-                Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(velocity[0], velocity[1], velocity[2]);
+                double planetariumDifference = Planetarium.GetUniversalTime() - planetTime;
+
+                //Velocity fudge
                 Vector3d updateAcceleration = updateBody.bodyTransform.rotation * new Vector3d(acceleration[0], acceleration[1], acceleration[2]);
+                Vector3d velocityFudge = Vector3d.zero;
+                if (Math.Abs(planetariumDifference) < 3f)
+                {
+                    //Velocity = a*t
+                    velocityFudge = updateAcceleration * planetariumDifference;
+                }
+
+                //Position fudge
+                Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(velocity[0], velocity[1], velocity[2]) + velocityFudge;
+                Vector3d positionFudge = Vector3d.zero;
+
+                if (Math.Abs(planetariumDifference) < 3f)
+                {
+                    //Use the average velocity to determine the new position
+                    //Displacement = v0*t + 1/2at^2.
+                    positionFudge = (updateVelocity * planetariumDifference) + (0.5d * updateAcceleration * planetariumDifference * planetariumDifference);
+                }
+
+                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2] + altitudeFudge) + positionFudge;
+
+                double latitude = updateBody.GetLatitude(updatePostion);
+                double longitude = updateBody.GetLongitude(updatePostion);
+                double altitude = updateBody.GetAltitude(updatePostion);
+                updateVessel.latitude = latitude;
+                updateVessel.longitude = longitude;
+                updateVessel.altitude = altitude;
+                updateVessel.protoVessel.latitude = latitude;
+                updateVessel.protoVessel.longitude = longitude;
+                updateVessel.protoVessel.altitude = altitude;
+
                 if (updateVessel.packed)
                 {
-                    updateVessel.latitude = position[0];
-                    updateVessel.longitude = position[1];
-                    updateVessel.altitude = position[2] + altitudeFudge;
-                    updateVessel.protoVessel.latitude = updateVessel.latitude;
-                    updateVessel.protoVessel.longitude = updateVessel.longitude;
-                    updateVessel.protoVessel.altitude = updateVessel.altitude;
                     if (!updateVessel.LandedOrSplashed)
                     {
                         //Not landed but under 10km.
@@ -166,17 +191,8 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    double planetariumDifference = Planetarium.GetUniversalTime() - planetTime;
-                    Vector3d positionFudge = Vector3d.zero;
-                    Vector3d velocityFudge = Vector3d.zero;
-                    if (Math.Abs(planetariumDifference) < 3f)
-                    {
-                        velocityFudge = updateAcceleration * planetariumDifference;
-                        //Use the average velocity to determine the new position
-                        positionFudge = (updateVelocity + (velocityFudge / 2)) * planetariumDifference;
-                    }
-                    Vector3d velocityOffset = (updateVelocity + velocityFudge) - updateVessel.srf_velocity;
-                    updateVessel.SetPosition(updatePostion + positionFudge, true);
+                    Vector3d velocityOffset = updateVelocity - updateVessel.srf_velocity;
+                    updateVessel.SetPosition(updatePostion, true);
                     updateVessel.ChangeWorldVelocity(velocityOffset);
                 }
             }
@@ -247,7 +263,6 @@ namespace DarkMultiPlayer
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.Brakes, actiongroupControls[2]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.SAS, actiongroupControls[3]);
             updateVessel.ActionGroups.SetGroup(KSPActionGroup.RCS, actiongroupControls[4]);
-            HackyInAtmoLoader.fetch.SetVesselUpdate(updateVessel.id, this);
         }
     }
 }

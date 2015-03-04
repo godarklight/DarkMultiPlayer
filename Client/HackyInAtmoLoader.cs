@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
         private bool registered;
         private Dictionary<Guid, HackyFlyingVesselLoad> loadingFlyingVessels = new Dictionary<Guid, HackyFlyingVesselLoad>();
         private List<Guid> deleteList = new List<Guid>();
+        private const float UNPACK_INTERVAL = 3f;
 
         public static HackyInAtmoLoader fetch
         {
@@ -33,88 +34,150 @@ namespace DarkMultiPlayer
             UpdateVessels();
         }
 
+        private void OnVesselUnpack(Vessel vessel)
+        {
+            lock (loadingFlyingVessels)
+            {
+                if (loadingFlyingVessels.ContainsKey(vessel.id))
+                {
+                    DarkLog.Debug("Hacky load successful: Vessel is off rails");
+                    HackyFlyingVesselLoad hfvl = loadingFlyingVessels[vessel.id];
+                    hfvl.flyingVessel.Landed = false;
+                    hfvl.flyingVessel.Splashed = false;
+                    hfvl.flyingVessel.landedAt = string.Empty;
+                    hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                    if (hfvl.lastVesselUpdate != null)
+                    {
+                        //Stop the vessel from exploding while in unpack range.
+                        hfvl.lastVesselUpdate.Apply();
+                    }
+                    loadingFlyingVessels.Remove(vessel.id);
+                }
+            }
+        }
+
+
         private void OnGameSceneLoadRequested(GameScenes scene)
         {
-            foreach (KeyValuePair<Guid, HackyFlyingVesselLoad> kvp in loadingFlyingVessels)
+            lock (loadingFlyingVessels)
             {
-                VesselWorker.fetch.KillVessel(kvp.Value.flyingVessel);
+                foreach (KeyValuePair<Guid, HackyFlyingVesselLoad> kvp in loadingFlyingVessels)
+                {
+                    VesselWorker.fetch.KillVessel(kvp.Value.flyingVessel);
+                }
+                loadingFlyingVessels.Clear();
             }
-            loadingFlyingVessels.Clear();
         }
 
         private void UpdateVessels()
         {
-            foreach (KeyValuePair<Guid, HackyFlyingVesselLoad> kvp in loadingFlyingVessels)
+            lock (loadingFlyingVessels)
             {
-                HackyFlyingVesselLoad hfvl = kvp.Value;
-                if (!FlightGlobals.fetch.vessels.Contains(hfvl.flyingVessel))
+                foreach (KeyValuePair<Guid, HackyFlyingVesselLoad> kvp in loadingFlyingVessels)
                 {
-                    DarkLog.Debug("Hacky load failed: Vessel destroyed");
-                    deleteList.Add(kvp.Key);
-                    continue;
+                    HackyFlyingVesselLoad hfvl = kvp.Value;
+
+                    if (hfvl.flyingVessel == null || hfvl.flyingVessel.state == Vessel.State.DEAD)
+                    {
+                        DarkLog.Debug("Hacky load failed: Vessel destroyed");
+                        deleteList.Add(kvp.Key);
+                        continue;
+                    }
+
+                    if (!FlightGlobals.fetch.vessels.Contains(hfvl.flyingVessel))
+                    {
+                        DarkLog.Debug("Hacky load failed: Vessel destroyed");
+                        deleteList.Add(kvp.Key);
+                        continue;
+                    }
+
+                    string vesselID = hfvl.flyingVessel.id.ToString();
+
+                    if (!LockSystem.fetch.LockExists("update-" + vesselID) || LockSystem.fetch.LockIsOurs("update-" + vesselID))
+                    {
+                        DarkLog.Debug("Hacky load removed: Vessel stopped being controlled by another player");
+                        deleteList.Add(kvp.Key);
+                        VesselWorker.fetch.KillVessel(hfvl.flyingVessel);
+                        continue;
+                    }
+
+                    if (hfvl.flyingVessel.loaded)
+                    {
+                        if ((Time.realtimeSinceStartup - hfvl.lastUnpackTime) > UNPACK_INTERVAL)
+                        {
+                            DarkLog.Debug("Hacky load attempting to take loaded vessel off rails");
+                            hfvl.lastUnpackTime = Time.realtimeSinceStartup;
+                            try
+                            {
+                                hfvl.flyingVessel.GoOffRails();
+                            }
+                            catch (Exception e)
+                            {
+                                //Just in case, I don't think this can throw but you never really know with KSP.
+                                DarkLog.Debug("Hacky load failed to take vessel of rails: " + e.Message);
+                            }
+                        }
+                    }
+
+                    if (!hfvl.flyingVessel.packed)
+                    {
+                        DarkLog.Debug("Hacky load successful: Vessel is off rails");
+                        deleteList.Add(kvp.Key);
+                        hfvl.flyingVessel.Landed = false;
+                        hfvl.flyingVessel.Splashed = false;
+                        hfvl.flyingVessel.landedAt = string.Empty;
+                        hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                        continue;
+                    }
+
+                    double atmoPressure = hfvl.flyingVessel.mainBody.staticPressureASL * Math.Pow(Math.E, ((-hfvl.flyingVessel.altitude) / (hfvl.flyingVessel.mainBody.atmosphereScaleHeight * 1000)));
+                    if (atmoPressure < 0.01)
+                    {
+                        DarkLog.Debug("Hacky load successful: Vessel is now safe from atmo");
+                        deleteList.Add(kvp.Key);
+                        hfvl.flyingVessel.Landed = false;
+                        hfvl.flyingVessel.Splashed = false;
+                        hfvl.flyingVessel.landedAt = string.Empty;
+                        hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                        continue;
+                    }
+
+                    if (hfvl.lastVesselUpdate != null)
+                    {
+                        hfvl.lastVesselUpdate.Apply();
+                    }
                 }
 
-                string vesselID = hfvl.flyingVessel.id.ToString();
-
-                if (!LockSystem.fetch.LockExists("update-" + vesselID) || LockSystem.fetch.LockIsOurs("update-" + vesselID))
+                foreach (var deleteID in deleteList)
                 {
-                    DarkLog.Debug("Hacky load removed: Vessel stopped being controlled by another player");
-                    deleteList.Add(kvp.Key);
-                    VesselWorker.fetch.KillVessel(hfvl.flyingVessel);
-                    continue;
+                    loadingFlyingVessels.Remove(deleteID);
                 }
-
-                if (!hfvl.flyingVessel.packed)
-                {
-                    DarkLog.Debug("Hacky load successful: Vessel is off rails");
-                    deleteList.Add(kvp.Key);
-                    hfvl.flyingVessel.Landed = false;
-                    hfvl.flyingVessel.Splashed = false;
-                    hfvl.flyingVessel.landedAt = string.Empty;
-                    hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
-                    continue;
-                }
-
-                double atmoPressure = hfvl.flyingVessel.mainBody.staticPressureASL * Math.Pow(Math.E, ((-hfvl.flyingVessel.altitude) / (hfvl.flyingVessel.mainBody.atmosphereScaleHeight * 1000)));
-                if (atmoPressure < 0.01)
-                {
-                    DarkLog.Debug("Hacky load successful: Vessel is now safe from atmo");
-                    deleteList.Add(kvp.Key);
-                    hfvl.flyingVessel.Landed = false;
-                    hfvl.flyingVessel.Splashed = false;
-                    hfvl.flyingVessel.landedAt = string.Empty;
-                    hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
-                    continue;
-                }
-
-                if (hfvl.lastVesselUpdate != null)
-                {
-                    hfvl.lastVesselUpdate.Apply();
-                }
+                deleteList.Clear();
             }
-
-            foreach (var deleteID in deleteList)
-            {
-                loadingFlyingVessels.Remove(deleteID);
-            }
-            deleteList.Clear();
         }
 
         public void SetVesselUpdate(Guid guid, VesselUpdate vesselUpdate)
         {
-            if (loadingFlyingVessels.ContainsKey(guid))
+            lock (loadingFlyingVessels)
             {
-                loadingFlyingVessels[guid].lastVesselUpdate = vesselUpdate;
+                if (loadingFlyingVessels.ContainsKey(guid))
+                {
+                    loadingFlyingVessels[guid].lastVesselUpdate = vesselUpdate;
+                }
             }
         }
 
         public void AddHackyInAtmoLoad(Vessel hackyVessel)
         {
-            if (!loadingFlyingVessels.ContainsKey(hackyVessel.id))
+            lock (loadingFlyingVessels)
             {
-                HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
-                hfvl.flyingVessel = hackyVessel;
-                loadingFlyingVessels.Add(hackyVessel.id, hfvl);
+                if (!loadingFlyingVessels.ContainsKey(hackyVessel.id))
+                {
+                    HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
+                    hfvl.flyingVessel = hackyVessel;
+                    hfvl.lastUnpackTime = Time.realtimeSinceStartup;
+                    loadingFlyingVessels.Add(hackyVessel.id, hfvl);
+                }
             }
         }
 
@@ -124,6 +187,7 @@ namespace DarkMultiPlayer
             {
                 registered = true;
                 GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+                GameEvents.onVesselGoOffRails.Add(OnVesselUnpack);
             }
         }
 
@@ -133,6 +197,7 @@ namespace DarkMultiPlayer
             {
                 registered = true;
                 GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
+                GameEvents.onVesselGoOffRails.Remove(OnVesselUnpack);
             }
         }
 
@@ -159,5 +224,6 @@ namespace DarkMultiPlayer
     {
         public Vessel flyingVessel;
         public VesselUpdate lastVesselUpdate;
+        public double lastUnpackTime;
     }
 }
