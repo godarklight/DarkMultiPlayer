@@ -88,9 +88,12 @@ namespace DarkMultiPlayer
 
         private void OnGameSceneLoadRequested(GameScenes scene)
         {
-            foreach (KeyValuePair<Guid, HackyFlyingVesselLoad> kvp in loadingFlyingVessels)
+            iterateVessels.Clear();
+            iterateVessels.AddRange(loadingFlyingVessels.Keys);
+            foreach (Guid vesselID in iterateVessels)
             {
-                VesselWorker.fetch.KillVessel(kvp.Value.flyingVessel);
+                HackyFlyingVesselLoad hfvl = loadingFlyingVessels[vesselID];
+                VesselWorker.fetch.KillVessel(hfvl.flyingVessel);
             }
             loadingFlyingVessels.Clear();
         }
