@@ -491,7 +491,7 @@ namespace DarkMultiPlayer
                                 if (!adding)
                                 {
                                     //One shot - add the previous update before the time to apply instantly
-                                    if (lastKerbalEntry != null)
+                                    if (lastVesselProtoEntry != null)
                                     {
                                         vesselProtoQueue[kvp.Key].Enqueue(lastVesselProtoEntry);
                                         updatesReverted++;
@@ -520,7 +520,7 @@ namespace DarkMultiPlayer
                                 if (!adding)
                                 {
                                     //One shot - add the previous update before the time to apply instantly
-                                    if (lastKerbalEntry != null)
+                                    if (lastVesselUpdateEntry != null)
                                     {
                                         vesselUpdateQueue[kvp.Key].Enqueue(lastVesselUpdateEntry);
                                         updatesReverted++;
@@ -1257,11 +1257,13 @@ namespace DarkMultiPlayer
                 }
                 if (willGetKilledInAtmo)
                 {
+                    /*
                     if ((FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null) && vesselPartCount.ContainsKey(currentProto.vesselID) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID] : false)
                     {
                         DarkLog.Debug("Skipping flying vessel load - Vessel has the same part count");
                         return;
                     }
+                    */
                     DarkLog.Debug("Enabling FLYING vessel load!");
                     //If the vessel is landed it won't be killed by the atmosphere
                     currentProto.landed = true;
@@ -1328,7 +1330,6 @@ namespace DarkMultiPlayer
                     }
                     //Don't kill the active vessel - Kill it after we switch.
                     //Killing the active vessel causes all sorts of crazy problems.
-                    PartKiller.fetch.ForgetVessel(oldVessel);
 
                     if (wasActive)
                     {
@@ -1751,17 +1752,17 @@ namespace DarkMultiPlayer
             NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
         }
 
-        private bool VesselRecentlyLoaded(Guid vesselID)
+        public bool VesselRecentlyLoaded(Guid vesselID)
         {
             return lastLoadVessel.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f) : false;
         }
 
-        private bool VesselRecentlyKilled(Guid vesselID)
+        public bool VesselRecentlyKilled(Guid vesselID)
         {
             return lastKillVesselDestroy.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f) : false;
         }
 
-        private bool VesselUpdatedInFuture(Guid vesselID)
+        public bool VesselUpdatedInFuture(Guid vesselID)
         {
             return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 3f) > Planetarium.GetUniversalTime()) : false;
         }
@@ -1855,6 +1856,10 @@ namespace DarkMultiPlayer
             if (killVessel != null)
             {
                 DarkLog.Debug("Killing vessel: " + killVessel.id.ToString());
+
+                //Forget the dying vessel
+                PartKiller.fetch.ForgetVessel(killVessel);
+                HackyInAtmoLoader.fetch.ForgetVessel(killVessel);
 
                 //Try to unload the vessel first.
                 if (killVessel.loaded)
