@@ -315,7 +315,7 @@ namespace DarkMultiPlayer
             newSubspace.planetTime = planetariumTime;
             newSubspace.subspaceSpeed = subspaceSpeed;
             subspaces[subspaceID] = newSubspace;
-            if (currentSubspace == subspaceID && !locked)
+            if (currentSubspace == subspaceID)
             {
                 LockSubspace(currentSubspace);
             }
