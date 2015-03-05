@@ -202,6 +202,16 @@ namespace DarkMultiPlayer
                 updateOrbit.Init();
                 updateOrbit.UpdateFromUT(Planetarium.GetUniversalTime());
 
+                double latitude = updateBody.GetLatitude(updateOrbit.pos);
+                double longitude = updateBody.GetLongitude(updateOrbit.pos);
+                double altitude = updateBody.GetAltitude(updateOrbit.pos);
+                updateVessel.latitude = latitude;
+                updateVessel.longitude = longitude;
+                updateVessel.altitude = altitude;
+                updateVessel.protoVessel.latitude = latitude;
+                updateVessel.protoVessel.longitude = longitude;
+                updateVessel.protoVessel.altitude = altitude;
+
                 if (updateVessel.packed)
                 {
                     //The OrbitDriver update call will set the vessel position on the next fixed update

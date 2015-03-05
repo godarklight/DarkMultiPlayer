@@ -409,7 +409,7 @@ namespace DarkMultiPlayer
                 //Apply it if there is any
                 if (vpu != null ? vpu.vesselNode != null : false)
                 {
-                    LoadVessel(vpu.vesselNode, vpu.vesselID);
+                    LoadVessel(vpu.vesselNode, vpu.vesselID, false);
                 }
             }
             foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
@@ -1203,7 +1203,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Vessels (" + numberOfLoads + ") loaded into game");
         }
         //Also called from QuickSaveLoader
-        public void LoadVessel(ConfigNode vesselNode, Guid protovesselID)
+        public void LoadVessel(ConfigNode vesselNode, Guid protovesselID, bool ignoreFlyingKill)
         {
             if (vesselNode == null)
             {
@@ -1257,13 +1257,11 @@ namespace DarkMultiPlayer
                 }
                 if (willGetKilledInAtmo)
                 {
-                    /*
-                    if ((FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null) && vesselPartCount.ContainsKey(currentProto.vesselID) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID] : false)
+                    if (!ignoreFlyingKill && (FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null) && vesselPartCount.ContainsKey(currentProto.vesselID) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID] : false)
                     {
                         DarkLog.Debug("Skipping flying vessel load - Vessel has the same part count");
                         return;
                     }
-                    */
                     DarkLog.Debug("Enabling FLYING vessel load!");
                     //If the vessel is landed it won't be killed by the atmosphere
                     currentProto.landed = true;

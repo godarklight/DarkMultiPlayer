@@ -77,7 +77,7 @@ namespace DarkMultiPlayer
                     ProtoVessel pv = vessel.BackupVessel();
                     ConfigNode savedNode = new ConfigNode();
                     pv.Save(savedNode);
-                    VesselWorker.fetch.LoadVessel(savedNode, vessel.id);
+                    VesselWorker.fetch.LoadVessel(savedNode, vessel.id, true);
                 }
             }
             if (lastPackTime.ContainsKey(vessel.id))
@@ -163,7 +163,7 @@ namespace DarkMultiPlayer
                 }
 
                 double atmoPressure = hfvl.flyingVessel.mainBody.staticPressureASL * Math.Pow(Math.E, ((-hfvl.flyingVessel.altitude) / (hfvl.flyingVessel.mainBody.atmosphereScaleHeight * 1000)));
-                if (atmoPressure < 0.01)
+                if (atmoPressure < 0.01d)
                 {
                     DarkLog.Debug("Hacky load successful: Vessel is now safe from atmo");
                     loadingFlyingVessels.Remove(vesselID);
