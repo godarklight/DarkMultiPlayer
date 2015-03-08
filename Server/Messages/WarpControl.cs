@@ -659,6 +659,7 @@ namespace DarkMultiPlayerServer.Messages
                 newSubspace.subspaceSpeed = 1f;
                 subspaces.Add(0, newSubspace);
                 SaveSubspace(0, newSubspace);
+                freeID = 1;
             }
         }
 
