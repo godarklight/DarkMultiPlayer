@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Reflection;
 
 namespace DarkMultiPlayerServer
 {
@@ -92,7 +93,18 @@ namespace DarkMultiPlayerServer
                             continue;
                         }
                         int seperatorIndex = trimmedLine.IndexOf(",");
-                        sw.WriteLine(trimmedLine.Remove(seperatorIndex,1).Insert(seperatorIndex, "="));
+                        string keyPart = trimmedLine.Substring(0, seperatorIndex).Trim();
+                        string valuePart = trimmedLine.Substring(seperatorIndex + 1).Trim();
+                        string realKey = keyPart;
+                        foreach (FieldInfo fieldInfo in typeof(SettingsStore).GetFields())
+                        {
+                            if (fieldInfo.Name.ToLower() == keyPart.ToLower())
+                            {
+                                realKey = fieldInfo.Name;
+                                break;
+                            }
+                        }
+                        sw.WriteLine(realKey + "=" + valuePart);
                     }
                 }
             }
