@@ -1662,13 +1662,73 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, true);
         }
 
+        private bool VesselHasNaNPosition(ProtoVessel pv)
+        {
+            if (pv.landed || pv.splashed)
+            {
+                //Ground checks
+                if (double.IsNaN(pv.latitude) || double.IsInfinity(pv.latitude))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.longitude) || double.IsInfinity(pv.longitude))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.altitude) || double.IsInfinity(pv.altitude))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                //Orbit checks
+                if (double.IsNaN(pv.orbitSnapShot.argOfPeriapsis) || double.IsInfinity(pv.orbitSnapShot.argOfPeriapsis))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.eccentricity) || double.IsInfinity(pv.orbitSnapShot.eccentricity))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.epoch) || double.IsInfinity(pv.orbitSnapShot.epoch))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.inclination) || double.IsInfinity(pv.orbitSnapShot.inclination))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.LAN) || double.IsInfinity(pv.orbitSnapShot.LAN))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.meanAnomalyAtEpoch) || double.IsInfinity(pv.orbitSnapShot.meanAnomalyAtEpoch))
+                {
+                    return true;
+                }
+                if (double.IsNaN(pv.orbitSnapShot.semiMajorAxis) || double.IsInfinity(pv.orbitSnapShot.semiMajorAxis))
+                {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
         //Called from vesselWorker
         public void SendVesselProtoMessage(ProtoVessel vessel, bool isDockingUpdate, bool isFlyingUpdate)
         {
+            //Defend against NaN orbits
+            if (VesselHasNaNPosition(vessel))
+            {
+                DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
+                return;
+            }
             ConfigNode vesselNode = new ConfigNode();
+            vessel.Save(vesselNode);
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
-            vessel.Save(vesselNode);
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
             File.WriteAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "lastVessel.txt"), vesselBytes);
             if (vesselBytes != null && vesselBytes.Length > 0)
