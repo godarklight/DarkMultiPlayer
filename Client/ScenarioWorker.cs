@@ -63,6 +63,10 @@ namespace DarkMultiPlayer
 
         private bool IsScenarioModuleAllowed(string scenarioName)
         {
+            if (scenarioName == null)
+            {
+                return false;
+            }
             //Blacklist asteroid module from every game mode
             if (scenarioName == "ScenarioDiscoverableObjects")
             {
