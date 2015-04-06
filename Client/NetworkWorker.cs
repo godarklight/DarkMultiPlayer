@@ -1191,17 +1191,27 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        numberOfVesselsReceived++;
+                        bool added = false;
                         byte[] vesselBytes = UniverseSyncCache.fetch.GetFromCache(serverVessel);
                         if (vesselBytes.Length != 0)
                         {
                             ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselBytes);
                             if (vesselNode != null)
                             {
-                                Guid vesselID = new Guid(Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid")));
-                                if (vesselID != Guid.Empty)
+                                string vesselIDString = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
+                                if (vesselIDString != null)
                                 {
-                                    VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                                    Guid vesselID = new Guid(vesselIDString);
+                                    if (vesselID != Guid.Empty)
+                                    {
+                                        VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                                        added = true;
+                                        numberOfVesselsReceived++;
+                                    }
+                                    else
+                                    {
+                                        DarkLog.Debug("Cached object " + serverVessel + " is damaged - Returned GUID.Empty");
+                                    }
                                 }
                                 else
                                 {
@@ -1216,6 +1226,10 @@ namespace DarkMultiPlayer
                         else
                         {
                             DarkLog.Debug("Cached object " + serverVessel + " is damaged - Object is a 0 length file!");
+                        }
+                        if (!added)
+                        {
+                            requestedObjects.Add(serverVessel);
                         }
                     }
                 }

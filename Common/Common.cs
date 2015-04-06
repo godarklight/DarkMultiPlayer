@@ -75,6 +75,10 @@ namespace DarkMultiPlayerCommon
 
         public static string ConvertConfigStringToGUIDString(string configNodeString)
         {
+            if (configNodeString == null || configNodeString.Length != 32)
+            {
+                return null;
+            }
             string[] returnString = new string[5];
             returnString[0] = configNodeString.Substring(0, 8);
             returnString[1] = configNodeString.Substring(8, 4);

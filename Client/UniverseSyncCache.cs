@@ -166,6 +166,11 @@ namespace DarkMultiPlayer
         /// <param name="fileData">File data.</param>
         public void SaveToCache(byte[] fileData)
         {
+            if (fileData == null || fileData.Length == 0)
+            {
+                //Don't save 0 byte data.
+                return;
+            }
             string objectName = Common.CalculateSHA256Hash(fileData);
             string objectFile = Path.Combine(cacheDirectory, objectName + ".txt");
             string incomingFile = Path.Combine(Path.Combine(cacheDirectory, "Incoming"), objectName + ".txt");
