@@ -1248,7 +1248,9 @@ namespace DarkMultiPlayer
                 bool willGetKilledInAtmo = false;
                 if (updateBody.atmosphere)
                 {
-                    double atmoPressure = updateBody.staticPressureASL * Math.Pow(Math.E, ((-currentProto.altitude) / (updateBody.atmosphereScaleHeight * 1000)));
+                    double atmoPressure = updateBody.GetPressure(-currentProto.altitude);
+                    //TODO: CHECK ME!
+                    //double atmoPressure = updateBody.staticPressureASL * Math.Pow(Math.E, ((-currentProto.altitude) / (updateBody.atmosphereScaleHeight * 1000)));
                     //KSP magic cut off limit for killing vessels. Works out to be ~23km on kerbin.
                     if (atmoPressure > 0.01f)
                     {

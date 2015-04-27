@@ -224,7 +224,7 @@ namespace DarkMultiPlayer
             CelestialBody contractBody = FlightGlobals.Bodies[bodyID];
             //Atmo: 10km above atmo, to half the planets radius out.
             //Non-atmo: 30km above ground, to half the planets radius out.
-            double minAltitude = contractBody.atmosphere ? contractBody.Radius + contractBody.maxAtmosphereAltitude + 10000 : contractBody.Radius + 30000;
+            double minAltitude = FinePrint.Utilities.CelestialUtilities.GetMinimumOrbitalAltitude(contractBody, 1.1f);
             double maxAltitude = minAltitude + contractBody.Radius * 0.5;
             Orbit strandedOrbit = Orbit.CreateRandomOrbitAround(FlightGlobals.Bodies[bodyID], minAltitude, maxAltitude);
             ConfigNode[] kerbalPartNode = new ConfigNode[1];

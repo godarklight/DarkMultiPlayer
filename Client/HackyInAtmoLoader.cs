@@ -162,7 +162,7 @@ namespace DarkMultiPlayer
                     continue;
                 }
 
-                double atmoPressure = hfvl.flyingVessel.mainBody.staticPressureASL * Math.Pow(Math.E, ((-hfvl.flyingVessel.altitude) / (hfvl.flyingVessel.mainBody.atmosphereScaleHeight * 1000)));
+                double atmoPressure = hfvl.flyingVessel.mainBody.GetPressure(hfvl.flyingVessel.altitude);
                 if (atmoPressure < 0.01d)
                 {
                     DarkLog.Debug("Hacky load successful: Vessel is now safe from atmo");
