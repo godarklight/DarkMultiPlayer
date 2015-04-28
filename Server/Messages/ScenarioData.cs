@@ -41,6 +41,43 @@ namespace DarkMultiPlayerServer.Messages
             ClientHandler.SendToClient(client, newMessage, true);
         }
 
+        // Send a specific scenario module to all clients
+        public static void SendScenarioModuleToClients(ScenarioEntry scenarioModule)
+        {
+            string scenarioFile = Path.Combine(Server.universeDirectory, "Scenarios", "Initial", scenarioModule.scenarioName + ".txt");
+
+            string[] scenarioNames = new string[1];
+            byte[][] scenarioDataArray = new byte[1][];
+
+            scenarioNames[0] = scenarioModule.scenarioName;
+            scenarioDataArray[0] = File.ReadAllBytes(scenarioFile);
+
+            ServerMessage newMessageComp = new ServerMessage();
+            newMessageComp.type = ServerMessageType.SCENARIO_DATA;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(scenarioNames);
+                foreach (byte[] scenarioData in scenarioDataArray)
+                {
+                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioData));
+                }
+                newMessageComp.data = mw.GetMessageBytes();
+            }
+            ServerMessage newMessage = new ServerMessage();
+            newMessage.type = ServerMessageType.SCENARIO_DATA;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(scenarioNames);
+                foreach (byte[] scenarioData in scenarioDataArray)
+                {
+                    mw.Write<byte[]>(Compression.AddCompressionHeader(scenarioData, false));
+                }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            ClientHandler.SendToAllAutoCompressed(null, newMessageComp, newMessage, true);
+            DarkLog.Debug("Sent " + scenarioModule.scenarioName + " to all players.");
+        }
+
         public static void HandleScenarioModuleData(ClientObject client, byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData))
@@ -53,9 +90,17 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                     File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName, scenarioName[i] + ".txt"), scenarioData);
+                    File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Scenarios", "Initial", scenarioName[i] + ".txt"), scenarioData);
+                    SendScenarioModuleToClients(new ScenarioEntry { scenarioName = scenarioName[i], scenarioData = scenarioData });
                 }
             }
         }
+    }
+
+    public class ScenarioEntry
+    {
+        public string scenarioName;
+        public byte[] scenarioData;
     }
 }
 
