@@ -13,6 +13,8 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, HackyFlyingVesselLoad> loadingFlyingVessels = new Dictionary<Guid, HackyFlyingVesselLoad>();
         private Dictionary<Guid, float> lastPackTime = new Dictionary<Guid, float>();
         private const float UNPACK_INTERVAL = 3f;
+        private const float LANDED_LOAD_DISTANCE_DEFAULT = 2250f;
+        private const float LANDED_UNLOAD_DISTANCE_DEFAULT = 2700f;
 
         public static HackyInAtmoLoader fetch
         {
@@ -45,6 +47,8 @@ namespace DarkMultiPlayer
                 hfvl.flyingVessel.Splashed = false;
                 hfvl.flyingVessel.landedAt = string.Empty;
                 hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                hfvl.flyingVessel.vesselRanges.landed.load = LANDED_LOAD_DISTANCE_DEFAULT;
+                hfvl.flyingVessel.vesselRanges.landed.unload = LANDED_UNLOAD_DISTANCE_DEFAULT;
                 if (hfvl.lastVesselUpdate != null)
                 {
                     //Stop the vessel from exploding while in unpack range.
@@ -159,6 +163,8 @@ namespace DarkMultiPlayer
                     hfvl.flyingVessel.Splashed = false;
                     hfvl.flyingVessel.landedAt = string.Empty;
                     hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                    hfvl.flyingVessel.vesselRanges.landed.load = LANDED_LOAD_DISTANCE_DEFAULT;
+                    hfvl.flyingVessel.vesselRanges.landed.unload = LANDED_UNLOAD_DISTANCE_DEFAULT;
                     continue;
                 }
 
@@ -171,6 +177,8 @@ namespace DarkMultiPlayer
                     hfvl.flyingVessel.Splashed = false;
                     hfvl.flyingVessel.landedAt = string.Empty;
                     hfvl.flyingVessel.situation = Vessel.Situations.FLYING;
+                    hfvl.flyingVessel.vesselRanges.landed.load = LANDED_LOAD_DISTANCE_DEFAULT;
+                    hfvl.flyingVessel.vesselRanges.landed.unload = LANDED_UNLOAD_DISTANCE_DEFAULT;
                     continue;
                 }
 
@@ -195,6 +203,9 @@ namespace DarkMultiPlayer
             {
                 HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
                 hfvl.flyingVessel = hackyVessel;
+                hfvl.flyingVessel.vesselRanges.landed.load = hfvl.flyingVessel.vesselRanges.flying.unload - 100f;
+                DarkLog.Debug("Default landed unload: " + hfvl.flyingVessel.vesselRanges.landed.unload);
+                hfvl.flyingVessel.vesselRanges.landed.unload = hfvl.flyingVessel.vesselRanges.flying.unload;
                 hfvl.lastUnpackTime = Time.realtimeSinceStartup;
                 loadingFlyingVessels.Add(hackyVessel.id, hfvl);
             }

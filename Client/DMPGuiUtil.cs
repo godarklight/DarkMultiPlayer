@@ -5,6 +5,7 @@ namespace DarkMultiPlayer
 {
     public class DMPGuiUtil
     {
+        public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALLBUTCAMERAS ^ ControlTypes.MAP ^ ControlTypes.PAUSE ^ ControlTypes.APPLAUNCHER_BUTTONS ^ ControlTypes.VESSEL_SWITCHING ^ ControlTypes.GUI;
         public static Rect PreventOffscreenWindow(Rect inputRect)
         {
             //Let the user drag 3/4 of the window sideways off the screen

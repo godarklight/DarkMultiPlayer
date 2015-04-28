@@ -165,8 +165,17 @@ namespace DarkMultiPlayer
             {
                 displayMotd = false;
                 ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
+                //Control locks will bug out the space centre sceen, so remove them before starting.
+                DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway();
             }
         }
+
+        private void DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway()
+        {
+            DarkLog.Debug("Clearing " + InputLockManager.lockStack.Count + " control locks");
+            InputLockManager.ClearControlLocks();
+        }
+
         //This isn't tied to frame rate, During the loading screen Update doesn't fire.
         public void SendThreadMain()
         {
@@ -1739,6 +1748,16 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
                 return;
             }
+            foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
+            {
+                foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
+                {
+                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+                    {
+                        pps.protoModuleCrew.Remove(pcm);
+                    }
+                }
+            }
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
             ClientMessage newMessage = new ClientMessage();
@@ -1869,12 +1888,9 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
             QueueOutgoingMessage(newMessage, false);
         }
-        //Called from vesselWorker
-        public void SendKerbalProtoMessage(ProtoCrewMember kerbal)
+
+        public void SendKerbalProtoMessage(string kerbalName, byte[] kerbalBytes)
         {
-            ConfigNode kerbalNode = new ConfigNode();
-            kerbal.Save(kerbalNode);
-            byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
             if (kerbalBytes != null && kerbalBytes.Length > 0)
             {
                 ClientMessage newMessage = new ClientMessage();
@@ -1882,16 +1898,16 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
-                    mw.Write<string>(kerbal.name);
+                    mw.Write<string>(kerbalName);
                     mw.Write<byte[]>(kerbalBytes);
                     newMessage.data = mw.GetMessageBytes();
                 }
-                DarkLog.Debug("Sending kerbal " + kerbal.name + ", size: " + newMessage.data.Length);
+                DarkLog.Debug("Sending kerbal " + kerbalName + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
             }
             else
             {
-                DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbal.name);
+                DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbalName);
             }
         }
         //Called from chatWorker

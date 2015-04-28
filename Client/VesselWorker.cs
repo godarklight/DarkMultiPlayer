@@ -17,7 +17,6 @@ namespace DarkMultiPlayer
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
         private const float SAFETY_BUBBLE_DISTANCE = 100;
         //Spectate stuff
-        public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
         private const float UPDATE_SCREEN_MESSAGE_INTERVAL = 1f;
         private ScreenMessage spectateMessage;
@@ -54,7 +53,7 @@ namespace DarkMultiPlayer
         private Dictionary <Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
         private Dictionary <Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
         //Known kerbals
-        private Dictionary<string, ProtoCrewMember> serverKerbals = new Dictionary<string, ProtoCrewMember>();
+        private Dictionary<string, string> serverKerbals = new Dictionary<string, string>();
         private Dictionary<string, Guid> assignedKerbals = new Dictionary<string, Guid>();
         //Known vessels and last send/receive time
         private Dictionary<Guid, float> serverVesselsProtoUpdate = new Dictionary<Guid, float>();
@@ -612,7 +611,7 @@ namespace DarkMultiPlayer
                 if (isSpectating)
                 {
                     DarkLog.Debug("Setting spectate lock");
-                    InputLockManager.SetControlLock(BLOCK_ALL_CONTROLS, DARK_SPECTATE_LOCK);
+                    InputLockManager.SetControlLock(DMPGuiUtil.BLOCK_ALL_CONTROLS, DARK_SPECTATE_LOCK);
                 }
                 else
                 {
@@ -941,37 +940,9 @@ namespace DarkMultiPlayer
                         //Also check for kerbal state changes
                         foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
                         {
-                            foreach (ProtoCrewMember pcm in part.protoModuleCrew)
+                            foreach (ProtoCrewMember pcm in part.protoModuleCrew.ToArray())
                             {
-                                if (!serverKerbals.ContainsKey(pcm.name))
-                                {
-                                    //New kerbal
-                                    DarkLog.Debug("Found new kerbal, sending...");
-                                    serverKerbals[pcm.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, pcm);
-                                    NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
-                                }
-                                else
-                                {
-                                    bool kerbalDifferent = false;
-                                    kerbalDifferent = (pcm.name != serverKerbals[pcm.name].name) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.courage != serverKerbals[pcm.name].courage) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.isBadass != serverKerbals[pcm.name].isBadass) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.seatIdx != serverKerbals[pcm.name].seatIdx) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.stupidity != serverKerbals[pcm.name].stupidity) || kerbalDifferent;
-                                    kerbalDifferent = (pcm.UTaR != serverKerbals[pcm.name].UTaR) || kerbalDifferent;
-                                    if (kerbalDifferent)
-                                    {
-                                        DarkLog.Debug("Found changed kerbal, sending...");
-                                        NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
-                                        serverKerbals[pcm.name].name = pcm.name;
-                                        serverKerbals[pcm.name].courage = pcm.courage;
-                                        serverKerbals[pcm.name].isBadass = pcm.isBadass;
-                                        serverKerbals[pcm.name].rosterStatus = pcm.rosterStatus;
-                                        serverKerbals[pcm.name].seatIdx = pcm.seatIdx;
-                                        serverKerbals[pcm.name].stupidity = pcm.stupidity;
-                                        serverKerbals[pcm.name].UTaR = pcm.UTaR;
-                                    }
-                                }
+                                SendKerbalIfDifferent(pcm);
                             }
                         }
                         RegisterServerVessel(checkProto.vesselID);
@@ -1001,6 +972,43 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
+        public void SendKerbalIfDifferent(ProtoCrewMember pcm)
+        {
+            if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+            {
+                //Don't send tourists
+                DarkLog.Debug("Skipping sending of tourist: " + pcm.name);
+                return;
+            }
+            ConfigNode kerbalNode = new ConfigNode();
+            pcm.Save(kerbalNode);
+            byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
+            if (kerbalBytes == null || kerbalBytes.Length == 0)
+            {
+                DarkLog.Debug("VesselWorker: Error sending kerbal - bytes are null or 0");
+                return;
+            }
+            string kerbalHash = Common.CalculateSHA256Hash(kerbalBytes);
+            bool kerbalDifferent = false;
+            if (!serverKerbals.ContainsKey(pcm.name))
+            {
+                //New kerbal
+                DarkLog.Debug("Found new kerbal, sending...");
+                kerbalDifferent = true;
+            }
+            else if (serverKerbals[pcm.name] != kerbalHash)
+            {
+                DarkLog.Debug("Found changed kerbal, sending...");
+                kerbalDifferent = true;
+            }
+            if (kerbalDifferent)
+            {
+                serverKerbals[pcm.name] = kerbalHash;
+                NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
+            }
+        }
+
         //Also called from PlayerStatusWorker
         public bool isSpectating
         {
@@ -1103,8 +1111,7 @@ namespace DarkMultiPlayer
                 foreach (ProtoCrewMember pcm in newRoster.Crew)
                 {
                     AddCrewMemberToRoster(pcm);
-                    serverKerbals[pcm.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, pcm);
-                    NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
+                    SendKerbalIfDifferent(pcm);
                 }
             }
 
@@ -1118,8 +1125,7 @@ namespace DarkMultiPlayer
             while (generateKerbals > 0)
             {
                 ProtoCrewMember protoKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
-                serverKerbals[protoKerbal.name] = new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoKerbal);
-                NetworkWorker.fetch.SendKerbalProtoMessage(protoKerbal);
+                SendKerbalIfDifferent(protoKerbal);
                 generateKerbals--;
             }
             DarkLog.Debug("Kerbals loaded");
@@ -1146,10 +1152,17 @@ namespace DarkMultiPlayer
                         if (!HighLogic.CurrentGame.CrewRoster.Exists(protoCrew.name))
                         {
                             AddCrewMemberToRoster(protoCrew);
-                            serverKerbals[protoCrew.name] = (new ProtoCrewMember(HighLogic.CurrentGame.Mode, protoCrew));
+                            ConfigNode kerbalNode = new ConfigNode();
+                            protoCrew.Save(kerbalNode);
+                            byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
+                            if (kerbalBytes != null && kerbalBytes.Length != 0)
+                            {
+                                serverKerbals[protoCrew.name] = Common.CalculateSHA256Hash(kerbalBytes);
+                            }
                         }
                         else
                         {
+                            //TODO: FIXME!
                             HighLogic.CurrentGame.CrewRoster[protoCrew.name].name = protoCrew.name;
                             HighLogic.CurrentGame.CrewRoster[protoCrew.name].courage = protoCrew.courage;
                             HighLogic.CurrentGame.CrewRoster[protoCrew.name].isBadass = protoCrew.isBadass;
@@ -1234,6 +1247,12 @@ namespace DarkMultiPlayer
             if (currentProto.situation == Vessel.Situations.FLYING)
             {
                 DarkLog.Debug("Got a flying update for " + currentProto.vesselID + ", name: " + currentProto.vesselName);
+                if (!HighLogic.LoadedSceneIsFlight)
+                {
+                    //Skip hackyload if we aren't in flight.
+                    DarkLog.Debug("Skipping flying vessel load - We are not in flight");
+                    return;
+                }
                 if (currentProto.orbitSnapShot == null)
                 {
                     DarkLog.Debug("Skipping flying vessel load - Protovessel does not have an orbit snapshot");
@@ -1249,8 +1268,6 @@ namespace DarkMultiPlayer
                 if (updateBody.atmosphere)
                 {
                     double atmoPressure = updateBody.GetPressure(-currentProto.altitude);
-                    //TODO: CHECK ME!
-                    //double atmoPressure = updateBody.staticPressureASL * Math.Pow(Math.E, ((-currentProto.altitude) / (updateBody.atmosphereScaleHeight * 1000)));
                     //KSP magic cut off limit for killing vessels. Works out to be ~23km on kerbin.
                     if (atmoPressure > 0.01f)
                     {
@@ -1847,7 +1864,7 @@ namespace DarkMultiPlayer
                     {
                         if (pcm.name == unassignKerbal)
                         {
-                            NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
+                            SendKerbalIfDifferent(pcm);
                         }
                     }
                 }

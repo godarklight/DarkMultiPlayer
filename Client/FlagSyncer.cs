@@ -181,8 +181,6 @@ namespace DarkMultiPlayer
 
         private void HandleFlagRespondMessage(FlagRespondMessage flagRespondMessage)
         {
-            //TODO: Fix flags
-            /*
             serverFlags[flagRespondMessage.flagName] = flagRespondMessage.flagInfo;
             string flagFile = Path.Combine(flagPath, flagRespondMessage.flagName);
             Texture2D flagTexture = new Texture2D(4, 4);
@@ -190,8 +188,7 @@ namespace DarkMultiPlayer
             {
                 flagTexture.name = "DarkMultiPlayer/Flags/" + Path.GetFileNameWithoutExtension(flagRespondMessage.flagName);
                 File.WriteAllBytes(flagFile, flagRespondMessage.flagData);
-                var something = new UrlDir.UrlFile(
-                GameDatabase.TextureInfo ti = new GameDatabase.TextureInfo(flagTexture.name, flagTexture, false, true, false);
+                GameDatabase.TextureInfo ti = new GameDatabase.TextureInfo(null, flagTexture, false, true, false);
                 ti.name = flagTexture.name;
                 bool containsTexture = false;
                 foreach (GameDatabase.TextureInfo databaseTi in GameDatabase.Instance.databaseTexture)
@@ -215,7 +212,6 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Failed to load flag " + flagRespondMessage.flagName);
             }
-*/
         }
 
         public static void Reset()

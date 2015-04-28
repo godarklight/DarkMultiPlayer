@@ -161,6 +161,7 @@ namespace DarkMultiPlayer
                 if (scenarioEntry.scenarioName == "ContractSystem")
                 {
                     SpawnStrandedKerbalsForRescueMissions(scenarioEntry.scenarioNode);
+                    CreateMissingTourists(scenarioEntry.scenarioNode);
                 }
                 if (scenarioEntry.scenarioName == "ProgressTracking")
                 {
@@ -182,6 +183,24 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
+        private void CreateMissingTourists(ConfigNode contractSystemNode)
+        {
+            ConfigNode contractsNode = contractSystemNode.GetNode("CONTRACTS");
+            foreach (ConfigNode contractNode in contractsNode.GetNodes("CONTRACT"))
+            {
+                if (contractNode.GetValue("type") == "TourismContract" && contractNode.GetValue("state") == "Active")
+                {
+                    foreach (string kerbalName in contractNode.GetValues("kerbalName"))
+                    {
+                        DarkLog.Debug("Spawning missing tourist (" + kerbalName + ") for active tourism contract");
+                        ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Tourist);
+                        pcm.name = kerbalName;
+                    }
+                }
+            }
+        }
+
         //Defends against bug #172
         private void SpawnStrandedKerbalsForRescueMissions(ConfigNode contractSystemNode)
         {
@@ -271,7 +290,7 @@ namespace DarkMultiPlayer
                             pcm.name = kerbalName;
                             AddCrewMemberToRoster(pcm);
                             //Also send it off to the server
-                            NetworkWorker.fetch.SendKerbalProtoMessage(pcm);
+                            VesselWorker.fetch.SendKerbalIfDifferent(pcm);
                         }
                     }
                 }

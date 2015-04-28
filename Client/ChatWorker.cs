@@ -62,7 +62,6 @@ namespace DarkMultiPlayer
         //const
         private const string DMP_CHAT_LOCK = "DMP_ChatLock";
         private const string DMP_CHAT_WINDOW_LOCK = "DMP_Chat_Window_Lock";
-        public const ControlTypes BLOCK_ALL_CONTROLS = ControlTypes.ALL_SHIP_CONTROLS | ControlTypes.ACTIONS_ALL | ControlTypes.EVA_INPUT | ControlTypes.TIMEWARP | ControlTypes.MISC | ControlTypes.GROUPS_ALL | ControlTypes.CUSTOM_ACTION_GROUPS;
 
         public static ChatWorker fetch
         {
@@ -899,7 +898,7 @@ namespace DarkMultiPlayer
                 if ((GUI.GetNameOfFocusedControl() == "SendTextArea") && !chatLocked)
                 {
                     chatLocked = true;
-                    InputLockManager.SetControlLock(BLOCK_ALL_CONTROLS, DMP_CHAT_LOCK);
+                    InputLockManager.SetControlLock(DMPGuiUtil.BLOCK_ALL_CONTROLS, DMP_CHAT_LOCK);
                 }
                 if ((GUI.GetNameOfFocusedControl() != "SendTextArea") && chatLocked)
                 {

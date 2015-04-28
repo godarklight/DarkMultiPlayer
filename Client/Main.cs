@@ -388,7 +388,7 @@ namespace DarkMultiPlayer
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready)
                     {
-                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = Settings.fetch.revertEnabled || (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = !VesselWorker.fetch.isSpectating && Settings.fetch.revertEnabled || (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
                     }
                     else
                     {
@@ -525,21 +525,11 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
             DarkLog.Debug("Starting " + gameMode + " game...");
 
-            //Control locks will bug out the space centre sceen, so remove them before starting.
-            DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway();
-
             //.Start() seems to stupidly .Load() somewhere - Let's overwrite it so it loads correctly.
             GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             HighLogic.CurrentGame.Start();
             ChatWorker.fetch.display = true;
             DarkLog.Debug("Started!");
-        }
-
-
-        private void DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway()
-        {
-            DarkLog.Debug("Clearing " + InputLockManager.lockStack.Count + " control locks");
-            InputLockManager.ClearControlLocks();
         }
 
         private void StopGame()
