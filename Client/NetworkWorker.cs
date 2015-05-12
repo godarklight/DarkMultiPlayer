@@ -1108,6 +1108,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
+                ScenarioWorker.fetch.SaveScenarioOnCall();
                 WarpWorker.fetch.RemovePlayer(playerName);
                 PlayerStatusWorker.fetch.RemovePlayerStatus(playerName);
                 ChatWorker.fetch.QueueRemovePlayer(playerName);
