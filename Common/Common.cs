@@ -387,6 +387,8 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("GearFree");
             stockPartList.Add("GearLarge");
             stockPartList.Add("GearMedium");
+            //1.0.1 parts
+            stockPartList.Add("basicFin");
             return stockPartList;
         }
 
