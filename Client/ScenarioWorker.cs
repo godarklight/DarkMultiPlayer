@@ -110,6 +110,12 @@ namespace DarkMultiPlayer
             return true;
         }
 
+        //Possible fix for issues #304, #321 and maybe more? 
+        public void SaveScenarioOnCall()
+        {
+            SendScenarioModules();
+        }
+
         private void SendScenarioModules()
         {
             List<string> scenarioName = new List<string>();
