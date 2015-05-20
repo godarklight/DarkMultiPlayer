@@ -229,6 +229,7 @@ namespace DarkMultiPlayer
                 {
                     PlayerStatusWindow.fetch.disconnectEventHandled = true;
                     forceQuit = true;
+                    ScenarioWorker.fetch.SendScenarioModules(); // Send scenario modules before disconnecting
                     NetworkWorker.fetch.SendDisconnect("Quit");
                 }
                 if (!ConnectionWindow.fetch.renameEventHandled)
@@ -573,6 +574,16 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Threw in FireResetEvent, exception: " + e);
                 }
             }
+        }
+
+        private void OnApplicationQuit()
+        {
+            Application.CancelQuit();
+            DarkLog.Debug("Sending our scenario modules before quitting");
+            ScenarioWorker.fetch.SendScenarioModules();
+
+            DarkLog.Debug("Nothing else to send. Quitting.");
+            Application.Quit();
         }
 
         private void SetupDirectoriesIfNeeded()

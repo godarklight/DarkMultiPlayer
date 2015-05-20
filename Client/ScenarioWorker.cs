@@ -110,7 +110,7 @@ namespace DarkMultiPlayer
             return true;
         }
 
-        private void SendScenarioModules()
+        public void SendScenarioModules()
         {
             List<string> scenarioName = new List<string>();
             List<byte[]> scenarioData = new List<byte[]>();
