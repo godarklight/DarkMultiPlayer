@@ -204,6 +204,7 @@ namespace DarkMultiPlayer
         {
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             DarkLog.Update();
+
             if (modDisabled)
             {
                 return;
@@ -229,6 +230,7 @@ namespace DarkMultiPlayer
                 {
                     PlayerStatusWindow.fetch.disconnectEventHandled = true;
                     forceQuit = true;
+                    ScenarioWorker.fetch.SendScenarioModules(false); // Send scenario modules before disconnecting
                     NetworkWorker.fetch.SendDisconnect("Quit");
                 }
                 if (!ConnectionWindow.fetch.renameEventHandled)
@@ -572,6 +574,16 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Threw in FireResetEvent, exception: " + e);
                 }
+            }
+        }
+
+        private void OnApplicationQuit()
+        {
+            if (gameRunning && NetworkWorker.fetch.state == ClientState.RUNNING)
+            {
+                Application.CancelQuit();
+                ScenarioWorker.fetch.SendScenarioModules(true);
+                HighLogic.LoadScene(GameScenes.MAINMENU);
             }
         }
 

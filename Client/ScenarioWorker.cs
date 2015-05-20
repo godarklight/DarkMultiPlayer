@@ -38,7 +38,7 @@ namespace DarkMultiPlayer
                 if ((UnityEngine.Time.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
                 {
                     lastScenarioSendTime = UnityEngine.Time.realtimeSinceStartup;
-                    SendScenarioModules();
+                    SendScenarioModules(false);
                 }
             }
         }
@@ -110,7 +110,7 @@ namespace DarkMultiPlayer
             return true;
         }
 
-        private void SendScenarioModules()
+        public void SendScenarioModules(bool highPriority)
         {
             List<string> scenarioName = new List<string>();
             List<byte[]> scenarioData = new List<byte[]>();
@@ -149,7 +149,14 @@ namespace DarkMultiPlayer
 
             if (scenarioName.Count > 0)
             {
-                NetworkWorker.fetch.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
+                if (highPriority)
+                {
+                    NetworkWorker.fetch.SendScenarioModuleDataHighPriority(scenarioName.ToArray(), scenarioData.ToArray());
+                }
+                else
+                {
+                    NetworkWorker.fetch.SendScenarioModuleData(scenarioName.ToArray(), scenarioData.ToArray());
+                }
             }
         }
 

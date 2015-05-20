@@ -52,6 +52,10 @@ namespace DarkMultiPlayerServer
         public bool indestructibleFacilities = false;
         [Description("Missing Crews Respawn")]
         public bool missingCrewsRespawn = true;
+        [Description("Re-Entry Heating")]
+        public float reentryHeatScale = 1.0f;
+        [Description("Resource Abundance")]
+        public float resourceAbundance = 1.0f;
         // Career Settings
         [Description("Funds Rewards")]
         public float fundsGainMultiplier = 1.0f;

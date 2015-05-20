@@ -1066,6 +1066,8 @@ namespace DarkMultiPlayer
                     newParameters.Difficulty.BypassEntryPurchaseAfterResearch = mr.Read<bool>();
                     newParameters.Difficulty.IndestructibleFacilities = mr.Read<bool>();
                     newParameters.Difficulty.MissingCrewsRespawn = mr.Read<bool>();
+                    newParameters.Difficulty.ReentryHeatScale = mr.Read<float>();
+                    newParameters.Difficulty.ResourceAbundance = mr.Read<float>();
                     newParameters.Career.FundsGainMultiplier = mr.Read<float>();
                     newParameters.Career.FundsLossMultiplier = mr.Read<float>();
                     newParameters.Career.RepGainMultiplier = mr.Read<float>();
@@ -1887,6 +1889,23 @@ namespace DarkMultiPlayer
             }
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
             QueueOutgoingMessage(newMessage, false);
+        }
+        // Same method as above, only that in this, the message is queued as high priority
+        public void SendScenarioModuleDataHighPriority(string[] scenarioNames, byte[][] scenarioData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.SCENARIO_DATA;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<string[]>(scenarioNames);
+                foreach (byte[] scenarioBytes in scenarioData)
+                {
+                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioBytes));
+                }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules (high priority)");
+            QueueOutgoingMessage(newMessage, true);
         }
 
         public void SendKerbalProtoMessage(string kerbalName, byte[] kerbalBytes)
