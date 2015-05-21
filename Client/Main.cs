@@ -230,7 +230,7 @@ namespace DarkMultiPlayer
                 {
                     PlayerStatusWindow.fetch.disconnectEventHandled = true;
                     forceQuit = true;
-                    ScenarioWorker.fetch.SendScenarioModules(false); // Send scenario modules before disconnecting
+                    ScenarioWorker.fetch.SendScenarioModules(true); // Send scenario modules before disconnecting
                     NetworkWorker.fetch.SendDisconnect("Quit");
                 }
                 if (!ConnectionWindow.fetch.renameEventHandled)
