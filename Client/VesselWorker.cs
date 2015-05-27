@@ -15,7 +15,7 @@ namespace DarkMultiPlayer
         private static VesselWorker singleton;
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
-        private const float SAFETY_BUBBLE_DISTANCE = 100;
+        public float safetyBubbleDistance = 100f;
         //Spectate stuff
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
         private const float UPDATE_SCREEN_MESSAGE_INTERVAL = 1f;
@@ -1055,7 +1055,7 @@ namespace DarkMultiPlayer
             Vector3d runwayPosition = body.GetWorldSurfacePosition(-0.0486001121594686, 285.275552559723, 60);
             double landingPadDistance = Vector3d.Distance(worlPos, landingPadPosition);
             double runwayDistance = Vector3d.Distance(worlPos, runwayPosition);
-            return runwayDistance < SAFETY_BUBBLE_DISTANCE || landingPadDistance < SAFETY_BUBBLE_DISTANCE;
+            return runwayDistance < safetyBubbleDistance || landingPadDistance < safetyBubbleDistance;
         }
         //Adapted from KMP.
         private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
