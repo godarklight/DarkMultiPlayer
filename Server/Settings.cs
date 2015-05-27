@@ -90,5 +90,7 @@ namespace DarkMultiPlayerServer
         public bool compressionEnabled = true;
         [Description("Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled")]
         public double expireLogs = 0;
+        [Description("Specify the minimum distance in which vessels can interact with eachother at the launch pad and runway")]
+        public float safetyBubbleDistance = 100.0f;
     }
 }
