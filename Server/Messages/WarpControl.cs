@@ -598,29 +598,11 @@ namespace DarkMultiPlayerServer.Messages
         public static void SendSetSubspaceToAll(int subspace)
         {
             DarkLog.Debug("Sending everyone to subspace " + subspace);
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SET_SUBSPACE;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<int>(subspace);
-                newMessage.data = mw.GetMessageBytes();
-            }
-            ClientHandler.SendToAll(null, newMessage, true);
-            //Tell everyone else they changed
             foreach (ClientObject otherClient in ClientHandler.GetClients())
             {
                 if (otherClient.authenticated)
                 {
-                    ServerMessage changeMessage = new ServerMessage();
-                    changeMessage.type = ServerMessageType.WARP_CONTROL;
-                    using (MessageWriter mw = new MessageWriter())
-                    {
-                        mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
-                        mw.Write<string>(otherClient.playerName);
-                        mw.Write<int>(subspace);
-                        changeMessage.data = mw.GetMessageBytes();
-                    }
-                    ClientHandler.SendToAll(otherClient, changeMessage, true);
+                    SendSetSubspace(otherClient, subspace);
                 }
             }
         }
