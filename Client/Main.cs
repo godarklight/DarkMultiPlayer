@@ -541,7 +541,7 @@ namespace DarkMultiPlayer
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
             }
-            HighLogic.CurrentGame = null;
+            //HighLogic.CurrentGame = null; This is no bueno
             bodiesGees.Clear();
         }
 
