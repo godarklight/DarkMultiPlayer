@@ -15,6 +15,7 @@ namespace DarkMultiPlayer
         private static VesselWorker singleton;
         //Update frequency
         private const float VESSEL_PROTOVESSEL_UPDATE_INTERVAL = 30f;
+        private const float KERBAL_PROTOKERBAL_UPDATE_INTERVAL = 5f;
         public float safetyBubbleDistance = 100f;
         //Spectate stuff
         private const string DARK_SPECTATE_LOCK = "DMP_Spectating";
@@ -74,6 +75,8 @@ namespace DarkMultiPlayer
         private Guid fromDockedVesselID;
         private Guid toDockedVesselID;
         private bool sentDockingDestroyUpdate;
+        // Kerbal experience handle
+        private float lastKerbalProtoUpdateSent;
         //System.Reflection hackiness for loading kerbals into the crew roster:
         private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
 
@@ -927,24 +930,24 @@ namespace DarkMultiPlayer
             bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
             bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / (float)DynamicTickWorker.fetch.sendTickRate)) : true;
 
-            //Check that is hasn't been recently sent
-            if (notRecentlySentProtoUpdate)
-            {
 
-                ProtoVessel checkProto = new ProtoVessel(checkVessel);
-                //TODO: Fix sending of flying vessels.
-                if (checkProto != null)
+            ProtoVessel checkProto = new ProtoVessel(checkVessel);
+            //TODO: Fix sending of flying vessels.
+            if (checkProto != null)
+            {
+                if (checkProto.vesselID != Guid.Empty)
                 {
-                    if (checkProto.vesselID != Guid.Empty)
+                    //Also check for kerbal state changes
+                    foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
                     {
-                        //Also check for kerbal state changes
-                        foreach (ProtoPartSnapshot part in checkProto.protoPartSnapshots)
+                        foreach (ProtoCrewMember pcm in part.protoModuleCrew.ToArray())
                         {
-                            foreach (ProtoCrewMember pcm in part.protoModuleCrew.ToArray())
-                            {
-                                SendKerbalIfDifferent(pcm);
-                            }
+                            SendKerbalIfDifferent(pcm);
                         }
+                    }
+                    //Check that is hasn't been recently sent
+                    if (notRecentlySentProtoUpdate)
+                    {
                         RegisterServerVessel(checkProto.vesselID);
                         //Mark the update as sent
                         serverVesselsProtoUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
@@ -954,21 +957,21 @@ namespace DarkMultiPlayer
                         bool isFlyingUpdate = (checkProto.situation == Vessel.Situations.FLYING);
                         NetworkWorker.fetch.SendVesselProtoMessage(checkProto, false, isFlyingUpdate);
                     }
-                    else
+                    else if (notRecentlySentPositionUpdate && checkVessel.vesselType != VesselType.Flag)
                     {
-                        DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
+                        //Send a position update - Except for flags. They aren't exactly known for their mobility.
+                        serverVesselsPositionUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                        latestUpdateSent[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                        VesselUpdate update = VesselUpdate.CopyFromVessel(checkVessel);
+                        if (update != null)
+                        {
+                            NetworkWorker.fetch.SendVesselUpdate(update);
+                        }
                     }
                 }
-            }
-            else if (notRecentlySentPositionUpdate && checkVessel.vesselType != VesselType.Flag)
-            {
-                //Send a position update - Except for flags. They aren't exactly known for their mobility.
-                serverVesselsPositionUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
-                latestUpdateSent[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
-                VesselUpdate update = VesselUpdate.CopyFromVessel(checkVessel);
-                if (update != null)
+                else
                 {
-                    NetworkWorker.fetch.SendVesselUpdate(update);
+                    DarkLog.Debug(checkVessel.vesselName + " does not have a guid!");
                 }
             }
         }
@@ -1005,7 +1008,23 @@ namespace DarkMultiPlayer
             if (kerbalDifferent)
             {
                 serverKerbals[pcm.name] = kerbalHash;
-                NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
+                // If the current gamemode is sandbox, send a kerbal update every 30 seconds.
+                if (Client.fetch.gameMode == GameMode.SANDBOX)
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastKerbalProtoUpdateSent) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL)
+                    {
+                        NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
+                    }
+                }
+                // If it isn't sandbox, send a kerbal update every 5 seconds.
+                else
+                {
+                    if ((UnityEngine.Time.realtimeSinceStartup - lastKerbalProtoUpdateSent) > KERBAL_PROTOKERBAL_UPDATE_INTERVAL)
+                    {
+                        NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
+                        lastKerbalProtoUpdateSent = UnityEngine.Time.realtimeSinceStartup;
+                    }
+                }
             }
         }
 
