@@ -199,8 +199,8 @@ namespace DarkMultiPlayerServer
                             lastDayCheck = serverClock.ElapsedMilliseconds;
                             if (day != DateTime.Now.Day)
                             {
-                                DarkLog.LogFilename = Path.Combine(DarkLog.LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
-                                DarkLog.WriteToLog("Continued from logfile " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
+                                DarkLog.LogFilename = DarkLog.makeLogFilename();
+                                DarkLog.WriteToLog("Continued from logfile " + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".log");
                                 day = DateTime.Now.Day;
                             }
                         }
