@@ -6,7 +6,7 @@ namespace DarkMultiPlayerServer
     public class DarkLog
     {
         public static string LogFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
-        public static string LogFilename = makeLogFilename();
+        public static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
         private static object logLock = new object();
 
         public enum LogLevels
@@ -93,11 +93,6 @@ namespace DarkMultiPlayerServer
             Console.ForegroundColor = ConsoleColor.Yellow;
             WriteLog(LogLevels.CHAT, message, true);
             Console.ForegroundColor = ConsoleColor.Gray;
-        }
-
-        public static string makeLogFilename()
-        {
-            return Path.Combine(LogFolder, "dmpserver_" + DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") + ".log");
         }
     }
 }
