@@ -90,6 +90,7 @@
     <Compile Include="3DDebug.cs" />
     <Compile Include="HackyInAtmoLoader.cs" />
     <Compile Include="PartKiller.cs" />
+    <Compile Include="KerbalReassigner.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

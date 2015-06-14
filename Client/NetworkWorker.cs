@@ -132,6 +132,7 @@ namespace DarkMultiPlayer
                 FlagSyncer.fetch.SendFlagList();
                 PlayerColorWorker.fetch.SendPlayerColorToServer();
                 PartKiller.fetch.RegisterGameHooks();
+                KerbalReassigner.fetch.RegisterGameHooks();
             }
             if (state == ClientState.TIME_LOCKING)
             {

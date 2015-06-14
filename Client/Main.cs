@@ -99,6 +99,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(DynamicTickWorker.Reset);
                 resetEvent.Add(FlagSyncer.Reset);
                 resetEvent.Add(HackyInAtmoLoader.Reset);
+                resetEvent.Add(KerbalReassigner.Reset);
                 resetEvent.Add(PlayerColorWorker.Reset);
                 resetEvent.Add(PlayerStatusWindow.Reset);
                 resetEvent.Add(PlayerStatusWorker.Reset);
