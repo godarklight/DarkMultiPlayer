@@ -1787,6 +1787,10 @@ namespace DarkMultiPlayer
             return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 3f) > Planetarium.GetUniversalTime()) : false;
         }
 
+        public bool LenientVesselUpdatedInFuture(Guid vesselID)
+        {
+            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] - 3f) > Planetarium.GetUniversalTime()) : false;
+        }
         public void OnVesselDock(GameEvents.FromToAction<Part, Part> partAction)
         {
             DarkLog.Debug("Vessel docking detected!");
