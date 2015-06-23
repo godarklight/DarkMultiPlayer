@@ -389,6 +389,12 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("GearMedium");
             //1.0.1 parts
             stockPartList.Add("basicFin");
+            //1.0.3 parts
+            stockPartList.Add("foldingRadLarge");
+            stockPartList.Add("foldingRadMed");
+            stockPartList.Add("foldingRadSmall");
+            stockPartList.Add("radPanelLg");
+            stockPartList.Add("radPanelSm");
             return stockPartList;
         }
 
