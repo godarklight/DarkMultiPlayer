@@ -259,11 +259,9 @@ namespace DarkMultiPlayerServer
         //Create universe directories
         private static void CheckUniverse()
         {
-
-            if (!File.Exists(modFile))
-            {
-                GenerateNewModFile();
-            }
+            // Issue: if we only generate the mod file when it doesn't exists,
+            // new parts would be banned on servers.
+            GenerateNewModFile();
             if (!Directory.Exists(universeDirectory))
             {
                 Directory.CreateDirectory(universeDirectory);
