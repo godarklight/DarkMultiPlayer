@@ -24,6 +24,7 @@ namespace DarkMultiPlayerServer
         public static long lastPlayerActivity;
         public static object universeSizeLock = new object();
         public static string modFile;
+        public static string stockPartListFile;
         private static int day;
 
         public static void Main()
@@ -56,6 +57,7 @@ namespace DarkMultiPlayerServer
                 //Set universe directory and modfile path
                 universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
                 modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+                stockPartListFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "StockParts.txt");
 
                 if (!Directory.Exists(configDirectory))
                 {
@@ -259,7 +261,7 @@ namespace DarkMultiPlayerServer
         //Create universe directories
         private static void CheckUniverse()
         {
-
+            GenerateNewStockPartListFile();
             if (!File.Exists(modFile))
             {
                 GenerateNewModFile();
@@ -309,10 +311,29 @@ namespace DarkMultiPlayerServer
             {
                 File.Move(modFile, modFile + ".bak");
             }
-            string modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], Common.GetStockParts().ToArray());
+            string modFileData = Common.GenerateModFileStringData(new string[0], new string[0], false, new string[0], new string[0]);
             using (StreamWriter sw = new StreamWriter(modFile))
             {
                 sw.Write(modFileData);
+            }
+        }
+
+        public static void GenerateNewStockPartListFile()
+        {
+            // Delete backups
+            if (File.Exists(stockPartListFile + ".bak"))
+            {
+                File.Delete(stockPartListFile + ".bak");
+            }
+
+            if (File.Exists(stockPartListFile))
+            {
+                File.Move(stockPartListFile, stockPartListFile + ".bak");
+            }
+            string stockPartListFileData = Common.GenerateStockPartsListFile();
+            using (StreamWriter sw = new StreamWriter(stockPartListFile))
+            {
+                sw.Write(stockPartListFileData);
             }
         }
         //Shutdown

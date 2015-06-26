@@ -890,6 +890,7 @@ namespace DarkMultiPlayer
             int reply = 0;
             string reason = "";
             string modFileData = "";
+            string stockPartListFileData = "";
             int serverProtocolVersion = -1;
             string serverVersion = "Unknown";
             try
@@ -914,7 +915,8 @@ namespace DarkMultiPlayer
                         ModWorker.fetch.modControl = (ModControlMode)mr.Read<int>();
                         if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
                         {
-                            modFileData = mr.Read<string>();
+                            modFileData = System.Text.Encoding.UTF8.GetString(Compression.DecompressIfNeeded(mr.Read<byte[]>()));
+                            stockPartListFileData = System.Text.Encoding.UTF8.GetString(Compression.DecompressIfNeeded(mr.Read<byte[]>()));
                         }
                     }
                 }
@@ -929,15 +931,15 @@ namespace DarkMultiPlayer
             {
                 case 0:
                     {
-                        if (ModWorker.fetch.ParseModFile(modFileData))
+                        if (ModWorker.fetch.ParseModFile(modFileData) && ModWorker.fetch.ParseStockPartListFileData(stockPartListFileData))
                         {
                             DarkLog.Debug("Handshake successful");
                             state = ClientState.AUTHENTICATED;
                         }
                         else
                         {
-                            DarkLog.Debug("Failed to pass mod validation");
-                            SendDisconnect("Failed mod validation");
+                            DarkLog.Debug("Failed to pass mod/stock parts validation");
+                            SendDisconnect("Failed mod/stock parts validation");
                         }
                     }
                     break;
