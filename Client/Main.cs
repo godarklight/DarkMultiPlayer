@@ -78,12 +78,10 @@ namespace DarkMultiPlayer
             {
                 modDisabled = true;
             }
-            #if !DEBUG
             if (!InstallChecker.IsCorrectlyInstalled())
             {
                 modDisabled = true;
             }
-            #endif
             SetupDirectoriesIfNeeded();
             //UniverseSyncCache needs to run expiry here
             UniverseSyncCache.fetch.ExpireCache();
