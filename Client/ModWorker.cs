@@ -409,7 +409,7 @@ namespace DarkMultiPlayer
             List<string> requiredFiles = new List<string>();
             List<string> optionalFiles = new List<string>();
             List<string> partsList = Common.GetStockParts();
-             //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
+            //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
             foreach (string dllFile in topLevelFiles)
             {
                 if (Path.GetExtension(dllFile).ToLower() == ".dll")
@@ -500,6 +500,32 @@ namespace DarkMultiPlayer
                 sw.Write(modFileData);
             }
             ScreenMessages.PostScreenMessage("DMPModFile.txt file generated in your KSP folder", 5f, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+        public void CheckCommonStockParts()
+        {
+            int totalParts = 0;
+            int missingParts = 0;
+            List<string> stockParts = Common.GetStockParts();
+            DarkLog.Debug("Missing parts start");
+            foreach (AvailablePart part in PartLoader.LoadedPartsList)
+            {
+                totalParts++;
+                if (!stockParts.Contains(part.name))
+                {
+                    missingParts++;
+                    DarkLog.Debug("Missing '" + part.name + "'");
+                }
+            }
+            DarkLog.Debug("Missing parts end");
+            if (missingParts != 0)
+            {
+                ScreenMessages.PostScreenMessage(missingParts + " missing part(s) from Common.dll printed to debug log (" + totalParts + " total)", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
+            else
+            {
+                ScreenMessages.PostScreenMessage("No missing parts out of from Common.dll (" + totalParts + " total)", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
     }
 }

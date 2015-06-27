@@ -20,6 +20,8 @@ namespace DarkMultiPlayerCommon
         public const int PROTOCOL_VERSION = 38;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
+        //Mod control version - The last version to add parts
+        public const string MODCONTROL_VERSION = "1.0.3";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -396,6 +398,7 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("radPanelLg");
             stockPartList.Add("radPanelSm");
             return stockPartList;
+            //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
         }
 
         public static string GenerateModFileStringData(string[] requiredFiles, string[] optionalFiles, bool isWhiteList, string[] whitelistBlacklistFiles, string[] partsList)
@@ -403,6 +406,7 @@ namespace DarkMultiPlayerCommon
             //This is the same format as KMPModControl.txt. It's a fairly sane format, and it makes sense to remain compatible.
             StringBuilder sb = new StringBuilder();
             //Header stuff
+            sb.AppendLine("#MODCONTROLVERSION=" + Common.MODCONTROL_VERSION);
             sb.AppendLine("#You can comment by starting a line with a #, these are ignored by the server.");
             sb.AppendLine("#Commenting will NOT work unless the line STARTS with a '#'.");
             sb.AppendLine("#You can also indent the file with tabs or spaces.");

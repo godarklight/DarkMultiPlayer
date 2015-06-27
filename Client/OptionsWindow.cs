@@ -282,6 +282,12 @@ namespace DarkMultiPlayer
                 ToolbarSupport.fetch.DetectSettingsChange();
             }
             GUILayout.EndHorizontal();
+            #if DEBUG
+            if (GUILayout.Button("Check Common.dll stock parts"))
+            {
+                ModWorker.fetch.CheckCommonStockParts();
+            }
+            #endif
             GUILayout.FlexibleSpace();
             if (GUILayout.Button("Close", buttonStyle))
             {

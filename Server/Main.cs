@@ -100,6 +100,9 @@ namespace DarkMultiPlayerServer
                 //Remove player tokens
                 BackwardsCompatibility.RemoveOldPlayerTokens();
 
+                //Add new stock parts
+                BackwardsCompatibility.UpdateModcontrolPartList();
+
                 if (System.Net.Sockets.Socket.OSSupportsIPv6)
                 {
                     Settings.settingsStore.address = "::";
