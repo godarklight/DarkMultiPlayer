@@ -477,6 +477,24 @@ namespace DarkMultiPlayerCommon
             sb.AppendLine("");
             return sb.ToString();
         }
+
+        public static string GenerateStockPartsListFile()
+        {
+            StringBuilder sb = new StringBuilder();
+            //Header stuff
+            sb.AppendLine("# You can comment by starting a line with a #, these are ignored by the server.");
+            sb.AppendLine("# Commenting will NOT work unless the line STARTS with a '#'.");
+            sb.AppendLine("# You can also indent the file with tabs or spaces.");
+            sb.AppendLine("#");
+            sb.AppendLine("# This file is re-written everytime the server starts.");
+            sb.AppendLine("# DO NOT EDIT ANYTHING BELOW THIS LINE.");
+            foreach (string partName in GetStockParts())
+            {
+                sb.AppendLine(partName);
+            }
+            sb.AppendLine("");
+            return sb.ToString();
+        }
     }
 
     public enum CraftType

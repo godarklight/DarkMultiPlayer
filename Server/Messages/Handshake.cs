@@ -246,8 +246,22 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             Server.GenerateNewModFile();
                         }
+                        if (!File.Exists(Server.stockPartListFile))
+                        {
+                            Server.GenerateNewStockPartListFile();
+                        }
                         string modFileData = File.ReadAllText(Server.modFile);
-                        mw.Write<string>(modFileData);
+                        string stockPartListFileData = File.ReadAllText(Server.stockPartListFile);
+                        if (client.compressionEnabled)
+                        {
+                            mw.Write<byte[]>(Compression.CompressIfNeeded(System.Text.Encoding.UTF8.GetBytes(modFileData)));
+                            mw.Write<byte[]>(Compression.CompressIfNeeded(System.Text.Encoding.UTF8.GetBytes(stockPartListFileData)));
+                        }
+                        else
+                        {
+                            mw.Write<byte[]>(Compression.AddCompressionHeader(System.Text.Encoding.UTF8.GetBytes(modFileData), false));
+                            mw.Write<byte[]>(Compression.AddCompressionHeader(System.Text.Encoding.UTF8.GetBytes(stockPartListFileData), false));
+                        }
                     }
                 }
                 newMessage.data = mw.GetMessageBytes();

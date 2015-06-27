@@ -16,6 +16,7 @@ namespace DarkMultiPlayer
         //Accessed from ModWindow
         private List<string> allowedParts;
         private string lastModFileData = "";
+        private string lastStockPartListFileData = "";
 
         public string failText
         {
@@ -390,6 +391,51 @@ namespace DarkMultiPlayer
             return true;
         }
 
+        public bool ParseStockPartListFileData(string stockPartListFileData)
+        {
+            if (modControl == ModControlMode.DISABLED)
+            {
+                return true;
+            }
+            // Save list file so we can recheck it.
+            lastStockPartListFileData = stockPartListFileData;
+            string tempListFilePath = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data"), "StockParts.txt");
+            using (StreamWriter sw = new StreamWriter(tempListFilePath))
+            {
+                sw.WriteLine("# This file is downloaded from the server during connection. It is saved here for convenience.");
+                sw.WriteLine(lastStockPartListFileData);
+            }
+
+            // Parse the file
+            List<string> parsePartsList = new List<string>();
+            using (StringReader sr = new StringReader(stockPartListFileData))
+            {
+                while (true)
+                {
+                    string currentLine = sr.ReadLine();
+                    if (currentLine == null)
+                    {
+                        // Done reading
+                        break;
+                    }
+                    // Remove tabs/spaces from the start & end.
+                    string trimmedLine = currentLine.Trim();
+                    if (trimmedLine.StartsWith("#") || String.IsNullOrEmpty(trimmedLine))
+                    {
+                        // Skip comments or empty lines.
+                        continue;
+                    }
+                    if (!parsePartsList.Contains(trimmedLine))
+                    {
+                        parsePartsList.Add(trimmedLine);
+                    }
+                }
+            }
+            allowedParts.AddRange(parsePartsList.ToArray());
+            DarkLog.Debug("Stock part list check passed!");
+            return true;
+        }
+
         public List<string> GetAllowedPartsList()
         {
             //Return a copy
@@ -408,7 +454,7 @@ namespace DarkMultiPlayer
 
             List<string> requiredFiles = new List<string>();
             List<string> optionalFiles = new List<string>();
-            List<string> partsList = Common.GetStockParts();
+            List<string> partsList = new List<string>();
              //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
             foreach (string dllFile in topLevelFiles)
             {
