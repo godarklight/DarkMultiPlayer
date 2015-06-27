@@ -21,6 +21,7 @@ namespace DarkMultiPlayerServer
             sb.AppendLine("#MODCONTROLVERSION=" + Common.MODCONTROL_VERSION);
             List<string> stockParts = Common.GetStockParts();
             List<string> modParts = new List<string>();
+            bool partsPrinted = false;
             using (StreamReader sr = new StreamReader(Server.modFile))
             {
                 string currentLine = null;
@@ -54,9 +55,23 @@ namespace DarkMultiPlayerServer
                             sb.AppendLine(currentLine);
                             continue;
                         }
+                        //This is an edge case, but it's still possible if someone moves something manually.
                         if (trimmedLine.StartsWith("!"))
                         {
+                            if (!partsPrinted)
+                            {
+                                partsPrinted = true;
+                                foreach (string stockPart in stockParts)
+                                {
+                                    sb.AppendLine(stockPart);
+                                }
+                                foreach (string modPart in modParts)
+                                {
+                                    sb.AppendLine(modPart);
+                                }
+                            }
                             readingParts = false;
+                            sb.AppendLine(currentLine);
                             continue;
                         }
                         if (!stockParts.Contains(currentLine))
@@ -66,13 +81,17 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-            foreach (string stockPart in stockParts)
+            if (!partsPrinted)
             {
-                sb.AppendLine(stockPart);
-            }
-            foreach (string modPart in modParts)
-            {
-                sb.AppendLine(modPart);
+                partsPrinted = true;
+                foreach (string stockPart in stockParts)
+                {
+                    sb.AppendLine(stockPart);
+                }
+                foreach (string modPart in modParts)
+                {
+                    sb.AppendLine(modPart);
+                }
             }
             File.WriteAllText(Server.modFile + ".new", sb.ToString());
             File.Copy(Server.modFile + ".new", Server.modFile, true);
