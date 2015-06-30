@@ -34,6 +34,8 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<bool>(GameplaySettings.settingsStore.bypassEntryPurchaseAfterResearch);
                     mw.Write<bool>(GameplaySettings.settingsStore.indestructibleFacilities);
                     mw.Write<bool>(GameplaySettings.settingsStore.missingCrewsRespawn);
+                    mw.Write<float>(GameplaySettings.settingsStore.reentryHeatScale);
+                    mw.Write<float>(GameplaySettings.settingsStore.resourceAbundance);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsGainMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsLossMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.repGainMultiplier);
