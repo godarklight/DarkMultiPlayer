@@ -68,6 +68,41 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        public static void RunNukeEverything(string commandText)
+        {
+            lock (Server.universeSizeLock)
+            {
+                string[] vesselList = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
+                int numberOfRemovals = 0;
+                foreach (string vesselFile in vesselList)
+                {
+                    string vesselID = Path.GetFileNameWithoutExtension(vesselFile);
+
+                    DarkLog.Normal("Removing vessel " + vesselID + " from universe");
+                    //Delete it from the universe
+                    if (File.Exists(vesselFile))
+                    {
+                        File.Delete(vesselFile);
+                    }
+                    //Send a vessel remove message
+                    ServerMessage newMessage = new ServerMessage();
+                    newMessage.type = ServerMessageType.VESSEL_REMOVE;
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        //Send it with a delete time of 0 so it shows up for all players.
+                        mw.Write<double>(0);
+                        mw.Write<string>(vesselID);
+                        mw.Write<bool>(false);
+                        newMessage.data = mw.GetMessageBytes();
+                    }
+                    ClientHandler.SendToAll(null, newMessage, false);
+                    numberOfRemovals++;
+                }
+                DarkLog.Normal("Nuked " + numberOfRemovals + " from the universe");
+            }
+        }
+
+
         public static void CheckTimer()
         {
             //0 or less is disabled.
