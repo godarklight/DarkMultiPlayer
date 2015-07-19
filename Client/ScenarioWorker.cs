@@ -316,6 +316,22 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void UpgradeTheAstronautComplexSoTheGameDoesntBugOut()
+        {
+            ProtoScenarioModule sm = HighLogic.CurrentGame.scenarios.Find(psm => psm.moduleName == "ScenarioUpgradeableFacilities");
+            if (sm != null)
+            {
+                if (ScenarioUpgradeableFacilities.protoUpgradeables.ContainsKey("SpaceCenter/AstronautComplex"))
+                {
+                    foreach (Upgradeables.UpgradeableFacility uf in ScenarioUpgradeableFacilities.protoUpgradeables["SpaceCenter/AstronautComplex"].facilityRefs)
+                    {
+                        DarkLog.Debug("Setting astronaut complex to max level");
+                        uf.SetLevel(uf.MaxLevel);
+                    }
+                }
+            }
+        }
+
         public void LoadMissingScenarioDataIntoGame()
         {
             List<KSPScenarioType> validScenarios = KSPScenarioType.GetAllScenarioTypesInAssemblies();

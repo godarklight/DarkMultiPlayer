@@ -165,6 +165,7 @@ namespace DarkMultiPlayer
             if (displayMotd && (HighLogic.LoadedScene != GameScenes.LOADING) && (Time.timeSinceLevelLoad > 2f))
             {
                 displayMotd = false;
+                ScenarioWorker.fetch.UpgradeTheAstronautComplexSoTheGameDoesntBugOut();
                 ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
                 //Control locks will bug out the space centre sceen, so remove them before starting.
                 DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway();

@@ -1164,20 +1164,21 @@ namespace DarkMultiPlayer
                 ConfigNode careerLogNode = crewNode.GetNode("CAREER_LOG");
                 if (careerLogNode != null)
                 {
-                    //This method is broken. Thanks squad.
-                    //HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Load(careerLogNode);
-                    careerLogNode.ClearData();
+                    //Insert wolf howling at the moon here
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Entries.Clear();
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Load(careerLogNode);
                 }
                 else
                 {
                     DarkLog.Debug("Career log node for " + protoCrew.name + " is empty!");
                 }
-                //You know how I said it was broken? Yeah, Let's just ignore this.
+
                 ConfigNode flightLogNode = crewNode.GetNode("FLIGHT_LOG");
                 if (flightLogNode != null)
                 {
-                    //HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Load(careerLogNode);
-                    flightLogNode.ClearData();
+                    //And here. Someone "cannot into" lists and how to protect them.
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Entries.Clear();
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Load(careerLogNode);
                 }
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].courage = protoCrew.courage;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].experience = protoCrew.experience;
