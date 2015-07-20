@@ -238,7 +238,7 @@ namespace DarkMultiPlayer
                 registered = true;
                 GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
                 GameEvents.onVesselGoOffRails.Remove(OnVesselUnpack);
-                GameEvents.onVesselGoOnRails.Add(OnVesselPack);
+                GameEvents.onVesselGoOnRails.Remove(OnVesselPack);
                 GameEvents.onVesselWillDestroy.Remove(OnVesselWillDestroy);
             }
         }
