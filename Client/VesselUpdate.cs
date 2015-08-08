@@ -242,17 +242,22 @@ namespace DarkMultiPlayer
             }
 
             //Angular velocity
-            //Vector3 angularVelocity = new Vector3(this.angularVelocity[0], this.angularVelocity[1], this.angularVelocity[2]);
+            Vector3 angularVelocity = updateVessel.mainBody.bodyTransform.rotation * updateRotation * new Vector3(this.angularVelocity[0], this.angularVelocity[1], this.angularVelocity[2]);
             if (updateVessel.parts != null)
             {
-                //Vector3 newAng = updateVessel.ReferenceTransform.rotation * angularVelocity;
                 foreach (Part vesselPart in updateVessel.parts)
                 {
                     if (vesselPart.rb != null && !vesselPart.rb.isKinematic && vesselPart.State == PartStates.ACTIVE)
                     {
-                        //The parts can have different rotations - This transforms them into the root part direction which is where the angular velocity is transferred.
-                        //vesselPart.rb.angularVelocity = (Quaternion.Inverse(updateVessel.rootPart.rb.rotation) * vesselPart.rb.rotation) * newAng;
-                        vesselPart.rb.angularVelocity = Vector3.zero;
+                        vesselPart.rb.angularVelocity = angularVelocity;
+                        if (vesselPart != updateVessel.rootPart)
+                        {
+                            Vector3 rootPos = FlightGlobals.ActiveVessel.rootPart.rb.position;
+                            Vector3 rootVel = FlightGlobals.ActiveVessel.rootPart.rb.velocity;
+                            Vector3 diffPos = vesselPart.rb.position - rootPos;
+                            Vector3 partVelDifference = Vector3.Cross(angularVelocity, diffPos);
+                            vesselPart.rb.velocity = rootVel + partVelDifference;
+                        }
                     }
                 }
             }
