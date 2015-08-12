@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace DarkMultiPlayer
 {
@@ -9,6 +10,8 @@ namespace DarkMultiPlayer
         private bool registered = false;
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
+        private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
+        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
 
         public static KerbalReassigner fetch
         {
@@ -157,6 +160,9 @@ namespace DarkMultiPlayer
                     else
                     {
                         takenKerbals.Add(currentKerbalName);
+                        CreateKerbalIfMissing(currentKerbalName, protovesselID);
+                        HighLogic.CurrentGame.CrewRoster[currentKerbalName].rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                        HighLogic.CurrentGame.CrewRoster[currentKerbalName].seatIdx = crewIndex;
                     }
                     crewIndex++;
                 }
@@ -165,6 +171,27 @@ namespace DarkMultiPlayer
             foreach (string name in takenKerbals)
             {
                 kerbalToVessel[name] = protovesselID;
+            }
+        }
+
+        public void CreateKerbalIfMissing(string kerbalName, Guid vesselID)
+        {
+            if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
+            {
+                if (AddCrewMemberToRoster == null)
+                {
+                    MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.NonPublic | BindingFlags.Instance);
+                    AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
+                    if (AddCrewMemberToRoster == null)
+                    {
+                        throw new Exception("Failed to load AddCrewMember delegate!");
+                    }
+                }
+                ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
+                pcm.name = kerbalName;
+                pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                AddCrewMemberToRoster(pcm);
+                DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");
             }
         }
 
