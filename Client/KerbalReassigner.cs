@@ -10,7 +10,9 @@ namespace DarkMultiPlayer
         private bool registered = false;
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
+
         private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
+
         private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
 
         public static KerbalReassigner fetch
@@ -106,7 +108,7 @@ namespace DarkMultiPlayer
                     if (kerbalToVessel.ContainsKey(currentKerbalName) ? kerbalToVessel[currentKerbalName] != protovesselID : false)
                     {
                         ProtoCrewMember newKerbal = null;
-                        ProtoCrewMember.Gender newKerbalGender = ProtoCrewMember.Gender.Male;
+                        ProtoCrewMember.Gender newKerbalGender = GetKerbalGender(currentKerbalName);
                         string newExperienceTrait = null;
                         if (HighLogic.CurrentGame.CrewRoster.Exists(currentKerbalName))
                         {
@@ -193,6 +195,53 @@ namespace DarkMultiPlayer
                 AddCrewMemberToRoster(pcm);
                 DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");
             }
+        }
+
+        //Better not use a bool for this and enforce the gender binary on xir!
+        public static ProtoCrewMember.Gender GetKerbalGender(string kerbalName)
+        {
+            string trimmedName = kerbalName;
+            if (kerbalName.Contains(" Kerman"))
+            {
+                trimmedName = kerbalName.Substring(0, kerbalName.IndexOf(" Kerman"));
+                DarkLog.Debug("Trimming to '" + trimmedName + "'");
+            }
+            try
+            {
+                string[] femaleNames = (string[])typeof(CrewGenerator).GetField("\u0004", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+                string[] femaleNamesPrefix = (string[])typeof(CrewGenerator).GetField("\u0005", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+                string[] femaleNamesPostfix = (string[])typeof(CrewGenerator).GetField("\u0006", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
+                //Not part of the generator
+                if (trimmedName == "Valentina")
+                {
+                    return ProtoCrewMember.Gender.Female;
+                }
+                foreach (string name in femaleNames)
+                {
+                    if (name == trimmedName)
+                    {
+                        return ProtoCrewMember.Gender.Female;
+                    }
+                }
+                foreach (string prefixName in femaleNamesPrefix)
+                {
+                    if (trimmedName.StartsWith(prefixName))
+                    {
+                        foreach (string postfixName in femaleNamesPostfix)
+                        {
+                            if (trimmedName == prefixName + postfixName)
+                            {
+                                return ProtoCrewMember.Gender.Female;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DarkLog.Debug("DarkMultiPlayer name identifier exception: " + e);
+            }
+            return ProtoCrewMember.Gender.Male;
         }
 
         public static void Reset()
