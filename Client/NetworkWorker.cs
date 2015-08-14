@@ -1056,6 +1056,7 @@ namespace DarkMultiPlayer
                 AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
                 ChatWorker.fetch.consoleIdentifier = mr.Read<string>();
                 Client.fetch.serverDifficulty = (GameDifficulty)mr.Read<int>();
+                VesselWorker.fetch.safetyBubbleDistance = mr.Read<float>();
                 if (Client.fetch.serverDifficulty != GameDifficulty.CUSTOM)
                 {
                     Client.fetch.serverParameters = GameParameters.GetDefaultParameters(Client.fetch.ConvertGameMode(Client.fetch.gameMode), (GameParameters.Preset)Client.fetch.serverDifficulty);
