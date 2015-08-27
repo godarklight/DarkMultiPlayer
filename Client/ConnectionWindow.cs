@@ -123,6 +123,7 @@ namespace DarkMultiPlayer
             Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, 32, textAreaStyle); // Max 32 characters
             if (oldPlayerName != Settings.fetch.playerName)
             {
+                Settings.fetch.playerName = Settings.fetch.playerName.Replace("\n", "");
                 renameEventHandled = false;
             }
             GUILayout.EndHorizontal();
