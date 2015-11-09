@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.0.3";
+        public const string MODCONTROL_VERSION = "1.0.5";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -174,7 +174,6 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("fuelTank4-2");
             stockPartList.Add("fuelTankSmall");
             stockPartList.Add("fuelTankSmallFlat");
-            stockPartList.Add("fuelTank.long");
             stockPartList.Add("miniFuelTank");
             stockPartList.Add("mk2Fuselage");
             stockPartList.Add("mk2SpacePlaneAdapter");
@@ -397,6 +396,20 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("foldingRadSmall");
             stockPartList.Add("radPanelLg");
             stockPartList.Add("radPanelSm");
+            //1.0.5 parts
+            stockPartList.Add("turboJet");
+            stockPartList.Add("turboFanSize2");
+            stockPartList.Add("miniJetEngine");
+            stockPartList.Add("SSME");
+            stockPartList.Add("adapterEngines");
+            stockPartList.Add("miniFuselage");
+            stockPartList.Add("miniIntake");
+            stockPartList.Add("MK1CrewCabin");
+            stockPartList.Add("MiniISRU");
+            stockPartList.Add("MiniDrill");
+            stockPartList.Add("RadialOreTank");
+            stockPartList.Add("radPanelEdge");
+            stockPartList.Add("mk3CargoRamp");
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
         }
