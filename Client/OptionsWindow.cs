@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -31,8 +32,11 @@ namespace DarkMultiPlayer
         private bool settingChat;
         private bool settingScreenshot;
         private string toolbarMode;
+		//i18n
+		private string langButtonString;
+		private CultureInfo currentCulture;
 
-        public OptionsWindow()
+		public OptionsWindow()
         {
             Client.updateEvent.Add(this.Update);
             Client.drawEvent.Add(this.Draw);
@@ -68,6 +72,7 @@ namespace DarkMultiPlayer
             tempColor = new Color();
             tempColorLabelStyle = new GUIStyle(GUI.skin.label);
             UpdateToolbarString();
+			UpdateLanguageString();
         }
 
         private void UpdateToolbarString()
@@ -89,7 +94,34 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void Update()
+		private void UpdateLanguageString()
+		{
+			switch (Settings.fetch.currentLanguage)
+			{
+				case DMPSupportedLanguages.Automatic:
+					langButtonString = "Automatic";
+					currentCulture = CultureInfo.InstalledUICulture;
+					break;
+				case DMPSupportedLanguages.English:
+					langButtonString = "English";
+					currentCulture = CultureInfo.GetCultureInfo("en-US");
+					break;
+			}
+
+			// Only change the button string if the current language is not set to system default
+			if (Settings.fetch.currentLanguage != DMPSupportedLanguages.Automatic)
+			{
+				langButtonString = currentCulture.DisplayName;
+			}
+
+			if (currentCulture != null && currentCulture != System.Threading.Thread.CurrentThread.CurrentUICulture)
+			{
+				DarkLog.Debug(string.Format("Changed language to {0}", currentCulture.DisplayName));
+				System.Threading.Thread.CurrentThread.CurrentUICulture = currentCulture;
+			}
+        }
+
+		private void Update()
         {
             safeDisplay = display;
         }
@@ -282,6 +314,21 @@ namespace DarkMultiPlayer
                 ToolbarSupport.fetch.DetectSettingsChange();
             }
             GUILayout.EndHorizontal();
+			GUILayout.BeginHorizontal();
+			GUILayout.Label("Language:", smallOption);
+			if (GUILayout.Button(langButtonString, buttonStyle))
+			{
+				int newSetting = (int)Settings.fetch.currentLanguage + 1;
+				//Overflow to 0
+				if (!Enum.IsDefined(typeof(DMPSupportedLanguages), newSetting))
+				{
+					newSetting = 0;
+				}
+				Settings.fetch.currentLanguage = (DMPSupportedLanguages)newSetting;
+				Settings.fetch.SaveSettings();
+				UpdateLanguageString();
+			}
+			GUILayout.EndHorizontal();
             #if DEBUG
             if (GUILayout.Button("Check Common.dll stock parts"))
             {

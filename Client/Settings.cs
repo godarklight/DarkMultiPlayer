@@ -24,6 +24,7 @@ namespace DarkMultiPlayer
         public bool compressionEnabled;
         public bool revertEnabled;
         public DMPToolbarType toolbarType;
+		public DMPSupportedLanguages currentLanguage;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string SETTINGS_FILE = "servers.xml";
         private const string PUBLIC_KEY_FILE = "publickey.txt";
@@ -211,6 +212,15 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Adding toolbar flag to settings file");
                     toolbarType = DMPToolbarType.BLIZZY_IF_INSTALLED;
                 }
+				try
+				{
+					currentLanguage = (DMPSupportedLanguages)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@language").Value);
+				}
+				catch
+				{
+					DarkLog.Debug("Adding language flag to settings file");
+					currentLanguage = DMPSupportedLanguages.Automatic;
+				}
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
                 servers = new List<ServerEntry>();
                 foreach (XmlNode xmlNode in serverNodeList)
@@ -395,6 +405,16 @@ namespace DarkMultiPlayer
                 toolbarAttribute.Value = revertEnabled.ToString();
                 xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(toolbarAttribute);
             }
+			try
+			{
+				xmlDoc.SelectSingleNode("/settings/global/@language").Value = ((int)currentLanguage).ToString();
+			}
+			catch
+			{
+				XmlAttribute langAttribute = xmlDoc.CreateAttribute("language");
+				langAttribute.Value = revertEnabled.ToString();
+				xmlDoc.SelectSingleNode("/settings/global").Attributes.Append(langAttribute);
+			}
             XmlNode serverNodeList = xmlDoc.SelectSingleNode("/settings/servers");
             serverNodeList.RemoveAll();
             foreach (ServerEntry server in servers)
@@ -421,5 +441,11 @@ namespace DarkMultiPlayer
         public string address;
         public int port;
     }
+
+	public enum DMPSupportedLanguages : int
+	{
+		Automatic,
+		English
+	}
 }
 
