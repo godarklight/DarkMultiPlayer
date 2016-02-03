@@ -108,6 +108,7 @@ namespace DarkMultiPlayer
                 resetEvent.Add(ToolbarSupport.Reset);
                 resetEvent.Add(VesselWorker.Reset);
                 resetEvent.Add(WarpWorker.Reset);
+                resetEvent.Add(ReputationSystem.Reset);
                 GameEvents.onHideUI.Add(() =>
                 {
                     showGUI = false;
