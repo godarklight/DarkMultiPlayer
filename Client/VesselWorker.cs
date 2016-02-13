@@ -1006,7 +1006,6 @@ namespace DarkMultiPlayer
                 NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
             }
         }
-
         //Also called from PlayerStatusWorker
         public bool isSpectating
         {
@@ -1082,7 +1081,6 @@ namespace DarkMultiPlayer
             Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
             return isInSafetyBubble(protoVesselPosition, kerbinBody);
         }
-            
         //Called from main
         public void LoadKerbalsIntoGame()
         {
@@ -1196,30 +1194,33 @@ namespace DarkMultiPlayer
         //Called from main
         public void LoadVesselsIntoGame()
         {
-            DarkLog.Debug("Loading vessels into game");
-            int numberOfLoads = 0;
-
-            foreach (KeyValuePair<Guid, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
+            lock (updateQueueLock)
             {
-                while (vesselQueue.Value.Count > 0)
+                DarkLog.Debug("Loading vessels into game");
+                int numberOfLoads = 0;
+
+                foreach (KeyValuePair<Guid, Queue<VesselProtoUpdate>> vesselQueue in vesselProtoQueue)
                 {
-                    VesselProtoUpdate vpu = vesselQueue.Value.Dequeue();
-                    ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
-                    if (pv != null && pv.vesselID == vpu.vesselID)
+                    while (vesselQueue.Value.Count > 0)
                     {
-                        RegisterServerVessel(pv.vesselID);
-                        RegisterServerAsteriodIfVesselIsAsteroid(pv);
-                        HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
-                        numberOfLoads++;
-                    }
-                    else
-                    {
-                        DarkLog.Debug("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
-                        ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
+                        VesselProtoUpdate vpu = vesselQueue.Value.Dequeue();
+                        ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
+                        if (pv != null && pv.vesselID == vpu.vesselID)
+                        {
+                            RegisterServerVessel(pv.vesselID);
+                            RegisterServerAsteriodIfVesselIsAsteroid(pv);
+                            HighLogic.CurrentGame.flightState.protoVessels.Add(pv);
+                            numberOfLoads++;
+                        }
+                        else
+                        {
+                            DarkLog.Debug("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
+                            ChatWorker.fetch.PMMessageServer("WARNING: Protovessel " + vpu.vesselID + " is DAMAGED!. Skipping load.");
+                        }
                     }
                 }
+                DarkLog.Debug("Vessels (" + numberOfLoads + ") loaded into game");
             }
-            DarkLog.Debug("Vessels (" + numberOfLoads + ") loaded into game");
         }
         //Also called from QuickSaveLoader
         public void LoadVessel(ConfigNode vesselNode, Guid protovesselID, bool ignoreFlyingKill)
@@ -1763,6 +1764,7 @@ namespace DarkMultiPlayer
         {
             return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] - 3f) > Planetarium.GetUniversalTime()) : false;
         }
+
         public void OnVesselDock(GameEvents.FromToAction<Part, Part> partAction)
         {
             DarkLog.Debug("Vessel docking detected!");
@@ -1805,8 +1807,6 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Spectator docking happened. This needs to be fixed later.");
             }
         }
-
-
 
         private void OnCrewBoard(GameEvents.FromToAction<Part, Part> partAction)
         {
@@ -1920,7 +1920,6 @@ namespace DarkMultiPlayer
                 }
             }
         }
-
         //Called from networkWorker
         public void QueueKerbal(double planetTime, string kerbalName, ConfigNode kerbalNode)
         {
@@ -1983,7 +1982,6 @@ namespace DarkMultiPlayer
                 kerbalProtoHistoryTime[kerbalName] = planetTime;
             }
         }
-
         //Called from networkWorker
         public void QueueVesselRemove(Guid vesselID, double planetTime, bool isDockingUpdate, string dockingPlayer)
         {
