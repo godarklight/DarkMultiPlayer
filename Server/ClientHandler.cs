@@ -401,7 +401,7 @@ namespace DarkMultiPlayerServer
 
                         int messageType = mr.Read<int>();
                         int messageLength = mr.Read<int>();
-                        if (messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+                        if (messageType < 0 || messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
                         {
                             //Malformed message, most likely from a non DMP-client.
                             Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
@@ -421,7 +421,7 @@ namespace DarkMultiPlayerServer
                         }
                         else
                         {
-                            if (messageLength < Common.MAX_MESSAGE_SIZE)
+                            if (messageLength > 0 && messageLength < Common.MAX_MESSAGE_SIZE)
                             {
                                 client.isReceivingMessage = true;
                                 client.receiveMessage.data = new byte[messageLength];
