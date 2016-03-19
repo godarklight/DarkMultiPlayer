@@ -198,11 +198,14 @@ namespace DarkMultiPlayer
             {
                 if (contractNode.GetValue("type") == "TourismContract" && contractNode.GetValue("state") == "Active")
                 {
-                    foreach (string kerbalName in contractNode.GetValues("kerbalName"))
+                    foreach (ConfigNode paramNode in contractNode.GetNodes("PARAM"))
                     {
-                        DarkLog.Debug("Spawning missing tourist (" + kerbalName + ") for active tourism contract");
-                        ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Tourist);
-                        pcm.name = kerbalName;
+                        foreach (string kerbalName in paramNode.GetValues("kerbalName"))
+                        {
+                            DarkLog.Debug("Spawning missing tourist (" + kerbalName + ") for active tourism contract");
+                            ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Tourist);
+                            pcm.name = kerbalName;
+                        }
                     }
                 }
             }
