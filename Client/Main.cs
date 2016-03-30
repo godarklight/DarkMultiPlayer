@@ -376,9 +376,7 @@ namespace DarkMultiPlayer
                     //handle use of cheats
                     if (!serverAllowCheats)
                     {
-                        CheatOptions.InfiniteFuel = false;
-                        CheatOptions.InfiniteEVAFuel = false;
-                        CheatOptions.InfiniteRCS = false;
+                        CheatOptions.InfinitePropellant = false;
                         CheatOptions.NoCrashDamage = false;
 
                         foreach (KeyValuePair<CelestialBody, double> gravityEntry in bodiesGees)

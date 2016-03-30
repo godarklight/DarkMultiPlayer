@@ -1643,7 +1643,8 @@ namespace DarkMultiPlayer
             NetworkWorker.fetch.SendVesselRemove(dyingVesselID, false);
         }
 
-        public void OnVesselRecovered(ProtoVessel recoveredVessel)
+		//TODO: I don't know what this bool does?
+        public void OnVesselRecovered(ProtoVessel recoveredVessel, bool something)
         {
             Guid recoveredVesselID = recoveredVessel.vesselID;
 

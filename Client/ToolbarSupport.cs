@@ -1,4 +1,5 @@
 ﻿using System;
+using KSP.UI.Screens;
 using UnityEngine;
 
 namespace DarkMultiPlayer
@@ -11,7 +12,7 @@ namespace DarkMultiPlayer
         private bool blizzyRegistered;
         private bool stockRegistered;
         private Texture2D buttonTexture;
-        private ApplicationLauncherButton stockDmpButton;
+		private ApplicationLauncherButton stockDmpButton;
         private IButton blizzyButton;
         //Singleton
         private static ToolbarSupport singleton;

@@ -346,6 +346,11 @@ namespace DarkMultiPlayer
                     {
                         continue;
                     }
+					//Ignore squad plugins
+					if (dllResource.Key.StartsWith("squad/plugins"))
+					{
+						continue;
+					}
                     //Check required (Required implies whitelist)
                     if (parseRequired.ContainsKey(dllResource.Key))
                     {
