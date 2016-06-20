@@ -621,6 +621,10 @@ namespace DarkMultiPlayer
 
             //Flightstate is null on new Game();
             returnGame.flightState = new FlightState();
+            if (returnGame.flightState.mapViewFilterState == 0)
+            {
+                returnGame.flightState.mapViewFilterState = -1026;
+            }
 
             //DMP stuff
             returnGame.startScene = GameScenes.SPACECENTER;
