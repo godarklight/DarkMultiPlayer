@@ -1071,10 +1071,12 @@ namespace DarkMultiPlayer
                     newParameters.Difficulty.MissingCrewsRespawn = mr.Read<bool>();
                     newParameters.Difficulty.ReentryHeatScale = mr.Read<float>();
                     newParameters.Difficulty.ResourceAbundance = mr.Read<float>();
+                    newParameters.Flight.CanQuickLoad = newParameters.Flight.CanRestart = newParameters.Flight.CanLeaveToEditor = mr.Read<bool>();
                     newParameters.Career.FundsGainMultiplier = mr.Read<float>();
                     newParameters.Career.FundsLossMultiplier = mr.Read<float>();
                     newParameters.Career.RepGainMultiplier = mr.Read<float>();
                     newParameters.Career.RepLossMultiplier = mr.Read<float>();
+                    newParameters.Career.RepLossDeclined = mr.Read<float>();
                     newParameters.Career.ScienceGainMultiplier = mr.Read<float>();
                     newParameters.Career.StartingFunds = mr.Read<float>();
                     newParameters.Career.StartingReputation = mr.Read<float>();

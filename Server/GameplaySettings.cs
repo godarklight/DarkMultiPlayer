@@ -42,6 +42,7 @@ namespace DarkMultiPlayerServer
 
     public class GameplaySettingsStore
     {
+        // General Options
         [Description("Allow Stock Vessels")]
         public bool allowStockVessels = false;
         [Description("Auto-Hire Crewmemebers before Flight")]
@@ -56,7 +57,9 @@ namespace DarkMultiPlayerServer
         public float reentryHeatScale = 1.0f;
         [Description("Resource Abundance")]
         public float resourceAbundance = 1.0f;
-        // Career Settings
+        [Description("Allow Quickloading and Reverting Flights\nNote that if set to true and warp mode isn't SUBSPACE, it will have no effect")]
+        public bool canQuickLoad = true;
+        // Career Options
         [Description("Funds Rewards")]
         public float fundsGainMultiplier = 1.0f;
         [Description("Funds Penalties")]
@@ -65,6 +68,8 @@ namespace DarkMultiPlayerServer
         public float repGainMultiplier = 1.0f;
         [Description("Reputation Penalties")]
         public float repLossMultiplier = 1.0f;
+        [Description("Decline Penalty")]
+        public float repLossDeclined = 1.0f;
         [Description("Science Rewards")]
         public float scienceGainMultiplier = 1.0f;
         [Description("Starting Funds")]

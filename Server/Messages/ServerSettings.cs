@@ -38,10 +38,12 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<bool>(GameplaySettings.settingsStore.missingCrewsRespawn);
                     mw.Write<float>(GameplaySettings.settingsStore.reentryHeatScale);
                     mw.Write<float>(GameplaySettings.settingsStore.resourceAbundance);
+                    mw.Write<bool>(GameplaySettings.settingsStore.canQuickLoad);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsGainMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.fundsLossMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.repGainMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.repLossMultiplier);
+                    mw.Write<float>(GameplaySettings.settingsStore.repLossDeclined);
                     mw.Write<float>(GameplaySettings.settingsStore.scienceGainMultiplier);
                     mw.Write<float>(GameplaySettings.settingsStore.startingFunds);
                     mw.Write<float>(GameplaySettings.settingsStore.startingReputation);
