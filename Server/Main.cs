@@ -340,7 +340,7 @@ namespace DarkMultiPlayerServer
         {
             if (commandArgs != "")
             {
-                DarkLog.Normal("Server is restarting - " + commandArgs);
+                DarkLog.Normal("Restarting - " + commandArgs);
                 Messages.ConnectionEnd.SendConnectionEndToAll(commandArgs);
             }
             else
