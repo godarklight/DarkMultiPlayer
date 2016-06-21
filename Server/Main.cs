@@ -324,7 +324,7 @@ namespace DarkMultiPlayerServer
             if (commandArgs != "")
             {
                 DarkLog.Normal("Shutting down - " + commandArgs);
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is shutting down - " + commandArgs);
+                Messages.ConnectionEnd.SendConnectionEndToAll(commandArgs);
             }
             else
             {
@@ -340,8 +340,8 @@ namespace DarkMultiPlayerServer
         {
             if (commandArgs != "")
             {
-                DarkLog.Normal("Restarting - " + commandArgs);
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is restarting - " + commandArgs);
+                DarkLog.Normal("Server is restarting - " + commandArgs);
+                Messages.ConnectionEnd.SendConnectionEndToAll(commandArgs);
             }
             else
             {
