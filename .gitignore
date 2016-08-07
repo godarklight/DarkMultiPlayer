@@ -1,11 +1,7 @@
 *.orig
 *.dll
 *.userprefs
-Common/bin/*
-Common/obj/*
-Client/bin/*
-Client/obj/*
-Server/bin/*
-Server/obj/*
+[Bb]in/
+[Oo]bj/
 *.suo
 *.csproj.user
