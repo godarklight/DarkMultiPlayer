@@ -45,6 +45,8 @@ namespace DarkMultiPlayer
         // Server setting
         public GameDifficulty serverDifficulty;
         public GameParameters serverParameters;
+        public GameParameters.AdvancedParams serverAdvancedParameters;
+        public CommNet.CommNetParams serverCommNetParameters;
 
         public Client()
         {
@@ -506,6 +508,7 @@ namespace DarkMultiPlayer
 
             //Set difficulty
             HighLogic.CurrentGame.Parameters = serverParameters;
+            SetAdvancedAndCommNetParams(HighLogic.CurrentGame);
 
             //Set universe time
             HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
@@ -529,6 +532,24 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame.Start();
             ChatWorker.fetch.display = true;
             DarkLog.Debug("Started!");
+        }
+
+        public void SetAdvancedAndCommNetParams(Game currentGame)
+        {
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().EnableKerbalExperience = serverAdvancedParameters.EnableKerbalExperience;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().ImmediateLevelUp = serverAdvancedParameters.ImmediateLevelUp;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeFunds = serverAdvancedParameters.AllowNegativeFunds;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeScience = serverAdvancedParameters.AllowNegativeScience;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().BuildingImpactDamageMult = serverAdvancedParameters.BuildingImpactDamageMult;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInCareer = serverAdvancedParameters.PartUpgradesInCareer;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInSandbox = serverAdvancedParameters.PartUpgradesInSandbox;
+            currentGame.Parameters.CustomParams<GameParameters.AdvancedParams>().ResourceTransferObeyCrossfeed = serverAdvancedParameters.ResourceTransferObeyCrossfeed;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().enableGroundStations = serverCommNetParameters.enableGroundStations;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().requireSignalForControl = serverCommNetParameters.requireSignalForControl;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().rangeModifier = serverCommNetParameters.rangeModifier;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().DSNModifier = serverCommNetParameters.DSNModifier;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierVac = serverCommNetParameters.occlusionMultiplierVac;
+            currentGame.Parameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierAtm = serverCommNetParameters.occlusionMultiplierAtm;
         }
 
         private void StopGame()
