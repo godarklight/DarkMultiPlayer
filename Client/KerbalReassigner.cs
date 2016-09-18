@@ -182,7 +182,7 @@ namespace DarkMultiPlayer
             {
                 if (AddCrewMemberToRoster == null)
                 {
-                    MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.NonPublic | BindingFlags.Instance);
+                    MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.Public | BindingFlags.Instance);
                     AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
                     if (AddCrewMemberToRoster == null)
                     {
@@ -190,7 +190,7 @@ namespace DarkMultiPlayer
                     }
                 }
                 ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
-                pcm.name = kerbalName;
+                pcm.ChangeName(kerbalName);
                 pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
                 AddCrewMemberToRoster(pcm);
                 DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");

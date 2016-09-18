@@ -46,10 +46,6 @@
     <Reference Include="ICSharpCode.SharpZipLib">
       <HintPath>..\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
-    <Reference Include="KSPUtil">
-      <HintPath>..\KSPUtil.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>

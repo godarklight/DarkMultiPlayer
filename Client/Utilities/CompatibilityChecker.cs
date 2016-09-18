@@ -49,8 +49,8 @@ namespace DarkMultiPlayer.Utilities
         public static bool IsCompatible()
         {
             const int compatibleMajor = 1;
-            const int compatibleMinor = 1;
-            const int compatibleRevision = 3;
+            const int compatibleMinor = 2;
+            const int compatibleRevision = 0;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor) && (Versioning.Revision == compatibleRevision);
 
             /*-----------------------------------------------*\
@@ -64,7 +64,7 @@ namespace DarkMultiPlayer.Utilities
             |    BEGIN IMPLEMENTATION-SPECIFIC EDITS HERE.    |
             \*-----------------------------------------------*/
 
-			return Application.unityVersion == "5.2.4f1";
+			return Application.unityVersion == "5.4.0p4";
 
             /*-----------------------------------------------*\
             | IMPLEMENTERS SHOULD NOT EDIT BEYOND THIS POINT! |

@@ -160,7 +160,7 @@ namespace DarkMultiPlayer
                         {
                             vectorText += "Frame Velocity: " + (Vector3)ourVessel.orbitDriver.orbit.GetFrameVel() + ", |v|: " + ourVessel.orbitDriver.orbit.GetFrameVel().magnitude + "\n";
                         }
-                        vectorText += "CoM offset vector: " + ourVessel.orbitDriver.CoMoffset + "\n";
+                        vectorText += "CoM offset vector: " + ourVessel.CoM.ToString() + "\n";
                         vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
                         vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
                     }
