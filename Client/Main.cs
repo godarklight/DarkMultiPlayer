@@ -378,6 +378,11 @@ namespace DarkMultiPlayer
                     {
                         CheatOptions.InfinitePropellant = false;
                         CheatOptions.NoCrashDamage = false;
+                        CheatOptions.IgnoreAgencyMindsetOnContracts = false;
+                        CheatOptions.IgnoreMaxTemperature = false;
+                        CheatOptions.InfiniteElectricity = false;
+                        CheatOptions.NoCrashDamage = false;
+                        CheatOptions.UnbreakableJoints = false;
 
                         foreach (KeyValuePair<CelestialBody, double> gravityEntry in bodiesGees)
                         {
