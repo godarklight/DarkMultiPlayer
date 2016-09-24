@@ -49,7 +49,7 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<float>(GameplaySettings.settingsStore.startingReputation);
                     mw.Write<float>(GameplaySettings.settingsStore.startingScience);
                     //New KSP 1.2 Settings
-                    mw.Write<float>(GameplaySettings.settingsStore.respwanTime);
+                    mw.Write<float>(GameplaySettings.settingsStore.respawnTime);
                     mw.Write<bool>(GameplaySettings.settingsStore.commNetwork);
                     mw.Write<bool>(GameplaySettings.settingsStore.kerbalExp);
                     mw.Write<bool>(GameplaySettings.settingsStore.immediateLevelUp);

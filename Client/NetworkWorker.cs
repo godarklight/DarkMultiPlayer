@@ -1086,23 +1086,21 @@ namespace DarkMultiPlayer
                     //New KSP 1.2 Settings
                     newParameters.Difficulty.RespawnTimer = mr.Read<float>();
                     newParameters.Difficulty.EnableCommNet = mr.Read<bool>();
-                    newAdvancedParameters.EnableKerbalExperience = mr.Read<bool>();
-                    newAdvancedParameters.ImmediateLevelUp = mr.Read<bool>();
-                    newAdvancedParameters.AllowNegativeFunds = mr.Read<bool>();
-                    newAdvancedParameters.AllowNegativeScience = mr.Read<bool>();
-                    newAdvancedParameters.ResourceTransferObeyCrossfeed = mr.Read<bool>();
-                    newAdvancedParameters.BuildingImpactDamageMult = mr.Read<float>();
-                    newAdvancedParameters.PartUpgradesInCareer = newAdvancedParameters.PartUpgradesInSandbox = mr.Read<bool>();
-                    newCommNetParameters.requireSignalForControl = mr.Read<bool>();
-                    newCommNetParameters.rangeModifier = mr.Read<float>();
-                    newCommNetParameters.DSNModifier = mr.Read<float>();
-                    newCommNetParameters.occlusionMultiplierVac = mr.Read<float>();
-                    newCommNetParameters.occlusionMultiplierAtm = mr.Read<float>();
-                    newCommNetParameters.enableGroundStations = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().EnableKerbalExperience = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().ImmediateLevelUp = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeFunds = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeScience = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().ResourceTransferObeyCrossfeed = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().BuildingImpactDamageMult = mr.Read<float>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInCareer = newAdvancedParameters.PartUpgradesInSandbox = mr.Read<bool>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().requireSignalForControl = mr.Read<bool>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().rangeModifier = mr.Read<float>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().DSNModifier = mr.Read<float>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierVac = mr.Read<float>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierAtm = mr.Read<float>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().enableGroundStations = mr.Read<bool>();
 
                     Client.fetch.serverParameters = newParameters;
-                    Client.fetch.serverAdvancedParameters = newAdvancedParameters;
-                    Client.fetch.serverCommNetParameters = newCommNetParameters;
                 }
             }
         }

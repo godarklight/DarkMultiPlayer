@@ -62,7 +62,7 @@ namespace DarkMultiPlayerServer
         [Description("Enable Comm Network")]
         public bool commNetwork = true;
         [Description("Crew Respawn Time")]
-        public float respwanTime = 2f;
+        public float respawnTime = 2f;
         // Career Options
         [Description("Funds Rewards")]
         public float fundsGainMultiplier = 1.0f;
