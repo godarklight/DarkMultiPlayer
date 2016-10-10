@@ -1104,11 +1104,7 @@ namespace DarkMultiPlayer
             if (serverKerbals.Count == 0)
             {
                 KerbalRoster newRoster = KerbalRoster.GenerateInitialCrewRoster(HighLogic.CurrentGame.Mode);
-                foreach (ProtoCrewMember pcm in newRoster.Crew)
-                {
-                    AddCrewMemberToRoster(pcm);
-                    SendKerbalIfDifferent(pcm);
-                }
+                foreach (ProtoCrewMember pcm in newRoster.Crew) SendKerbalIfDifferent(pcm);
             }
 
             int generateKerbals = 0;
@@ -1140,7 +1136,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("protoCrew is null!");
                 return;
             }
-            if (String.IsNullOrEmpty(protoCrew.name))
+            if (string.IsNullOrEmpty(protoCrew.name))
             {
                 DarkLog.Debug("protoName is blank!");
                 return;
@@ -1175,20 +1171,28 @@ namespace DarkMultiPlayer
                 if (flightLogNode != null)
                 {
                     //And here. Someone "cannot into" lists and how to protect them.
-                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Entries.Clear();
-                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].careerLog.Load(careerLogNode);
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].flightLog.Entries.Clear();
+                    HighLogic.CurrentGame.CrewRoster[protoCrew.name].flightLog.Load(flightLogNode);
                 }
+
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].courage = protoCrew.courage;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].experience = protoCrew.experience;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].experienceLevel = protoCrew.experienceLevel;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].experienceTrait = protoCrew.experienceTrait;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].gender = protoCrew.gender;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].gExperienced = protoCrew.gExperienced;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].hasToured = protoCrew.hasToured;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].isBadass = protoCrew.isBadass;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].KerbalRef = protoCrew.KerbalRef;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].outDueToG = protoCrew.outDueToG;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].rosterStatus = protoCrew.rosterStatus;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].seat = protoCrew.seat;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].seatIdx = protoCrew.seatIdx;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].stupidity = protoCrew.stupidity;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].trait = protoCrew.trait;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].type = protoCrew.type;
                 HighLogic.CurrentGame.CrewRoster[protoCrew.name].UTaR = protoCrew.UTaR;
+                HighLogic.CurrentGame.CrewRoster[protoCrew.name].veteran = protoCrew.veteran;
             }
         }
         //Called from main
