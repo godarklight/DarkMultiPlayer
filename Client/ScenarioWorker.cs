@@ -219,13 +219,13 @@ namespace DarkMultiPlayer
             {
                 if (contractNode.GetValue("type") == "RecoverAsset")
                 {
-                    int recoveryType = int.Parse(contractNode.GetValue("recoveryType"));
                     // RECOVERY TYPES:
                     // 0: None
                     // 1: Kerbal
                     // 2: Part
                     // 3: Compound
-                    if (recoveryType == 1)
+                    int recoveryType = int.Parse(contractNode.GetValue("recoveryType"));
+                    if (recoveryType == 1 || recoveryType == 3)
                     {
                         string kerbalName = contractNode.GetValue("kerbalName");
                         int kerbalGender = int.Parse(contractNode.GetValue("gender"));
@@ -243,10 +243,8 @@ namespace DarkMultiPlayer
 
                             if (contractNode.GetValue("state") == "Active")
                             {
-                                int bodyID = int.Parse(contractNode.GetValue("targetBody"));
                                 DarkLog.Debug("Spawning stranded kerbal (" + kerbalName + ") for active KerbalRescue contract");
-
-                                GenerateStrandedKerbal(bodyID, kerbalName, kerbalGender);
+                                GenerateStrandedKerbal(contractNode);
                             }
                         }
                     }
@@ -254,34 +252,188 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void GenerateStrandedKerbal(int bodyID, string kerbalName, int kerbalGender)
+        private bool PartHasSeats(string partName)
         {
-            //Add kerbal to crew roster.
-            DarkLog.Debug("Spawning missing kerbal, name: " + kerbalName);
+            AvailablePart partInfoByName = PartLoader.getPartInfoByName(partName);
+            InternalModel internalModel = null;
+            if (partInfoByName != null)
+            {
+                string name = string.Empty;
+                if (partInfoByName.internalConfig.HasValue("name")) name = partInfoByName.internalConfig.GetValue("name");
+                foreach (InternalModel current in PartLoader.Instance.internalParts)
+                {
+                    if (current.internalName == name)
+                    {
+                        internalModel = current;
+                        break;
+                    }
+                }
+            }
+            return internalModel != null && internalModel.seats != null && internalModel.seats.Count > 0;
+        }
 
-            ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
-            pcm.ChangeName(kerbalName);
-            pcm.gender = (ProtoCrewMember.Gender)kerbalGender;
-            pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+        private ConfigNode CreateProcessedPartNode(string part, uint id, params ProtoCrewMember[] crew)
+        {
+            ConfigNode configNode = ProtoVessel.CreatePartNode(part, id, crew);
+            if (part != "kerbalEVA")
+            {
+                ConfigNode[] nodes = configNode.GetNodes("RESOURCE");
+                for (int i = 0; i < nodes.Length; i++)
+                {
+                    ConfigNode configNode2 = nodes[i];
+                    if (configNode2.HasValue("amount"))
+                    {
+                        configNode2.SetValue("amount", 0.ToString(System.Globalization.CultureInfo.InvariantCulture), false);
+                    }
+                }
+            }
+            configNode.SetValue("flag", "Squad/Flags/default", true);
+            return configNode;
+        }
 
-            //Create protovessel
-            uint newPartID = ShipConstruction.GetUniqueFlightID(HighLogic.CurrentGame.flightState);
+        private void GenerateStrandedKerbal(ConfigNode contractNode)
+        {
+            int recoveryType = int.Parse(contractNode.GetValue("recoveryType"));
+            int bodyID = int.Parse(contractNode.GetValue("targetBody"));
+            int recoveryLocation = int.Parse(contractNode.GetValue("recoveryLocation"));
+            int contractSeed = int.Parse(contractNode.GetValue("seed"));
+
+            bool recoveringKerbal = recoveryType == 1 || recoveryType == 3;
+            bool recoveringPart = recoveryType == 2 || recoveryType == 3;
+
+            System.Random generator = new System.Random(contractSeed);
+
+            // RECOVERY TYPES:
+            // 0: None
+            // 1: Kerbal
+            // 2: Part
+            // 3: Compound
+
+            // Generate vessel part
+            string partName = contractNode.GetValue("partName");
+            string[] contractValues = contractNode.GetValue("values").Split(',');
+            double contractDeadline = double.Parse(contractValues[1]);
+            uint newPartID = uint.Parse(contractNode.GetValue("partID"));
             CelestialBody contractBody = FlightGlobals.Bodies[bodyID];
-            //Atmo: 10km above atmo, to half the planets radius out.
-            //Non-atmo: 30km above ground, to half the planets radius out.
-            double minAltitude = FinePrint.Utilities.CelestialUtilities.GetMinimumOrbitalDistance(contractBody, 1.1f);
-            double maxAltitude = minAltitude + contractBody.Radius * 0.5;
-            Orbit strandedOrbit = Orbit.CreateRandomOrbitAround(FlightGlobals.Bodies[bodyID], minAltitude, maxAltitude);
-            ConfigNode[] kerbalPartNode = new ConfigNode[1];
-            ProtoCrewMember[] partCrew = new ProtoCrewMember[1];
-            partCrew[0] = pcm;
-            kerbalPartNode[0] = ProtoVessel.CreatePartNode("kerbalEVA", newPartID, partCrew);
-            ConfigNode protoVesselNode = ProtoVessel.CreateVesselNode(kerbalName, VesselType.EVA, strandedOrbit, 0, kerbalPartNode);
-            ConfigNode discoveryNode = ProtoVessel.CreateDiscoveryNode(DiscoveryLevels.Unowned, UntrackedObjectClass.A, double.PositiveInfinity, double.PositiveInfinity);
-            ProtoVessel protoVessel = new ProtoVessel(protoVesselNode, HighLogic.CurrentGame);
-            protoVessel.discoveryInfo = discoveryNode;
-            //It's not supposed to be infinite, but you're crazy if you think I'm going to decipher the values field of the rescue node.
-            HighLogic.CurrentGame.flightState.protoVessels.Add(protoVessel);
+
+            List<string> vesselDescriptionList;
+            if (recoveringKerbal)
+            {
+                vesselDescriptionList = new List<string>
+                {
+                    "Shipwreck",
+                    "Wreckage",
+                    "Pod",
+                    "Capsule",
+                    "Derelict",
+                    "Heap",
+                    "Hulk",
+                    "Craft",
+                    "Debris",
+                    "Scrap"
+                };
+            }
+            else
+            {
+                vesselDescriptionList = new List<string>
+                {
+                    "Prototype",
+                    "Device",
+                    "Part",
+                    "Module",
+                    "Unit",
+                    "Component"
+                };
+            }
+            string vesselDescription = vesselDescriptionList[generator.Next(0, vesselDescriptionList.Count)];
+
+            Orbit strandedOrbit;
+            // Low orbit
+            if (recoveryLocation != 1)
+            {
+                // High orbit
+                if (recoveryLocation != 2)
+                {
+                    strandedOrbit = new Orbit(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, contractBody);
+                }
+                else
+                {
+                    strandedOrbit = FinePrint.Utilities.OrbitUtilities.GenerateOrbit(contractSeed, contractBody, FinePrint.Utilities.OrbitType.RANDOM,
+                        FinePrint.ContractDefs.Recovery.HighOrbitDifficulty, FinePrint.ContractDefs.Recovery.HighOrbitDifficulty, 0.0);
+                }
+
+            }
+            else
+            {
+                double minAltitude = FinePrint.Utilities.CelestialUtilities.GetMinimumOrbitalDistance(contractBody, 1f) - contractBody.Radius;
+                strandedOrbit = Orbit.CreateRandomOrbitAround(contractBody, contractBody.Radius + minAltitude * 1.1000000238418579, contractBody.Radius + minAltitude * 1.25);
+                strandedOrbit.meanAnomalyAtEpoch = generator.NextDouble() * 2.0 * Math.PI;
+            }
+
+            ConfigNode configNode = null;
+
+            if (recoveringKerbal)
+            {
+                string kerbalName = contractNode.GetValue("kerbalName");
+                int kerbalGender = int.Parse(contractNode.GetValue("gender"));
+
+                string vesselName = FinePrint.Utilities.StringUtilities.PossessiveString(FinePrint.Utilities.StringUtilities.ShortKerbalName(kerbalName)) + 
+                    " " + vesselDescription;
+
+                //Add kerbal to crew roster.
+                DarkLog.Debug("Spawning missing kerbal, name: " + kerbalName);
+
+                // Recovery Locations:
+                // 0: None,
+                // 1: Low Orbit,
+                // 2: High Orbit,
+                // 3: Surface
+
+                ProtoCrewMember pcm = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
+                pcm.ChangeName(kerbalName);
+                pcm.gender = (ProtoCrewMember.Gender)kerbalGender;
+                pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
+                pcm.seat = null;
+                pcm.seatIdx = -1;
+
+                // Spawn lone kerbal
+                if (partName == "kerbalEVA")
+                {
+                    configNode = ProtoVessel.CreateVesselNode(kerbalName, VesselType.EVA, strandedOrbit, 0, new ConfigNode[]
+                    {
+                        CreateProcessedPartNode(partName, newPartID, new ProtoCrewMember[]
+                        {
+                            pcm
+                        })
+                    }, new ConfigNode[]
+                    {
+                        ProtoVessel.CreateDiscoveryNode(DiscoveryLevels.Unowned, UntrackedObjectClass.A, contractDeadline * 2, contractDeadline * 2)
+                    });
+                    configNode.AddValue("prst", true);
+                    ProtoVessel pv = HighLogic.CurrentGame.AddVessel(configNode);
+                    DarkLog.Debug("Relaying vessel " + pv.vesselID);
+                    NetworkWorker.fetch.SendVesselProtoMessage(pv, false, false);
+                }
+                // Spawn kerbal in capsule/pod
+                else
+                {
+                    configNode = ProtoVessel.CreateVesselNode(vesselName, (recoveryLocation != 3) ? VesselType.Ship : VesselType.Lander, strandedOrbit, 0, new ConfigNode[]
+                    {
+                        CreateProcessedPartNode(partName, newPartID, new ProtoCrewMember[]
+                        {
+                            pcm
+                        })
+                    }, new ConfigNode[]
+                    {
+                        new ConfigNode("ACTIONGROUPS"),
+                        ProtoVessel.CreateDiscoveryNode(DiscoveryLevels.Unowned, UntrackedObjectClass.A, contractDeadline * 2, contractDeadline * 2)
+                    });
+                    configNode.AddValue("prst", true);
+                    ProtoVessel pv = HighLogic.CurrentGame.AddVessel(configNode);
+                    DarkLog.Debug("Relaying vessel " + pv.vesselID);
+                    NetworkWorker.fetch.SendVesselProtoMessage(pv, false, false);
+                }
+            }
         }
         //Defends against bug #172
         private void CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(ConfigNode progressTrackingNode)

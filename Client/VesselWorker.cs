@@ -875,7 +875,7 @@ namespace DarkMultiPlayer
             vesselPartsOk[checkVessel.id] = (bannedParts.Count == 0);
         }
 
-        private void SendVesselUpdateIfNeeded(Vessel checkVessel)
+        public void SendVesselUpdateIfNeeded(Vessel checkVessel)
         {
             //Check vessel parts
             if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
