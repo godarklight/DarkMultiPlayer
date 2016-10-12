@@ -87,10 +87,8 @@ namespace DarkMultiPlayerServer
         public bool kerbalExp = true;
         [Description("Kerbals Level Up Immediately")]
         public bool immediateLevelUp = false;
-        [Description("Allow Negative Funds")]
-        public bool allowNegativeFunds = false;
-        [Description("Allow Negative Science")]
-        public bool allowNegativeScience = false;
+        [Description("Allow Negative Currency")]
+        public bool allowNegativeCurrency = false;
         [Description("Obey Crossfeed Rules")]
         public bool obeyCrossfeedRules = false;
         [Description("Building Damage Multiplier")]

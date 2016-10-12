@@ -53,8 +53,7 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<bool>(GameplaySettings.settingsStore.commNetwork);
                     mw.Write<bool>(GameplaySettings.settingsStore.kerbalExp);
                     mw.Write<bool>(GameplaySettings.settingsStore.immediateLevelUp);
-                    mw.Write<bool>(GameplaySettings.settingsStore.allowNegativeFunds);
-                    mw.Write<bool>(GameplaySettings.settingsStore.allowNegativeScience);
+                    mw.Write<bool>(GameplaySettings.settingsStore.allowNegativeCurrency);
                     mw.Write<bool>(GameplaySettings.settingsStore.obeyCrossfeedRules);
                     mw.Write<float>(GameplaySettings.settingsStore.buildingDamageMultiplier);
                     mw.Write<bool>(GameplaySettings.settingsStore.partUpgrades);
