@@ -1088,8 +1088,7 @@ namespace DarkMultiPlayer
                     newParameters.Difficulty.EnableCommNet = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().EnableKerbalExperience = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().ImmediateLevelUp = mr.Read<bool>();
-                    newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeFunds = mr.Read<bool>();
-                    newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeScience = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeCurrency = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().ResourceTransferObeyCrossfeed = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().BuildingImpactDamageMult = mr.Read<float>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInCareer = newAdvancedParameters.PartUpgradesInSandbox = mr.Read<bool>();
