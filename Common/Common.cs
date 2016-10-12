@@ -423,6 +423,7 @@ namespace DarkMultiPlayerCommon
             stockPartList.Add("RelayAntenna100");
             stockPartList.Add("RelayAntenna5");
             stockPartList.Add("RelayAntenna50");
+            stockPartList.Add("HeatShield0");
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
         }
