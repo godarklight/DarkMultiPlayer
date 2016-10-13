@@ -95,9 +95,15 @@ namespace DarkMultiPlayerServer
         public float buildingDamageMultiplier = 0.05f;
         [Description("Part Upgrades")]
         public bool partUpgrades = true;
+        [Description("Should parts fail when they have exceeded their pressure/G-force limit, and kerbals go unconscious after sustaining too much G-force?")]
+        public bool partPressureFail = true;
+        [Description("Multiplier to how much G-force Kerbals tolerate before going unconscious")]
+        public float kerbalGToleranceMultiplier = 1f;
         // CommNet Options
         [Description("Require Signal for Control")]
         public bool requireSignalForControl = false;
+        [Description("Enable comm links weakening and going down when the link goes through atmospheric plasma.")]
+        public bool plasmaBlackout = true;
         [Description("Range Modifier")]
         public float rangeModifier = 1.0f;
         [Description("DSN Modifier")]
