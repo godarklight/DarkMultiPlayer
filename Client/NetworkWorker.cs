@@ -1763,7 +1763,7 @@ namespace DarkMultiPlayer
                     return true;
                 }
             }
-            
+
             return false;
         }
 
@@ -1781,7 +1781,7 @@ namespace DarkMultiPlayer
             {
                 foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
                 {
-                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
                     {
                         isContractVessel = true;
                     }
@@ -1876,7 +1876,7 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
-       public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
+        public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
@@ -2074,4 +2074,3 @@ namespace DarkMultiPlayer
         public int port;
     }
 }
-
