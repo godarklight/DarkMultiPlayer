@@ -57,7 +57,10 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<bool>(GameplaySettings.settingsStore.obeyCrossfeedRules);
                     mw.Write<float>(GameplaySettings.settingsStore.buildingDamageMultiplier);
                     mw.Write<bool>(GameplaySettings.settingsStore.partUpgrades);
+                    mw.Write<bool>(GameplaySettings.settingsStore.partPressureFail);
+                    mw.Write<float>(GameplaySettings.settingsStore.kerbalGToleranceMultiplier);
                     mw.Write<bool>(GameplaySettings.settingsStore.requireSignalForControl);
+                    mw.Write<bool>(GameplaySettings.settingsStore.plasmaBlackout);
                     mw.Write<float>(GameplaySettings.settingsStore.rangeModifier);
                     mw.Write<float>(GameplaySettings.settingsStore.dsnModifier);
                     mw.Write<float>(GameplaySettings.settingsStore.occlusionModifierVac);

@@ -1091,8 +1091,11 @@ namespace DarkMultiPlayer
                     newParameters.CustomParams<GameParameters.AdvancedParams>().AllowNegativeCurrency = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().ResourceTransferObeyCrossfeed = mr.Read<bool>();
                     newParameters.CustomParams<GameParameters.AdvancedParams>().BuildingImpactDamageMult = mr.Read<float>();
-                    newParameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInCareer = newAdvancedParameters.PartUpgradesInSandbox = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInCareer = newParameters.CustomParams<GameParameters.AdvancedParams>().PartUpgradesInSandbox = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().PressurePartLimits = newParameters.CustomParams<GameParameters.AdvancedParams>().GPartLimits = newParameters.CustomParams<GameParameters.AdvancedParams>().GKerbalLimits = mr.Read<bool>();
+                    newParameters.CustomParams<GameParameters.AdvancedParams>().KerbalGToleranceMult = mr.Read<float>();
                     newParameters.CustomParams<CommNet.CommNetParams>().requireSignalForControl = mr.Read<bool>();
+                    newParameters.CustomParams<CommNet.CommNetParams>().plasmaBlackout = mr.Read<bool>();
                     newParameters.CustomParams<CommNet.CommNetParams>().rangeModifier = mr.Read<float>();
                     newParameters.CustomParams<CommNet.CommNetParams>().DSNModifier = mr.Read<float>();
                     newParameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierVac = mr.Read<float>();
