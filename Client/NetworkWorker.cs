@@ -1777,8 +1777,6 @@ namespace DarkMultiPlayer
                 return;
             }
             bool isContractVessel = false;
-            //TODO: Detect "rescue" crafts via the discovery info. Not sure why the hell it's a confignode though.
-            //if (vessel.vesselType
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
                 foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
@@ -1788,6 +1786,10 @@ namespace DarkMultiPlayer
                         isContractVessel = true;
                     }
                 }
+            }
+            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)Int32.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
+            {
+                isContractVessel = true;
             }
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
