@@ -973,14 +973,14 @@ namespace DarkMultiPlayer
 
         public void SendKerbalIfDifferent(ProtoCrewMember pcm)
         {
-            if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
-            {
-                //Don't send tourists
-                DarkLog.Debug("Skipping sending of tourist: " + pcm.name);
-                return;
-            }
             ConfigNode kerbalNode = new ConfigNode();
             pcm.Save(kerbalNode);
+            if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+            {
+                ConfigNode dmpNode = new ConfigNode();
+                dmpNode.AddValue("touristOwner", Settings.fetch.playerName);
+                kerbalNode.AddNode("DMP", dmpNode);
+            }
             byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
             if (kerbalBytes == null || kerbalBytes.Length == 0)
             {
@@ -1130,6 +1130,24 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("crewNode is null!");
                 return;
             }
+
+            if (crewNode.GetValue("type") == "Tourist")
+            {
+                ConfigNode dmpNode = null;
+                if (crewNode.TryGetNode("DMP", ref dmpNode))
+                {
+                    string dmpOwner = null;
+                    if (dmpNode.TryGetValue("touristOwner", ref dmpOwner))
+                    {
+                        if (dmpOwner != Settings.fetch.playerName)
+                        {
+                            DarkLog.Debug("Skipping load of tourist that belongs to another player");
+                            return;
+                        }
+                    }
+                }
+            }
+
             ProtoCrewMember protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
             if (protoCrew == null)
             {
@@ -1141,7 +1159,6 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("protoName is blank!");
                 return;
             }
-            protoCrew.type = ProtoCrewMember.KerbalType.Crew;
             if (!HighLogic.CurrentGame.CrewRoster.Exists(protoCrew.name))
             {
                 AddCrewMemberToRoster(protoCrew);
@@ -1208,6 +1225,19 @@ namespace DarkMultiPlayer
                     while (vesselQueue.Value.Count > 0)
                     {
                         VesselProtoUpdate vpu = vesselQueue.Value.Dequeue();
+                        ConfigNode dmpNode = null;
+                        if (vpu.vesselNode.TryGetNode("DMP", ref dmpNode))
+                        {
+                            string contractOwner = null;
+                            if (dmpNode.TryGetValue("contractOwner", ref contractOwner))
+                            {
+                                if (contractOwner != Settings.fetch.playerName)
+                                {
+                                    DarkLog.Debug("Skipping load of contract vessel that belongs to another player");
+                                    continue;
+                                }
+                            }                                
+                        }
                         ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
                         if (pv != null && pv.vesselID == vpu.vesselID)
                         {

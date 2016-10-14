@@ -1776,18 +1776,27 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
                 return;
             }
+            bool isContractVessel = false;
+            //TODO: Detect "rescue" crafts via the discovery info. Not sure why the hell it's a confignode though.
+            //if (vessel.vesselType
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
                 foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
                 {
                     if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
                     {
-                        pps.protoModuleCrew.Remove(pcm);
+                        isContractVessel = true;
                     }
                 }
             }
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
+            if (isContractVessel)
+            {
+                ConfigNode dmpNode = new ConfigNode();
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerName);
+                vesselNode.AddNode("DMP", dmpNode);
+            }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
@@ -1865,7 +1874,7 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from vesselWorker
-        public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
+       public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
         {
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
