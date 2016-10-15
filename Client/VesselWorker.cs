@@ -877,6 +877,11 @@ namespace DarkMultiPlayer
 
         public void SendVesselUpdateIfNeeded(Vessel checkVessel)
         {
+            if (checkVessel == null)
+            {
+                DarkLog.Debug("Skipping sending null vessel reference");
+                return;
+            }
             //Check vessel parts
             if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
             {
@@ -973,10 +978,10 @@ namespace DarkMultiPlayer
 
         public void SendKerbalIfDifferent(ProtoCrewMember pcm)
         {
-            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
+            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Unowned && pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned))
             {
-                //Don't send tourists or unowned Kerbals (rescue)
-                DarkLog.Debug("Skipping sending of tourist/unowned: " + pcm.name);
+                //Don't send tourists/assigned & unowned kerbals (rescues)
+                DarkLog.Debug("Skipping sending of tourist or stranded: " + pcm.name);
                 return;
             }
             ConfigNode kerbalNode = new ConfigNode();

@@ -171,7 +171,7 @@ namespace DarkMultiPlayer
                 ScenarioEntry scenarioEntry = scenarioQueue.Dequeue();
                 if (scenarioEntry.scenarioName == "ContractSystem")
                 {
-                    //FixMissingAssetsForRecoverContracts(scenarioEntry.scenarioNode);
+                    FixMissingAssetsForRecoverContracts(scenarioEntry.scenarioNode);
                     CreateMissingTourists(scenarioEntry.scenarioNode);
                 }
                 if (scenarioEntry.scenarioName == "ProgressTracking")
@@ -328,7 +328,7 @@ namespace DarkMultiPlayer
                         if (kerbalExists) DarkLog.Debug("RecoverAsset: Succesfully added " + kerbalName + " to roster");
                     }
                     // Send kerbal to the server
-                    VesselWorker.fetch.SendKerbalIfDifferent(strandedKerbal);
+                    //VesselWorker.fetch.SendKerbalIfDifferent(strandedKerbal);
 
                     List<string> vesselAdjectives = (recoveryType == 1) || (recoveryType == 3) ?
                         new List<string>
@@ -354,7 +354,7 @@ namespace DarkMultiPlayer
                                 "Component"
                             };
 
-                    ProtoVessel strandedVessel = null;
+                    Vessel strandedVessel = null;
                     if (partID != 0)
                     {
                         DarkLog.Debug("RecoverAsset: Looking for vessel with protopart ID " + partID);
@@ -362,7 +362,7 @@ namespace DarkMultiPlayer
                         if (findProtoPart != null)
                         {
                             DarkLog.Debug("RecoverAsset: Found protopart ID " + partID + "=" + findProtoPart.flightID + " in vessel " + findProtoPart.pVesselRef.vesselName);
-                            strandedVessel = findProtoPart.pVesselRef;
+                            strandedVessel = findProtoPart.pVesselRef.vesselRef;
                         }
                         else
                         {
@@ -371,25 +371,24 @@ namespace DarkMultiPlayer
                             if (findPart != null)
                             {
                                 DarkLog.Debug("RecoverAsset: Found part ID " + partID + "=" + findPart.flightID + " in vessel " + findPart.vessel.vesselName);
-                                strandedVessel = findPart.vessel.protoVessel;
+                                strandedVessel = findPart.vessel;
                             }
                         }
                     }
                     else
                     {
                         DarkLog.Debug("RecoverAsset: partID = 0 - no vessel or can't find it?");
-                        foreach (ProtoVessel pv in HighLogic.CurrentGame.flightState.protoVessels.FindAll(v => v.vesselName.Contains(FinePrint.Utilities.StringUtilities.ShortKerbalName(kerbalName))))
+                        foreach (Vessel findVessel in FlightGlobals.Vessels.FindAll(v => v.vesselName.Contains(FinePrint.Utilities.StringUtilities.ShortKerbalName(kerbalName))))
                         {
-                            DarkLog.Debug("RecoverAsset: Found vessel with the kerbal's name in it:" + pv.vesselName);
-                            Vessel findVessel = pv.vesselRef;
                             if (findVessel != null)
                             {
+                                DarkLog.Debug("RecoverAsset: Found vessel with the kerbal's name in it:" + findVessel.vesselName);
                                 DarkLog.Debug("RecoverAsset: Looking for part ID " + partID);
                                 Part findPart = findVessel.GetActiveParts().Find(p => p.flightID == partID);
-                                if (findPart.flightID == partID && findVessel.name == pv.vesselName)
+                                if (findPart != null && findPart.flightID == partID)
                                 {
-                                    DarkLog.Debug("RecoverAsset: Found vessel " + pv.vesselName + " containing part " + partID + "=" + findPart.flightID);
-                                    strandedVessel = pv;
+                                    DarkLog.Debug("RecoverAsset: Found vessel " + findVessel.vesselName + " containing part " + partID + "=" + findPart.flightID);
+                                    strandedVessel = findVessel;
                                 }
                                 else strandedVessel = null;
                             }
@@ -405,7 +404,7 @@ namespace DarkMultiPlayer
                             if (FlightGlobals.Vessels.Exists(v => v.name.Equals(possessiveName)))
                             {
                                 DarkLog.Debug("RecoverAsset: Found vessel by adjective:" + possessiveName);
-                                strandedVessel = FlightGlobals.Vessels.Find(v => v.name.Equals(possessiveName)).protoVessel;
+                                strandedVessel = FlightGlobals.Vessels.Find(v => v.name.Equals(possessiveName));
                             }
                         }
                     }
@@ -415,7 +414,7 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        DarkLog.Debug("RecoverAsset: Going with vessel " + strandedVessel.vesselName + " (" + strandedVessel.vesselID + ")");
+                        DarkLog.Debug("RecoverAsset: Going with vessel " + strandedVessel.vesselName + " (" + strandedVessel.id + ")");
                     }
 
                     bool vesselExists = !(strandedVessel == null);
@@ -434,13 +433,13 @@ namespace DarkMultiPlayer
                         }
                         if (vesselExists)
                         {
-                            DarkLog.Debug("RecoverAsset: Vessel for Active contract: " + strandedVessel.vesselName + "(" + strandedVessel.vesselID + ")");
+                            DarkLog.Debug("RecoverAsset: Vessel for Active contract: " + strandedVessel.vesselName + "(" + strandedVessel.id + ")");
                             //VesselWorker.fetch.LoadVessel(protoVesselNode, strandedVessel.vesselID, false);
                             //DarkLog.Debug("RecoverAsset: Sending protovessel message " + strandedVessel.vesselName + "(" + strandedVessel.vesselID + ")");
                             //NetworkWorker.fetch.SendVesselProtoMessage(strandedVessel, false, false);
                             //VesselWorker.fetch.SendVesselUpdateIfNeeded(strandedVessel.vesselRef);
                         }
-                        if (!vesselExists)
+                        if (!vesselExists && NetworkWorker.fetch.state != ClientState.STARTING)
                         {
                             // Spawn kerbal in capsule/pod unless EVA (doesn't happen?)
                             uint newPartID = partID == 0 ? ShipConstruction.GetUniqueFlightID(HighLogic.CurrentGame.flightState) : partID;
@@ -471,21 +470,21 @@ namespace DarkMultiPlayer
                             }
                             DarkLog.Debug("****RecoverAsset: Spawning Vessel for Active contract: " + vesselName + ", part " + partID + ", flight " + newPartID);
 
-                            ConfigNode protoVesselNode = null;
-                            ConfigNode[] partNodes = new ConfigNode[] { CreateProcessedPartNode(partName, newPartID, new ProtoCrewMember[] { strandedKerbal }) };
-                                partNodes[0].SetValue("flag", "Squad/Flags/" + contractAgent);
-                            protoVesselNode = ProtoVessel.CreateVesselNode(partName == "kerbalEVA" ? kerbalName : vesselName, partName == "kerbalEVA" ? VesselType.EVA : VesselType.Ship, strandedOrbit, 0,
-                                partNodes,
+                            ConfigNode protoVesselNode = ProtoVessel.CreateVesselNode(vesselName, partName == "kerbalEVA" ? VesselType.EVA : VesselType.Ship, strandedOrbit, 0,
+                                new ConfigNode[] { CreateProcessedPartNode(partName, newPartID, new ProtoCrewMember[] { strandedKerbal }) },
                                 new ConfigNode[] { ProtoVessel.CreateDiscoveryNode(DiscoveryLevels.Unowned, UntrackedObjectClass.A, contractDeadline * 2, contractDeadline * 2) } );
                             protoVesselNode.AddValue("prst", "True");
-                            DarkLog.Debug("RecoverAsset: Adding protovessel " + protoVesselNode.name + "(" + protoVesselNode.id + ")");
-                            strandedVessel = HighLogic.CurrentGame.AddVessel(protoVesselNode);
-                            DarkLog.Debug("RecoverAsset: Loading protovessel " + strandedVessel.vesselName + "(" + strandedVessel.vesselID + ")");
-                            strandedVessel.Load(HighLogic.CurrentGame.flightState);
-                            DarkLog.Debug("RecoverAsset: Loading vessel " + strandedVessel.vesselName + "(" + strandedVessel.vesselID + ")");
-                            Vessel loadedVessel = strandedVessel.vesselRef;
-                            DarkLog.Debug("RecoverAsset: Loaded vessel " + loadedVessel.name + "(" + loadedVessel.id + ")");
+                            DarkLog.Debug("RecoverAsset: Creating protovessel");
+                            ProtoVessel strandedProtoVessel = HighLogic.CurrentGame.AddVessel(protoVesselNode);
+                            DarkLog.Debug("RecoverAsset: Loading protovessel " + strandedProtoVessel.vesselName + "(" + strandedProtoVessel.vesselID + ")");
+                            //strandedProtoVessel.Load(HighLogic.CurrentGame.flightState);
+                            strandedVessel = strandedProtoVessel.vesselRef;
+                            //DarkLog.Debug("RecoverAsset: Loading vessel " + strandedVessel.vesselName + "(" + strandedVessel.id + ")");
+                            //FlightGlobals.Vessels.Add(strandedVessel);
+                            //strandedVessel.Load();
 
+                            DarkLog.Debug("RecoverAsset: Loaded vessel " + strandedVessel.name + "(" + strandedVessel.id + ")");
+                            vesselExists = true;
                             //VesselWorker.fetch.LoadVessel(protoVesselNode, strandedVessel.vesselID, false);
                             //DarkLog.Debug("RecoverAsset: Sending protovessel message " + strandedVessel.vesselName + "(" + strandedVessel.vesselID + ")");
                             //NetworkWorker.fetch.SendVesselProtoMessage(strandedVessel, false, false);
@@ -497,7 +496,7 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("RecoverAsset: Offered contract: " + contractTitle);
                         // There should be no kerbal and vessel yet
                         // Check if there are... deassign and destroy?
-                        if (!(strandedKerbal == null))
+                        if (kerbalExists)
                         {
                             DarkLog.Debug("RecoverAsset: Existing Kerbal for Offered contract: " + strandedKerbal.name + ", " + strandedKerbal.rosterStatus.ToString() + ", " + strandedKerbal.type.ToString());
                             if (strandedKerbal.rosterStatus != ProtoCrewMember.RosterStatus.Assigned) // something wrong?
@@ -506,7 +505,7 @@ namespace DarkMultiPlayer
                             }
                             // Check if assigned to the vessel
                         }
-                        if (!(strandedVessel == null))
+                        if (vesselExists)
                         {
                             // Check 
                             DarkLog.Debug("RecoverAsset: Vessel for Offered contract: " + strandedVessel.vesselName);
