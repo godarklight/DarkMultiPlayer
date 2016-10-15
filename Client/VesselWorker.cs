@@ -1575,7 +1575,6 @@ namespace DarkMultiPlayer
 
         public void OnVesselDestroyed(Vessel dyingVessel)
         {
-            //DarkLog.Debug("VesselWorker.OnVesselDestroyed: " + dyingVessel.vesselName);
             Guid dyingVesselID = dyingVessel.id;
             //Docking destructions
             if (dyingVesselID == fromDockedVesselID || dyingVesselID == toDockedVesselID)
@@ -1656,7 +1655,6 @@ namespace DarkMultiPlayer
 		//TODO: I don't know what this bool does?
         public void OnVesselRecovered(ProtoVessel recoveredVessel, bool something)
         {
-            DarkLog.Debug("VesselWorker.OnVesselRecovered");
             Guid recoveredVesselID = recoveredVessel.vesselID;
 
             if (LockSystem.fetch.LockExists("control-" + recoveredVesselID) && !LockSystem.fetch.LockIsOurs("control-" + recoveredVesselID))
@@ -1685,7 +1683,6 @@ namespace DarkMultiPlayer
 
         public void OnVesselTerminated(ProtoVessel terminatedVessel)
         {
-            DarkLog.Debug("VesselWorker.OnVesselTerminated");
             Guid terminatedVesselID = terminatedVessel.vesselID;
             //Check the vessel hasn't been changed in the future
             if (LockSystem.fetch.LockExists("control-" + terminatedVesselID) && !LockSystem.fetch.LockIsOurs("control-" + terminatedVesselID))
