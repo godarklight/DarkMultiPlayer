@@ -1763,7 +1763,7 @@ namespace DarkMultiPlayer
                     return true;
                 }
             }
-            
+
             return false;
         }
 
@@ -1776,18 +1776,27 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
                 return;
             }
+            bool isContractVessel = false;
+            //TODO: Detect "rescue" crafts via the discovery info. Not sure why the hell it's a confignode though.
+            //if (vessel.vesselType
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
                 foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
                 {
-                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
                     {
-                        pps.protoModuleCrew.Remove(pcm);
+                        isContractVessel = true;
                     }
                 }
             }
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
+            if (isContractVessel)
+            {
+                ConfigNode dmpNode = new ConfigNode();
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerName);
+                vesselNode.AddNode("DMP", dmpNode);
+            }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
@@ -2063,4 +2072,3 @@ namespace DarkMultiPlayer
         public int port;
     }
 }
-
