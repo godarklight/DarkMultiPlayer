@@ -1453,7 +1453,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Protovessel Loaded");
         }
 
-        private ProtoVessel CreateSafeProtoVesselFromConfigNode(ConfigNode inputNode, Guid protovesselID)
+        public ProtoVessel CreateSafeProtoVesselFromConfigNode(ConfigNode inputNode, Guid protovesselID)
         {
             ProtoVessel pv = null;
             try
