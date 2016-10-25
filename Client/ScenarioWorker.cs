@@ -10,6 +10,7 @@ namespace DarkMultiPlayer
     public class ScenarioWorker
     {
         public bool workerEnabled = false;
+        private bool registered;
         private static ScenarioWorker singleton;
         private Dictionary<string,string> checkData = new Dictionary<string, string>();
         private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
@@ -22,7 +23,7 @@ namespace DarkMultiPlayer
         private delegate bool CrewMemberRosterDelegate(ProtoCrewMember pcm);
         private CrewMemberRosterDelegate AddCrewMemberToRoster;
         private CrewMemberRosterDelegate RemoveCrewMemberFromRoster;
-        private static bool verbose = true;
+        private static bool verbose = false;
 
         public static ScenarioWorker fetch
         {
@@ -34,6 +35,14 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
+            if (workerEnabled && !registered)
+            {
+                RegisterGameHooks();
+            }
+            if (!workerEnabled && registered)
+            {
+                UnregisterGameHooks();
+            }
             if (workerEnabled && !blockScenarioDataSends)
             {
                 if ((UnityEngine.Time.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
@@ -60,6 +69,44 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+        }
+
+        private void RegisterGameHooks()
+        {
+            registered = true;
+            GameEvents.Contract.onAccepted.Add(this.OnRecoverContractAccepted);
+            GameEvents.Contract.onAccepted.Add(this.OnRecoverContractCompleted);
+        }
+
+        private void UnregisterGameHooks()
+        {
+            registered = false;
+            GameEvents.Contract.onAccepted.Remove(this.OnRecoverContractAccepted);
+            GameEvents.Contract.onCompleted.Remove(this.OnRecoverContractCompleted);
+        }
+
+        public void OnRecoverContractAccepted(Contracts.Contract newContract)
+        {
+            if (newContract.GetType() == typeof(Contracts.Templates.RecoverAsset))
+            {
+                ConfigNode cn = new ConfigNode();
+                newContract.Save(cn);
+                // Look for the vessel that has been created
+                ProtoVessel findVessel = FindProtoVesselByPartID(uint.Parse(cn.GetValue("partID")));
+                if (findVessel != null)
+                {
+                    // Send vessel to the server
+                    if (verbose) DarkLog.Debug("Recover contract accepted; vessel = " + findVessel.vesselName);
+                    VesselWorker.fetch.RegisterServerVessel(findVessel.vesselID);
+                    NetworkWorker.fetch.SendVesselProtoMessage(findVessel, false, false);
+                }
+            }
+            else return;
+        }
+
+        public void OnRecoverContractCompleted(Contracts.Contract doneContract)
+        {
+            //TODO: Cleanup/destroy server kerbals/vessels when rescue contracts are completed, failed, cancelled etc
         }
 
         private bool IsScenarioModuleAllowed(string scenarioName)
@@ -743,6 +790,10 @@ namespace DarkMultiPlayer
                 {
                     singleton.workerEnabled = false;
                     Client.updateEvent.Remove(singleton.Update);
+                    if (singleton.registered)
+                    {
+                        singleton.UnregisterGameHooks();
+                    }
                 }
                 singleton = new ScenarioWorker();
                 Client.updateEvent.Add(singleton.Update);
