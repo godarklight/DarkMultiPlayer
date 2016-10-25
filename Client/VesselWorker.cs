@@ -217,6 +217,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
+            GameEvents.onKerbalRemoved.Add(this.OnKerbalRemoved);
         }
 
         private void UnregisterGameHooks()
@@ -227,6 +228,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
+            GameEvents.onKerbalRemoved.Remove(this.OnKerbalRemoved);
         }
 
         private void HandleDocking()
@@ -1732,6 +1734,11 @@ namespace DarkMultiPlayer
             SendKerbalsInVessel(terminatedVessel);
             serverVessels.Remove(terminatedVesselID);
             NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
+        }
+
+        public void OnKerbalRemoved(ProtoCrewMember removedKerbal)
+        {
+            //TODO: Remove kerbals that are not EVAs (vessels) from the server (i.e. unowned kerbals, rescues and tourists)
         }
 
         public void SendKerbalsInVessel(ProtoVessel vessel)
