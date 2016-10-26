@@ -1738,7 +1738,7 @@ namespace DarkMultiPlayer
 
         public void OnKerbalRemoved(ProtoCrewMember removedKerbal)
         {
-            //TODO: Remove kerbals that are not EVAs (vessels) from the server (i.e. unowned kerbals, rescues and tourists)
+            NetworkWorker.fetch.SendKerbalRemoveMessage(removedKerbal.name);
         }
 
         public void SendKerbalsInVessel(ProtoVessel vessel)

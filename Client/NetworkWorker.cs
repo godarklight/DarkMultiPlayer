@@ -794,6 +794,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_REPLY:
                         HandleKerbalReply(message.data);
                         break;
+                    case ServerMessageType.KERBAL_REMOVE:
+                        HandleKerbalRemoved(message.data);
+                        break;
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
@@ -1209,6 +1212,17 @@ namespace DarkMultiPlayer
             state = ClientState.KERBALS_SYNCED;
             DarkLog.Debug("Kerbals Synced!");
             Client.fetch.status = "Kerbals synced";
+        }
+
+        private void HandleKerbalRemoved(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                mr.Read<double>();
+                string kerbalName = mr.Read<string>();
+                DarkLog.Debug("Kerbal removed: " + kerbalName);
+                ScreenMessages.PostScreenMessage("Kerbal " + kerbalName + " removed from game", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
 
         private void HandleVesselList(byte[] messageData)
@@ -1965,6 +1979,20 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbalName);
             }
+        }
+
+        public void SendKerbalRemoveMessage(string kerbalName)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.KERBAL_REMOVE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<double>(Planetarium.GetUniversalTime());
+                mw.Write<string>(kerbalName);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            DarkLog.Debug("Removing kerbal " + kerbalName + ", size: " + newMessage.data.Length);
+            QueueOutgoingMessage(newMessage, false);
         }
         //Called from chatWorker
         public void SendPingRequest()
