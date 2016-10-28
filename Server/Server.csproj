@@ -48,6 +48,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="CommandHandler.cs" />
     <Compile Include="ClientHandler.cs" />
+    <Compile Include="Messages\KerbalRemove.cs" />
     <Compile Include="ScreenshotExpire.cs" />
     <Compile Include="Settings.cs" />
     <Compile Include="Log.cs" />
