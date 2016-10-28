@@ -1776,6 +1776,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
                 return;
             }
+
             bool isContractVessel = false;
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
@@ -1796,9 +1797,10 @@ namespace DarkMultiPlayer
             if (isContractVessel)
             {
                 ConfigNode dmpNode = new ConfigNode();
-                dmpNode.AddValue("contractOwner", Settings.fetch.playerName);
-                vesselNode.AddNode("DMP", dmpNode);
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);
+                vesselNode.AddNode("DarkMultiPlayer", dmpNode);
             }
+
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
