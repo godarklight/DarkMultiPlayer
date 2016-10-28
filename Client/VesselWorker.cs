@@ -212,6 +212,7 @@ namespace DarkMultiPlayer
         private void RegisterGameHooks()
         {
             registered = true;
+            GameEvents.onNewVesselCreated.Add(OnNewVesselCreated);
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
@@ -222,6 +223,7 @@ namespace DarkMultiPlayer
         private void UnregisterGameHooks()
         {
             registered = false;
+            GameEvents.onNewVesselCreated.Remove(OnNewVesselCreated);
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
@@ -907,8 +909,6 @@ namespace DarkMultiPlayer
             if (!LockSystem.fetch.LockExists("update-" + checkVessel.id.ToString()))
             {
                 LockSystem.fetch.ThrottledAcquireLock("update-" + checkVessel.id.ToString());
-                //Wait until we have the update lock
-                return;
             }
 
             // Check if it isn't null before fetching it
@@ -1681,7 +1681,15 @@ namespace DarkMultiPlayer
             NetworkWorker.fetch.SendVesselRemove(dyingVesselID, false);
         }
 
-		//TODO: I don't know what this bool does?
+        private void OnNewVesselCreated(Vessel data)
+        {
+            if (!AsteroidWorker.fetch.VesselIsAsteroid(data) && data.DiscoveryInfo.Level != DiscoveryLevels.Owned)
+            {
+                SendVesselUpdateIfNeeded(data);
+            }
+        }
+
+        //TODO: I don't know what this bool does?
         public void OnVesselRecovered(ProtoVessel recoveredVessel, bool something)
         {
             Guid recoveredVesselID = recoveredVessel.vesselID;
