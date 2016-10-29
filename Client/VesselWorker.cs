@@ -913,14 +913,18 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            //Take the update lock off another player if we have the control lock and it's our vessel
-            if (checkVessel.id == FlightGlobals.fetch.activeVessel.id)
+            // Check if it isn't null before fetching it
+            if (FlightGlobals.fetch.activeVessel != null)
             {
-                if (LockSystem.fetch.LockExists("update-" + checkVessel.id.ToString()) && !LockSystem.fetch.LockIsOurs("update-" + checkVessel.id.ToString()) && LockSystem.fetch.LockIsOurs("control-" + checkVessel.id.ToString()))
+                //Take the update lock off another player if we have the control lock and it's our vessel
+                if (checkVessel.id == FlightGlobals.fetch.activeVessel.id)
                 {
-                    LockSystem.fetch.ThrottledAcquireLock("update-" + checkVessel.id.ToString());
-                    //Wait until we have the update lock
-                    return;
+                    if (LockSystem.fetch.LockExists("update-" + checkVessel.id.ToString()) && !LockSystem.fetch.LockIsOurs("update-" + checkVessel.id.ToString()) && LockSystem.fetch.LockIsOurs("control-" + checkVessel.id.ToString()))
+                    {
+                        LockSystem.fetch.ThrottledAcquireLock("update-" + checkVessel.id.ToString());
+                        //Wait until we have the update lock
+                        return;
+                    }
                 }
             }
 
