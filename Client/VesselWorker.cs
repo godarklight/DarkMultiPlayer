@@ -984,8 +984,8 @@ namespace DarkMultiPlayer
             if (pcm.type == ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Unowned && pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned))
             {
                 ConfigNode dmpNode = new ConfigNode();
-                dmpNode.AddValue("contractKerbalOwner", Settings.fetch.playerName);
-                kerbalNode.AddNode("DMP", dmpNode);
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerName);
+                kerbalNode.AddNode("DarkMultiPlayer", dmpNode);
             }
             byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
             if (kerbalBytes == null || kerbalBytes.Length == 0)
@@ -1140,12 +1140,12 @@ namespace DarkMultiPlayer
             if (crewNode.GetValue("type") == "Tourist" || crewNode.GetValue("type") == "Unowned")
             {
                 ConfigNode dmpNode = null;
-                if (crewNode.TryGetNode("DMP", ref dmpNode))
+                if (crewNode.TryGetNode("DarkMultiPlayer", ref dmpNode))
                 {
                     string dmpOwner = null;
-                    if (dmpNode.TryGetValue("contractKerbalOwner", ref dmpOwner))
+                    if (dmpNode.TryGetValue("contractOwner", ref dmpOwner))
                     {
-                        if (dmpOwner != Settings.fetch.playerName)
+                        if (dmpOwner != Settings.fetch.playerPublicKey)
                         {
                             DarkLog.Debug("Skipping load of kerbal that belongs to another player's contracts");
                             return;
@@ -1232,12 +1232,12 @@ namespace DarkMultiPlayer
                     {
                         VesselProtoUpdate vpu = vesselQueue.Value.Dequeue();
                         ConfigNode dmpNode = null;
-                        if (vpu.vesselNode.TryGetNode("DMP", ref dmpNode))
+                        if (vpu.vesselNode.TryGetNode("DarkMultiPlayer", ref dmpNode))
                         {
                             string contractOwner = null;
                             if (dmpNode.TryGetValue("contractOwner", ref contractOwner))
                             {
-                                if (contractOwner != Settings.fetch.playerName)
+                                if (contractOwner != Settings.fetch.playerPublicKey)
                                 {
                                     DarkLog.Debug("Skipping load of contract vessel that belongs to another player");
                                     continue;
@@ -1459,7 +1459,7 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Protovessel Loaded");
         }
 
-        public ProtoVessel CreateSafeProtoVesselFromConfigNode(ConfigNode inputNode, Guid protovesselID)
+        private ProtoVessel CreateSafeProtoVesselFromConfigNode(ConfigNode inputNode, Guid protovesselID)
         {
             ProtoVessel pv = null;
             try
