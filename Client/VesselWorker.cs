@@ -212,25 +212,23 @@ namespace DarkMultiPlayer
         private void RegisterGameHooks()
         {
             registered = true;
-            GameEvents.onNewVesselCreated.Add(OnNewVesselCreated);
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
-            GameEvents.onKerbalRemoved.Add(this.OnKerbalRemoved);
+            GameEvents.onKerbalRemoved.Add(OnKerbalRemoved);
         }
 
         private void UnregisterGameHooks()
         {
             registered = false;
-            GameEvents.onNewVesselCreated.Remove(OnNewVesselCreated);
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
-            GameEvents.onKerbalRemoved.Remove(this.OnKerbalRemoved);
+            GameEvents.onKerbalRemoved.Remove(OnKerbalRemoved);
         }
 
         private void HandleDocking()
@@ -935,7 +933,7 @@ namespace DarkMultiPlayer
             //Check that is hasn't been recently sent
             if (notRecentlySentProtoUpdate)
             {
-                ProtoVessel checkProto = new ProtoVessel(checkVessel);
+                ProtoVessel checkProto = checkVessel.BackupVessel();
                 //TODO: Fix sending of flying vessels.
                 if (checkProto != null)
                 {
@@ -984,7 +982,7 @@ namespace DarkMultiPlayer
             if (pcm.type == ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Unowned && pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned))
             {
                 ConfigNode dmpNode = new ConfigNode();
-                dmpNode.AddValue("contractKerbalOwner", Settings.fetch.playerPublicKey);
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);
                 kerbalNode.AddNode("DarkMultiPlayer", dmpNode);
             }
             byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);
@@ -1010,6 +1008,15 @@ namespace DarkMultiPlayer
             {
                 serverKerbals[pcm.name] = kerbalHash;
                 NetworkWorker.fetch.SendKerbalProtoMessage(pcm.name, kerbalBytes);
+            }
+        }
+
+        public void SendKerbalRemove(string kerbalName)
+        {
+            if (serverKerbals.ContainsKey(kerbalName))
+            {
+                DarkLog.Debug("Found kerbal " + kerbalName + ", sending remove...");
+                NetworkWorker.fetch.SendKerbalRemove(kerbalName);
             }
         }
         //Also called from PlayerStatusWorker
@@ -1143,7 +1150,7 @@ namespace DarkMultiPlayer
                 if (crewNode.TryGetNode("DarkMultiPlayer", ref dmpNode))
                 {
                     string dmpOwner = null;
-                    if (dmpNode.TryGetValue("contractKerbalOwner", ref dmpOwner))
+                    if (dmpNode.TryGetValue("contractOwner", ref dmpOwner))
                     {
                         if (dmpOwner != Settings.fetch.playerPublicKey)
                         {
@@ -1242,7 +1249,7 @@ namespace DarkMultiPlayer
                                     DarkLog.Debug("Skipping load of contract vessel that belongs to another player");
                                     continue;
                                 }
-                            }
+                            }                                
                         }
                         ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
                         if (pv != null && pv.vesselID == vpu.vesselID)
@@ -1683,14 +1690,6 @@ namespace DarkMultiPlayer
             NetworkWorker.fetch.SendVesselRemove(dyingVesselID, false);
         }
 
-        private void OnNewVesselCreated(Vessel data)
-        {
-            if (!AsteroidWorker.fetch.VesselIsAsteroid(data) && data.DiscoveryInfo.Level != DiscoveryLevels.Owned)
-            {
-                SendVesselUpdateIfNeeded(data);
-            }
-        }
-
         //TODO: I don't know what this bool does?
         public void OnVesselRecovered(ProtoVessel recoveredVessel, bool something)
         {
@@ -1746,11 +1745,6 @@ namespace DarkMultiPlayer
             SendKerbalsInVessel(terminatedVessel);
             serverVessels.Remove(terminatedVesselID);
             NetworkWorker.fetch.SendVesselRemove(terminatedVesselID, false);
-        }
-
-        public void OnKerbalRemoved(ProtoCrewMember removedKerbal)
-        {
-            NetworkWorker.fetch.SendKerbalRemoveMessage(removedKerbal.name);
         }
 
         public void SendKerbalsInVessel(ProtoVessel vessel)
@@ -1831,7 +1825,7 @@ namespace DarkMultiPlayer
                     bool fromVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.from.vessel.id.ToString());
                     bool toVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.to.vessel.id.ToString());
                     if (fromVesselUpdateLockIsOurs || toVesselUpdateLockIsOurs || !fromVesselUpdateLockExists || !toVesselUpdateLockExists)
-                    {
+                    {                    
                         DarkLog.Debug("Vessel docking, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
                         DarkLog.Debug("Vessel docking, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
                         if (FlightGlobals.fetch.activeVessel != null)
@@ -1872,6 +1866,11 @@ namespace DarkMultiPlayer
                 fromDockedVesselID = partAction.from.vessel.id;
                 toDockedVesselID = partAction.to.vessel.id;
             }
+        }
+
+        private void OnKerbalRemoved(ProtoCrewMember pcm)
+        {
+            SendKerbalRemove(pcm.name);
         }
 
         public void KillVessel(Vessel killVessel)

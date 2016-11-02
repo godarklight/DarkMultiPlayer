@@ -641,6 +641,9 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.MOD_DATA:
                         Messages.ModData.HandleModDataMessage(client, message.data);
                         break;
+                    case ClientMessageType.KERBAL_REMOVE:
+                        Messages.VesselRemove.HandleKerbalRemoval(client, message.data);
+                        break;
                     case ClientMessageType.SPLIT_MESSAGE:
                         Messages.SplitMessage.HandleSplitMessage(client, message.data);
                         break;

@@ -38,16 +38,12 @@ namespace DarkMultiPlayer
         {
             registered = true;
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
-            GameEvents.Contract.onFailed.Add(OnContractFailOrComplete);
-            GameEvents.Contract.onCompleted.Add(OnContractFailOrComplete);
         }
 
         private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
-            GameEvents.Contract.onFailed.Remove(OnContractFailOrComplete);
-            GameEvents.Contract.onCompleted.Remove(OnContractFailOrComplete);
         }
 
         private void OnContractAccepted(Contract contract)
@@ -60,6 +56,7 @@ namespace DarkMultiPlayer
             {
                 string kerbalName = contractNode.GetValue("kerbalName").Trim();
                 int kerbalGender = int.Parse(contractNode.GetValue("gender"));
+                uint partID = uint.Parse(contractNode.GetValue("partID"));
 
                 if (!string.IsNullOrEmpty(kerbalName))
                 {
@@ -78,10 +75,18 @@ namespace DarkMultiPlayer
                         rescueKerbal = HighLogic.CurrentGame.CrewRoster[kerbalName];
                         DarkLog.Debug("Kerbal " + kerbalName + " already exists, skipping respawn");
                     }
-                    if (rescueKerbal != null)
+                    if (rescueKerbal != null) VesselWorker.fetch.SendKerbalIfDifferent(rescueKerbal);
+                }
+
+                if (partID != 0)
+                {
+                    Vessel contractVessel = FinePrint.Utilities.VesselUtilities.FindVesselWithPartIDs(new List<uint> { partID });
+                    if (contractVessel != null)
                     {
-                        HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.fetch.currentGame);
-                        VesselWorker.fetch.SendKerbalIfDifferent(rescueKerbal);
+                        ConfigNode vesselNode = new ConfigNode();
+                        contractVessel.BackupVessel().Save(vesselNode);
+                        DarkLog.ExternalLog(vesselNode.ToString());
+                        VesselWorker.fetch.SendVesselUpdateIfNeeded(contractVessel);
                     }
                 }
             }
@@ -111,11 +116,6 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-        }
-
-        private void OnContractFailOrComplete(Contract contract)
-        {
-            DarkLog.Debug("Contract state: " + contract.ContractState);
         }
 
         private void Update()
