@@ -50,7 +50,7 @@ namespace DarkMultiPlayer.Utilities
         {
             const int compatibleMajor = 1;
             const int compatibleMinor = 2;
-            const int compatibleRevision = 0;
+            const int compatibleRevision = 1;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor) && (Versioning.Revision == compatibleRevision);
 
             /*-----------------------------------------------*\
@@ -160,7 +160,7 @@ namespace DarkMultiPlayer.Utilities
 
             if ((incompatible.Length > 0) || (incompatibleUnity.Length > 0))
             {
-				PopupDialog.SpawnPopupDialog (new Vector2 (0, 0), new Vector2 (float.PositiveInfinity, float.PositiveInfinity), "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
+				PopupDialog.SpawnPopupDialog (new Vector2 (0, 0), new Vector2 (0, 0), "Incompatible Mods Detected", message, "OK", true, HighLogic.UISkin);
             }
         }
 
