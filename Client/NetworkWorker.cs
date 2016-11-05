@@ -794,9 +794,6 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_REPLY:
                         HandleKerbalReply(message.data);
                         break;
-                    case ServerMessageType.KERBAL_REMOVE:
-                        HandleKerbalRemoved(message.data);
-                        break;
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;

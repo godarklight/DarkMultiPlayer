@@ -979,7 +979,7 @@ namespace DarkMultiPlayer
         {
             ConfigNode kerbalNode = new ConfigNode();
             pcm.Save(kerbalNode);
-            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Unowned && pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned))
+            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
             {
                 ConfigNode dmpNode = new ConfigNode();
                 dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);

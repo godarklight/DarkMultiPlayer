@@ -38,12 +38,14 @@ namespace DarkMultiPlayer
         {
             registered = true;
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
+            GameEvents.Contract.onOffered.Add(OnContractOffered);
         }
 
         private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
+            GameEvents.Contract.onOffered.Remove(OnContractOffered);
         }
 
         private void OnContractAccepted(Contract contract)
@@ -115,6 +117,18 @@ namespace DarkMultiPlayer
                         if (pcm != null) VesselWorker.fetch.SendKerbalIfDifferent(pcm);
                     }
                 }
+            }
+        }
+
+        private void OnContractOffered(Contract contract)
+        {
+            ConfigNode contractNode = new ConfigNode();
+            contract.Save(contractNode);
+
+            if (contractNode.GetValue("type") == "RecoverAsset")
+            {
+                string kerbalName = contractNode.GetValue("kerbalName");
+                VesselWorker.fetch.SendKerbalIfDifferent(HighLogic.CurrentGame.CrewRoster[kerbalName]);
             }
         }
 
