@@ -1016,6 +1016,7 @@ namespace DarkMultiPlayer
             if (serverKerbals.ContainsKey(kerbalName))
             {
                 DarkLog.Debug("Found kerbal " + kerbalName + ", sending remove...");
+                serverKerbals.Remove(kerbalName);
                 NetworkWorker.fetch.SendKerbalRemove(kerbalName);
             }
         }
@@ -1765,7 +1766,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1788,7 +1790,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }
