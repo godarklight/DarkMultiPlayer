@@ -1473,7 +1473,6 @@ namespace DarkMultiPlayer
             try
             {
                 DodgeVesselActionGroups(inputNode);
-                RemoveManeuverNodesFromProtoVessel(inputNode);
                 DodgeVesselLandedStatus(inputNode);
                 KerbalReassigner.fetch.DodgeKerbals(inputNode, protovesselID);
                 pv = new ProtoVessel(inputNode, HighLogic.CurrentGame);
@@ -1595,6 +1594,34 @@ namespace DarkMultiPlayer
                 if (flightPlanNode != null)
                 {
                     flightPlanNode.ClearData();
+                }
+            }
+        }
+
+        private void FixVesselManeuverNodes(ConfigNode vesselNode)
+        {
+            if (vesselNode != null)
+            {
+                ConfigNode flightPlanNode = vesselNode.GetNode("FLIGHTPLAN");
+                List<ConfigNode> expiredManeuverNodes = new List<ConfigNode>();
+                if (flightPlanNode != null)
+                {
+                    foreach (ConfigNode maneuverNode in flightPlanNode.GetNodes("MANEUVER"))
+                    {
+                        double maneuverUT = double.Parse(maneuverNode.GetValue("UT"));
+                        double currentTime = Planetarium.GetUniversalTime();
+                        if (currentTime > maneuverUT) expiredManeuverNodes.Add(maneuverNode);
+                    }
+
+                    if (expiredManeuverNodes.Count != 0)
+                    {
+                        foreach (ConfigNode removeNode in expiredManeuverNodes)
+                        {
+                            DarkLog.Debug("Removed maneuver node from vessel, it was expired!");
+                            flightPlanNode.RemoveNode(removeNode);
+                        }
+                    }
+                    
                 }
             }
         }
