@@ -797,6 +797,9 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
+                    case ServerMessageType.KERBAL_REMOVE:
+                        HandleKerbalRemove(message.data);
+                        break;
                     case ServerMessageType.VESSEL_LIST:
                         HandleVesselList(message.data);
                         break;
@@ -1209,6 +1212,17 @@ namespace DarkMultiPlayer
             state = ClientState.KERBALS_SYNCED;
             DarkLog.Debug("Kerbals Synced!");
             Client.fetch.status = "Kerbals synced";
+        }
+
+        private void HandleKerbalRemove(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                double planetTime = mr.Read<double>();
+                string kerbalName = mr.Read<string>();
+                DarkLog.Debug("Kerbal removed: " + kerbalName);
+                ScreenMessages.PostScreenMessage("Kerbal " + kerbalName + " removed from game", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
 
         private void HandleVesselList(byte[] messageData)
@@ -1776,18 +1790,33 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Vessel " + vessel.vesselID + " has NaN position");
                 return;
             }
+
+            // Handle contract vessels
+            bool isContractVessel = false;
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
                 foreach (ProtoCrewMember pcm in pps.protoModuleCrew.ToArray())
                 {
-                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist)
+                    if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
                     {
-                        pps.protoModuleCrew.Remove(pcm);
+                        isContractVessel = true;
                     }
                 }
             }
+            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)int.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
+            {
+                isContractVessel = true;
+            }
+
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
+            if (isContractVessel)
+            {
+                ConfigNode dmpNode = new ConfigNode();
+                dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);
+                vesselNode.AddNode("DarkMultiPlayer", dmpNode);
+            }
+
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
@@ -1879,6 +1908,20 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<string>(Settings.fetch.playerName);
                 }
+                newMessage.data = mw.GetMessageBytes();
+            }
+            QueueOutgoingMessage(newMessage, false);
+        }
+        // Called from VesselWorker
+        public void SendKerbalRemove(string kerbalName)
+        {
+            DarkLog.Debug("Removing kerbal " + kerbalName + " from the server");
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.KERBAL_REMOVE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<double>(Planetarium.GetUniversalTime());
+                mw.Write<string>(kerbalName);
                 newMessage.data = mw.GetMessageBytes();
             }
             QueueOutgoingMessage(newMessage, false);

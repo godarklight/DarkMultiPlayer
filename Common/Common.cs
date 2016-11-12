@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 44;
+        public const int PROTOCOL_VERSION = 45;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -527,6 +527,7 @@ namespace DarkMultiPlayerCommon
         SCENARIO_DATA,
         KERBALS_REQUEST,
         KERBAL_PROTO,
+        KERBAL_REMOVE,
         VESSELS_REQUEST,
         VESSEL_PROTO,
         VESSEL_UPDATE,
@@ -558,6 +559,7 @@ namespace DarkMultiPlayerCommon
         SCENARIO_DATA,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
+        KERBAL_REMOVE,
         VESSEL_LIST,
         VESSEL_PROTO,
         VESSEL_UPDATE,
