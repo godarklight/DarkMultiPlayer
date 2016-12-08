@@ -75,6 +75,7 @@ namespace DarkMultiPlayer
                 DisclaimerWindow.Enable();
             }
             if (!CompatibilityChecker.IsCompatible())
+                IgnoreCompatibilityWindow.Enable();
             {
                 modDisabled = true;
             }
