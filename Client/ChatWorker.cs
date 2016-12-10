@@ -333,24 +333,28 @@ namespace DarkMultiPlayer
 
         public void QueueChannelMessage(string fromPlayer, string channelName, string channelMessage)
         {
-            ChannelEntry ce = new ChannelEntry();
-            ce.fromPlayer = fromPlayer;
-            ce.channel = channelName;
-            ce.message = channelMessage;
-            newChannelMessages.Enqueue(ce);
-            if (!display)
+            // Check if any of these is null before doing anything else
+            if (!string.IsNullOrEmpty(fromPlayer) && !string.IsNullOrEmpty(channelMessage))
             {
-                if (ce.fromPlayer != consoleIdentifier)
+                ChannelEntry ce = new ChannelEntry();
+                ce.fromPlayer = fromPlayer;
+                ce.channel = channelName;
+                ce.message = channelMessage;
+                newChannelMessages.Enqueue(ce);
+                if (!display)
                 {
-                    chatButtonHighlighted = true;
-                }
-                if (ce.channel != "")
-                {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
-                }
-                else
-                {
-                    ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #Global : " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    if (ce.fromPlayer != consoleIdentifier)
+                    {
+                        chatButtonHighlighted = true;
+                    }
+                    if (!string.IsNullOrEmpty(ce.channel))
+                    {
+                        ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #" + ce.channel + ": " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    }
+                    else
+                    {
+                        ScreenMessages.PostScreenMessage(ce.fromPlayer + " -> #Global : " + ce.message, 5f, ScreenMessageStyle.UPPER_LEFT);
+                    }
                 }
             }
         }
