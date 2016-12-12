@@ -46,11 +46,18 @@ namespace DarkMultiPlayer.Utilities
     [KSPAddon(KSPAddon.Startup.Instantly, true)]
     internal class CompatibilityChecker : MonoBehaviour
     {
+        private const int compatibleMajor = 1;
+        private const int compatibleMinor = 2;
+        private const int compatibleRevision = 2;
+
+        // Returns compatible version as String
+        public static String getCompatibleText()
+        {
+            return compatibleMajor + "." + compatibleMinor + "." + compatibleRevision;
+        }
+
         public static bool IsCompatible()
         {
-            const int compatibleMajor = 1;
-            const int compatibleMinor = 2;
-            const int compatibleRevision = 2;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor) && (Versioning.Revision == compatibleRevision);
 
             /*-----------------------------------------------*\

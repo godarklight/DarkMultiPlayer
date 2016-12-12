@@ -56,6 +56,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="IgnoreVersionWindow.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ConfigNodeSerializer.cs" />
@@ -105,5 +106,11 @@
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Assembly-CSharp-firstpass.dll" />
+    <Content Include="Assembly-CSharp.dll" />
+    <Content Include="UnityEngine.dll" />
+    <Content Include="UnityEngine.UI.dll" />
   </ItemGroup>
 </Project>
