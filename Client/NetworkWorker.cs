@@ -1791,6 +1791,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
+            // Handle contract vessels
             bool isContractVessel = false;
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
@@ -1802,10 +1803,11 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)Int32.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
+            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)int.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
             {
                 isContractVessel = true;
             }
+
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
             if (isContractVessel)

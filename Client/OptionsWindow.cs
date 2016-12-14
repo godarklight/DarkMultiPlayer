@@ -3,6 +3,14 @@ using UnityEngine;
 
 namespace DarkMultiPlayer
 {
+    enum OptionsTab : int
+    {
+        PLAYER,
+        CACHE,
+        CONTROLS,
+        ADVANCED
+    }
+
     public class OptionsWindow
     {
         private static OptionsWindow singleton = new OptionsWindow();
@@ -20,8 +28,10 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         //const
-        private const float WINDOW_HEIGHT = 400;
+        private const float WINDOW_HEIGHT = 300;
         private const float WINDOW_WIDTH = 300;
+        private const int descWidth = 75;
+        private const int sepWidth = 5;
         //TempColour
         private Color tempColor = new Color(1f, 1f, 1f, 1f);
         private GUIStyle tempColorLabelStyle;
@@ -30,7 +40,18 @@ namespace DarkMultiPlayer
         //Keybindings
         private bool settingChat;
         private bool settingScreenshot;
+        private string settingKeyMessage = "cancel";
         private string toolbarMode;
+        // Toolbar
+        private GUIStyle toolbarBtnStyle;
+        private OptionsTab selectedTab = OptionsTab.PLAYER;
+        private string[] optionsTabs = { "Player", "Cache", "Advanced" };
+        // New style
+        private GUIStyle descriptorStyle;
+        private GUIStyle plrNameStyle;
+        private GUIStyle textFieldStyle;
+        private GUIStyle noteStyle;
+        private GUIStyle sectionHeaderStyle;
 
         public OptionsWindow()
         {
@@ -49,11 +70,10 @@ namespace DarkMultiPlayer
         private void InitGUI()
         {
             //Setup GUI stuff
-            windowRect = new Rect(Screen.width / 2f - WINDOW_WIDTH / 2f, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
+            windowRect = new Rect(Screen.width / 2f + WINDOW_WIDTH / 2f, Screen.height / 2f - WINDOW_HEIGHT / 2f, WINDOW_WIDTH, WINDOW_HEIGHT);
             moveRect = new Rect(0, 0, 10000, 20);
 
             windowStyle = new GUIStyle(GUI.skin.window);
-            buttonStyle = new GUIStyle(GUI.skin.button);
 
             layoutOptions = new GUILayoutOption[4];
             layoutOptions[0] = GUILayout.Width(WINDOW_WIDTH);
@@ -65,6 +85,59 @@ namespace DarkMultiPlayer
             smallOption[0] = GUILayout.Width(100);
             smallOption[1] = GUILayout.ExpandWidth(false);
 
+            toolbarBtnStyle = new GUIStyle();
+            toolbarBtnStyle.alignment = TextAnchor.MiddleCenter;
+            toolbarBtnStyle.normal.background = new Texture2D(1, 1);
+            toolbarBtnStyle.normal.background.SetPixel(0, 0, Color.black);
+            toolbarBtnStyle.normal.background.Apply();
+            toolbarBtnStyle.normal.textColor = Color.white;
+            toolbarBtnStyle.hover.background = new Texture2D(1, 1);
+            toolbarBtnStyle.hover.background.SetPixel(0, 0, Color.grey);
+            toolbarBtnStyle.hover.background.Apply();
+            toolbarBtnStyle.hover.textColor = Color.white;
+            toolbarBtnStyle.padding = new RectOffset(4, 4, 2, 2);
+
+            buttonStyle = new GUIStyle(GUI.skin.button);
+            buttonStyle.padding = new RectOffset(4, 4, 2, 2);
+
+            descriptorStyle = new GUIStyle();
+            descriptorStyle.normal.textColor = Color.white;
+            descriptorStyle.padding = new RectOffset(4, 4, 2, 2);
+            descriptorStyle.alignment = TextAnchor.MiddleRight;
+
+            plrNameStyle = new GUIStyle();
+            plrNameStyle.normal.background = new Texture2D(1, 1);
+            plrNameStyle.normal.background.SetPixel(0, 0, new Color(0, 0, 0, .54f));
+            plrNameStyle.normal.background.Apply();
+            plrNameStyle.normal.textColor = Settings.fetch.playerColor;
+            plrNameStyle.padding = new RectOffset(4, 4, 2, 2);
+            plrNameStyle.alignment = TextAnchor.MiddleLeft;
+            plrNameStyle.fontStyle = FontStyle.Bold;
+
+            textFieldStyle = new GUIStyle();
+            textFieldStyle.normal.background = new Texture2D(1, 1);
+            textFieldStyle.normal.background.SetPixel(0, 0, new Color(0, 0, 0, .54f));
+            textFieldStyle.normal.background.Apply();
+            textFieldStyle.padding = new RectOffset(4, 4, 2, 2);
+            textFieldStyle.normal.textColor = Color.white;
+
+            noteStyle = new GUIStyle();
+            noteStyle.normal.textColor = new Color(1, 1, 1, 0.75f);
+            noteStyle.fontSize = 12;
+            noteStyle.padding = new RectOffset(4, 4, 2, 2);
+            noteStyle.alignment = TextAnchor.UpperCenter;
+            noteStyle.wordWrap = true;
+
+            sectionHeaderStyle = new GUIStyle();
+            Texture2D sectionHeader = new Texture2D(1, 1);
+            sectionHeader.SetPixel(0, 0, new Color(0, 0, 0, 0.87f));
+            sectionHeader.Apply();
+            sectionHeaderStyle.normal.background = sectionHeader;
+            sectionHeaderStyle.normal.textColor = Color.white;
+            sectionHeaderStyle.padding = new RectOffset(4, 4, 2, 2);
+            sectionHeaderStyle.alignment = TextAnchor.MiddleCenter;
+            sectionHeaderStyle.fontStyle = FontStyle.Bold;
+
             tempColor = new Color();
             tempColorLabelStyle = new GUIStyle(GUI.skin.label);
             UpdateToolbarString();
@@ -75,16 +148,16 @@ namespace DarkMultiPlayer
             switch (Settings.fetch.toolbarType)
             {
                 case DMPToolbarType.DISABLED:
-                    toolbarMode = "Disabled";
+                    toolbarMode = "Toolbar: Disabled";
                     break;
                 case DMPToolbarType.FORCE_STOCK:
-                    toolbarMode = "Stock";
+                    toolbarMode = "Toolbar: Stock";
                     break;
                 case DMPToolbarType.BLIZZY_IF_INSTALLED:
-                    toolbarMode = "Blizzy if installed";
+                    toolbarMode = "Toolbar: Blizzy's Toolbar";
                     break;
                 case DMPToolbarType.BOTH_IF_INSTALLED:
-                    toolbarMode = "Both if installed";
+                    toolbarMode = "Toolbar: Both";
                     break;
             }
         }
@@ -116,184 +189,269 @@ namespace DarkMultiPlayer
                 tempColor = Settings.fetch.playerColor;
                 newCacheSize = Settings.fetch.cacheSize.ToString();
             }
-            //Player color
-            GUILayout.BeginVertical();
-            GUI.DragWindow(moveRect);
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Player name color: ");
-            GUILayout.Label(Settings.fetch.playerName, tempColorLabelStyle);
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("R: ");
-            tempColor.r = GUILayout.HorizontalScrollbar(tempColor.r, 0, 0, 1);
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("G: ");
-            tempColor.g = GUILayout.HorizontalScrollbar(tempColor.g, 0, 0, 1);
-            GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("B: ");
-            tempColor.b = GUILayout.HorizontalScrollbar(tempColor.b, 0, 0, 1);
-            GUILayout.EndHorizontal();
-            tempColorLabelStyle.active.textColor = tempColor;
-            tempColorLabelStyle.normal.textColor = tempColor;
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Random", buttonStyle))
-            {
-                tempColor = PlayerColorWorker.GenerateRandomColor();
-            }
-            if (GUILayout.Button("Set", buttonStyle))
-            {
-                PlayerStatusWindow.fetch.colorEventHandled = false;
-                Settings.fetch.playerColor = tempColor;
-                Settings.fetch.SaveSettings();
-                if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.RUNNING)
-                {
-                    PlayerColorWorker.fetch.SendPlayerColorToServer();
-                }
-            }
-            GUILayout.EndHorizontal();
-            GUILayout.Space(10);
-            //Cache
-            GUILayout.Label("Cache size");
-            GUILayout.Label("Current size: " + Math.Round((UniverseSyncCache.fetch.currentCacheSize / (float)(1024 * 1024)), 3) + "MB.");
-            GUILayout.Label("Max size: " + Settings.fetch.cacheSize + "MB.");
-            newCacheSize = GUILayout.TextArea(newCacheSize);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Set", buttonStyle))
-            {
-                int tempCacheSize;
-                if (Int32.TryParse(newCacheSize, out tempCacheSize))
-                {
-                    if (tempCacheSize < 1)
-                    {
-                        tempCacheSize = 1;
-                        newCacheSize = tempCacheSize.ToString();
-                    }
-                    if (tempCacheSize > 1000)
-                    {
-                        tempCacheSize = 1000;
-                        newCacheSize = tempCacheSize.ToString();
-                    }
-                    Settings.fetch.cacheSize = tempCacheSize;
-                    Settings.fetch.SaveSettings();
-                }
-                else
-                {
-                    newCacheSize = Settings.fetch.cacheSize.ToString();
-                }
-            }
-            if (GUILayout.Button("Expire cache"))
-            {
-                UniverseSyncCache.fetch.ExpireCache();
-            }
-            if (GUILayout.Button("Delete cache"))
-            {
-                UniverseSyncCache.fetch.DeleteCache();
-            }
-            GUILayout.EndHorizontal();
-            //Key bindings
-            GUILayout.Space(10);
-            string chatDescription = "Set chat key (current: " + Settings.fetch.chatKey + ")";
-            if (settingChat)
-            {
-                chatDescription = "Setting chat key (click to cancel)...";
-                if (Event.current.isKey)
-                {
-                    if (Event.current.keyCode != KeyCode.Escape)
-                    {
-                        Settings.fetch.chatKey = Event.current.keyCode;
-                        Settings.fetch.SaveSettings();
-                        settingChat = false;
-                    }
-                    else
-                    {
-                        settingChat = false;
-                    }
-                }
-            }
-            if (GUILayout.Button(chatDescription))
-            {
-                settingChat = !settingChat;
-            }
-            string screenshotDescription = "Set screenshot key (current: " + Settings.fetch.screenshotKey.ToString() + ")";
-            if (settingScreenshot)
-            {
-                screenshotDescription = "Setting screenshot key (click to cancel)...";
-                if (Event.current.isKey)
-                {
-                    if (Event.current.keyCode != KeyCode.Escape)
-                    {
-                        Settings.fetch.screenshotKey = Event.current.keyCode;
-                        Settings.fetch.SaveSettings();
-                        settingScreenshot = false;
-                    }
-                    else
-                    {
-                        settingScreenshot = false;
-                    }
-                }
-            }
-            if (GUILayout.Button(screenshotDescription))
-            {
-                settingScreenshot = !settingScreenshot;
-            }
-            GUILayout.Space(10);
-            GUILayout.Label("Generate a server DMPModControl:");
-            if (GUILayout.Button("Generate blacklist DMPModControl.txt"))
-            {
-                ModWorker.fetch.GenerateModControlFile(false);
-            }
-            if (GUILayout.Button("Generate whitelist DMPModControl.txt"))
-            {
-                ModWorker.fetch.GenerateModControlFile(true);
-            }
-            UniverseConverterWindow.fetch.display = GUILayout.Toggle(UniverseConverterWindow.fetch.display, "Generate Universe from saved game", buttonStyle);
-            if (GUILayout.Button("Reset disclaimer"))
-            {
-                Settings.fetch.disclaimerAccepted = 0;
-                Settings.fetch.SaveSettings();
-            }
-            bool settingCompression = GUILayout.Toggle(Settings.fetch.compressionEnabled, "Enable compression", buttonStyle);
-            if (settingCompression != Settings.fetch.compressionEnabled)
-            {
-                Settings.fetch.compressionEnabled = settingCompression;
-                Settings.fetch.SaveSettings();
-            }
-            bool settingRevert = GUILayout.Toggle(Settings.fetch.revertEnabled, "Enable revert", buttonStyle);
-            if (settingRevert != Settings.fetch.revertEnabled)
-            {
-                Settings.fetch.revertEnabled = settingRevert;
-                Settings.fetch.SaveSettings();
-            }
-            GUILayout.BeginHorizontal();
-            GUILayout.Label("Toolbar:", smallOption);
-            if (GUILayout.Button(toolbarMode, buttonStyle))
-            {
-                int newSetting = (int)Settings.fetch.toolbarType + 1;
-                //Overflow to 0
-                if (!Enum.IsDefined(typeof(DMPToolbarType), newSetting))
-                {
-                    newSetting = 0;
-                }
-                Settings.fetch.toolbarType = (DMPToolbarType)newSetting;
-                Settings.fetch.SaveSettings();
-                UpdateToolbarString();
-                ToolbarSupport.fetch.DetectSettingsChange();
-            }
-            GUILayout.EndHorizontal();
-            #if DEBUG
-            if (GUILayout.Button("Check Common.dll stock parts"))
-            {
-                ModWorker.fetch.CheckCommonStockParts();
-            }
-            #endif
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Close", buttonStyle))
+
+            if (GUI.Button(new Rect(windowRect.width - 24, 0, 19, 19), "X"))
             {
                 display = false;
             }
-            GUILayout.EndVertical();
+            //Player color
+            GUI.DragWindow(moveRect);
+            GUI.Box(new Rect(2, 20, windowRect.width - 4, 20), string.Empty, sectionHeaderStyle);
+            selectedTab = (OptionsTab)GUILayout.Toolbar((int)selectedTab, GetOptionsTabStrings(), toolbarBtnStyle);
+
+            int windowY = 17;
+            windowY += 20 + 2;
+            int groupY = 0;
+
+            if (selectedTab == OptionsTab.PLAYER)
+            {
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 106));
+                groupY = 0;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Name:", descriptorStyle);
+                plrNameStyle.normal.textColor = Settings.fetch.playerColor;
+                if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.RUNNING)
+                    GUI.Label(new Rect(descWidth + sepWidth, groupY,
+                        windowRect.width - (descWidth + sepWidth) - 20, 20),
+                        Settings.fetch.playerName, plrNameStyle);
+                else
+                {
+                    string newName = GUI.TextField(new Rect(
+                        descWidth + sepWidth, 
+                        0, 
+                        windowRect.width - (descWidth + sepWidth) - 20, 
+                        20), Settings.fetch.playerName, plrNameStyle);
+
+                    if (!newName.Equals(Settings.fetch.playerName))
+                    {
+                        Settings.fetch.playerName = newName;
+                        Settings.fetch.SaveSettings();
+                    }
+                }
+                groupY += 20 + 4;
+
+
+                Color playerColor = Settings.fetch.playerColor;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Red:", descriptorStyle);
+                playerColor.r = GUI.HorizontalSlider(new Rect(
+                    descWidth + sepWidth, 
+                    groupY + 5,
+                    windowRect.width - (descWidth + sepWidth) - 20,
+                    12
+                    ), Settings.fetch.playerColor.r, 0, 1);
+                groupY += 20;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Green:", descriptorStyle);
+                playerColor.g = GUI.HorizontalSlider(new Rect(
+                    descWidth + sepWidth,
+                    groupY + 5,
+                    windowRect.width - (descWidth + sepWidth) - 20,
+                    12
+                    ), Settings.fetch.playerColor.g, 0, 1);
+                groupY += 20;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Blue:", descriptorStyle);
+                playerColor.b = GUI.HorizontalSlider(new Rect(
+                    descWidth + sepWidth,
+                    groupY + 5,
+                    windowRect.width - (descWidth + sepWidth) - 20,
+                    12
+                    ), Settings.fetch.playerColor.b, 0, 1);
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Random Color", buttonStyle))
+                    playerColor = PlayerColorWorker.GenerateRandomColor();
+
+                if (!playerColor.Equals(Settings.fetch.playerColor))
+                {
+                    Settings.fetch.playerColor = playerColor;
+                    Settings.fetch.SaveSettings();
+
+                    if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.RUNNING)
+                        PlayerColorWorker.fetch.SendPlayerColorToServer();
+                }
+
+                GUI.EndGroup();
+               // windowY += 106 + 5;
+            }
+            if (selectedTab == OptionsTab.CACHE)
+            {
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 84));
+                groupY = 0;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Current:", descriptorStyle);
+                GUI.Label(
+                    new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 102, 20), 
+                    Mathf.Round(UniverseSyncCache.fetch.currentCacheSize / 1024).ToString() + " KB");
+
+                groupY += 20;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Maximum:", descriptorStyle);
+                string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), (Settings.fetch.cacheSize / 1024).ToString(), textFieldStyle);
+                GUI.Label(new Rect(descWidth + sepWidth + 80, groupY, 100, 20), "kilobytes (KB)");
+                int newSize;
+                if (newSizeStr == string.Empty) newSize = 1;
+                else
+                {
+                    if (int.TryParse(newSizeStr, out newSize))
+                    {
+                        if (newSize < 1) newSize = 1;
+                        else if (newSize > 1000000) newSize = 1000000;
+                    }
+                    else newSize = 100000;
+                }
+
+                if (newSize != Settings.fetch.cacheSize)
+                {
+                    Settings.fetch.cacheSize = newSize * 1024;
+                    Settings.fetch.SaveSettings();
+                }
+                groupY += 22;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Manage:", descriptorStyle);
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Expire"))
+                    UniverseSyncCache.fetch.ExpireCache();
+
+                groupY += 22;
+
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Delete"))
+                    UniverseSyncCache.fetch.DeleteCache();
+                GUI.EndGroup();
+            }
+            //Key bindings
+            if (selectedTab == OptionsTab.CONTROLS)
+            {
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 92));
+                groupY = 0;
+
+                GUI.Label(new Rect(0, groupY, windowRect.width - 20, 48),
+                    "Click a button below to select the action you want to change. Then press a key to set the binding. To cancel, click the button again or press Escape.",
+                    noteStyle);
+                groupY += 48;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Chat:", descriptorStyle);
+                string chatKey = Settings.fetch.chatKey.ToString();
+                if (settingChat)
+                {
+                    chatKey = settingKeyMessage;
+                    if (Event.current.isKey)
+                    {
+                        if (Event.current.keyCode != KeyCode.Escape)
+                        {
+                            Settings.fetch.chatKey = Event.current.keyCode;
+                            Settings.fetch.SaveSettings();
+                        }
+                        settingChat = false;
+                    }
+                }
+
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), chatKey, buttonStyle))
+                {
+                    settingScreenshot = false;
+                    settingChat = !settingChat;
+                }
+                groupY += 22;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Screenshot:", descriptorStyle);
+                string screenshotKey = Settings.fetch.screenshotKey.ToString();
+                if (settingScreenshot)
+                {
+                    screenshotKey = settingKeyMessage;
+                    if (Event.current.isKey)
+                    {
+                        if (Event.current.keyCode != KeyCode.Escape)
+                        {
+                            Settings.fetch.screenshotKey = Event.current.keyCode;
+                            Settings.fetch.SaveSettings();
+                        }
+                        settingScreenshot = false;
+                    }
+                }
+
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), screenshotKey, buttonStyle))
+                {
+                    settingChat = false;
+                    settingScreenshot = !settingScreenshot;
+                }
+                GUI.EndGroup();
+            }
+            if (selectedTab == OptionsTab.ADVANCED)
+            {
+                GUI.Box(new Rect(2, windowY, windowRect.width - 4, 20), "Mod Control", sectionHeaderStyle);
+                windowY += 22;
+
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 42));
+                groupY = 0;
+
+                GUI.Label(new Rect(0, groupY, descWidth, 20), "Generate:", descriptorStyle);
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Whitelist", buttonStyle))
+                    ModWorker.fetch.GenerateModControlFile(true);
+
+                groupY += 22;
+
+                if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Blacklist", buttonStyle))
+                    ModWorker.fetch.GenerateModControlFile(false);
+
+                GUI.EndGroup();
+                windowY += 47;
+
+                GUI.Box(new Rect(2, windowY, windowRect.width - 4, 20), "Other", sectionHeaderStyle);
+                windowY += 22;
+
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 148));
+                groupY = 0;
+
+                bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.compressionEnabled, "Compress Network Traffic");
+                if (toggleCompression != Settings.fetch.compressionEnabled)
+                {
+                    Settings.fetch.compressionEnabled = toggleCompression;
+                    Settings.fetch.SaveSettings();
+                }
+                groupY += 22;
+
+                bool toggleRevert = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.revertEnabled, "Enable Revert");
+                if (toggleRevert != Settings.fetch.revertEnabled)
+                {
+                    Settings.fetch.revertEnabled = toggleRevert;
+                    Settings.fetch.SaveSettings();
+                }
+                groupY += 22;
+
+                UniverseConverterWindow.fetch.display = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), UniverseConverterWindow.fetch.display, "Generate DMP universe from saved game...", buttonStyle);
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Reset Disclaimer", buttonStyle))
+                {
+                    Settings.fetch.disclaimerAccepted = 0;
+                    Settings.fetch.SaveSettings();
+                }
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), toolbarMode, buttonStyle))
+                {
+                    int newSetting = (int)Settings.fetch.toolbarType + 1;
+                    //Overflow to 0
+                    if (!Enum.IsDefined(typeof(DMPToolbarType), newSetting))
+                    {
+                        newSetting = 0;
+                    }
+                    Settings.fetch.toolbarType = (DMPToolbarType)newSetting;
+                    Settings.fetch.SaveSettings();
+                    UpdateToolbarString();
+                    ToolbarSupport.fetch.DetectSettingsChange();
+                }
+                groupY += 22;
+
+#if DEBUG
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Check missing parts", buttonStyle))
+                {
+                    ModWorker.fetch.CheckCommonStockParts();
+                }
+#endif
+
+                GUI.EndGroup();
+            }
         }
 
         private void CheckWindowLock()
@@ -341,6 +499,19 @@ namespace DarkMultiPlayer
                 isWindowLocked = false;
                 InputLockManager.RemoveControlLock("DMP_OptionsLock");
             }
+        }
+
+        private string[] GetOptionsTabStrings()
+        {
+            System.Collections.Generic.List<string> stringList = new System.Collections.Generic.List<string>();
+            foreach (OptionsTab enumVal in Enum.GetValues(typeof(OptionsTab)))
+            {
+                if (enumVal == OptionsTab.PLAYER) stringList.Add("Player");
+                if (enumVal == OptionsTab.CACHE) stringList.Add("Cache");
+                if (enumVal == OptionsTab.CONTROLS) stringList.Add("Keys");
+                if (enumVal == OptionsTab.ADVANCED) stringList.Add("Advanced");
+            }
+            return stringList.ToArray();
         }
     }
 }

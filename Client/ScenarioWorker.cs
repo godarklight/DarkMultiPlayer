@@ -83,13 +83,7 @@ namespace DarkMultiPlayer
                 if (partID != 0)
                 {
                     Vessel contractVessel = FinePrint.Utilities.VesselUtilities.FindVesselWithPartIDs(new List<uint> { partID });
-                    if (contractVessel != null)
-                    {
-                        ConfigNode vesselNode = new ConfigNode();
-                        contractVessel.BackupVessel().Save(vesselNode);
-                        DarkLog.ExternalLog(vesselNode.ToString());
-                        VesselWorker.fetch.SendVesselUpdateIfNeeded(contractVessel);
-                    }
+                    if (contractVessel != null) VesselWorker.fetch.SendVesselUpdateIfNeeded(contractVessel);
                 }
             }
 
