@@ -48,10 +48,10 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, bool> vesselPartsOk = new Dictionary<Guid, bool>();
         //Vessel state tracking
         private Guid lastVesselID;
-        private Dictionary <Guid, int> vesselPartCount = new Dictionary<Guid, int>();
-        private Dictionary <Guid, string> vesselNames = new Dictionary<Guid, string>();
-        private Dictionary <Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
-        private Dictionary <Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
+        private Dictionary<Guid, int> vesselPartCount = new Dictionary<Guid, int>();
+        private Dictionary<Guid, string> vesselNames = new Dictionary<Guid, string>();
+        private Dictionary<Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
+        private Dictionary<Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
         //Known kerbals
         private Dictionary<string, string> serverKerbals = new Dictionary<string, string>();
         //Known vessels and last send/receive time
@@ -177,7 +177,7 @@ namespace DarkMultiPlayer
                         delayKillVessels.Remove(dyingVessel);
                     }
                 }
-                
+
                 if (fromDockedVesselID != Guid.Empty || toDockedVesselID != Guid.Empty)
                 {
                     HandleDocking();
@@ -1145,7 +1145,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if (crewNode.GetValue("type") == "Tourist")
+            if (crewNode.GetValue("type") == "Tourist" || crewNode.GetValue("type") == "Unowned")
             {
                 ConfigNode dmpNode = null;
                 if (crewNode.TryGetNode("DarkMultiPlayer", ref dmpNode))
@@ -1155,7 +1155,7 @@ namespace DarkMultiPlayer
                     {
                         if (dmpOwner != Settings.fetch.playerPublicKey)
                         {
-                            DarkLog.Debug("Skipping load of tourist that belongs to another player");
+                            DarkLog.Debug("Skipping load of kerbal that belongs to another player's contracts");
                             return;
                         }
                     }
@@ -1473,7 +1473,6 @@ namespace DarkMultiPlayer
             try
             {
                 DodgeVesselActionGroups(inputNode);
-                RemoveManeuverNodesFromProtoVessel(inputNode);
                 DodgeVesselLandedStatus(inputNode);
                 KerbalReassigner.fetch.DodgeKerbals(inputNode, protovesselID);
                 pv = new ProtoVessel(inputNode, HighLogic.CurrentGame);
@@ -1766,7 +1765,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1789,7 +1789,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }

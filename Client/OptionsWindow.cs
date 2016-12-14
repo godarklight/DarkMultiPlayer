@@ -399,13 +399,21 @@ namespace DarkMultiPlayer
                 GUI.Box(new Rect(2, windowY, windowRect.width - 4, 20), "Other", sectionHeaderStyle);
                 windowY += 22;
 
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 124));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 148));
                 groupY = 0;
 
                 bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.compressionEnabled, "Compress Network Traffic");
                 if (toggleCompression != Settings.fetch.compressionEnabled)
                 {
                     Settings.fetch.compressionEnabled = toggleCompression;
+                    Settings.fetch.SaveSettings();
+                }
+                groupY += 22;
+
+                bool toggleRevert = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.revertEnabled, "Enable Revert");
+                if (toggleRevert != Settings.fetch.revertEnabled)
+                {
+                    Settings.fetch.revertEnabled = toggleRevert;
                     Settings.fetch.SaveSettings();
                 }
                 groupY += 22;
