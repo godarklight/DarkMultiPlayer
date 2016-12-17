@@ -1793,7 +1793,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1816,7 +1817,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
                 }
             }
         }
