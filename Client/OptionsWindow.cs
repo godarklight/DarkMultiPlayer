@@ -291,7 +291,7 @@ namespace DarkMultiPlayer
                 string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), (Settings.fetch.cacheSize / 1024).ToString(), textFieldStyle);
                 GUI.Label(new Rect(descWidth + sepWidth + 80, groupY, 100, 20), "kilobytes (KB)");
                 int newSize;
-                if (newSizeStr == string.Empty) newSize = 1;
+                if (string.IsNullOrEmpty(newSizeStr)) newSize = 1;
                 else
                 {
                     if (int.TryParse(newSizeStr, out newSize))
