@@ -61,31 +61,23 @@ namespace DarkMultiPlayer
 
         public void Awake()
         {
-            Profiler.DMPReferenceTime.Start();
-            GameObject.DontDestroyOnLoad(this);
-            assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
-            string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
-            //I find my abuse of Path.Combine distrubing.
-            UnityEngine.Debug.Log("KSP installed at " + kspPath);
-            UnityEngine.Debug.Log("DMP installed at " + assemblyPath);
-            //Prevents symlink warning for development.
+            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled()) modDisabled = true;
             if (Settings.fetch.disclaimerAccepted != 1)
             {
                 modDisabled = true;
-                DisclaimerWindow.Enable();
+                DisclaimerWindow.SpawnDialog();
             }
-            if (!CompatibilityChecker.IsCompatible())
-            {
-                modDisabled = true;
-            }
-            if (!InstallChecker.IsCorrectlyInstalled())
-            {
-                modDisabled = true;
-            }
+
+            Profiler.DMPReferenceTime.Start();
+            DontDestroyOnLoad(this);
+
+            // Prevents symlink warning for development.
             SetupDirectoriesIfNeeded();
-            //UniverseSyncCache needs to run expiry here
+
+            // UniverseSyncCache needs to run expiry here
             UniverseSyncCache.fetch.ExpireCache();
-            //Register events needed to bootstrap the workers.
+
+            // Register events needed to bootstrap the workers.
             lock (eventLock)
             {
                 resetEvent.Add(LockSystem.Reset);
