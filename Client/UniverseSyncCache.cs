@@ -101,19 +101,22 @@ namespace DarkMultiPlayer
             currentCacheSize = 0;
             foreach (string cacheObject in cacheObjects)
             {
-                string cacheFile = Path.Combine(cacheDirectory, cacheObject + ".txt");
-                //If the file is older than a week, delete it.
-                if (File.GetCreationTime(cacheFile).AddDays(7d) < DateTime.Now)
+                if (!string.IsNullOrEmpty(cacheObject))
                 {
-                    DarkLog.Debug("Deleting cached object " + cacheObject + ", reason: Expired!");
-                    File.Delete(cacheFile);
-                }
-                else
-                {
-                    FileInfo fi = new FileInfo(cacheFile);
-                    fileCreationTimes[cacheObject] = fi.CreationTime;
-                    fileLengths[cacheObject] = fi.Length;
-                    currentCacheSize += fi.Length;
+                    string cacheFile = Path.Combine(cacheDirectory, cacheObject + ".txt");
+                    //If the file is older than a week, delete it.
+                    if (File.GetCreationTime(cacheFile).AddDays(7d) < DateTime.Now)
+                    {
+                        DarkLog.Debug("Deleting cached object " + cacheObject + ", reason: Expired!");
+                        File.Delete(cacheFile);
+                    }
+                    else
+                    {
+                        FileInfo fi = new FileInfo(cacheFile);
+                        fileCreationTimes[cacheObject] = fi.CreationTime;
+                        fileLengths[cacheObject] = fi.Length;
+                        currentCacheSize += fi.Length;
+                    }
                 }
             }
             //While the directory is over (cacheSize) MB
