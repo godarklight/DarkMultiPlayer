@@ -23,14 +23,14 @@ namespace DarkMultiPlayer
 
         private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
-        private float lastSendTime = 0f;
+        private long lastSendTime = 0;
         private AutoResetEvent sendEvent = new AutoResetEvent(false);
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueSplit = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueLow = new Queue<ClientMessage>();
         private ClientMessageType lastSplitMessageType = ClientMessageType.HEARTBEAT;
         //Receive buffer
-        private float lastReceiveTime = 0f;
+        private long lastReceiveTime = 0;
         private bool isReceivingMessage = false;
         private int receiveMessageBytesLeft = 0;
         private ServerMessage receiveMessage = null;
@@ -255,8 +255,8 @@ namespace DarkMultiPlayer
                                 {
                                     Interlocked.Increment(ref connectingThreads);
                                     Client.fetch.status = "Connecting";
-                                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
-                                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                                    lastSendTime = Common.GetCurrentUnixTime();
+                                    lastReceiveTime = Common.GetCurrentUnixTime();
                                     state = ClientState.CONNECTING;
                                     addressToConnectTo.Add(new IPEndPoint(testAddress, port));
                                 }
@@ -292,8 +292,8 @@ namespace DarkMultiPlayer
                 {
                     Interlocked.Increment(ref connectingThreads);
                     Client.fetch.status = "Connecting";
-                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
-                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastSendTime = Common.GetCurrentUnixTime();
+                    lastReceiveTime = Common.GetCurrentUnixTime();
                     state = ClientState.CONNECTING;
                     ConnectToServerAddress(new IPEndPoint(destinationAddress, port));
                 }
@@ -375,7 +375,7 @@ namespace DarkMultiPlayer
         {
             if (state == ClientState.CONNECTING)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
+                if ((Common.GetCurrentUnixTime() - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Failed to connect!");
                     Client.fetch.status = "Failed to connect - no reply";
@@ -405,7 +405,7 @@ namespace DarkMultiPlayer
         {
             if (state >= ClientState.CONNECTED)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
+                if ((Common.GetCurrentUnixTime() - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Connection timeout");
                 }
@@ -496,7 +496,7 @@ namespace DarkMultiPlayer
 
         private void StartReceivingIncomingMessages()
         {
-            lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+            lastReceiveTime = Common.GetCurrentUnixTime();
             //Allocate byte for header
             isReceivingMessage = false;
             receiveMessage = new ServerMessage();
@@ -511,7 +511,7 @@ namespace DarkMultiPlayer
                     receiveMessageBytesLeft -= bytesRead;
                     if (bytesRead > 0)
                     {
-                        lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                        lastReceiveTime = Common.GetCurrentUnixTime();
                     }
                     else
                     {
@@ -721,7 +721,7 @@ namespace DarkMultiPlayer
                     connectionEndReason = mr.Read<string>();
                 }
             }
-            lastSendTime = UnityEngine.Time.realtimeSinceStartup;
+            lastSendTime = Common.GetCurrentUnixTime();
             try
             {
                 clientConnection.GetStream().Write(messageBytes, 0, messageBytes.Length);
@@ -1633,9 +1633,9 @@ namespace DarkMultiPlayer
         {
             if (state >= ClientState.CONNECTED && sendMessageQueueHigh.Count == 0)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
+                if ((Common.GetCurrentUnixTime() - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
                 {
-                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastSendTime = Common.GetCurrentUnixTime();
                     ClientMessage newMessage = new ClientMessage();
                     newMessage.type = ClientMessageType.HEARTBEAT;
                     QueueOutgoingMessage(newMessage, true);
@@ -2090,9 +2090,9 @@ namespace DarkMultiPlayer
                 case "ReceivedBytes":
                     return bytesReceived;
                 case "LastReceiveTime":
-                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) * 1000);
+                    return ((Common.GetCurrentUnixTime() - lastReceiveTime) * 1000);
                 case "LastSendTime":
-                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastSendTime) * 1000);
+                    return ((Common.GetCurrentUnixTime() - lastSendTime) * 1000);
             }
             return 0;
         }
