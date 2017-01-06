@@ -510,6 +510,11 @@ namespace DarkMultiPlayerCommon
             sb.AppendLine("");
             return sb.ToString();
         }
+
+        public static long GetCurrentUnixTime()
+        {
+            return ((DateTime.UtcNow.Ticks - new DateTime(1970, 1, 1).Ticks) / TimeSpan.TicksPerSecond);
+        }
     }
 
     public enum CraftType
