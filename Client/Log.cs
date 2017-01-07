@@ -14,8 +14,7 @@ namespace DarkMultiPlayer
         {
             //Use messageQueue if looking for messages that don't normally show up in the log.
 
-            messageQueue.Enqueue("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
-            //UnityEngine.Debug.Log("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+            messageQueue.Enqueue(string.Format("DarkMultiPlayer: {0}", message));
         }
 
         public static void Update()
@@ -23,12 +22,7 @@ namespace DarkMultiPlayer
             while (messageQueue.Count > 0)
             {
                 string message = messageQueue.Dequeue();
-                UnityEngine.Debug.Log(message);
-                /*
-                using (StreamWriter sw = new StreamWriter("DarkLog.txt", true, System.Text.Encoding.UTF8)) {
-                    sw.WriteLine(message);
-                }
-                */
+                UnityEngine.Debug.Log(string.Format("[{0}] {1}", Time.realtimeSinceStartup, message));
             }
         }
 
