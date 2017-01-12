@@ -545,9 +545,16 @@ namespace DarkMultiPlayer
                                 receiveMessage.type = (ServerMessageType)messageType;
                                 if (messageLength == 0)
                                 {
-                                    //Null message, handle it.
                                     receiveMessage.data = null;
-                                    HandleMessage(receiveMessage);
+                                    switch (receiveMessage.type)
+                                    {
+                                        case ServerMessageType.HEARTBEAT:
+                                        case ServerMessageType.KERBAL_COMPLETE:
+                                        case ServerMessageType.VESSEL_COMPLETE:
+                                            HandleMessage(receiveMessage);
+                                            break;
+                                        default: break;
+                                    }
                                     receiveMessage.type = 0;
                                     receiveMessage.data = new byte[8];
                                     receiveMessageBytesLeft = receiveMessage.data.Length;
