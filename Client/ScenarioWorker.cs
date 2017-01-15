@@ -24,8 +24,6 @@ namespace DarkMultiPlayer
         // Game hooks
         private bool registered;
 
-        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
-
         public static ScenarioWorker fetch
         {
             get
@@ -314,19 +312,10 @@ namespace DarkMultiPlayer
                     {
                         if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
                         {
-                            if (AddCrewMemberToRoster == null)
-                            {
-                                MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.Public | BindingFlags.Instance);
-                                AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
-                            }
-                            if (AddCrewMemberToRoster == null)
-                            {
-                                throw new Exception("Failed to initialize AddCrewMemberToRoster for #172 ProgressTracking fix.");
-                            }
                             DarkLog.Debug("Generating missing kerbal from ProgressTracking: " + kerbalName);
                             ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
                             pcm.ChangeName(kerbalName);
-                            AddCrewMemberToRoster(pcm);
+                            HighLogic.CurrentGame.CrewRoster.AddCrewMember(pcm);
                             //Also send it off to the server
                             VesselWorker.fetch.SendKerbalIfDifferent(pcm);
                         }

@@ -73,10 +73,6 @@ namespace DarkMultiPlayer
         private Guid fromDockedVesselID;
         private Guid toDockedVesselID;
         private bool sentDockingDestroyUpdate;
-        //System.Reflection hackiness for loading kerbals into the crew roster:
-        private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
-
-        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
 
         public static VesselWorker fetch
         {
@@ -1099,12 +1095,6 @@ namespace DarkMultiPlayer
         public void LoadKerbalsIntoGame()
         {
             DarkLog.Debug("Loading kerbals into game");
-            MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.Public | BindingFlags.Instance);
-            AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
-            if (AddCrewMemberToRoster == null)
-            {
-                throw new Exception("Failed to load AddCrewMember delegate!");
-            }
 
             foreach (KeyValuePair<string, Queue<KerbalEntry>> kerbalQueue in kerbalProtoQueue)
             {
@@ -1175,7 +1165,7 @@ namespace DarkMultiPlayer
             }
             if (!HighLogic.CurrentGame.CrewRoster.Exists(protoCrew.name))
             {
-                AddCrewMemberToRoster(protoCrew);
+                HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoCrew);
                 ConfigNode kerbalNode = new ConfigNode();
                 protoCrew.Save(kerbalNode);
                 byte[] kerbalBytes = ConfigNodeSerializer.fetch.Serialize(kerbalNode);

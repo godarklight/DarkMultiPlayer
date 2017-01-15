@@ -11,10 +11,6 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
 
-        private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
-
-        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
-
         public static KerbalReassigner fetch
         {
             get
@@ -180,19 +176,10 @@ namespace DarkMultiPlayer
         {
             if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
             {
-                if (AddCrewMemberToRoster == null)
-                {
-                    MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.Public | BindingFlags.Instance);
-                    AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
-                    if (AddCrewMemberToRoster == null)
-                    {
-                        throw new Exception("Failed to load AddCrewMember delegate!");
-                    }
-                }
                 ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
                 pcm.ChangeName(kerbalName);
                 pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
-                AddCrewMemberToRoster(pcm);
+                HighLogic.CurrentGame.CrewRoster.AddCrewMember(pcm);
                 DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");
             }
         }
