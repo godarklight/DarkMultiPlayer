@@ -11,9 +11,8 @@ namespace DarkMultiPlayerServer.Messages
         //SUBSPACE
         private static int freeID;
         private static Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
-        private static Dictionary<string, int> offlinePlayerSubspaces = new Dictionary<string, int>();
+        private static Dictionary<string, double> offlinePlayerTimes = new Dictionary<string, double>();
         private static object createLock = new object();
-
         //MCW (Uses subspace internally)
         private static string warpMaster;
         private static string voteMaster;
@@ -22,10 +21,8 @@ namespace DarkMultiPlayerServer.Messages
         private static Dictionary<string, bool> voteList;
         private static List<string> ignoreList;
         private static object mcwLock = new object();
-
         //MCW_LOWEST
         private static Dictionary<string, PlayerWarpRate> warpList = new Dictionary<string, PlayerWarpRate>();
-
         private const float MAX_VOTE_TIME = 30f;
         private const float MAX_WARP_TIME = 120f;
 
@@ -36,6 +33,7 @@ namespace DarkMultiPlayerServer.Messages
                 return (Server.playerCount + 1) / 2;
             }
         }
+
         private static int voteFailedCount
         {
             get
@@ -542,38 +540,24 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendSetSubspace(ClientObject client)
         {
-            if (!Settings.settingsStore.keepTickingWhileOffline && ClientHandler.GetClients().Length == 1)
-            {
-                DarkLog.Debug("Reverting server time to last player connection");
-                long currentTime = DateTime.UtcNow.Ticks;
-                foreach (KeyValuePair<int, Subspace> subspace in subspaces)
-                {
-                    subspace.Value.serverClock = currentTime;
-                    subspace.Value.subspaceSpeed = 1f;
-                }
-                SaveLatestSubspace();
-            }
             int targetSubspace = -1;
-            if (Settings.settingsStore.sendPlayerToLatestSubspace || !offlinePlayerSubspaces.ContainsKey(client.playerName))
+            if (Settings.settingsStore.warpMode != WarpMode.SUBSPACE || Settings.settingsStore.sendPlayerToLatestSubspace || !offlinePlayerTimes.ContainsKey(client.playerName))
             {
                 targetSubspace = GetLatestSubspace();
+                SendSetSubspace(client, targetSubspace);
             }
             else
             {
-                DarkLog.Debug("Sending " + client.playerName + " to the previous subspace " + targetSubspace);
-                targetSubspace = offlinePlayerSubspaces[client.playerName];
+                DarkLog.Debug("Sending " + client.playerName + " to the past time " + offlinePlayerTimes[client.playerName]);
+                //Creating a subspace is a server side process - the server will send the created subspace back to the client
+                HandleNewSubspace(client, DateTime.UtcNow.Ticks, offlinePlayerTimes[client.playerName], 1f);
             }
-            SendSetSubspace(client, targetSubspace);
         }
 
         public static void SendSetSubspace(ClientObject client, int subspace)
         {
             DarkLog.Debug("Sending " + client.playerName + " to subspace " + subspace);
             client.subspace = subspace;
-            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
-            {
-                offlinePlayerSubspaces[client.playerName] = subspace;
-            }
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SET_SUBSPACE;
             using (MessageWriter mw = new MessageWriter())
@@ -692,15 +676,9 @@ namespace DarkMultiPlayerServer.Messages
             }
         }
 
-        internal static void HoldSubspace()
+        internal static void DisconnectPlayer(ClientObject client)
         {
-            //When the last player disconnects and we are a no-tick-offline server, save the universe time.
-            UpdateSubspace(GetLatestSubspace());
-            SaveLatestSubspace();
-        }
-
-        internal static void DisconnectPlayer(string playerName)
-        {
+            string playerName = client.playerName;
             if (warpList.ContainsKey(playerName))
             {
                 warpList.Remove(playerName);
@@ -723,12 +701,18 @@ namespace DarkMultiPlayerServer.Messages
             {
                 SendSetController(null, long.MinValue);
             }
+            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
+            {
+                Subspace clientSubspace = subspaces[client.subspace];
+                double timeDelta = ((DateTime.UtcNow.Ticks - clientSubspace.serverClock) / 10000000d) * clientSubspace.subspaceSpeed;
+                offlinePlayerTimes[client.playerName] = subspaces[client.subspace].planetTime + timeDelta;
+            }
         }
 
         public static void Reset()
         {
             subspaces.Clear();
-            offlinePlayerSubspaces.Clear();
+            offlinePlayerTimes.Clear();
             warpList.Clear();
             ignoreList = null;
             LoadSavedSubspace();
