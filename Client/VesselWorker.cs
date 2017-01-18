@@ -1783,8 +1783,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    // Ignore the tourists
-                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists except those that haven't yet toured
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1807,8 +1807,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    // Ignore the tourists
-                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists except those that haven't yet toured
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
                 }
             }
         }
