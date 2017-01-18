@@ -23,14 +23,14 @@ namespace DarkMultiPlayer
 
         private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
-        private float lastSendTime = 0f;
+        private long lastSendTime = 0;
         private AutoResetEvent sendEvent = new AutoResetEvent(false);
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueSplit = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueLow = new Queue<ClientMessage>();
         private ClientMessageType lastSplitMessageType = ClientMessageType.HEARTBEAT;
         //Receive buffer
-        private float lastReceiveTime = 0f;
+        private long lastReceiveTime = 0;
         private bool isReceivingMessage = false;
         private int receiveMessageBytesLeft = 0;
         private ServerMessage receiveMessage = null;
@@ -255,8 +255,8 @@ namespace DarkMultiPlayer
                                 {
                                     Interlocked.Increment(ref connectingThreads);
                                     Client.fetch.status = "Connecting";
-                                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
-                                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                                    lastSendTime = Common.GetCurrentUnixTime();
+                                    lastReceiveTime = Common.GetCurrentUnixTime();
                                     state = ClientState.CONNECTING;
                                     addressToConnectTo.Add(new IPEndPoint(testAddress, port));
                                 }
@@ -292,8 +292,8 @@ namespace DarkMultiPlayer
                 {
                     Interlocked.Increment(ref connectingThreads);
                     Client.fetch.status = "Connecting";
-                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
-                    lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastSendTime = Common.GetCurrentUnixTime();
+                    lastReceiveTime = Common.GetCurrentUnixTime();
                     state = ClientState.CONNECTING;
                     ConnectToServerAddress(new IPEndPoint(destinationAddress, port));
                 }
@@ -375,7 +375,7 @@ namespace DarkMultiPlayer
         {
             if (state == ClientState.CONNECTING)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
+                if ((Common.GetCurrentUnixTime() - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Failed to connect!");
                     Client.fetch.status = "Failed to connect - no reply";
@@ -405,7 +405,7 @@ namespace DarkMultiPlayer
         {
             if (state >= ClientState.CONNECTED)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
+                if ((Common.GetCurrentUnixTime() - lastReceiveTime) > (Common.CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Connection timeout");
                 }
@@ -496,7 +496,7 @@ namespace DarkMultiPlayer
 
         private void StartReceivingIncomingMessages()
         {
-            lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+            lastReceiveTime = Common.GetCurrentUnixTime();
             //Allocate byte for header
             isReceivingMessage = false;
             receiveMessage = new ServerMessage();
@@ -511,7 +511,7 @@ namespace DarkMultiPlayer
                     receiveMessageBytesLeft -= bytesRead;
                     if (bytesRead > 0)
                     {
-                        lastReceiveTime = UnityEngine.Time.realtimeSinceStartup;
+                        lastReceiveTime = Common.GetCurrentUnixTime();
                     }
                     else
                     {
@@ -545,9 +545,16 @@ namespace DarkMultiPlayer
                                 receiveMessage.type = (ServerMessageType)messageType;
                                 if (messageLength == 0)
                                 {
-                                    //Null message, handle it.
                                     receiveMessage.data = null;
-                                    HandleMessage(receiveMessage);
+                                    switch (receiveMessage.type)
+                                    {
+                                        case ServerMessageType.HEARTBEAT:
+                                        case ServerMessageType.KERBAL_COMPLETE:
+                                        case ServerMessageType.VESSEL_COMPLETE:
+                                            HandleMessage(receiveMessage);
+                                            break;
+                                        default: break;
+                                    }
                                     receiveMessage.type = 0;
                                     receiveMessage.data = new byte[8];
                                     receiveMessageBytesLeft = receiveMessage.data.Length;
@@ -721,7 +728,7 @@ namespace DarkMultiPlayer
                     connectionEndReason = mr.Read<string>();
                 }
             }
-            lastSendTime = UnityEngine.Time.realtimeSinceStartup;
+            lastSendTime = Common.GetCurrentUnixTime();
             try
             {
                 clientConnection.GetStream().Write(messageBytes, 0, messageBytes.Length);
@@ -794,11 +801,11 @@ namespace DarkMultiPlayer
                     case ServerMessageType.KERBAL_REPLY:
                         HandleKerbalReply(message.data);
                         break;
-                    case ServerMessageType.KERBAL_REMOVE:
-                        HandleKerbalRemoved(message.data);
-                        break;
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
+                        break;
+                    case ServerMessageType.KERBAL_REMOVE:
+                        HandleKerbalRemove(message.data);
                         break;
                     case ServerMessageType.VESSEL_LIST:
                         HandleVesselList(message.data);
@@ -1214,11 +1221,11 @@ namespace DarkMultiPlayer
             Client.fetch.status = "Kerbals synced";
         }
 
-        private void HandleKerbalRemoved(byte[] messageData)
+        private void HandleKerbalRemove(byte[] messageData)
         {
             using (MessageReader mr = new MessageReader(messageData))
             {
-                mr.Read<double>();
+                double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
                 DarkLog.Debug("Kerbal removed: " + kerbalName);
                 ScreenMessages.PostScreenMessage("Kerbal " + kerbalName + " removed from game", 5f, ScreenMessageStyle.UPPER_CENTER);
@@ -1633,9 +1640,9 @@ namespace DarkMultiPlayer
         {
             if (state >= ClientState.CONNECTED && sendMessageQueueHigh.Count == 0)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
+                if ((Common.GetCurrentUnixTime() - lastSendTime) > (Common.HEART_BEAT_INTERVAL / 1000))
                 {
-                    lastSendTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastSendTime = Common.GetCurrentUnixTime();
                     ClientMessage newMessage = new ClientMessage();
                     newMessage.type = ClientMessageType.HEARTBEAT;
                     QueueOutgoingMessage(newMessage, true);
@@ -1791,6 +1798,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
+            // Handle contract vessels
             bool isContractVessel = false;
             foreach (ProtoPartSnapshot pps in vessel.protoPartSnapshots)
             {
@@ -1802,10 +1810,11 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)Int32.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
+            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)int.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
             {
                 isContractVessel = true;
             }
+
             ConfigNode vesselNode = new ConfigNode();
             vessel.Save(vesselNode);
             if (isContractVessel)
@@ -1910,6 +1919,20 @@ namespace DarkMultiPlayer
             }
             QueueOutgoingMessage(newMessage, false);
         }
+        // Called from VesselWorker
+        public void SendKerbalRemove(string kerbalName)
+        {
+            DarkLog.Debug("Removing kerbal " + kerbalName + " from the server");
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.KERBAL_REMOVE;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<double>(Planetarium.GetUniversalTime());
+                mw.Write<string>(kerbalName);
+                newMessage.data = mw.GetMessageBytes();
+            }
+            QueueOutgoingMessage(newMessage, false);
+        }
         //Called fro craftLibraryWorker
         public void SendCraftLibraryMessage(byte[] messageData)
         {
@@ -1981,20 +2004,6 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Failed to create byte[] data for kerbal " + kerbalName);
             }
-        }
-
-        public void SendKerbalRemoveMessage(string kerbalName)
-        {
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.KERBAL_REMOVE;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<double>(Planetarium.GetUniversalTime());
-                mw.Write<string>(kerbalName);
-                newMessage.data = mw.GetMessageBytes();
-            }
-            DarkLog.Debug("Removing kerbal " + kerbalName + ", size: " + newMessage.data.Length);
-            QueueOutgoingMessage(newMessage, false);
         }
         //Called from chatWorker
         public void SendPingRequest()
@@ -2088,9 +2097,9 @@ namespace DarkMultiPlayer
                 case "ReceivedBytes":
                     return bytesReceived;
                 case "LastReceiveTime":
-                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastReceiveTime) * 1000);
+                    return ((Common.GetCurrentUnixTime() - lastReceiveTime) * 1000);
                 case "LastSendTime":
-                    return (int)((UnityEngine.Time.realtimeSinceStartup - lastSendTime) * 1000);
+                    return ((Common.GetCurrentUnixTime() - lastSendTime) * 1000);
             }
             return 0;
         }
@@ -2104,3 +2113,4 @@ namespace DarkMultiPlayer
         public int port;
     }
 }
+

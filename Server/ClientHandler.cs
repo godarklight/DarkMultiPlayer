@@ -507,11 +507,7 @@ namespace DarkMultiPlayerServer
                     Server.playerCount = GetActiveClientCount();
                     Server.players = GetActivePlayerNames();
                     DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
-                    if (!Settings.settingsStore.keepTickingWhileOffline && clients.Count == 0)
-                    {
-                        Messages.WarpControl.HoldSubspace();
-                    }
-                    Messages.WarpControl.DisconnectPlayer(client.playerName);
+                    Messages.WarpControl.DisconnectPlayer(client);
                 }
                 //Disconnect
                 if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
@@ -605,9 +601,6 @@ namespace DarkMultiPlayerServer
                     case ClientMessageType.KERBAL_PROTO:
                         Messages.KerbalProto.HandleKerbalProto(client, message.data);
                         break;
-                    case ClientMessageType.KERBAL_REMOVE:
-                        Messages.KerbalRemove.HandleKerbalRemoval(client, message.data);
-                        break;
                     case ClientMessageType.VESSELS_REQUEST:
                         Messages.VesselRequest.HandleVesselsRequest(client, message.data);
                         break;
@@ -643,6 +636,9 @@ namespace DarkMultiPlayerServer
                         break;
                     case ClientMessageType.MOD_DATA:
                         Messages.ModData.HandleModDataMessage(client, message.data);
+                        break;
+                    case ClientMessageType.KERBAL_REMOVE:
+                        Messages.VesselRemove.HandleKerbalRemoval(client, message.data);
                         break;
                     case ClientMessageType.SPLIT_MESSAGE:
                         Messages.SplitMessage.HandleSplitMessage(client, message.data);

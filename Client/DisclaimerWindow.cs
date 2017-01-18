@@ -3,92 +3,59 @@ using UnityEngine;
 
 namespace DarkMultiPlayer
 {
-    //This disclaimer exists because I was contacted by a moderator pointing me to the addon posting rules.
+    // This disclaimer exists because I was contacted by a moderator pointing me to the addon posting rules.
     public class DisclaimerWindow
     {
-        public static DisclaimerWindow singleton;
-        private const int WINDOW_WIDTH = 500;
-        private const int WINDOW_HEIGHT = 300;
-        private Rect windowRect;
-        private Rect moveRect;
-        private bool initialized;
-        private bool display;
-        private GUILayoutOption[] layoutOptions;
-
-        public static DisclaimerWindow fetch
+        public static void SpawnDialog()
         {
-            get
-            {
-                return singleton;
-            }
-        }
-
-        private void InitGUI()
-        {
-            //Setup GUI stuff
-            windowRect = new Rect((Screen.width / 2f) - (WINDOW_WIDTH / 2), (Screen.height / 2f) - (WINDOW_HEIGHT / 2f), WINDOW_WIDTH, WINDOW_HEIGHT);
-            moveRect = new Rect(0, 0, 10000, 20);
-
-            layoutOptions = new GUILayoutOption[2];
-            layoutOptions[0] = GUILayout.ExpandWidth(true);
-            layoutOptions[1] = GUILayout.ExpandHeight(true);
-        }
-
-        private void Draw()
-        {
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
-            if (display)
-            {
-                windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6713 + Client.WINDOW_OFFSET, windowRect, DrawContent, "DarkMultiPlayer - Disclaimer", layoutOptions));
-            }
-        }
-
-        private void DrawContent(int windowID)
-        {
-            GUILayout.BeginVertical();
-            GUI.DragWindow(moveRect);
-            string disclaimerText = "DarkMultiPlayer shares the following possibly personally identifiable information with any server you connect to.\n";
-            disclaimerText += "a) Your player name you connect with.\n";
-            disclaimerText += "b) Your player token (A randomly generated string to authenticate you).\n";
-            disclaimerText += "c) Your IP address is logged on the server console.\n";
+            string disclaimerText = "DarkMultiPlayer shares the following possibly personally identifiable information with any server you connect to:\n";
+            disclaimerText += "\ta) Your player name you connect with\n";
+            disclaimerText += "\tb) Your player token (a randomly generated string to authenticate you)\n";
+            disclaimerText += "\tc) Your IP address\n";
             disclaimerText += "\n";
-            disclaimerText += "DMP does not contact any other computer than the server you are connecting to.\n";
-            disclaimerText += "In order to use DarkMultiPlayer, you must allow DMP to use this info\n";
+            disclaimerText += "DarkMultiPlayer does not contact any other computer than the server you are connecting to.\n";
+            disclaimerText += "In order to use DarkMultiPlayer, you must allow the mod to use this information.\n";
             disclaimerText += "\n";
-            disclaimerText += "For more information - see the KSP addon rules\n";
-            GUILayout.Label(disclaimerText);
-            GUILayout.FlexibleSpace();
-            if (GUILayout.Button("Open the KSP Addon rules in the browser"))
-            {
-                Application.OpenURL("http://forum.kerbalspaceprogram.com/threads/87841-Add-on-Posting-Rules-July-24th-2014-going-into-effect-August-21st-2014!");
-            }
-            if (GUILayout.Button("I accept - Enable DarkMultiPlayer"))
-            {
-                DarkLog.Debug("User accepted disclaimer - Enabling DarkMultiPlayer");
-                display = false;
-                Settings.fetch.disclaimerAccepted = 1;
-                Client.fetch.modDisabled = false;
-                Settings.fetch.SaveSettings();
-            }
-            if (GUILayout.Button("I decline - Disable DarkMultiPlayer"))
-            {
-                DarkLog.Debug("User declined disclaimer - Disabling DarkMultiPlayer");
-                display = false;
-            }
-            GUILayout.EndVertical();
-        }
+            disclaimerText += "For more information, read the KSP addon rules on the forums.\n";
 
-        public static void Enable()
-        {
-            singleton = new DisclaimerWindow();
-            lock (Client.eventLock) {
-                Client.drawEvent.Add(singleton.Draw);
-            }
-            singleton.display = true;
+            PopupDialog.SpawnPopupDialog(new Vector2(0, 0),
+                new Vector2(0, 0),
+                new MultiOptionDialog(disclaimerText,
+                    "DarkMultiPlayer - Disclaimer",
+                    HighLogic.UISkin,
+                    new Rect(.5f, .5f, 425f, 150f),
+                    new DialogGUIFlexibleSpace(),
+                    new DialogGUIVerticalLayout(
+                        new DialogGUIHorizontalLayout(
+                            new DialogGUIButton("Accept",
+                                delegate
+                                {
+                                    DarkLog.Debug("User accepted disclaimer, enabling DarkMultiPlayer");
+                                    Settings.fetch.disclaimerAccepted = 1;
+                                    Settings.fetch.SaveSettings();
+                                    Client.fetch.modDisabled = false;
+                                }
+                            ),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIButton("Open the KSP Addon rules in browser",
+                                delegate
+                                {
+                                    Application.OpenURL("http://forum.kerbalspaceprogram.com/threads/87841-Add-on-Posting-Rules-July-24th-2014-going-into-effect-August-21st-2014!");
+                                }
+                            ),
+                            new DialogGUIFlexibleSpace(),
+                            new DialogGUIButton("Decline",
+                                delegate
+                                {
+                                    DarkLog.Debug("User declined disclaimer, disabling DarkMultiPlayer");
+                                }
+                            )
+                        )
+                    )
+                ),
+                true,
+                HighLogic.UISkin
+            );
         }
     }
 }

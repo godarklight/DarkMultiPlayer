@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 44;
+        public const int PROTOCOL_VERSION = 45;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -92,338 +92,340 @@ namespace DarkMultiPlayerCommon
 
         public static List<string> GetStockParts()
         {
-            List<string> stockPartList = new List<string>();
-            stockPartList.Add("StandardCtrlSrf");
-            stockPartList.Add("CanardController");
-            stockPartList.Add("noseCone");
-            stockPartList.Add("AdvancedCanard");
-            stockPartList.Add("airplaneTail");
-            stockPartList.Add("deltaWing");
-            stockPartList.Add("noseConeAdapter");
-            stockPartList.Add("rocketNoseCone");
-            stockPartList.Add("smallCtrlSrf");
-            stockPartList.Add("standardNoseCone");
-            stockPartList.Add("sweptWing");
-            stockPartList.Add("tailfin");
-            stockPartList.Add("wingConnector");
-            stockPartList.Add("winglet");
-            stockPartList.Add("R8winglet");
-            stockPartList.Add("winglet3");
-            stockPartList.Add("Mark1Cockpit");
-            stockPartList.Add("Mark2Cockpit");
-            stockPartList.Add("Mark1-2Pod");
-            stockPartList.Add("advSasModule");
-            stockPartList.Add("asasmodule1-2");
-            stockPartList.Add("avionicsNoseCone");
-            stockPartList.Add("crewCabin");
-            stockPartList.Add("cupola");
-            stockPartList.Add("landerCabinSmall");
-            stockPartList.Add("mark3Cockpit");
-            stockPartList.Add("mk1pod");
-            stockPartList.Add("mk2LanderCabin");
-            stockPartList.Add("probeCoreCube");
-            stockPartList.Add("probeCoreHex");
-            stockPartList.Add("probeCoreOcto");
-            stockPartList.Add("probeCoreOcto2");
-            stockPartList.Add("probeCoreSphere");
-            stockPartList.Add("probeStackLarge");
-            stockPartList.Add("probeStackSmall");
-            stockPartList.Add("sasModule");
-            stockPartList.Add("seatExternalCmd");
-            stockPartList.Add("rtg");
-            stockPartList.Add("batteryBank");
-            stockPartList.Add("batteryBankLarge");
-            stockPartList.Add("batteryBankMini");
-            stockPartList.Add("batteryPack");
-            stockPartList.Add("ksp.r.largeBatteryPack");
-            stockPartList.Add("largeSolarPanel");
-            stockPartList.Add("solarPanels1");
-            stockPartList.Add("solarPanels2");
-            stockPartList.Add("solarPanels3");
-            stockPartList.Add("solarPanels4");
-            stockPartList.Add("solarPanels5");
-            stockPartList.Add("JetEngine");
-            stockPartList.Add("engineLargeSkipper");
-            stockPartList.Add("ionEngine");
-            stockPartList.Add("liquidEngine");
-            stockPartList.Add("liquidEngine1-2");
-            stockPartList.Add("liquidEngine2");
-            stockPartList.Add("liquidEngine2-2");
-            stockPartList.Add("liquidEngine3");
-            stockPartList.Add("liquidEngineMini");
-            stockPartList.Add("microEngine");
-            stockPartList.Add("nuclearEngine");
-            stockPartList.Add("radialEngineMini");
-            stockPartList.Add("radialLiquidEngine1-2");
-            stockPartList.Add("sepMotor1");
-            stockPartList.Add("smallRadialEngine");
-            stockPartList.Add("solidBooster");
-            stockPartList.Add("solidBooster1-1");
-            stockPartList.Add("toroidalAerospike");
-            stockPartList.Add("turboFanEngine");
-            stockPartList.Add("MK1Fuselage");
-            stockPartList.Add("Mk1FuselageStructural");
-            stockPartList.Add("RCSFuelTank");
-            stockPartList.Add("RCSTank1-2");
-            stockPartList.Add("rcsTankMini");
-            stockPartList.Add("rcsTankRadialLong");
-            stockPartList.Add("fuelTank");
-            stockPartList.Add("fuelTank1-2");
-            stockPartList.Add("fuelTank2-2");
-            stockPartList.Add("fuelTank3-2");
-            stockPartList.Add("fuelTank4-2");
-            stockPartList.Add("fuelTankSmall");
-            stockPartList.Add("fuelTankSmallFlat");
-            stockPartList.Add("miniFuelTank");
-            stockPartList.Add("mk2Fuselage");
-            stockPartList.Add("mk2SpacePlaneAdapter");
-            stockPartList.Add("mk3Fuselage");
-            stockPartList.Add("mk3spacePlaneAdapter");
-            stockPartList.Add("radialRCSTank");
-            stockPartList.Add("toroidalFuelTank");
-            stockPartList.Add("xenonTank");
-            stockPartList.Add("xenonTankRadial");
-            stockPartList.Add("adapterLargeSmallBi");
-            stockPartList.Add("adapterLargeSmallQuad");
-            stockPartList.Add("adapterLargeSmallTri");
-            stockPartList.Add("adapterSmallMiniShort");
-            stockPartList.Add("adapterSmallMiniTall");
-            stockPartList.Add("nacelleBody");
-            stockPartList.Add("radialEngineBody");
-            stockPartList.Add("smallHardpoint");
-            stockPartList.Add("stationHub");
-            stockPartList.Add("structuralIBeam1");
-            stockPartList.Add("structuralIBeam2");
-            stockPartList.Add("structuralIBeam3");
-            stockPartList.Add("structuralMiniNode");
-            stockPartList.Add("structuralPanel1");
-            stockPartList.Add("structuralPanel2");
-            stockPartList.Add("structuralPylon");
-            stockPartList.Add("structuralWing");
-            stockPartList.Add("strutConnector");
-            stockPartList.Add("strutCube");
-            stockPartList.Add("strutOcto");
-            stockPartList.Add("trussAdapter");
-            stockPartList.Add("trussPiece1x");
-            stockPartList.Add("trussPiece3x");
-            stockPartList.Add("CircularIntake");
-            stockPartList.Add("landingLeg1");
-            stockPartList.Add("landingLeg1-2");
-            stockPartList.Add("RCSBlock");
-            stockPartList.Add("stackDecoupler");
-            stockPartList.Add("airScoop");
-            stockPartList.Add("commDish");
-            stockPartList.Add("decoupler1-2");
-            stockPartList.Add("dockingPort1");
-            stockPartList.Add("dockingPort2");
-            stockPartList.Add("dockingPort3");
-            stockPartList.Add("dockingPortLarge");
-            stockPartList.Add("dockingPortLateral");
-            stockPartList.Add("fuelLine");
-            stockPartList.Add("ladder1");
-            stockPartList.Add("largeAdapter");
-            stockPartList.Add("largeAdapter2");
-            stockPartList.Add("launchClamp1");
-            stockPartList.Add("linearRcs");
-            stockPartList.Add("longAntenna");
-            stockPartList.Add("miniLandingLeg");
-            stockPartList.Add("parachuteDrogue");
-            stockPartList.Add("parachuteLarge");
-            stockPartList.Add("parachuteRadial");
-            stockPartList.Add("parachuteSingle");
-            stockPartList.Add("radialDecoupler");
-            stockPartList.Add("radialDecoupler1-2");
-            stockPartList.Add("radialDecoupler2");
-            stockPartList.Add("ramAirIntake");
-            stockPartList.Add("roverBody");
-            stockPartList.Add("sensorAccelerometer");
-            stockPartList.Add("sensorBarometer");
-            stockPartList.Add("sensorGravimeter");
-            stockPartList.Add("sensorThermometer");
-            stockPartList.Add("spotLight1");
-            stockPartList.Add("spotLight2");
-            stockPartList.Add("stackBiCoupler");
-            stockPartList.Add("stackDecouplerMini");
-            stockPartList.Add("stackPoint1");
-            stockPartList.Add("stackQuadCoupler");
-            stockPartList.Add("stackSeparator");
-            stockPartList.Add("stackSeparatorBig");
-            stockPartList.Add("stackSeparatorMini");
-            stockPartList.Add("stackTriCoupler");
-            stockPartList.Add("telescopicLadder");
-            stockPartList.Add("telescopicLadderBay");
-            stockPartList.Add("SmallGearBay");
-            stockPartList.Add("roverWheel1");
-            stockPartList.Add("roverWheel2");
-            stockPartList.Add("roverWheel3");
-            stockPartList.Add("wheelMed");
-            stockPartList.Add("flag");
-            stockPartList.Add("kerbalEVA");
-            stockPartList.Add("mediumDishAntenna");
-            stockPartList.Add("GooExperiment");
-            stockPartList.Add("science.module");
-            stockPartList.Add("RAPIER");
-            stockPartList.Add("Large.Crewed.Lab");
-            //0.23.5 parts
-            stockPartList.Add("GrapplingDevice");
-            stockPartList.Add("LaunchEscapeSystem");
-            stockPartList.Add("MassiveBooster");
-            stockPartList.Add("PotatoRoid");
-            stockPartList.Add("Size2LFB");
-            stockPartList.Add("Size3AdvancedEngine");
-            stockPartList.Add("size3Decoupler");
-            stockPartList.Add("Size3EngineCluster");
-            stockPartList.Add("Size3LargeTank");
-            stockPartList.Add("Size3MediumTank");
-            stockPartList.Add("Size3SmallTank");
-            stockPartList.Add("Size3to2Adapter");
-            //0.24 parts
-            stockPartList.Add("omsEngine");
-            stockPartList.Add("vernierEngine");
-            //0.25 parts
-            stockPartList.Add("delta.small");
-            stockPartList.Add("elevon2");
-            stockPartList.Add("elevon3");
-            stockPartList.Add("elevon5");
-            stockPartList.Add("IntakeRadialLong");
-            stockPartList.Add("MK1IntakeFuselage");
-            stockPartList.Add("mk2.1m.AdapterLong");
-            stockPartList.Add("mk2.1m.Bicoupler");
-            stockPartList.Add("mk2CargoBayL");
-            stockPartList.Add("mk2CargoBayS");
-            stockPartList.Add("mk2Cockpit.Inline");
-            stockPartList.Add("mk2Cockpit.Standard");
-            stockPartList.Add("mk2CrewCabin");
-            stockPartList.Add("mk2DockingPort");
-            stockPartList.Add("mk2DroneCore");
-            stockPartList.Add("mk2FuselageLongLFO");
-            stockPartList.Add("mk2FuselageShortLFO");
-            stockPartList.Add("mk2FuselageShortLiquid");
-            stockPartList.Add("mk2FuselageShortMono");
-            stockPartList.Add("shockConeIntake");
-            stockPartList.Add("structuralWing2");
-            stockPartList.Add("structuralWing3");
-            stockPartList.Add("structuralWing4");
-            stockPartList.Add("sweptWing1");
-            stockPartList.Add("sweptWing2");
-            stockPartList.Add("wingConnector2");
-            stockPartList.Add("wingConnector3");
-            stockPartList.Add("wingConnector4");
-            stockPartList.Add("wingConnector5");
-            stockPartList.Add("wingStrake");
-            //0.90 parts
-            stockPartList.Add("adapterMk3-Mk2");
-            stockPartList.Add("adapterMk3-Size2");
-            stockPartList.Add("adapterMk3-Size2Slant");
-            stockPartList.Add("adapterSize2-Mk2");
-            stockPartList.Add("adapterSize2-Size1");
-            stockPartList.Add("adapterSize2-Size1Slant");
-            stockPartList.Add("adapterSize3-Mk3");
-            stockPartList.Add("mk3CargoBayL");
-            stockPartList.Add("mk3CargoBayM");
-            stockPartList.Add("mk3CargoBayS");
-            stockPartList.Add("mk3Cockpit.Shuttle");
-            stockPartList.Add("mk3CrewCabin");
-            stockPartList.Add("mk3FuselageLF.100");
-            stockPartList.Add("mk3FuselageLF.25");
-            stockPartList.Add("mk3FuselageLF.50");
-            stockPartList.Add("mk3FuselageLFO.100");
-            stockPartList.Add("mk3FuselageLFO.25");
-            stockPartList.Add("mk3FuselageLFO.50");
-            stockPartList.Add("mk3FuselageMONO");
-            //1.0 parts
-            stockPartList.Add("kerbalEVAfemale");
-            stockPartList.Add("airbrake1");
-            stockPartList.Add("airlinerCtrlSrf");
-            stockPartList.Add("airlinerMainWing");
-            stockPartList.Add("airlinerTailFin");
-            stockPartList.Add("pointyNoseConeA");
-            stockPartList.Add("pointyNoseConeB");
-            stockPartList.Add("airplaneTailB");
-            stockPartList.Add("fairingSize1");
-            stockPartList.Add("fairingSize2");
-            stockPartList.Add("fairingSize3");
-            stockPartList.Add("HeatShield1");
-            stockPartList.Add("HeatShield2");
-            stockPartList.Add("HeatShield3");
-            stockPartList.Add("wingShuttleDelta");
-            stockPartList.Add("elevonMk3");
-            stockPartList.Add("wingShuttleElevon1");
-            stockPartList.Add("wingShuttleElevon2");
-            stockPartList.Add("wingShuttleRudder");
-            stockPartList.Add("wingShuttleStrake");
-            stockPartList.Add("delta.small");
-            stockPartList.Add("mk2Cockpit.Inline");
-            stockPartList.Add("mk2Cockpit.Standard");
-            stockPartList.Add("mk3Cockpit.Shuttle");
-            stockPartList.Add("ksp.r.largeBatteryPack");
-            stockPartList.Add("solidBooster.sm");
-            stockPartList.Add("fuelTank.long");
-            stockPartList.Add("mk2.1m.Bicoupler");
-            stockPartList.Add("mk2.1m.AdapterLong");
-            stockPartList.Add("mk3FuselageLFO.100");
-            stockPartList.Add("mk3FuselageLFO.25");
-            stockPartList.Add("mk3FuselageLFO.50");
-            stockPartList.Add("mk3FuselageLF.100");
-            stockPartList.Add("mk3FuselageLF.25");
-            stockPartList.Add("mk3FuselageLF.50");
-            stockPartList.Add("xenonTankLarge");
-            stockPartList.Add("mk3Cockpit.Shuttle");
-            stockPartList.Add("FuelCell");
-            stockPartList.Add("FuelCellArray");
-            stockPartList.Add("ISRU");
-            stockPartList.Add("LargeTank");
-            stockPartList.Add("OrbitalScanner");
-            stockPartList.Add("RadialDrill");
-            stockPartList.Add("SmallTank");
-            stockPartList.Add("SurfaceScanner");
-            stockPartList.Add("SurveyScanner");
-            stockPartList.Add("sensorAtmosphere");
-            stockPartList.Add("Large.Crewed.Lab");
-            stockPartList.Add("science.module");
-            stockPartList.Add("radialDrogue");
-            stockPartList.Add("ServiceBay.125");
-            stockPartList.Add("ServiceBay.250");
-            stockPartList.Add("GearFixed");
-            stockPartList.Add("GearFree");
-            stockPartList.Add("GearLarge");
-            stockPartList.Add("GearMedium");
-            //1.0.1 parts
-            stockPartList.Add("basicFin");
-            //1.0.3 parts
-            stockPartList.Add("foldingRadLarge");
-            stockPartList.Add("foldingRadMed");
-            stockPartList.Add("foldingRadSmall");
-            stockPartList.Add("radPanelLg");
-            stockPartList.Add("radPanelSm");
-            //1.0.5 parts
-            stockPartList.Add("turboJet");
-            stockPartList.Add("turboFanSize2");
-            stockPartList.Add("miniJetEngine");
-            stockPartList.Add("SSME");
-            stockPartList.Add("adapterEngines");
-            stockPartList.Add("miniFuselage");
-            stockPartList.Add("miniIntake");
-            stockPartList.Add("MK1CrewCabin");
-            stockPartList.Add("MiniISRU");
-            stockPartList.Add("MiniDrill");
-            stockPartList.Add("RadialOreTank");
-            stockPartList.Add("radPanelEdge");
-            stockPartList.Add("mk3CargoRamp");
-			//1.1.0 parts
-			stockPartList.Add("InflatableHeatShield");
-			stockPartList.Add("HECS2.ProbeCore");
-			stockPartList.Add("HighGainAntenna");
-			stockPartList.Add("LgRadialSolarPanel");
-			stockPartList.Add("GearSmall");
-            // 1.2 parts
-            stockPartList.Add("ScienceBox");
-            stockPartList.Add("SurfAntenna");
-            stockPartList.Add("HighGainAntenna5");
-            stockPartList.Add("RelayAntenna100");
-            stockPartList.Add("RelayAntenna5");
-            stockPartList.Add("RelayAntenna50");
-            stockPartList.Add("HeatShield0");
+            List<string> stockPartList = new List<string>()
+            {
+                "StandardCtrlSrf",
+                "CanardController",
+                "noseCone",
+                "AdvancedCanard",
+                "airplaneTail",
+                "deltaWing",
+                "noseConeAdapter",
+                "rocketNoseCone",
+                "smallCtrlSrf",
+                "standardNoseCone",
+                "sweptWing",
+                "tailfin",
+                "wingConnector",
+                "winglet",
+                "R8winglet",
+                "winglet3",
+                "Mark1Cockpit",
+                "Mark2Cockpit",
+                "Mark1-2Pod",
+                "advSasModule",
+                "asasmodule1-2",
+                "avionicsNoseCone",
+                "crewCabin",
+                "cupola",
+                "landerCabinSmall",
+                "mark3Cockpit",
+                "mk1pod",
+                "mk2LanderCabin",
+                "probeCoreCube",
+                "probeCoreHex",
+                "probeCoreOcto",
+                "probeCoreOcto2",
+                "probeCoreSphere",
+                "probeStackLarge",
+                "probeStackSmall",
+                "sasModule",
+                "seatExternalCmd",
+                "rtg",
+                "batteryBank",
+                "batteryBankLarge",
+                "batteryBankMini",
+                "batteryPack",
+                "ksp.r.largeBatteryPack",
+                "largeSolarPanel",
+                "solarPanels1",
+                "solarPanels2",
+                "solarPanels3",
+                "solarPanels4",
+                "solarPanels5",
+                "JetEngine",
+                "engineLargeSkipper",
+                "ionEngine",
+                "liquidEngine",
+                "liquidEngine1-2",
+                "liquidEngine2",
+                "liquidEngine2-2",
+                "liquidEngine3",
+                "liquidEngineMini",
+                "microEngine",
+                "nuclearEngine",
+                "radialEngineMini",
+                "radialLiquidEngine1-2",
+                "sepMotor1",
+                "smallRadialEngine",
+                "solidBooster",
+                "solidBooster1-1",
+                "toroidalAerospike",
+                "turboFanEngine",
+                "MK1Fuselage",
+                "Mk1FuselageStructural",
+                "RCSFuelTank",
+                "RCSTank1-2",
+                "rcsTankMini",
+                "rcsTankRadialLong",
+                "fuelTank",
+                "fuelTank1-2",
+                "fuelTank2-2",
+                "fuelTank3-2",
+                "fuelTank4-2",
+                "fuelTankSmall",
+                "fuelTankSmallFlat",
+                "miniFuelTank",
+                "mk2Fuselage",
+                "mk2SpacePlaneAdapter",
+                "mk3Fuselage",
+                "mk3spacePlaneAdapter",
+                "radialRCSTank",
+                "toroidalFuelTank",
+                "xenonTank",
+                "xenonTankRadial",
+                "adapterLargeSmallBi",
+                "adapterLargeSmallQuad",
+                "adapterLargeSmallTri",
+                "adapterSmallMiniShort",
+                "adapterSmallMiniTall",
+                "nacelleBody",
+                "radialEngineBody",
+                "smallHardpoint",
+                "stationHub",
+                "structuralIBeam1",
+                "structuralIBeam2",
+                "structuralIBeam3",
+                "structuralMiniNode",
+                "structuralPanel1",
+                "structuralPanel2",
+                "structuralPylon",
+                "structuralWing",
+                "strutConnector",
+                "strutCube",
+                "strutOcto",
+                "trussAdapter",
+                "trussPiece1x",
+                "trussPiece3x",
+                "CircularIntake",
+                "landingLeg1",
+                "landingLeg1-2",
+                "RCSBlock",
+                "stackDecoupler",
+                "airScoop",
+                "commDish",
+                "decoupler1-2",
+                "dockingPort1",
+                "dockingPort2",
+                "dockingPort3",
+                "dockingPortLarge",
+                "dockingPortLateral",
+                "fuelLine",
+                "ladder1",
+                "largeAdapter",
+                "largeAdapter2",
+                "launchClamp1",
+                "linearRcs",
+                "longAntenna",
+                "miniLandingLeg",
+                "parachuteDrogue",
+                "parachuteLarge",
+                "parachuteRadial",
+                "parachuteSingle",
+                "radialDecoupler",
+                "radialDecoupler1-2",
+                "radialDecoupler2",
+                "ramAirIntake",
+                "roverBody",
+                "sensorAccelerometer",
+                "sensorBarometer",
+                "sensorGravimeter",
+                "sensorThermometer",
+                "spotLight1",
+                "spotLight2",
+                "stackBiCoupler",
+                "stackDecouplerMini",
+                "stackPoint1",
+                "stackQuadCoupler",
+                "stackSeparator",
+                "stackSeparatorBig",
+                "stackSeparatorMini",
+                "stackTriCoupler",
+                "telescopicLadder",
+                "telescopicLadderBay",
+                "SmallGearBay",
+                "roverWheel1",
+                "roverWheel2",
+                "roverWheel3",
+                "wheelMed",
+                "flag",
+                "kerbalEVA",
+                "mediumDishAntenna",
+                "GooExperiment",
+                "science.module",
+                "RAPIER",
+                "Large.Crewed.Lab",
+                //0.23.5 parts
+                "GrapplingDevice",
+                "LaunchEscapeSystem",
+                "MassiveBooster",
+                "PotatoRoid",
+                "Size2LFB",
+                "Size3AdvancedEngine",
+                "size3Decoupler",
+                "Size3EngineCluster",
+                "Size3LargeTank",
+                "Size3MediumTank",
+                "Size3SmallTank",
+                "Size3to2Adapter",
+                //0.24 parts
+                "omsEngine",
+                "vernierEngine",
+                //0.25 parts
+                "delta.small",
+                "elevon2",
+                "elevon3",
+                "elevon5",
+                "IntakeRadialLong",
+                "MK1IntakeFuselage",
+                "mk2.1m.AdapterLong",
+                "mk2.1m.Bicoupler",
+                "mk2CargoBayL",
+                "mk2CargoBayS",
+                "mk2Cockpit.Inline",
+                "mk2Cockpit.Standard",
+                "mk2CrewCabin",
+                "mk2DockingPort",
+                "mk2DroneCore",
+                "mk2FuselageLongLFO",
+                "mk2FuselageShortLFO",
+                "mk2FuselageShortLiquid",
+                "mk2FuselageShortMono",
+                "shockConeIntake",
+                "structuralWing2",
+                "structuralWing3",
+                "structuralWing4",
+                "sweptWing1",
+                "sweptWing2",
+                "wingConnector2",
+                "wingConnector3",
+                "wingConnector4",
+                "wingConnector5",
+                "wingStrake",
+                //0.90 parts
+                "adapterMk3-Mk2",
+                "adapterMk3-Size2",
+                "adapterMk3-Size2Slant",
+                "adapterSize2-Mk2",
+                "adapterSize2-Size1",
+                "adapterSize2-Size1Slant",
+                "adapterSize3-Mk3",
+                "mk3CargoBayL",
+                "mk3CargoBayM",
+                "mk3CargoBayS",
+                "mk3Cockpit.Shuttle",
+                "mk3CrewCabin",
+                "mk3FuselageLF.100",
+                "mk3FuselageLF.25",
+                "mk3FuselageLF.50",
+                "mk3FuselageLFO.100",
+                "mk3FuselageLFO.25",
+                "mk3FuselageLFO.50",
+                "mk3FuselageMONO",
+                //1.0 parts
+                "kerbalEVAfemale",
+                "airbrake1",
+                "airlinerCtrlSrf",
+                "airlinerMainWing",
+                "airlinerTailFin",
+                "pointyNoseConeA",
+                "pointyNoseConeB",
+                "airplaneTailB",
+                "fairingSize1",
+                "fairingSize2",
+                "fairingSize3",
+                "HeatShield1",
+                "HeatShield2",
+                "HeatShield3",
+                "wingShuttleDelta",
+                "elevonMk3",
+                "wingShuttleElevon1",
+                "wingShuttleElevon2",
+                "wingShuttleRudder",
+                "wingShuttleStrake",
+                "delta.small",
+                "mk2Cockpit.Inline",
+                "mk2Cockpit.Standard",
+                "mk3Cockpit.Shuttle",
+                "ksp.r.largeBatteryPack",
+                "solidBooster.sm",
+                "fuelTank.long",
+                "mk2.1m.Bicoupler",
+                "mk2.1m.AdapterLong",
+                "mk3FuselageLFO.100",
+                "mk3FuselageLFO.25",
+                "mk3FuselageLFO.50",
+                "mk3FuselageLF.100",
+                "mk3FuselageLF.25",
+                "mk3FuselageLF.50",
+                "xenonTankLarge",
+                "mk3Cockpit.Shuttle",
+                "FuelCell",
+                "FuelCellArray",
+                "ISRU",
+                "LargeTank",
+                "OrbitalScanner",
+                "RadialDrill",
+                "SmallTank",
+                "SurfaceScanner",
+                "SurveyScanner",
+                "sensorAtmosphere",
+                "Large.Crewed.Lab",
+                "science.module",
+                "radialDrogue",
+                "ServiceBay.125",
+                "ServiceBay.250",
+                "GearFixed",
+                "GearFree",
+                "GearLarge",
+                "GearMedium",
+                //1.0.1 parts
+                "basicFin",
+                //1.0.3 parts
+                "foldingRadLarge",
+                "foldingRadMed",
+                "foldingRadSmall",
+                "radPanelLg",
+                "radPanelSm",
+                //1.0.5 parts
+                "turboJet",
+                "turboFanSize2",
+                "miniJetEngine",
+                "SSME",
+                "adapterEngines",
+                "miniFuselage",
+                "miniIntake",
+                "MK1CrewCabin",
+                "MiniISRU",
+                "MiniDrill",
+                "RadialOreTank",
+                "radPanelEdge",
+                "mk3CargoRamp",
+                //1.1.0 parts
+                "InflatableHeatShield",
+                "HECS2.ProbeCore",
+                "HighGainAntenna",
+                "LgRadialSolarPanel",
+                "GearSmall",
+                // 1.2 parts
+                "ScienceBox",
+                "SurfAntenna",
+                "HighGainAntenna5",
+                "RelayAntenna100",
+                "RelayAntenna5",
+                "RelayAntenna50",
+                "HeatShield0"
+            };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
         }
@@ -508,6 +510,11 @@ namespace DarkMultiPlayerCommon
             sb.AppendLine("");
             return sb.ToString();
         }
+
+        public static long GetCurrentUnixTime()
+        {
+            return ((DateTime.UtcNow.Ticks - new DateTime(1970, 1, 1).Ticks) / TimeSpan.TicksPerSecond);
+        }
     }
 
     public enum CraftType
@@ -527,6 +534,7 @@ namespace DarkMultiPlayerCommon
         SCENARIO_DATA,
         KERBALS_REQUEST,
         KERBAL_PROTO,
+        KERBAL_REMOVE,
         VESSELS_REQUEST,
         VESSEL_PROTO,
         VESSEL_UPDATE,
@@ -541,8 +549,7 @@ namespace DarkMultiPlayerCommon
         LOCK_SYSTEM,
         MOD_DATA,
         SPLIT_MESSAGE,
-        CONNECTION_END,
-        KERBAL_REMOVE
+        CONNECTION_END
     }
 
     public enum ServerMessageType
@@ -559,6 +566,7 @@ namespace DarkMultiPlayerCommon
         SCENARIO_DATA,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
+        KERBAL_REMOVE,
         VESSEL_LIST,
         VESSEL_PROTO,
         VESSEL_UPDATE,
@@ -576,8 +584,7 @@ namespace DarkMultiPlayerCommon
         LOCK_SYSTEM,
         MOD_DATA,
         SPLIT_MESSAGE,
-        CONNECTION_END,
-        KERBAL_REMOVE
+        CONNECTION_END
     }
 
     public enum ConnectionStatus

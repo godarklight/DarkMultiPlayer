@@ -52,9 +52,7 @@ namespace DarkMultiPlayerServer
         public bool whitelisted = false;
         [Description("Enable mod control.\n# WARNING: Only consider turning off mod control for private servers.\n# The game will constantly complain about missing parts if there are missing mods.")]
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
-        [Description("Specify if the the server universe 'ticks' while nobody is connected or the server is shut down.")]
-        public bool keepTickingWhileOffline = true;
-        [Description("If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous subspace they were in.\n# NOTE: This may cause time-paradoxes, and will not work across server restarts.")]
+        [Description("If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous time they were in.\n# NOTE: This may cause time-paradoxes, and will not work across server restarts.")]
         public bool sendPlayerToLatestSubspace = true;
         [Description("Use UTC instead of system time in the log.")]
         public bool useUTCTimeInLog = false;
