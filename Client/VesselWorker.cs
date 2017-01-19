@@ -48,10 +48,10 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, bool> vesselPartsOk = new Dictionary<Guid, bool>();
         //Vessel state tracking
         private Guid lastVesselID;
-        private Dictionary <Guid, int> vesselPartCount = new Dictionary<Guid, int>();
-        private Dictionary <Guid, string> vesselNames = new Dictionary<Guid, string>();
-        private Dictionary <Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
-        private Dictionary <Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
+        private Dictionary<Guid, int> vesselPartCount = new Dictionary<Guid, int>();
+        private Dictionary<Guid, string> vesselNames = new Dictionary<Guid, string>();
+        private Dictionary<Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
+        private Dictionary<Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
         //Known kerbals
         private Dictionary<string, string> serverKerbals = new Dictionary<string, string>();
         //Known vessels and last send/receive time
@@ -173,7 +173,7 @@ namespace DarkMultiPlayer
                         delayKillVessels.Remove(dyingVessel);
                     }
                 }
-                
+
                 if (fromDockedVesselID != Guid.Empty || toDockedVesselID != Guid.Empty)
                 {
                     HandleDocking();
@@ -213,7 +213,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
-            GameEvents.onKerbalRemoved.Add(OnKerbalRemoved);
+            GameEvents.onKerbalRemoved.Add(this.OnKerbalRemoved);
         }
 
         private void UnregisterGameHooks()
@@ -224,7 +224,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
-            GameEvents.onKerbalRemoved.Remove(OnKerbalRemoved);
+            GameEvents.onKerbalRemoved.Remove(this.OnKerbalRemoved);
         }
 
         private void HandleDocking()
@@ -975,7 +975,7 @@ namespace DarkMultiPlayer
         {
             ConfigNode kerbalNode = new ConfigNode();
             pcm.Save(kerbalNode);
-            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || pcm.type == ProtoCrewMember.KerbalType.Unowned)
+            if (pcm.type == ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Unowned && pcm.rosterStatus == ProtoCrewMember.RosterStatus.Assigned))
             {
                 ConfigNode dmpNode = new ConfigNode();
                 dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);
@@ -1135,7 +1135,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if (crewNode.GetValue("type") == "Tourist")
+            if (crewNode.GetValue("type") == "Tourist" || crewNode.GetValue("type") == "Unowned")
             {
                 ConfigNode dmpNode = null;
                 if (crewNode.TryGetNode("DarkMultiPlayer", ref dmpNode))
@@ -1145,7 +1145,7 @@ namespace DarkMultiPlayer
                     {
                         if (dmpOwner != Settings.fetch.playerPublicKey)
                         {
-                            DarkLog.Debug("Skipping load of tourist that belongs to another player");
+                            DarkLog.Debug("Skipping load of kerbal that belongs to another player's contracts");
                             return;
                         }
                     }
@@ -1588,34 +1588,6 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void FixVesselManeuverNodes(ConfigNode vesselNode)
-        {
-            if (vesselNode != null)
-            {
-                ConfigNode flightPlanNode = vesselNode.GetNode("FLIGHTPLAN");
-                List<ConfigNode> expiredManeuverNodes = new List<ConfigNode>();
-                if (flightPlanNode != null)
-                {
-                    foreach (ConfigNode maneuverNode in flightPlanNode.GetNodes("MANEUVER"))
-                    {
-                        double maneuverUT = double.Parse(maneuverNode.GetValue("UT"));
-                        double currentTime = Planetarium.GetUniversalTime();
-                        if (currentTime > maneuverUT) expiredManeuverNodes.Add(maneuverNode);
-                    }
-
-                    if (expiredManeuverNodes.Count != 0)
-                    {
-                        foreach (ConfigNode removeNode in expiredManeuverNodes)
-                        {
-                            DarkLog.Debug("Removed maneuver node from vessel, it was expired!");
-                            flightPlanNode.RemoveNode(removeNode);
-                        }
-                    }
-                    
-                }
-            }
-        }
-
         private string DodgeValueIfNeeded(string input)
         {
             string boolValue = input.Substring(0, input.IndexOf(", "));
@@ -1783,8 +1755,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    // Ignore the tourists
-                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists except those that haven't yet toured
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured)) SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1807,8 +1779,8 @@ namespace DarkMultiPlayer
                 }
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
-                    // Ignore the tourists
-                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    // Ignore the tourists except those that haven't yet toured
+                    if (pcm.type != ProtoCrewMember.KerbalType.Tourist || (pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured)) SendKerbalIfDifferent(pcm);
                 }
             }
         }

@@ -460,6 +460,10 @@ namespace DarkMultiPlayer
                 {
                     singleton.workerEnabled = false;
                     Client.updateEvent.Remove(singleton.Update);
+                    if (singleton.registered)
+                    {
+                        singleton.UnregisterGameHooks();
+                    }
                 }
                 singleton = new ScenarioWorker();
                 Client.updateEvent.Add(singleton.Update);
