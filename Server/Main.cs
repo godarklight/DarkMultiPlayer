@@ -283,6 +283,13 @@ namespace DarkMultiPlayerServer
             {
                 Directory.CreateDirectory(Path.Combine(universeDirectory, "Players"));
             }
+            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
+            {
+                if (!Directory.Exists(Path.Combine(universeDirectory, "OfflinePlayerTimes")))
+                {
+                    Directory.CreateDirectory(Path.Combine(universeDirectory, "OfflinePlayerTimes"));
+                }
+            }
             if (!Directory.Exists(Path.Combine(universeDirectory, "Kerbals")))
             {
                 Directory.CreateDirectory(Path.Combine(universeDirectory, "Kerbals"));

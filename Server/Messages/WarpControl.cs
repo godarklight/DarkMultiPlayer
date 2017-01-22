@@ -11,7 +11,6 @@ namespace DarkMultiPlayerServer.Messages
         //SUBSPACE
         private static int freeID;
         private static Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
-        private static Dictionary<string, double> offlinePlayerTimes = new Dictionary<string, double>();
         private static object createLock = new object();
         //MCW (Uses subspace internally)
         private static string warpMaster;
@@ -541,16 +540,19 @@ namespace DarkMultiPlayerServer.Messages
         public static void SendSetSubspace(ClientObject client)
         {
             int targetSubspace = -1;
-            if (Settings.settingsStore.warpMode != WarpMode.SUBSPACE || Settings.settingsStore.sendPlayerToLatestSubspace || !offlinePlayerTimes.ContainsKey(client.playerName))
+            string storedTimeFile = Path.Combine(Server.universeDirectory, "OfflinePlayerTimes", client.playerName + ".txt");
+            double storedTime;
+            if (Settings.settingsStore.warpMode != WarpMode.SUBSPACE || Settings.settingsStore.sendPlayerToLatestSubspace || !File.Exists(storedTimeFile) || !Double.TryParse(File.ReadAllText(storedTimeFile), out storedTime))
             {
                 targetSubspace = GetLatestSubspace();
                 SendSetSubspace(client, targetSubspace);
             }
             else
             {
-                DarkLog.Debug("Sending " + client.playerName + " to the past time " + offlinePlayerTimes[client.playerName]);
+                
+                DarkLog.Debug("Sending " + client.playerName + " to the past time " + storedTime);
                 //Creating a subspace is a server side process - the server will send the created subspace back to the client
-                HandleNewSubspace(client, DateTime.UtcNow.Ticks, offlinePlayerTimes[client.playerName], 1f);
+                HandleNewSubspace(client, DateTime.UtcNow.Ticks, storedTime, 1f);
             }
         }
 
@@ -706,14 +708,15 @@ namespace DarkMultiPlayerServer.Messages
             {
                 Subspace clientSubspace = subspaces[client.subspace];
                 double timeDelta = ((DateTime.UtcNow.Ticks - clientSubspace.serverClock) / 10000000d) * clientSubspace.subspaceSpeed;
-                offlinePlayerTimes[client.playerName] = subspaces[client.subspace].planetTime + timeDelta;
+                double playerOfflineTime = subspaces[client.subspace].planetTime + timeDelta;
+                string storedTimeFile = Path.Combine(Server.universeDirectory, "OfflinePlayerTimes", playerName + ".txt");
+                File.WriteAllText(storedTimeFile, playerOfflineTime.ToString());
             }
         }
 
         public static void Reset()
         {
             subspaces.Clear();
-            offlinePlayerTimes.Clear();
             warpList.Clear();
             ignoreList = null;
             LoadSavedSubspace();
