@@ -109,9 +109,9 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
             {
-                lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
+                lastSyncTime = Client.realtimeSinceStartup;
                 NetworkWorker.fetch.SendTimeSync();
             }
 
@@ -161,9 +161,9 @@ namespace DarkMultiPlayer
                 }
             }
 
-            if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
-                lastClockSkew = UnityEngine.Time.realtimeSinceStartup;
+                lastClockSkew = Client.realtimeSinceStartup;
                 if (CanSyncTime())
                 {
                     double targetTime = GetUniverseTime();
@@ -517,7 +517,7 @@ namespace DarkMultiPlayer
             //Ask for another time sync if we aren't synced yet.
             if (!synced)
             {
-                lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
+                lastSyncTime = Client.realtimeSinceStartup;
                 NetworkWorker.fetch.SendTimeSync();
             }
         }

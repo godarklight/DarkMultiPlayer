@@ -26,9 +26,9 @@ namespace DarkMultiPlayer
 
         public void ThrottledAcquireLock(string lockname)
         {
-            if (lastAcquireTime.ContainsKey(lockname) ? ((UnityEngine.Time.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
+            if (lastAcquireTime.ContainsKey(lockname) ? ((Client.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
             {
-                lastAcquireTime[lockname] = UnityEngine.Time.realtimeSinceStartup;
+                lastAcquireTime[lockname] = Client.realtimeSinceStartup;
                 AcquireLock(lockname, false);
             }
         }

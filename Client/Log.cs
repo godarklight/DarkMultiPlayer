@@ -9,20 +9,38 @@ namespace DarkMultiPlayer
     {
         public static Queue<string> messageQueue = new Queue<string>();
         private static object externalLogLock = new object();
+        private static int mainThreadID;
+
+        public static void SetMainThread()
+        {
+            mainThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        }
 
         public static void Debug(string message)
         {
-            //Use messageQueue if looking for messages that don't normally show up in the log.
-
-            messageQueue.Enqueue(string.Format("DarkMultiPlayer: {0}", message));
+            message = string.Format("[{0}] {1}", Client.realtimeSinceStartup, message);
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId == mainThreadID)
+            {
+                UnityEngine.Debug.Log("DarkMultiPlayer: " + message);
+            }
+            else
+            {
+                lock (messageQueue)
+                {
+                    messageQueue.Enqueue("DarkMultiPlayer: [THREAD] " + message);
+                }
+            }
         }
 
         public static void Update()
         {
             while (messageQueue.Count > 0)
             {
-                string message = messageQueue.Dequeue();
-                UnityEngine.Debug.Log(string.Format("[{0}] {1}", Time.realtimeSinceStartup, message));
+                lock (messageQueue)
+                {
+                    string message = messageQueue.Dequeue();
+                    UnityEngine.Debug.Log(message);
+                }                    
             }
         }
 

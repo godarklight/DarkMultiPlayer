@@ -37,9 +37,9 @@ namespace DarkMultiPlayer
         {
             if (workerEnabled)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusCheck) > PLAYER_STATUS_CHECK_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastPlayerStatusCheck) > PLAYER_STATUS_CHECK_INTERVAL)
                 {
-                    lastPlayerStatusCheck = UnityEngine.Time.realtimeSinceStartup;
+                    lastPlayerStatusCheck = Client.realtimeSinceStartup;
                     myPlayerStatus.vesselText = "";
                     myPlayerStatus.statusText = "";
                     if (HighLogic.LoadedSceneIsFlight)
@@ -171,9 +171,9 @@ namespace DarkMultiPlayer
                 bool statusDifferent = false;
                 statusDifferent = statusDifferent || (myPlayerStatus.vesselText != lastPlayerStatus.vesselText);
                 statusDifferent = statusDifferent || (myPlayerStatus.statusText != lastPlayerStatus.statusText);
-                if (statusDifferent && ((UnityEngine.Time.realtimeSinceStartup - lastPlayerStatusSend) > PLAYER_STATUS_SEND_THROTTLE))
+                if (statusDifferent && ((Client.realtimeSinceStartup - lastPlayerStatusSend) > PLAYER_STATUS_SEND_THROTTLE))
                 {
-                    lastPlayerStatusSend = UnityEngine.Time.realtimeSinceStartup;
+                    lastPlayerStatusSend = Client.realtimeSinceStartup;
                     lastPlayerStatus.vesselText = myPlayerStatus.vesselText;
                     lastPlayerStatus.statusText = myPlayerStatus.statusText;
                     NetworkWorker.fetch.SendPlayerStatus(myPlayerStatus);

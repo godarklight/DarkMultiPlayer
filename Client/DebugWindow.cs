@@ -141,9 +141,9 @@ namespace DarkMultiPlayer
             safeDisplay = display;
             if (display)
             {
-                if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
+                if (((Client.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
-                    lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastUpdateTime = Client.realtimeSinceStartup;
                     //Vector text
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null) {
                         Vessel ourVessel = FlightGlobals.fetch.activeVessel;

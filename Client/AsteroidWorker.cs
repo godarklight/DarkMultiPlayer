@@ -51,9 +51,9 @@ namespace DarkMultiPlayer
             
                 if (scenarioController != null)
                 {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastAsteroidCheck) > ASTEROID_CHECK_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastAsteroidCheck) > ASTEROID_CHECK_INTERVAL)
                     {
-                        lastAsteroidCheck = UnityEngine.Time.realtimeSinceStartup;
+                        lastAsteroidCheck = Client.realtimeSinceStartup;
                         //Try to acquire the asteroid-spawning lock if nobody else has it.
                         if (!LockSystem.fetch.LockExists("asteroid-spawning"))
                         {

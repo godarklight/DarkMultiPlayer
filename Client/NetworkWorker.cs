@@ -1444,7 +1444,7 @@ namespace DarkMultiPlayer
                                 bool vabExists = mr.Read<bool>();
                                 bool sphExists = mr.Read<bool>();
                                 bool subassemblyExists = mr.Read<bool>();
-                                DarkLog.Debug("Player: " + player + ", VAB: " + vabExists + ", SPH: " + sphExists + ", SUBASSEMBLY" + subassemblyExists);
+                                DarkLog.Debug("Player: " + player + ", VAB: " + vabExists + ", SPH: " + sphExists + ", SUBASSEMBLY: " + subassemblyExists);
                                 if (vabExists)
                                 {
                                     string[] vabCrafts = mr.Read<string[]>();

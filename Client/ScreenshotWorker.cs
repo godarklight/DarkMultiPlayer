@@ -171,9 +171,9 @@ namespace DarkMultiPlayer
                 if (!uploadEventHandled)
                 {
                     uploadEventHandled = true;
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
                     {
-                        lastScreenshotSend = UnityEngine.Time.realtimeSinceStartup;
+                        lastScreenshotSend = Client.realtimeSinceStartup;
                         screenshotTaken = false;
                         finishedUploadingScreenshot = false;
                         uploadScreenshot = true;
@@ -181,11 +181,11 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL)
                 {
                     if (screenshotTaken && displayScreenshotUploadingMessage)
                     {
-                        lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                        lastScreenshotMessageCheck = Client.realtimeSinceStartup;
                         if (screenshotUploadMessage != null)
                         {
                             screenshotUploadMessage.duration = 0f;
@@ -265,7 +265,7 @@ namespace DarkMultiPlayer
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
-            GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
+            GUI.enabled = ((Client.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
             if (GUILayout.Button("Upload (" + Settings.fetch.screenshotKey.ToString() + ")", buttonStyle))
             {
                 uploadEventHandled = false;

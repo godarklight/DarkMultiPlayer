@@ -62,7 +62,7 @@ namespace DarkMultiPlayer
         {
             if (vessel.situation == Vessel.Situations.FLYING)
             {
-                lastPackTime[vessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                lastPackTime[vessel.id] = Client.realtimeSinceStartup;
             }
         }
 
@@ -72,7 +72,7 @@ namespace DarkMultiPlayer
             bool updatedByAnotherPlayer = LockSystem.fetch.LockExists("update-" + vessel.id) && !LockSystem.fetch.LockIsOurs("update-" + vessel.id);
             bool updatedInTheFuture = VesselWorker.fetch.VesselUpdatedInFuture(vessel.id);
             //Vessel was packed within the last 5 seconds
-            if (lastPackTime.ContainsKey(vessel.id) && (UnityEngine.Time.realtimeSinceStartup - lastPackTime[vessel.id]) < 5f)
+            if (lastPackTime.ContainsKey(vessel.id) && (Client.realtimeSinceStartup - lastPackTime[vessel.id]) < 5f)
             {
                 lastPackTime.Remove(vessel.id);
                 if (vessel.situation == Vessel.Situations.FLYING && (pilotedByAnotherPlayer || updatedByAnotherPlayer || updatedInTheFuture))
@@ -138,10 +138,10 @@ namespace DarkMultiPlayer
 
                 if (hfvl.flyingVessel.loaded)
                 {
-                    if ((Time.realtimeSinceStartup - hfvl.lastUnpackTime) > UNPACK_INTERVAL)
+                    if ((Client.realtimeSinceStartup - hfvl.lastUnpackTime) > UNPACK_INTERVAL)
                     {
                         DarkLog.Debug("Hacky load attempting to take loaded vessel off rails");
-                        hfvl.lastUnpackTime = Time.realtimeSinceStartup;
+                        hfvl.lastUnpackTime = Client.realtimeSinceStartup;
                         try
                         {
                             hfvl.flyingVessel.GoOffRails();
@@ -206,7 +206,7 @@ namespace DarkMultiPlayer
                 hfvl.flyingVessel.vesselRanges.landed.load = hfvl.flyingVessel.vesselRanges.flying.unload - 100f;
                 DarkLog.Debug("Default landed unload: " + hfvl.flyingVessel.vesselRanges.landed.unload);
                 hfvl.flyingVessel.vesselRanges.landed.unload = hfvl.flyingVessel.vesselRanges.flying.unload;
-                hfvl.lastUnpackTime = Time.realtimeSinceStartup;
+                hfvl.lastUnpackTime = Client.realtimeSinceStartup;
                 loadingFlyingVessels.Add(hackyVessel.id, hfvl);
             }
         }

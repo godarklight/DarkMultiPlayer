@@ -134,9 +134,9 @@ namespace DarkMultiPlayer
                     deleteCraftType = CraftType.VAB;
                 }
 
-                if (displayCraftUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastCraftMessageCheck) > CRAFT_MESSAGE_CHECK_INTERVAL))
+                if (displayCraftUploadingMessage && ((Client.realtimeSinceStartup - lastCraftMessageCheck) > CRAFT_MESSAGE_CHECK_INTERVAL))
                 {
-                    lastCraftMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                    lastCraftMessageCheck = Client.realtimeSinceStartup;
                     if (craftUploadMessage != null)
                     {
                         craftUploadMessage.duration = 0f;

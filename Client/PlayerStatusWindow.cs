@@ -112,9 +112,9 @@ namespace DarkMultiPlayer
                 {
                     calculatedMinSize = true;
                 }
-                if ((UnityEngine.Time.realtimeSinceStartup - lastStatusUpdate) > UPDATE_STATUS_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastStatusUpdate) > UPDATE_STATUS_INTERVAL)
                 {
-                    lastStatusUpdate = UnityEngine.Time.realtimeSinceStartup;
+                    lastStatusUpdate = Client.realtimeSinceStartup;
                     subspaceDisplay = WarpWorker.fetch.GetSubspaceDisplayEntries();
                 }
             }

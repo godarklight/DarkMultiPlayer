@@ -46,6 +46,10 @@ namespace DarkMultiPlayer
         public GameDifficulty serverDifficulty;
         public GameParameters serverParameters;
 
+        //Thread safe RealTimeSinceStartup
+        public static float lastRealTimeSinceStartup;
+        public static long lastClockTicks;
+
         public Client()
         {
             singleton = this;
@@ -59,9 +63,22 @@ namespace DarkMultiPlayer
             }
         }
 
+        public static float realtimeSinceStartup
+        {
+            get
+            {
+                long ticksDiff = DateTime.UtcNow.Ticks - lastClockTicks;
+                double secondsSinceUpdate = ticksDiff / 10000000d;
+                return lastRealTimeSinceStartup + (float)secondsSinceUpdate;
+            }
+        }
+
         public void Awake()
         {
-            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled()) modDisabled = true;
+            DarkLog.SetMainThread();
+
+            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
+                modDisabled = true;
             if (Settings.fetch.disclaimerAccepted != 1)
             {
                 modDisabled = true;
@@ -101,13 +118,13 @@ namespace DarkMultiPlayer
                 resetEvent.Add(VesselWorker.Reset);
                 resetEvent.Add(WarpWorker.Reset);
                 GameEvents.onHideUI.Add(() =>
-                {
-                    showGUI = false;
-                });
+                    {
+                        showGUI = false;
+                    });
                 GameEvents.onShowUI.Add(() =>
-                {
-                    showGUI = true;
-                });
+                    {
+                        showGUI = true;
+                    });
             }
             FireResetEvent();
             HandleCommandLineArgs();
@@ -194,6 +211,8 @@ namespace DarkMultiPlayer
         public void Update()
         {
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
+            lastClockTicks = DateTime.UtcNow.Ticks;
+            lastRealTimeSinceStartup = Time.realtimeSinceStartup;
             DarkLog.Update();
 
             if (modDisabled)
@@ -316,9 +335,9 @@ namespace DarkMultiPlayer
                 {
                     if (HighLogic.LoadedScene != GameScenes.MAINMENU)
                     {
-                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                        if ((Client.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
                         {
-                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                            lastDisconnectMessageCheck = Client.realtimeSinceStartup;
                             if (disconnectMessage != null)
                             {
                                 disconnectMessage.duration = 0;

@@ -117,9 +117,9 @@ namespace DarkMultiPlayer
                 if (!registered) RegisterGameHooks();
                 if (!blockScenarioDataSends)
                 {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
                     {
-                        lastScenarioSendTime = UnityEngine.Time.realtimeSinceStartup;
+                        lastScenarioSendTime = Client.realtimeSinceStartup;
                         SendScenarioModules(false);
                     }
                 }

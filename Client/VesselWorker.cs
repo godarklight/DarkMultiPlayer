@@ -248,8 +248,8 @@ namespace DarkMultiPlayer
                         {
                             DarkLog.Debug("Sending docked protovessel " + dockedID);
                             //Mark the vessel as sent
-                            serverVesselsProtoUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
-                            serverVesselsPositionUpdate[dockedID] = UnityEngine.Time.realtimeSinceStartup;
+                            serverVesselsProtoUpdate[dockedID] = Client.realtimeSinceStartup;
+                            serverVesselsPositionUpdate[dockedID] = Client.realtimeSinceStartup;
                             RegisterServerVessel(dockedID);
                             vesselPartCount[dockedID] = dockedVessel.parts.Count;
                             vesselNames[dockedID] = dockedVessel.vesselName;
@@ -313,9 +313,9 @@ namespace DarkMultiPlayer
 
         private void PrintDockingInProgress()
         {
-            if ((UnityEngine.Time.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
+            if ((Client.realtimeSinceStartup - lastDockingMessageUpdate) > 1f)
             {
-                lastDockingMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                lastDockingMessageUpdate = Client.realtimeSinceStartup;
                 if (dockingMessage != null)
                 {
                     dockingMessage.duration = 0f;
@@ -329,7 +329,7 @@ namespace DarkMultiPlayer
             List<Guid> removeList = new List<Guid>();
             foreach (KeyValuePair<Guid, double> entry in latestUpdateSent)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - entry.Value) > 5f)
+                if ((Client.realtimeSinceStartup - entry.Value) > 5f)
                 {
                     removeList.Add(entry.Key);
                 }
@@ -570,9 +570,9 @@ namespace DarkMultiPlayer
 
         private void UpdateOnScreenSpectateMessage()
         {
-            if ((UnityEngine.Time.realtimeSinceStartup - lastSpectateMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastSpectateMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
             {
-                lastSpectateMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                lastSpectateMessageUpdate = Client.realtimeSinceStartup;
                 if (isSpectating)
                 {
                     if (spectateMessage != null)
@@ -712,7 +712,7 @@ namespace DarkMultiPlayer
                             vesselSituations.Add(checkVessel.id, checkVessel.situation);
                         }
                         //Check active vessel for situation/renames. Throttle send to 10 seconds.
-                        bool vesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(checkVessel.id) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > 10f) : true;
+                        bool vesselNotRecentlyUpdated = serverVesselsPositionUpdate.ContainsKey(checkVessel.id) ? ((Client.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > 10f) : true;
                         bool recentlyLanded = vesselSituations[checkVessel.id] != Vessel.Situations.LANDED && checkVessel.situation == Vessel.Situations.LANDED;
                         bool recentlySplashed = vesselSituations[checkVessel.id] != Vessel.Situations.SPLASHED && checkVessel.situation == Vessel.Situations.SPLASHED;
                         if (vesselNotRecentlyUpdated || recentlyLanded || recentlySplashed)
@@ -762,9 +762,9 @@ namespace DarkMultiPlayer
 
                 if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id])
                 {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
                     {
-                        lastBannedPartsMessageUpdate = UnityEngine.Time.realtimeSinceStartup;
+                        lastBannedPartsMessageUpdate = Client.realtimeSinceStartup;
                         if (bannedPartsMessage != null)
                         {
                             bannedPartsMessage.duration = 0;
@@ -923,8 +923,8 @@ namespace DarkMultiPlayer
             }
 
             //Send updates for unpacked vessels that aren't being flown by other players
-            bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
-            bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id) ? ((UnityEngine.Time.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / (float)DynamicTickWorker.fetch.sendTickRate)) : true;
+            bool notRecentlySentProtoUpdate = serverVesselsProtoUpdate.ContainsKey(checkVessel.id) ? ((Client.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL) : true;
+            bool notRecentlySentPositionUpdate = serverVesselsPositionUpdate.ContainsKey(checkVessel.id) ? ((Client.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / (float)DynamicTickWorker.fetch.sendTickRate)) : true;
 
             //Check that is hasn't been recently sent
             if (notRecentlySentProtoUpdate)
@@ -945,10 +945,10 @@ namespace DarkMultiPlayer
                         }
                         RegisterServerVessel(checkProto.vesselID);
                         //Mark the update as sent
-                        serverVesselsProtoUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                        serverVesselsProtoUpdate[checkVessel.id] = Client.realtimeSinceStartup;
                         //Also delay the position send
-                        serverVesselsPositionUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
-                        latestUpdateSent[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                        serverVesselsPositionUpdate[checkVessel.id] = Client.realtimeSinceStartup;
+                        latestUpdateSent[checkVessel.id] = Client.realtimeSinceStartup;
                         bool isFlyingUpdate = (checkProto.situation == Vessel.Situations.FLYING);
                         NetworkWorker.fetch.SendVesselProtoMessage(checkProto, false, isFlyingUpdate);
                     }
@@ -961,8 +961,8 @@ namespace DarkMultiPlayer
             else if (notRecentlySentPositionUpdate && checkVessel.vesselType != VesselType.Flag)
             {
                 //Send a position update - Except for flags. They aren't exactly known for their mobility.
-                serverVesselsPositionUpdate[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
-                latestUpdateSent[checkVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                serverVesselsPositionUpdate[checkVessel.id] = Client.realtimeSinceStartup;
+                latestUpdateSent[checkVessel.id] = Client.realtimeSinceStartup;
                 VesselUpdate update = VesselUpdate.CopyFromVessel(checkVessel);
                 if (update != null)
                 {
@@ -1420,8 +1420,8 @@ namespace DarkMultiPlayer
             }
 
             vesselPartCount[currentProto.vesselID] = currentProto.protoPartSnapshots.Count;
-            serverVesselsProtoUpdate[currentProto.vesselID] = UnityEngine.Time.realtimeSinceStartup;
-            lastLoadVessel[currentProto.vesselID] = UnityEngine.Time.realtimeSinceStartup;
+            serverVesselsProtoUpdate[currentProto.vesselID] = Client.realtimeSinceStartup;
+            lastLoadVessel[currentProto.vesselID] = Client.realtimeSinceStartup;
             currentProto.Load(HighLogic.CurrentGame.flightState);
 
             if (currentProto.vesselRef == null)
@@ -1815,12 +1815,12 @@ namespace DarkMultiPlayer
 
         public bool VesselRecentlyLoaded(Guid vesselID)
         {
-            return lastLoadVessel.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f) : false;
+            return lastLoadVessel.ContainsKey(vesselID) ? ((Client.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f) : false;
         }
 
         public bool VesselRecentlyKilled(Guid vesselID)
         {
-            return lastKillVesselDestroy.ContainsKey(vesselID) ? ((UnityEngine.Time.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f) : false;
+            return lastKillVesselDestroy.ContainsKey(vesselID) ? ((Client.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f) : false;
         }
 
         public bool VesselUpdatedInFuture(Guid vesselID)
@@ -1929,7 +1929,7 @@ namespace DarkMultiPlayer
                 {
                     delayKillVessels.Add(killVessel);
                 }
-                lastKillVesselDestroy[killVessel.id] = UnityEngine.Time.realtimeSinceStartup;
+                lastKillVesselDestroy[killVessel.id] = Client.realtimeSinceStartup;
                 try
                 {
                     killVessel.Die();

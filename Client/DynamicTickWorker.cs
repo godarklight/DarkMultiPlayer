@@ -44,9 +44,9 @@ namespace DarkMultiPlayer
         {
             if (workerEnabled)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastDynamicTickRateCheck) > DYNAMIC_TICK_RATE_CHECK_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastDynamicTickRateCheck) > DYNAMIC_TICK_RATE_CHECK_INTERVAL)
                 {
-                    lastDynamicTickRateCheck = UnityEngine.Time.realtimeSinceStartup;
+                    lastDynamicTickRateCheck = Client.realtimeSinceStartup;
                     CalculateRates();
                 }
             }

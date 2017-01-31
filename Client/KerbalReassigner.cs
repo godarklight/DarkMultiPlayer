@@ -8,6 +8,9 @@ namespace DarkMultiPlayer
     {
         private static KerbalReassigner singleton;
         private bool registered = false;
+        private static string[] femaleNames;
+        private static string[] femaleNamesPrefix;
+        private static string[] femaleNamesPostfix;
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
 
@@ -133,15 +136,25 @@ namespace DarkMultiPlayer
                                 break;
                             }
                         }
+                        int kerbalTries = 0;
                         while (newKerbal == null)
                         {
                             bool kerbalOk = true;
-                            ProtoCrewMember possibleKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
-                            if (possibleKerbal.gender != newKerbalGender)
+                            ProtoCrewMember.KerbalType kerbalType = ProtoCrewMember.KerbalType.Crew;
+                            if (newExperienceTrait == "Tourist")
+                            {
+                                kerbalType = ProtoCrewMember.KerbalType.Tourist;
+                            }
+                            if (newExperienceTrait == "Unowned")
+                            {
+                                kerbalType = ProtoCrewMember.KerbalType.Unowned;
+                            }
+                            ProtoCrewMember possibleKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(kerbalType);
+                            if (kerbalTries < 200 && possibleKerbal.gender != newKerbalGender)
                             {
                                 kerbalOk = false;
                             }
-                            if (newExperienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
+                            if (kerbalTries < 100 && newExperienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
                             {
                                 kerbalOk = false;
                             }
@@ -149,7 +162,9 @@ namespace DarkMultiPlayer
                             {
                                 newKerbal = possibleKerbal;
                             }
+                            kerbalTries++;
                         }
+                        DarkLog.Debug("Generated dodged kerbal with " + kerbalTries + " tries");
                         partNode.SetValue("crew", newKerbal.name, crewIndex);
                         newKerbal.seatIdx = crewIndex;
                         newKerbal.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
@@ -193,24 +208,65 @@ namespace DarkMultiPlayer
                 trimmedName = kerbalName.Substring(0, kerbalName.IndexOf(" Kerman"));
                 DarkLog.Debug("(KerbalReassigner) Trimming name to '" + trimmedName + "'");
             }
-            try
+            foreach (FieldInfo fi in typeof(CrewGenerator).GetFields(BindingFlags.Static | BindingFlags.NonPublic))
             {
-                string[] femaleNames = (string[])typeof(CrewGenerator).GetField("singleSyllablesFemale", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                string[] femaleNamesPrefix = (string[])typeof(CrewGenerator).GetField("firstSyllablesFemale", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                string[] femaleNamesPostfix = (string[])typeof(CrewGenerator).GetField("secondSyllablesFemale", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                //Not part of the generator
-                if (trimmedName == "Valentina") return ProtoCrewMember.Gender.Female;
-                foreach (string name in femaleNames)
-                    if (name == trimmedName) return ProtoCrewMember.Gender.Female;
-
-                foreach (string prefixName in femaleNamesPrefix)
-                    if (trimmedName.StartsWith(prefixName))
-                        foreach (string postfixName in femaleNamesPostfix)
-                            if (trimmedName == prefixName + postfixName) return ProtoCrewMember.Gender.Female;
+                if (fi.FieldType == typeof(string[]))
+                {
+                    string[] fieldValue = (string[])fi.GetValue(null);
+                    foreach (string entry in fieldValue)
+                    {
+                        if (entry == "Alice")
+                        {
+                            DarkLog.Debug("Found female single names!");
+                            femaleNames = fieldValue;
+                            break;
+                        }
+                        if (entry == "Aga")
+                        {
+                            DarkLog.Debug("Found female prefixes!");
+                            femaleNamesPrefix = fieldValue;
+                            break;
+                        }
+                        if (entry == "alla")
+                        {
+                            DarkLog.Debug("Found female postfixes!");
+                            femaleNamesPostfix = fieldValue;
+                            break;
+                        }
+                    }
+                }
             }
-            catch (Exception e)
+            if (femaleNames == null || femaleNamesPrefix == null || femaleNamesPostfix == null)
             {
-                DarkLog.Debug("DarkMultiPlayer name identifier exception: " + e);
+                DarkLog.Debug("Kerbal Gender Assigner is BROKEN!");
+                return ProtoCrewMember.Gender.Male;
+            }
+
+            if (trimmedName == "Valentina")
+            {
+                return ProtoCrewMember.Gender.Female;
+            }
+
+            foreach (string name in femaleNames)
+            {
+                if (name == trimmedName)
+                {
+                    return ProtoCrewMember.Gender.Female;
+                }
+            }
+
+            foreach (string prefixName in femaleNamesPrefix)
+            {
+                if (trimmedName.StartsWith(prefixName))
+                {
+                    foreach (string postfixName in femaleNamesPostfix)
+                    {
+                        if (trimmedName == prefixName + postfixName)
+                        {
+                            return ProtoCrewMember.Gender.Female;
+                        }
+                    }
+                }
             }
             return ProtoCrewMember.Gender.Male;
         }

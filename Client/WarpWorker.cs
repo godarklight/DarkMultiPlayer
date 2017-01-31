@@ -80,9 +80,9 @@ namespace DarkMultiPlayer
             ProcessWarpMessages();
 
             //Write the screen message if needed
-            if ((UnityEngine.Time.realtimeSinceStartup - lastScreenMessageCheck) > SCREEN_MESSAGE_UPDATE_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastScreenMessageCheck) > SCREEN_MESSAGE_UPDATE_INTERVAL)
             {
-                lastScreenMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                lastScreenMessageCheck = Client.realtimeSinceStartup;
                 UpdateScreenMessage();
             }
 
@@ -112,7 +112,7 @@ namespace DarkMultiPlayer
                 }
             }
 
-            if ((UnityEngine.Time.realtimeSinceStartup - lastWarpSet) > WARP_SET_THROTTLE)
+            if ((Client.realtimeSinceStartup - lastWarpSet) > WARP_SET_THROTTLE)
             {
                 //Follow the warp master into warp if needed (MCW_FORCE/MCW_VOTE)
                 if (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE)
@@ -124,7 +124,7 @@ namespace DarkMultiPlayer
                             //Get master warp rate
                             PlayerWarpRate masterWarpRate = clientWarpList[warpMaster];
                             SetTimeFromWarpEntry(masterWarpRate);
-                            lastWarpSet = UnityEngine.Time.realtimeSinceStartup;
+                            lastWarpSet = Client.realtimeSinceStartup;
                         }
                         else
                         {
@@ -140,15 +140,15 @@ namespace DarkMultiPlayer
                         //Get master warp rate
                         PlayerWarpRate masterWarpRate = clientWarpList[warpMaster];
                         SetTimeFromWarpEntry(masterWarpRate);
-                        lastWarpSet = UnityEngine.Time.realtimeSinceStartup;
+                        lastWarpSet = Client.realtimeSinceStartup;
                     }
                 }
             }
 
             //Report our timeSyncer skew
-            if ((UnityEngine.Time.realtimeSinceStartup - lastReportRate) > REPORT_SKEW_RATE_INTERVAL && TimeSyncer.fetch.locked)
+            if ((Client.realtimeSinceStartup - lastReportRate) > REPORT_SKEW_RATE_INTERVAL && TimeSyncer.fetch.locked)
             {
-                lastReportRate = UnityEngine.Time.realtimeSinceStartup;
+                lastReportRate = Client.realtimeSinceStartup;
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.REPORT_RATE);
@@ -212,7 +212,7 @@ namespace DarkMultiPlayer
             {
                 if (warpMaster != "")
                 {
-                    int timeLeft = (int)(controllerExpireTime - UnityEngine.Time.realtimeSinceStartup);
+                    int timeLeft = (int)(controllerExpireTime - Client.realtimeSinceStartup);
                     if (warpMaster != Settings.fetch.playerName)
                     {
                         DisplayMessage(warpMaster + " currently has warp control (timeout " + timeLeft + "s)", 1f);
@@ -226,7 +226,7 @@ namespace DarkMultiPlayer
                 {
                     if (voteMaster != "")
                     {
-                        int timeLeft = (int)(voteExpireTime - UnityEngine.Time.realtimeSinceStartup);
+                        int timeLeft = (int)(voteExpireTime - Client.realtimeSinceStartup);
                         if (voteMaster == Settings.fetch.playerName)
                         {
                             DisplayMessage("Waiting for vote replies... Yes: " + voteYesCount + ", No: " + voteNoCount + ", Needed: " + voteNeededCount + " (" + timeLeft + "s left)", 1f);
@@ -601,7 +601,7 @@ namespace DarkMultiPlayer
                         {
                             voteMaster = mr.Read<string>();
                             long expireTime = mr.Read<long>();
-                            voteExpireTime = Time.realtimeSinceStartup + ((expireTime - TimeSyncer.fetch.GetServerClock()) / 10000000d);
+                            voteExpireTime = Client.realtimeSinceStartup + ((expireTime - TimeSyncer.fetch.GetServerClock()) / 10000000d);
                         }
                         break;
                     case WarpMessageType.REPLY_VOTE:
@@ -710,7 +710,7 @@ namespace DarkMultiPlayer
                     if (warpMode != WarpMode.MCW_LOWEST)
                     {
                         long expireTimeDelta = expireTime - TimeSyncer.fetch.GetServerClock();
-                        controllerExpireTime = Time.realtimeSinceStartup + (expireTimeDelta / 10000000d);
+                        controllerExpireTime = Client.realtimeSinceStartup + (expireTimeDelta / 10000000d);
                     }
                 }
             }
