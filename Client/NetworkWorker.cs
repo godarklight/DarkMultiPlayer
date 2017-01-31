@@ -1827,7 +1827,6 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
-            File.WriteAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "lastVessel.txt"), vesselBytes);
             if (vesselBytes != null && vesselBytes.Length > 0)
             {
                 UniverseSyncCache.fetch.QueueToCache(vesselBytes);
