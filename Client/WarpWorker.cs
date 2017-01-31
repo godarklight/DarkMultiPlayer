@@ -35,6 +35,7 @@ namespace DarkMultiPlayer
         //Report tracking
         private double lastWarpSet;
         private double lastReportRate;
+        private int newSetSubspace = -1;
         private Queue<byte[]> newWarpMessages = new Queue<byte[]>();
         private ScreenMessage warpMessage;
         private const float SCREEN_MESSAGE_UPDATE_INTERVAL = 0.2f;
@@ -68,6 +69,14 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
+            //Switch to new subspace if told to - this needs to be before the workerEnabled check as it fires during the initial sync
+            if (newSetSubspace != -1)
+            {
+                DarkLog.Debug("Sent to subspace: " + newSetSubspace);
+                TimeSyncer.fetch.LockSubspace(newSetSubspace);
+                newSetSubspace = -1;
+            }
+
             if (!workerEnabled)
             {
                 return;
@@ -391,7 +400,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 int subspaceID = mr.Read<int>();
-                TimeSyncer.fetch.LockSubspace(subspaceID);
+                newSetSubspace = subspaceID;
             }
         }
 
