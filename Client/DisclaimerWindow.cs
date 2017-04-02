@@ -20,7 +20,8 @@ namespace DarkMultiPlayer
 
             PopupDialog.SpawnPopupDialog(new Vector2(0, 0),
                 new Vector2(0, 0),
-                new MultiOptionDialog(disclaimerText,
+                new MultiOptionDialog("Disclaimer",
+                    disclaimerText,
                     "DarkMultiPlayer - Disclaimer",
                     HighLogic.UISkin,
                     new Rect(.5f, .5f, 425f, 150f),
