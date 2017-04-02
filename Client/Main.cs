@@ -495,13 +495,15 @@ namespace DarkMultiPlayer
             //Converter window: 6712
             //Disclaimer window: 6713
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
-            if (showGUI && toolbarShowGUI)
+            if (showGUI)
             {
                 foreach (Action drawAction in drawEvent)
                 {
                     try
                     {
-                        drawAction();
+                        // Don't hide the ConnectionWindow if we disabled DMP GUI
+                        if (toolbarShowGUI || (!toolbarShowGUI && drawAction.Target.ToString() == "DarkMultiPlayer.ConnectionWindow"))
+                            drawAction();
                     }
                     catch (Exception e)
                     {
