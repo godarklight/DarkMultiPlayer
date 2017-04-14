@@ -59,6 +59,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ConfigNodeSerializer.cs" />
+    <Compile Include="ReputationSystem.cs" />
     <Compile Include="Utilities\CompatibilityChecker.cs" />
     <Compile Include="VesselWorker.cs" />
     <Compile Include="TimeSyncer.cs" />
