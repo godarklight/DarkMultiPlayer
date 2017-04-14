@@ -94,7 +94,7 @@ namespace DarkMultiPlayerServer
                 Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
                 serverStarting = true;
 
-                //Fix kerbals from 0.23.5 to 0.24 (Now indexed by string, thanks Squad!
+                //Fix kerbals from 0.23.5 to 0.24 (Now indexed by string, thanks Squad!)
                 BackwardsCompatibility.FixKerbals();
 
                 //Remove player tokens
