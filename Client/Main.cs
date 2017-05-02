@@ -73,12 +73,15 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void Awake()
+        public void Start()
         {
+            lastClockTicks = DateTime.UtcNow.Ticks;
+            lastRealTimeSinceStartup = Time.realtimeSinceStartup;
             DarkLog.SetMainThread();
 
             if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
                 modDisabled = true;
+
             if (Settings.fetch.disclaimerAccepted != 1)
             {
                 modDisabled = true;

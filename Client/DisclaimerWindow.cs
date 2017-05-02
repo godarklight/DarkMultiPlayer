@@ -18,8 +18,7 @@ namespace DarkMultiPlayer
             disclaimerText += "\n";
             disclaimerText += "For more information, read the KSP addon rules on the forums.\n";
 
-            PopupDialog.SpawnPopupDialog(new Vector2(0, 0),
-                new Vector2(0, 0),
+            PopupDialog.SpawnPopupDialog(
                 new MultiOptionDialog(disclaimerText,
                     "DarkMultiPlayer - Disclaimer",
                     HighLogic.UISkin,
@@ -40,9 +39,9 @@ namespace DarkMultiPlayer
                             new DialogGUIButton("Open the KSP Addon rules in browser",
                                 delegate
                                 {
-                                    Application.OpenURL("http://forum.kerbalspaceprogram.com/threads/87841-Add-on-Posting-Rules-July-24th-2014-going-into-effect-August-21st-2014!");
+                                    Application.OpenURL("http://forum.kerbalspaceprogram.com/index.php?/topic/154851-add-on-posting-rules-march-8-2017/");
                                 }
-                            ),
+                            , false),
                             new DialogGUIFlexibleSpace(),
                             new DialogGUIButton("Decline",
                                 delegate
