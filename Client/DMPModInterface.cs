@@ -5,7 +5,7 @@ using MessageStream2;
 
 namespace DarkMultiPlayer
 {
-    public delegate void DMPMessageCallback (byte[] messageData);
+    public delegate void DMPMessageCallback(byte[] messageData);
 
     public class QueuedDMPMessage
     {
@@ -193,7 +193,7 @@ namespace DarkMultiPlayer
 
                 if (fixedUpdateQueue.ContainsKey(modName))
                 {
-                   fixedUpdateQueue[modName].Enqueue(modData);
+                    fixedUpdateQueue[modName].Enqueue(modData);
                 }
 
                 if (registeredRawMods.ContainsKey(modName))

@@ -37,7 +37,7 @@ namespace DarkMultiPlayer
         }
 
         private static PlayerColorWorker singleton;
-        private Dictionary<string,Color> playerColors = new Dictionary<string, Color>();
+        private Dictionary<string, Color> playerColors = new Dictionary<string, Color>();
         private object playerColorLock = new object();
         //Can't declare const - But no touchy.
         public readonly Color DEFAULT_COLOR = Color.grey;
@@ -218,7 +218,7 @@ namespace DarkMultiPlayer
                 case 10:
                     return new Color(0.043f, 0.855f, 0.318f, 1); //Malachite
                 case 11:
-                    return Color.cyan;  
+                    return Color.cyan;
                 case 12:
                     return new Color(0.537f, 0.812f, 0.883f, 1); //Baby blue;
                 case 13:

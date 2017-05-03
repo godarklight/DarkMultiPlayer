@@ -16,7 +16,7 @@ namespace DarkMultiPlayer
         private const float ASTEROID_CHECK_INTERVAL = 5f;
         ScenarioDiscoverableObjects scenarioController;
         private List<string> serverAsteroids = new List<string>();
-        private Dictionary<string,string> serverAsteroidTrackStatus = new Dictionary<string,string>();
+        private Dictionary<string, string> serverAsteroidTrackStatus = new Dictionary<string, string>();
         private object serverAsteroidListLock = new object();
 
         public static AsteroidWorker fetch
@@ -48,7 +48,7 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
-            
+
                 if (scenarioController != null)
                 {
                     if ((Client.realtimeSinceStartup - lastAsteroidCheck) > ASTEROID_CHECK_INTERVAL)

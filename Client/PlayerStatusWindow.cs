@@ -286,7 +286,7 @@ namespace DarkMultiPlayer
 
                 if (shouldLock && !isWindowLocked)
                 {
-                    InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS,  "DMP_PlayerStatusLock");
+                    InputLockManager.SetControlLock(ControlTypes.ALLBUTCAMERAS, "DMP_PlayerStatusLock");
                     isWindowLocked = true;
                 }
                 if (!shouldLock && isWindowLocked)
@@ -306,7 +306,7 @@ namespace DarkMultiPlayer
             if (isWindowLocked)
             {
                 isWindowLocked = false;
-                InputLockManager.RemoveControlLock( "DMP_PlayerStatusLock");
+                InputLockManager.RemoveControlLock("DMP_PlayerStatusLock");
             }
         }
 

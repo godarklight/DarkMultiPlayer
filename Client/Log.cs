@@ -40,7 +40,7 @@ namespace DarkMultiPlayer
                 {
                     string message = messageQueue.Dequeue();
                     UnityEngine.Debug.Log(message);
-                }                    
+                }
             }
         }
 

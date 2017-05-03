@@ -145,7 +145,8 @@ namespace DarkMultiPlayer
                 {
                     lastUpdateTime = Client.realtimeSinceStartup;
                     //Vector text
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null) {
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null)
+                    {
                         Vessel ourVessel = FlightGlobals.fetch.activeVessel;
                         vectorText = "Forward vector: " + ourVessel.GetFwdVector() + "\n";
                         vectorText += "Up vector: " + (Vector3)ourVessel.upAxis + "\n";
@@ -164,7 +165,8 @@ namespace DarkMultiPlayer
                         vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
                         vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
                     }
-                    else {
+                    else
+                    {
                         vectorText = "You have to be in flight";
                     }
 

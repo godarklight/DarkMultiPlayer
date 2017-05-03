@@ -43,7 +43,8 @@ namespace DarkMultiPlayerServer
                 }
                 try
                 {
-                    lock (logLock) {
+                    lock (logLock)
+                    {
                         File.AppendAllText(LogFilename, output + Environment.NewLine);
                     }
                 }

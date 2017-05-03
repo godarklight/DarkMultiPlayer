@@ -37,7 +37,7 @@ namespace DarkMultiPlayer
         {
             string[] dmpFlags = Directory.GetFiles(flagPath);
             string[] dmpSha = new string[dmpFlags.Length];
-            for (int i=0; i < dmpFlags.Length; i++)
+            for (int i = 0; i < dmpFlags.Length; i++)
             {
                 dmpSha[i] = Common.CalculateSHA256Hash(dmpFlags[i]);
                 dmpFlags[i] = Path.GetFileName(dmpFlags[i]);

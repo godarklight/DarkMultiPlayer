@@ -83,8 +83,8 @@ namespace DarkMultiPlayer
             }
 
             //Parse
-            Dictionary<string,string> parseRequired = new Dictionary<string, string>();
-            Dictionary<string,string> parseOptional = new Dictionary<string, string>();
+            Dictionary<string, string> parseRequired = new Dictionary<string, string>();
+            Dictionary<string, string> parseOptional = new Dictionary<string, string>();
             List<string> parseWhiteBlackList = new List<string>();
             List<string> parsePartsList = new List<string>();
             bool isWhiteList = false;
@@ -346,11 +346,11 @@ namespace DarkMultiPlayer
                     {
                         continue;
                     }
-					//Ignore squad plugins
-					if (dllResource.Key.StartsWith("squad/plugins"))
-					{
-						continue;
-					}
+                    //Ignore squad plugins
+                    if (dllResource.Key.StartsWith("squad/plugins"))
+                    {
+                        continue;
+                    }
                     //Check required (Required implies whitelist)
                     if (parseRequired.ContainsKey(dllResource.Key))
                     {
@@ -465,7 +465,7 @@ namespace DarkMultiPlayer
                                 partsList.Add(partName);
                             }
                         }
-                        
+
                     }
                     if (fileIsPartFile)
                     {

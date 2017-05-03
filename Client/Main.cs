@@ -38,7 +38,7 @@ namespace DarkMultiPlayer
         //Chosen by a 2147483647 sided dice roll. Guaranteed to be random.
         public const int WINDOW_OFFSET = 1664952404;
         //Hack gravity fix.
-        private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody,double>();
+        private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody, double>();
         //Command line connect
         public static ServerEntry commandLineConnect;
 

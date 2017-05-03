@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            
+
             if (locked)
             {
                 if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
@@ -256,7 +256,7 @@ namespace DarkMultiPlayer
                 case Vessel.Situations.SUB_ORBITAL:
                     double altitudeAtUT = checkVessel.orbit.getRelativePositionAtUT(targetTick).magnitude;
                     return (altitudeAtUT > checkVessel.mainBody.Radius + 10000 && checkVessel.altitude > 10000);
-                default :
+                default:
                     return false;
             }
         }
@@ -416,7 +416,7 @@ namespace DarkMultiPlayer
         public double GetCurrentError()
         {
             if (synced && locked)
-            {   
+            {
                 double currentTime = Planetarium.GetUniversalTime();
                 double targetTime = GetUniverseTime();
                 return (currentTime - targetTime);
@@ -467,7 +467,7 @@ namespace DarkMultiPlayer
                 case GameScenes.SPACECENTER:
                     canSync = true;
                     break;
-                default :
+                default:
                     canSync = false;
                     break;
             }

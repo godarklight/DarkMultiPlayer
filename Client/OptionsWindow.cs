@@ -217,9 +217,9 @@ namespace DarkMultiPlayer
                 else
                 {
                     string newName = GUI.TextField(new Rect(
-                        descWidth + sepWidth, 
-                        0, 
-                        windowRect.width - (descWidth + sepWidth) - 20, 
+                        descWidth + sepWidth,
+                        0,
+                        windowRect.width - (descWidth + sepWidth) - 20,
                         20), Settings.fetch.playerName, plrNameStyle);
 
                     if (!newName.Equals(Settings.fetch.playerName))
@@ -235,7 +235,7 @@ namespace DarkMultiPlayer
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Red:", descriptorStyle);
                 playerColor.r = GUI.HorizontalSlider(new Rect(
-                    descWidth + sepWidth, 
+                    descWidth + sepWidth,
                     groupY + 5,
                     windowRect.width - (descWidth + sepWidth) - 20,
                     12
@@ -273,7 +273,7 @@ namespace DarkMultiPlayer
                 }
 
                 GUI.EndGroup();
-               // windowY += 106 + 5;
+                // windowY += 106 + 5;
             }
             if (selectedTab == OptionsTab.CACHE)
             {
@@ -282,7 +282,7 @@ namespace DarkMultiPlayer
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Current:", descriptorStyle);
                 GUI.Label(
-                    new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 102, 20), 
+                    new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 102, 20),
                     Mathf.Round(UniverseSyncCache.fetch.currentCacheSize / 1024).ToString() + " KB");
 
                 groupY += 20;

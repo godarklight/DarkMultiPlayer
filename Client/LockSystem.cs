@@ -5,8 +5,8 @@ using MessageStream2;
 
 namespace DarkMultiPlayer
 {
-    public delegate void AcquireEvent(string playerName,string lockName,bool lockResult);
-    public delegate void ReleaseEvent(string playerName,string lockName);
+    public delegate void AcquireEvent(string playerName, string lockName, bool lockResult);
+    public delegate void ReleaseEvent(string playerName, string lockName);
     public class LockSystem
     {
         private static LockSystem singleton;
@@ -71,7 +71,7 @@ namespace DarkMultiPlayer
             lock (lockObject)
             {
                 List<string> removeList = new List<string>();
-                foreach (KeyValuePair<string,string> kvp in serverLocks)
+                foreach (KeyValuePair<string, string> kvp in serverLocks)
                 {
                     if (kvp.Value == playerName)
                     {
@@ -92,7 +92,7 @@ namespace DarkMultiPlayer
             lock (lockObject)
             {
                 List<string> removeList = new List<string>();
-                foreach (KeyValuePair<string,string> kvp in serverLocks)
+                foreach (KeyValuePair<string, string> kvp in serverLocks)
                 {
                     if (kvp.Key.StartsWith(prefix) && kvp.Value == playerName)
                     {
@@ -217,7 +217,7 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Error thrown in release lock event, exception " + e);
                 }
-            } 
+            }
         }
 
         public bool LockIsOurs(string lockName)

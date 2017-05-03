@@ -230,7 +230,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            
+
             switch (func)
             {
                 default:
@@ -386,7 +386,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        
+
 
         public void HandleChatInput(string input)
         {
@@ -938,7 +938,7 @@ namespace DarkMultiPlayer
                     selectedPMChannel = null;
                     chatScrollPos.y = float.PositiveInfinity;
                 }
-            }                   
+            }
             GUI.enabled = true;
         }
 

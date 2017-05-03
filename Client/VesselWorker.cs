@@ -48,10 +48,10 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, bool> vesselPartsOk = new Dictionary<Guid, bool>();
         //Vessel state tracking
         private Guid lastVesselID;
-        private Dictionary <Guid, int> vesselPartCount = new Dictionary<Guid, int>();
-        private Dictionary <Guid, string> vesselNames = new Dictionary<Guid, string>();
-        private Dictionary <Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
-        private Dictionary <Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
+        private Dictionary<Guid, int> vesselPartCount = new Dictionary<Guid, int>();
+        private Dictionary<Guid, string> vesselNames = new Dictionary<Guid, string>();
+        private Dictionary<Guid, VesselType> vesselTypes = new Dictionary<Guid, VesselType>();
+        private Dictionary<Guid, Vessel.Situations> vesselSituations = new Dictionary<Guid, Vessel.Situations>();
         //Known kerbals
         private Dictionary<string, string> serverKerbals = new Dictionary<string, string>();
         //Known vessels and last send/receive time
@@ -173,7 +173,7 @@ namespace DarkMultiPlayer
                         delayKillVessels.Remove(dyingVessel);
                     }
                 }
-                
+
                 if (fromDockedVesselID != Guid.Empty || toDockedVesselID != Guid.Empty)
                 {
                     HandleDocking();
@@ -1240,7 +1240,7 @@ namespace DarkMultiPlayer
                                     DarkLog.Debug("Skipping load of contract vessel that belongs to another player");
                                     continue;
                                 }
-                            }                                
+                            }
                         }
                         ProtoVessel pv = CreateSafeProtoVesselFromConfigNode(vpu.vesselNode, vpu.vesselID);
                         if (pv != null && pv.vesselID == vpu.vesselID)
@@ -1611,7 +1611,7 @@ namespace DarkMultiPlayer
                             flightPlanNode.RemoveNode(removeNode);
                         }
                     }
-                    
+
                 }
             }
         }
@@ -1845,7 +1845,7 @@ namespace DarkMultiPlayer
                     bool fromVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.from.vessel.id.ToString());
                     bool toVesselUpdateLockIsOurs = LockSystem.fetch.LockIsOurs("update-" + partAction.to.vessel.id.ToString());
                     if (fromVesselUpdateLockIsOurs || toVesselUpdateLockIsOurs || !fromVesselUpdateLockExists || !toVesselUpdateLockExists)
-                    {                    
+                    {
                         DarkLog.Debug("Vessel docking, from: " + partAction.from.vessel.id + ", name: " + partAction.from.vessel.vesselName);
                         DarkLog.Debug("Vessel docking, to: " + partAction.to.vessel.id + ", name: " + partAction.to.vessel.vesselName);
                         if (FlightGlobals.fetch.activeVessel != null)

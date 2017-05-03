@@ -10,7 +10,7 @@ namespace DarkMultiPlayer
     {
         private static ConfigNodeSerializer singleton = new ConfigNodeSerializer();
 
-        private delegate void WriteNodeDelegate(ConfigNode configNode,StreamWriter writer);
+        private delegate void WriteNodeDelegate(ConfigNode configNode, StreamWriter writer);
 
         private delegate List<string[]> PreFormatConfigDelegate(string[] cfgData);
 
@@ -37,7 +37,7 @@ namespace DarkMultiPlayer
         {
             Type configNodeType = typeof(ConfigNode);
             MethodInfo writeNodeMethodInfo = configNodeType.GetMethod("WriteNode", BindingFlags.NonPublic | BindingFlags.Instance);
-                
+
             //pass null for instance so we only do the slower reflection part once ever, then provide the instance at runtime
             WriteNodeThunk = (WriteNodeDelegate)Delegate.CreateDelegate(typeof(WriteNodeDelegate), null, writeNodeMethodInfo);
 
