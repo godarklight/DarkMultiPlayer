@@ -62,10 +62,10 @@ namespace DarkMultiPlayer
             modWindow = new ModWindow();
             modWorker = new ModWorker(modWindow);
             modWindow.SetDependenices(modWorker);
-            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
-            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
             universeConverter = new UniverseConverter(dmpSettings);
             universeConverterWindow = new UniverseConverterWindow(universeConverter);
+            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
+            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
             disclaimerWindow = new DisclaimerWindow(dmpSettings);
             dmpModInterface = new DMPModInterface();
         }
