@@ -22,10 +22,17 @@ namespace DarkMultiPlayer
         public double[] velocity;
         public double[] acceleration;
         public float[] terrainNormal;
+        //Private
+        private VesselWorker vesselWorker;
 
-        public static VesselUpdate CopyFromVessel(Vessel updateVessel)
+        public VesselUpdate(VesselWorker vesselWorker)
         {
-            VesselUpdate returnUpdate = new VesselUpdate();
+            this.vesselWorker = vesselWorker;
+        }
+
+        public static VesselUpdate CopyFromVessel(VesselWorker vesselWorker, Vessel updateVessel)
+        {
+            VesselUpdate returnUpdate = new VesselUpdate(vesselWorker);
             try
             {
                 returnUpdate.vesselID = updateVessel.id;
@@ -107,7 +114,7 @@ namespace DarkMultiPlayer
             }
 
             //Ignore updates to our own vessel if we are in flight and we aren't spectating
-            if (!VesselWorker.fetch.isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id == vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
+            if (!vesselWorker.isSpectating && (FlightGlobals.fetch.activeVessel != null ? FlightGlobals.fetch.activeVessel.id == vesselID : false) && HighLogic.LoadedScene == GameScenes.FLIGHT)
             {
                 return;
             }
@@ -263,7 +270,7 @@ namespace DarkMultiPlayer
             }
 
             //Flight state controls (Throttle etc)
-            if (!VesselWorker.fetch.isSpectating)
+            if (!vesselWorker.isSpectating)
             {
                 updateVessel.ctrlState.CopyFrom(flightState);
             }

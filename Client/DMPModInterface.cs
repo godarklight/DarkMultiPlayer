@@ -15,7 +15,7 @@ namespace DarkMultiPlayer
 
     public class DMPModInterface
     {
-        private static DMPModInterface singleton = new DMPModInterface();
+        //TODO: Fix event firing
         //Registered methods
         private Dictionary<string, DMPMessageCallback> registeredRawMods = new Dictionary<string, DMPMessageCallback>();
         private Dictionary<string, DMPMessageCallback> registeredUpdateMods = new Dictionary<string, DMPMessageCallback>();
@@ -25,22 +25,17 @@ namespace DarkMultiPlayer
         private Dictionary<string, Queue<byte[]>> fixedUpdateQueue = new Dictionary<string, Queue<byte[]>>();
         //Protect against threaded access
         private object eventLock = new object();
+        //Services
+        private NetworkWorker networkWorker;
 
-        public DMPModInterface()
+        internal void DMPRun(NetworkWorker networkWorker)
         {
-            lock (Client.eventLock)
-            {
-                Client.updateEvent.Add(this.Update);
-                Client.fixedUpdateEvent.Add(this.FixedUpdate);
-            }
+            this.networkWorker = networkWorker;
         }
 
-        public static DMPModInterface fetch
+        internal void DMPStop()
         {
-            get
-            {
-                return singleton;
-            }
+            this.networkWorker = null;
         }
 
         /// <summary>
@@ -162,7 +157,7 @@ namespace DarkMultiPlayer
                 mw.Write<bool>(relay);
                 mw.Write<bool>(highPriority);
                 mw.Write<byte[]>(messageData);
-                NetworkWorker.fetch.SendModMessage(mw.GetMessageBytes(), highPriority);
+                networkWorker.SendModMessage(mw.GetMessageBytes(), highPriority);
             }
         }
 
@@ -206,7 +201,7 @@ namespace DarkMultiPlayer
         /// <summary>
         /// Internal use only
         /// </summary>
-        private void Update()
+        internal void Update()
         {
             lock (eventLock)
             {
@@ -223,7 +218,7 @@ namespace DarkMultiPlayer
         /// <summary>
         /// Internal use only
         /// </summary>
-        private void FixedUpdate()
+        internal void FixedUpdate()
         {
             lock (eventLock)
             {

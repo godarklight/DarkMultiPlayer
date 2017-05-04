@@ -10,7 +10,6 @@ namespace DarkMultiPlayer
     public class Settings
     {
         //Settings
-        private static Settings singleton = new Settings();
         public string playerName;
         public string playerPublicKey;
         public string playerPrivateKey;
@@ -36,14 +35,6 @@ namespace DarkMultiPlayer
         private string privateKeyFile;
         private string backupPublicKeyFile;
         private string backupPrivateKeyFile;
-
-        public static Settings fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
 
         public Settings()
         {
@@ -145,14 +136,12 @@ namespace DarkMultiPlayer
                         blueColor = 1f;
                     }
                     playerColor = new Color(redColor, greenColor, blueColor, 1f);
-                    OptionsWindow.fetch.loadEventHandled = false;
                 }
                 catch
                 {
                     DarkLog.Debug("Adding player color to settings file");
                     saveXMLAfterLoad = true;
                     playerColor = PlayerColorWorker.GenerateRandomColor();
-                    OptionsWindow.fetch.loadEventHandled = false;
                 }
                 try
                 {

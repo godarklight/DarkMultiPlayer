@@ -9,19 +9,20 @@ namespace DarkMultiPlayer
     public delegate void ReleaseEvent(string playerName, string lockName);
     public class LockSystem
     {
-        private static LockSystem singleton;
         private Dictionary<string, string> serverLocks = new Dictionary<string, string>();
         private List<AcquireEvent> lockAcquireEvents = new List<AcquireEvent>();
         private List<ReleaseEvent> lockReleaseEvents = new List<ReleaseEvent>();
         private Dictionary<string, double> lastAcquireTime = new Dictionary<string, double>();
         private object lockObject = new object();
 
-        public static LockSystem fetch
+        //Services
+        private Settings dmpSettings;
+        private NetworkWorker networkWorker;
+
+        public LockSystem(Settings dmpSettings, NetworkWorker networkWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpSettings = dmpSettings;
+            this.networkWorker = networkWorker;
         }
 
         public void ThrottledAcquireLock(string lockname)
@@ -40,10 +41,10 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.ACQUIRE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
                     mw.Write<bool>(force);
-                    NetworkWorker.fetch.SendLockSystemMessage(mw.GetMessageBytes());
+                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
                 }
             }
         }
@@ -55,9 +56,9 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.RELEASE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
-                    NetworkWorker.fetch.SendLockSystemMessage(mw.GetMessageBytes());
+                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
                 }
                 if (LockIsOurs(lockName))
                 {
@@ -101,7 +102,7 @@ namespace DarkMultiPlayer
                 }
                 foreach (string removeValue in removeList)
                 {
-                    if (playerName == Settings.fetch.playerName)
+                    if (playerName == dmpSettings.playerName)
                     {
                         DarkLog.Debug("Releasing lock " + removeValue);
                         ReleaseLock(removeValue);
@@ -226,7 +227,7 @@ namespace DarkMultiPlayer
             {
                 if (serverLocks.ContainsKey(lockName))
                 {
-                    if (serverLocks[lockName] == Settings.fetch.playerName)
+                    if (serverLocks[lockName] == dmpSettings.playerName)
                     {
                         return true;
                     }
@@ -252,14 +253,6 @@ namespace DarkMultiPlayer
                     return serverLocks[lockName];
                 }
                 return "";
-            }
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                singleton = new LockSystem();
             }
         }
     }

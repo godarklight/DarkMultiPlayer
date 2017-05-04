@@ -8,16 +8,14 @@ namespace DarkMultiPlayer
 {
     public class AdminSystem
     {
-        private static AdminSystem singleton;
         private List<string> serverAdmins = new List<string>();
         private object adminLock = new object();
+        //Services
+        Settings dmpSettings;
 
-        public static AdminSystem fetch
+        public AdminSystem(Settings dmpSettings)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpSettings = dmpSettings;
         }
 
         public void HandleAdminMessage(byte[] messageData)
@@ -80,7 +78,7 @@ namespace DarkMultiPlayer
         /// <returns><c>true</c> if the current player is admin; otherwise, <c>false</c>.</returns>
         public bool IsAdmin()
         {
-            return IsAdmin(Settings.fetch.playerName);
+            return IsAdmin(dmpSettings.playerName);
         }
 
         /// <summary>
@@ -93,14 +91,6 @@ namespace DarkMultiPlayer
             lock (adminLock)
             {
                 return serverAdmins.Contains(playerName);
-            }
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                singleton = new AdminSystem();
             }
         }
     }

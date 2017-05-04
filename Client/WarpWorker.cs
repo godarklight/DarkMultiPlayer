@@ -10,8 +10,6 @@ namespace DarkMultiPlayer
     {
         public bool workerEnabled = false;
         public WarpMode warpMode = WarpMode.SUBSPACE;
-        //Private parts
-        private static WarpWorker singleton;
         //The current warp state of warping players
         private Dictionary<string, PlayerWarpRate> clientWarpList = new Dictionary<string, PlayerWarpRate>();
         //Read from DebugWindow
@@ -41,12 +39,29 @@ namespace DarkMultiPlayer
         private const float SCREEN_MESSAGE_UPDATE_INTERVAL = 0.2f;
         private const float WARP_SET_THROTTLE = 1f;
         private const float REPORT_SKEW_RATE_INTERVAL = 10f;
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private TimeSyncer timeSyncer;
+        private NetworkWorker networkWorker;
+        private PlayerStatusWorker playerStatusWorker;
+
+        public WarpWorker(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, PlayerStatusWorker playerStatusWorker)
+        {
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.timeSyncer = timeSyncer;
+            this.networkWorker = networkWorker;
+            this.playerStatusWorker = playerStatusWorker;
+            dmpGame.updateEvent.Add(Update);
+        }
+
         //MCW Succeed/Fail counts.
         private int voteNeededCount
         {
             get
             {
-                return (PlayerStatusWorker.fetch.GetPlayerCount() + 1) / 2;
+                return (playerStatusWorker.GetPlayerCount() + 1) / 2;
             }
         }
 
@@ -59,21 +74,13 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static WarpWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
-
         private void Update()
         {
             //Switch to new subspace if told to - this needs to be before the workerEnabled check as it fires during the initial sync
             if (newSetSubspace != -1)
             {
                 DarkLog.Debug("Sent to subspace: " + newSetSubspace);
-                TimeSyncer.fetch.LockSubspace(newSetSubspace);
+                timeSyncer.LockSubspace(newSetSubspace);
                 newSetSubspace = -1;
             }
 
@@ -98,16 +105,16 @@ namespace DarkMultiPlayer
             //Send a CHANGE_WARP message if needed
             if ((warpMode == WarpMode.MCW_FORCE) || (warpMode == WarpMode.MCW_VOTE) || (warpMode == WarpMode.SUBSPACE) || warpMode == WarpMode.SUBSPACE_SIMPLE)
             {
-                if (!clientWarpList.ContainsKey(Settings.fetch.playerName))
+                if (!clientWarpList.ContainsKey(dmpSettings.playerName))
                 {
-                    clientWarpList[Settings.fetch.playerName] = new PlayerWarpRate();
+                    clientWarpList[dmpSettings.playerName] = new PlayerWarpRate();
                 }
-                PlayerWarpRate ourRate = clientWarpList[Settings.fetch.playerName];
+                PlayerWarpRate ourRate = clientWarpList[dmpSettings.playerName];
                 if ((ourRate.rateIndex != TimeWarp.CurrentRateIndex) || (ourRate.isPhysWarp != (TimeWarp.WarpMode == TimeWarp.Modes.LOW)))
                 {
                     ourRate.isPhysWarp = (TimeWarp.WarpMode == TimeWarp.Modes.LOW);
                     ourRate.rateIndex = TimeWarp.CurrentRateIndex;
-                    ourRate.serverClock = TimeSyncer.fetch.GetServerClock();
+                    ourRate.serverClock = timeSyncer.GetServerClock();
                     ourRate.planetTime = Planetarium.GetUniversalTime();
                     using (MessageWriter mw = new MessageWriter())
                     {
@@ -116,7 +123,7 @@ namespace DarkMultiPlayer
                         mw.Write<int>(ourRate.rateIndex);
                         mw.Write<long>(ourRate.serverClock);
                         mw.Write<double>(ourRate.planetTime);
-                        NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                        networkWorker.SendWarpMessage(mw.GetMessageBytes());
                     }
                 }
             }
@@ -126,7 +133,7 @@ namespace DarkMultiPlayer
                 //Follow the warp master into warp if needed (MCW_FORCE/MCW_VOTE)
                 if (warpMode == WarpMode.MCW_FORCE || warpMode == WarpMode.MCW_VOTE)
                 {
-                    if ((warpMaster != "") && (warpMaster != Settings.fetch.playerName))
+                    if ((warpMaster != "") && (warpMaster != dmpSettings.playerName))
                     {
                         if (clientWarpList.ContainsKey(warpMaster))
                         {
@@ -155,14 +162,14 @@ namespace DarkMultiPlayer
             }
 
             //Report our timeSyncer skew
-            if ((Client.realtimeSinceStartup - lastReportRate) > REPORT_SKEW_RATE_INTERVAL && TimeSyncer.fetch.locked)
+            if ((Client.realtimeSinceStartup - lastReportRate) > REPORT_SKEW_RATE_INTERVAL && timeSyncer.locked)
             {
                 lastReportRate = Client.realtimeSinceStartup;
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.REPORT_RATE);
-                    mw.Write<float>(TimeSyncer.fetch.requestedRate);
-                    NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                    mw.Write<float>(timeSyncer.requestedRate);
+                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
                 }
             }
 
@@ -201,7 +208,7 @@ namespace DarkMultiPlayer
             }
 
             //Set clock
-            long serverClockDiff = TimeSyncer.fetch.GetServerClock() - masterWarpRate.serverClock;
+            long serverClockDiff = timeSyncer.GetServerClock() - masterWarpRate.serverClock;
             double secondsDiff = serverClockDiff / 10000000d;
             double newTime = masterWarpRate.planetTime + (warpRates[masterWarpRate.rateIndex] * secondsDiff);
             Planetarium.SetUniversalTime(newTime);
@@ -209,9 +216,12 @@ namespace DarkMultiPlayer
 
         public void ProcessWarpMessages()
         {
-            while (newWarpMessages.Count > 0)
+            lock (newWarpMessages)
             {
-                HandleWarpMessage(newWarpMessages.Dequeue());
+                while (newWarpMessages.Count > 0)
+                {
+                    HandleWarpMessage(newWarpMessages.Dequeue());
+                }
             }
         }
 
@@ -222,7 +232,7 @@ namespace DarkMultiPlayer
                 if (warpMaster != "")
                 {
                     int timeLeft = (int)(controllerExpireTime - Client.realtimeSinceStartup);
-                    if (warpMaster != Settings.fetch.playerName)
+                    if (warpMaster != dmpSettings.playerName)
                     {
                         DisplayMessage(warpMaster + " currently has warp control (timeout " + timeLeft + "s)", 1f);
                     }
@@ -236,7 +246,7 @@ namespace DarkMultiPlayer
                     if (voteMaster != "")
                     {
                         int timeLeft = (int)(voteExpireTime - Client.realtimeSinceStartup);
-                        if (voteMaster == Settings.fetch.playerName)
+                        if (voteMaster == dmpSettings.playerName)
                         {
                             DisplayMessage("Waiting for vote replies... Yes: " + voteYesCount + ", No: " + voteNoCount + ", Needed: " + voteNeededCount + " (" + timeLeft + "s left)", 1f);
                         }
@@ -260,7 +270,7 @@ namespace DarkMultiPlayer
                 float ourRate = GetRateAtIndex(requestIndex, requestPhysWarp);
                 string displayMessage = String.Empty;
 
-                if (fastestPlayer != null && fastestPlayer != Settings.fetch.playerName && clientWarpList.ContainsKey(fastestPlayer))
+                if (fastestPlayer != null && fastestPlayer != dmpSettings.playerName && clientWarpList.ContainsKey(fastestPlayer))
                 {
                     PlayerWarpRate fastestRate = clientWarpList[fastestPlayer];
                     displayMessage += "\n" + fastestPlayer + " is requesting rate " + GetRateAtIndex(fastestRate.rateIndex, fastestRate.isPhysWarp) + "x";
@@ -285,13 +295,13 @@ namespace DarkMultiPlayer
             }
             if (warpMode == WarpMode.SUBSPACE_SIMPLE)
             {
-                int mostAdvancedSubspace = TimeSyncer.fetch.GetMostAdvancedSubspace();
-                int ourSubspace = TimeSyncer.fetch.currentSubspace;
+                int mostAdvancedSubspace = timeSyncer.GetMostAdvancedSubspace();
+                int ourSubspace = timeSyncer.currentSubspace;
                 canSubspaceSimpleWarp = true;
                 if ((ourSubspace != -1) && (mostAdvancedSubspace != ourSubspace))
                 {
                     canSubspaceSimpleWarp = false;
-                    double deltaSeconds = TimeSyncer.fetch.GetUniverseTime(mostAdvancedSubspace) - TimeSyncer.fetch.GetUniverseTime(ourSubspace);
+                    double deltaSeconds = timeSyncer.GetUniverseTime(mostAdvancedSubspace) - timeSyncer.GetUniverseTime(ourSubspace);
                     DisplayMessage("Press '>' to warp " + Math.Round(deltaSeconds) + "s into the future", 1f);
                 }
             }
@@ -362,28 +372,28 @@ namespace DarkMultiPlayer
                 //DarkLog.Debug("Resetting warp rate back to 0");
                 TimeWarp.SetRate(0, true);
             }
-            if ((TimeWarp.CurrentRateIndex > 0) && (TimeWarp.CurrentRate > 1.1f) && !resetWarp && TimeSyncer.fetch.locked)
+            if ((TimeWarp.CurrentRateIndex > 0) && (TimeWarp.CurrentRate > 1.1f) && !resetWarp && timeSyncer.locked)
             {
                 DarkLog.Debug("Unlocking from subspace");
-                TimeSyncer.fetch.UnlockSubspace();
+                timeSyncer.UnlockSubspace();
             }
-            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !TimeSyncer.fetch.locked && ((warpMode == WarpMode.SUBSPACE) || (warpMode == WarpMode.SUBSPACE_SIMPLE)) && (TimeSyncer.fetch.currentSubspace == -1))
+            if ((TimeWarp.CurrentRateIndex == 0) && (TimeWarp.CurrentRate < 1.1f) && !timeSyncer.locked && ((warpMode == WarpMode.SUBSPACE) || (warpMode == WarpMode.SUBSPACE_SIMPLE)) && (timeSyncer.currentSubspace == -1))
             {
                 SendNewSubspace();
             }
         }
 
-        public static void SendNewSubspace()
+        public void SendNewSubspace()
         {
-            long serverClock = TimeSyncer.fetch.GetServerClock();
+            long serverClock = timeSyncer.GetServerClock();
             double planetClock = Planetarium.GetUniversalTime();
-            float requestedRate = TimeSyncer.fetch.requestedRate;
-            TimeSyncer.fetch.LockTemporarySubspace(serverClock, planetClock, requestedRate);
+            float requestedRate = timeSyncer.requestedRate;
+            timeSyncer.LockTemporarySubspace(serverClock, planetClock, requestedRate);
             SendNewSubspace(serverClock, planetClock, requestedRate);
 
         }
 
-        public static void SendNewSubspace(long serverClock, double planetTime, float subspaceRate)
+        public void SendNewSubspace(long serverClock, double planetTime, float subspaceRate)
         {
             using (MessageWriter mw = new MessageWriter())
             {
@@ -391,7 +401,7 @@ namespace DarkMultiPlayer
                 mw.Write<long>(serverClock);
                 mw.Write<double>(planetTime);
                 mw.Write<float>(subspaceRate);
-                NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                networkWorker.SendWarpMessage(mw.GetMessageBytes());
             }
         }
 
@@ -440,11 +450,11 @@ namespace DarkMultiPlayer
                     using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<int>((int)WarpMessageType.REQUEST_CONTROLLER);
-                        NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                        networkWorker.SendWarpMessage(mw.GetMessageBytes());
                     }
                 }
             }
-            else if (warpMaster == Settings.fetch.playerName)
+            else if (warpMaster == dmpSettings.playerName)
             {
                 if (stopWarpKey && (TimeWarp.CurrentRate < 1.1f))
                 {
@@ -465,13 +475,13 @@ namespace DarkMultiPlayer
                         using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<int>((int)WarpMessageType.REQUEST_CONTROLLER);
-                            NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                            networkWorker.SendWarpMessage(mw.GetMessageBytes());
                         }
                     }
                 }
                 else
                 {
-                    if (voteMaster != Settings.fetch.playerName)
+                    if (voteMaster != dmpSettings.playerName)
                     {
                         //Send a vote if we haven't voted yet
                         if (!voteSent)
@@ -480,7 +490,7 @@ namespace DarkMultiPlayer
                             {
                                 mw.Write<int>((int)WarpMessageType.REPLY_VOTE);
                                 mw.Write<bool>(startWarpKey);
-                                NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                                networkWorker.SendWarpMessage(mw.GetMessageBytes());
                                 voteSent = true;
                             }
                             DarkLog.Debug("Send warp reply with vote of " + startWarpKey);
@@ -499,7 +509,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                if (warpMaster == Settings.fetch.playerName)
+                if (warpMaster == dmpSettings.playerName)
                 {
                     if (stopWarpKey && (TimeWarp.CurrentRate < 1.1f))
                     {
@@ -552,17 +562,17 @@ namespace DarkMultiPlayer
                 newWarpRate.isPhysWarp = requestPhysWarp;
                 newWarpRate.rateIndex = requestIndex;
                 newWarpRate.planetTime = Planetarium.GetUniversalTime();
-                newWarpRate.serverClock = TimeSyncer.fetch.GetServerClock();
-                clientWarpList[Settings.fetch.playerName] = newWarpRate;
+                newWarpRate.serverClock = timeSyncer.GetServerClock();
+                clientWarpList[dmpSettings.playerName] = newWarpRate;
                 DarkLog.Debug("Warp request change: " + requestIndex + ", physwarp: " + requestPhysWarp);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
                     mw.Write<bool>(requestPhysWarp);
                     mw.Write<int>(requestIndex);
-                    mw.Write<long>(TimeSyncer.fetch.GetServerClock());
+                    mw.Write<long>(timeSyncer.GetServerClock());
                     mw.Write<double>(Planetarium.GetUniversalTime());
-                    NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
                 }
             }
         }
@@ -571,13 +581,13 @@ namespace DarkMultiPlayer
         {
             if (startWarpKey && !canSubspaceSimpleWarp)
             {
-                TimeSyncer.fetch.LockSubspace(TimeSyncer.fetch.GetMostAdvancedSubspace());
+                timeSyncer.LockSubspace(timeSyncer.GetMostAdvancedSubspace());
             }
         }
 
         private void ReleaseWarpMaster()
         {
-            if (warpMaster == Settings.fetch.playerName)
+            if (warpMaster == dmpSettings.playerName)
             {
                 SendNewSubspace();
             }
@@ -590,7 +600,7 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)WarpMessageType.RELEASE_CONTROLLER);
-                NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                networkWorker.SendWarpMessage(mw.GetMessageBytes());
             }
             if (TimeWarp.CurrentRateIndex > 0)
             {
@@ -610,7 +620,7 @@ namespace DarkMultiPlayer
                         {
                             voteMaster = mr.Read<string>();
                             long expireTime = mr.Read<long>();
-                            voteExpireTime = Client.realtimeSinceStartup + ((expireTime - TimeSyncer.fetch.GetServerClock()) / 10000000d);
+                            voteExpireTime = Client.realtimeSinceStartup + ((expireTime - timeSyncer.GetServerClock()) / 10000000d);
                         }
                         break;
                     case WarpMessageType.REPLY_VOTE:
@@ -643,13 +653,13 @@ namespace DarkMultiPlayer
                             long serverTime = mr.Read<long>();
                             double planetariumTime = mr.Read<double>();
                             float gameSpeed = mr.Read<float>();
-                            TimeSyncer.fetch.AddNewSubspace(newSubspaceID, serverTime, planetariumTime, gameSpeed);
+                            timeSyncer.AddNewSubspace(newSubspaceID, serverTime, planetariumTime, gameSpeed);
                         }
                         break;
                     case WarpMessageType.CHANGE_SUBSPACE:
                         {
                             string fromPlayer = mr.Read<string>();
-                            if (fromPlayer != Settings.fetch.playerName)
+                            if (fromPlayer != dmpSettings.playerName)
                             {
                                 int changeSubspaceID = mr.Read<int>();
                                 clientSubspaceList[fromPlayer] = changeSubspaceID;
@@ -669,7 +679,7 @@ namespace DarkMultiPlayer
                             long serverTime = mr.Read<long>();
                             double planetariumTime = mr.Read<double>();
                             float gameSpeed = mr.Read<float>();
-                            TimeSyncer.fetch.RelockSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
+                            timeSyncer.RelockSubspace(subspaceID, serverTime, planetariumTime, gameSpeed);
                         }
                         break;
                     case WarpMessageType.REPORT_RATE:
@@ -693,7 +703,7 @@ namespace DarkMultiPlayer
             {
                 this.voteYesCount = voteYesCount;
                 this.voteNoCount = voteNoCount;
-                if (voteMaster == Settings.fetch.playerName && voteNoCount >= voteFailedCount)
+                if (voteMaster == dmpSettings.playerName && voteNoCount >= voteFailedCount)
                 {
                     DisplayMessage("Vote failed!", 3f);
                 }
@@ -718,7 +728,7 @@ namespace DarkMultiPlayer
                 {
                     if (warpMode != WarpMode.MCW_LOWEST)
                     {
-                        long expireTimeDelta = expireTime - TimeSyncer.fetch.GetServerClock();
+                        long expireTimeDelta = expireTime - timeSyncer.GetServerClock();
                         controllerExpireTime = Client.realtimeSinceStartup + (expireTimeDelta / 10000000d);
                     }
                 }
@@ -759,7 +769,10 @@ namespace DarkMultiPlayer
 
         public void QueueWarpMessage(byte[] messageData)
         {
-            newWarpMessages.Enqueue(messageData);
+            lock (newWarpMessages)
+            {
+                newWarpMessages.Enqueue(messageData);
+            }
         }
 
         public int GetClientSubspace(string playerName)
@@ -778,9 +791,9 @@ namespace DarkMultiPlayer
 
         private SubspaceDisplayEntry[] GetSubspaceDisplayEntriesMCWNone()
         {
-            int currentSubspace = TimeSyncer.fetch.currentSubspace;
+            int currentSubspace = timeSyncer.currentSubspace;
             List<string> allPlayers = new List<string>();
-            allPlayers.Add(Settings.fetch.playerName);
+            allPlayers.Add(dmpSettings.playerName);
             allPlayers.AddRange(clientSubspaceList.Keys);
             allPlayers.Sort(PlayerSorter);
             SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
@@ -788,15 +801,15 @@ namespace DarkMultiPlayer
             sde.isUs = true;
             if (currentSubspace != -1)
             {
-                sde.subspaceID = TimeSyncer.fetch.currentSubspace;
-                sde.subspaceEntry = TimeSyncer.fetch.GetSubspace(currentSubspace);
+                sde.subspaceID = timeSyncer.currentSubspace;
+                sde.subspaceEntry = timeSyncer.GetSubspace(currentSubspace);
             }
             else
             {
                 sde.isWarping = true;
-                if (clientWarpList.ContainsKey(Settings.fetch.playerName))
+                if (clientWarpList.ContainsKey(dmpSettings.playerName))
                 {
-                    sde.warpingEntry = clientWarpList[Settings.fetch.playerName];
+                    sde.warpingEntry = clientWarpList[dmpSettings.playerName];
                 }
             }
             return new SubspaceDisplayEntry[] { sde };
@@ -809,15 +822,15 @@ namespace DarkMultiPlayer
             List<string> warpCache = new List<string>();
 
             //Add us
-            if (TimeSyncer.fetch.currentSubspace != -1)
+            if (timeSyncer.currentSubspace != -1)
             {
                 List<string> newList = new List<string>();
-                newList.Add(Settings.fetch.playerName);
-                nonWarpCache.Add(TimeSyncer.fetch.currentSubspace, newList);
+                newList.Add(dmpSettings.playerName);
+                nonWarpCache.Add(timeSyncer.currentSubspace, newList);
             }
             else
             {
-                warpCache.Add(Settings.fetch.playerName);
+                warpCache.Add(dmpSettings.playerName);
             }
 
             //Add other players
@@ -849,13 +862,13 @@ namespace DarkMultiPlayer
             //Process locked players
             foreach (KeyValuePair<int, List<string>> subspaceEntry in nonWarpCache)
             {
-                if (TimeSyncer.fetch.SubspaceExists(subspaceEntry.Key))
+                if (timeSyncer.SubspaceExists(subspaceEntry.Key))
                 {
                     SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
                     sde.subspaceID = subspaceEntry.Key;
-                    sde.subspaceEntry = TimeSyncer.fetch.GetSubspace(subspaceEntry.Key);
+                    sde.subspaceEntry = timeSyncer.GetSubspace(subspaceEntry.Key);
                     subspaceEntry.Value.Sort(PlayerSorter);
-                    sde.isUs = subspaceEntry.Value.Contains(Settings.fetch.playerName);
+                    sde.isUs = subspaceEntry.Value.Contains(dmpSettings.playerName);
                     sde.players = subspaceEntry.Value.ToArray();
                     returnList.Add(sde);
                 }
@@ -875,7 +888,7 @@ namespace DarkMultiPlayer
                     SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
                     sde.warpingEntry = clientWarpList[warpingPlayer];
                     sde.players = new string[] { warpingPlayer };
-                    sde.isUs = (warpingPlayer == Settings.fetch.playerName);
+                    sde.isUs = (warpingPlayer == dmpSettings.playerName);
                     sde.isWarping = true;
                     returnList.Add(sde);
                 }
@@ -889,7 +902,7 @@ namespace DarkMultiPlayer
             {
                 SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
                 sde.players = unknownPlayers.ToArray();
-                sde.isUs = unknownPlayers.Contains(Settings.fetch.playerName);
+                sde.isUs = unknownPlayers.Contains(dmpSettings.playerName);
                 returnList.Add(sde);
             }
             return returnList.ToArray();
@@ -897,7 +910,7 @@ namespace DarkMultiPlayer
 
         private int PlayerSorter(string lhs, string rhs)
         {
-            string ourName = Settings.fetch.playerName;
+            string ourName = dmpSettings.playerName;
             if (lhs == ourName)
             {
                 return -1;
@@ -911,7 +924,7 @@ namespace DarkMultiPlayer
 
         private int SubpaceDisplayEntrySorter(SubspaceDisplayEntry lhs, SubspaceDisplayEntry rhs)
         {
-            long serverClock = TimeSyncer.fetch.GetServerClock();
+            long serverClock = timeSyncer.GetServerClock();
             double subspace1Time = double.MinValue;
             double subspace2Time = double.MinValue;
             //LHS time
@@ -977,7 +990,7 @@ namespace DarkMultiPlayer
         public List<int> GetActiveSubspaces()
         {
             List<int> returnList = new List<int>();
-            returnList.Add(TimeSyncer.fetch.currentSubspace);
+            returnList.Add(timeSyncer.currentSubspace);
             foreach (KeyValuePair<string, int> clientSubspace in clientSubspaceList)
             {
                 if (!returnList.Contains(clientSubspace.Value))
@@ -991,8 +1004,8 @@ namespace DarkMultiPlayer
 
         private int SubspaceComparer(int lhs, int rhs)
         {
-            double subspace1Time = TimeSyncer.fetch.GetUniverseTime(lhs);
-            double subspace2Time = TimeSyncer.fetch.GetUniverseTime(rhs);
+            double subspace1Time = timeSyncer.GetUniverseTime(lhs);
+            double subspace2Time = timeSyncer.GetUniverseTime(rhs);
             //x<y -1, x==y 0, x>y 1
             if (subspace1Time < subspace2Time)
             {
@@ -1018,10 +1031,10 @@ namespace DarkMultiPlayer
             }
             returnList.Sort();
             //Add us if we are in the subspace
-            if (TimeSyncer.fetch.currentSubspace == subspace)
+            if (timeSyncer.currentSubspace == subspace)
             {
                 //We are on top!
-                returnList.Insert(0, Settings.fetch.playerName);
+                returnList.Insert(0, dmpSettings.playerName);
             }
             return returnList;
         }
@@ -1042,18 +1055,10 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.updateEvent.Remove(singleton.Update);
-                }
-                singleton = new WarpWorker();
-                Client.updateEvent.Add(singleton.Update);
-            }
+            workerEnabled = false;
+            dmpGame.updateEvent.Remove(Update);
         }
     }
 

@@ -6,7 +6,6 @@ namespace DarkMultiPlayer
 {
     public class HackyInAtmoLoader
     {
-        private static HackyInAtmoLoader singleton;
         public bool workerEnabled;
         private bool registered;
         private List<Guid> iterateVessels = new List<Guid>();
@@ -15,13 +14,17 @@ namespace DarkMultiPlayer
         private const float UNPACK_INTERVAL = 3f;
         private const float LANDED_LOAD_DISTANCE_DEFAULT = 2250f;
         private const float LANDED_UNLOAD_DISTANCE_DEFAULT = 2700f;
+        //Services
+        private DMPGame dmpGame;
+        private LockSystem lockSystem;
+        private VesselWorker vesselWorker;
 
-        public static HackyInAtmoLoader fetch
+        public HackyInAtmoLoader(DMPGame dmpGame, LockSystem lockSystem, VesselWorker vesselWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpGame = dmpGame;
+            this.lockSystem = lockSystem;
+            this.vesselWorker = vesselWorker;
+            dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
         private void FixedUpdate()
@@ -68,9 +71,9 @@ namespace DarkMultiPlayer
 
         private void OnVesselWillDestroy(Vessel vessel)
         {
-            bool pilotedByAnotherPlayer = LockSystem.fetch.LockExists("control-" + vessel.id) && !LockSystem.fetch.LockIsOurs("control-" + vessel.id);
-            bool updatedByAnotherPlayer = LockSystem.fetch.LockExists("update-" + vessel.id) && !LockSystem.fetch.LockIsOurs("update-" + vessel.id);
-            bool updatedInTheFuture = VesselWorker.fetch.VesselUpdatedInFuture(vessel.id);
+            bool pilotedByAnotherPlayer = lockSystem.LockExists("control-" + vessel.id) && !lockSystem.LockIsOurs("control-" + vessel.id);
+            bool updatedByAnotherPlayer = lockSystem.LockExists("update-" + vessel.id) && !lockSystem.LockIsOurs("update-" + vessel.id);
+            bool updatedInTheFuture = vesselWorker.VesselUpdatedInFuture(vessel.id);
             //Vessel was packed within the last 5 seconds
             if (lastPackTime.ContainsKey(vessel.id) && (Client.realtimeSinceStartup - lastPackTime[vessel.id]) < 5f)
             {
@@ -81,7 +84,7 @@ namespace DarkMultiPlayer
                     ProtoVessel pv = vessel.BackupVessel();
                     ConfigNode savedNode = new ConfigNode();
                     pv.Save(savedNode);
-                    VesselWorker.fetch.LoadVessel(savedNode, vessel.id, true);
+                    vesselWorker.LoadVessel(savedNode, vessel.id, true);
                 }
             }
             if (lastPackTime.ContainsKey(vessel.id))
@@ -97,7 +100,7 @@ namespace DarkMultiPlayer
             foreach (Guid vesselID in iterateVessels)
             {
                 HackyFlyingVesselLoad hfvl = loadingFlyingVessels[vesselID];
-                VesselWorker.fetch.KillVessel(hfvl.flyingVessel);
+                vesselWorker.KillVessel(hfvl.flyingVessel);
             }
             loadingFlyingVessels.Clear();
         }
@@ -128,11 +131,11 @@ namespace DarkMultiPlayer
                     continue;
                 }
 
-                if (!LockSystem.fetch.LockExists("update-" + vesselID) || LockSystem.fetch.LockIsOurs("update-" + vesselID))
+                if (!lockSystem.LockExists("update-" + vesselID) || lockSystem.LockIsOurs("update-" + vesselID))
                 {
                     DarkLog.Debug("Hacky load removed: Vessel stopped being controlled by another player");
                     loadingFlyingVessels.Remove(vesselID);
-                    VesselWorker.fetch.KillVessel(hfvl.flyingVessel);
+                    vesselWorker.KillVessel(hfvl.flyingVessel);
                     continue;
                 }
 
@@ -243,21 +246,13 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
+            workerEnabled = false;
+            dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
+            if (registered)
             {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
-                    if (singleton.registered)
-                    {
-                        singleton.UnregisterGameHooks();
-                    }
-                }
-                singleton = new HackyInAtmoLoader();
-                Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
+                UnregisterGameHooks();
             }
         }
     }

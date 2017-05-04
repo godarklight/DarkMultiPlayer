@@ -6,10 +6,8 @@ using System.Text;
 
 namespace DarkMultiPlayer
 {
-    class ConfigNodeSerializer
+    public class ConfigNodeSerializer
     {
-        private static ConfigNodeSerializer singleton = new ConfigNodeSerializer();
-
         private delegate void WriteNodeDelegate(ConfigNode configNode, StreamWriter writer);
 
         private delegate List<string[]> PreFormatConfigDelegate(string[] cfgData);
@@ -23,14 +21,6 @@ namespace DarkMultiPlayer
         public ConfigNodeSerializer()
         {
             CreateDelegates();
-        }
-
-        public static ConfigNodeSerializer fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         private void CreateDelegates()

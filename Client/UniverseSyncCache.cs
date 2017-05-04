@@ -8,8 +8,6 @@ namespace DarkMultiPlayer
 {
     public class UniverseSyncCache
     {
-        private static UniverseSyncCache singleton = new UniverseSyncCache();
-
         public string cacheDirectory
         {
             get
@@ -22,6 +20,8 @@ namespace DarkMultiPlayer
         private Queue<byte[]> incomingQueue = new Queue<byte[]>();
         private Dictionary<string, long> fileLengths = new Dictionary<string, long>();
         private Dictionary<string, DateTime> fileCreationTimes = new Dictionary<string, DateTime>();
+        //Services
+        private Settings dmpSettings;
 
         public long currentCacheSize
         {
@@ -29,19 +29,12 @@ namespace DarkMultiPlayer
             private set;
         }
 
-        public UniverseSyncCache()
+        public UniverseSyncCache(Settings dmpSettings)
         {
+            this.dmpSettings = dmpSettings;
             Thread processingThread = new Thread(new ThreadStart(ProcessingThreadMain));
             processingThread.IsBackground = true;
             processingThread.Start();
-        }
-
-        public static UniverseSyncCache fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         private void ProcessingThreadMain()
@@ -120,7 +113,7 @@ namespace DarkMultiPlayer
                 }
             }
             //While the directory is over (cacheSize) MB
-            while (currentCacheSize > (Settings.fetch.cacheSize * 1024 * 1024))
+            while (currentCacheSize > (dmpSettings.cacheSize * 1024 * 1024))
             {
                 string deleteObject = null;
                 //Find oldest file

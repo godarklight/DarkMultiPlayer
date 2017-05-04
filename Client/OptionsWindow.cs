@@ -13,8 +13,6 @@ namespace DarkMultiPlayer
 
     public class OptionsWindow
     {
-        private static OptionsWindow singleton = new OptionsWindow();
-        public bool loadEventHandled = true;
         public bool display;
         private bool isWindowLocked = false;
         private bool safeDisplay;
@@ -32,11 +30,6 @@ namespace DarkMultiPlayer
         private const float WINDOW_WIDTH = 300;
         private const int descWidth = 75;
         private const int sepWidth = 5;
-        //TempColour
-        private Color tempColor = new Color(1f, 1f, 1f, 1f);
-        private GUIStyle tempColorLabelStyle;
-        //Cache size
-        private string newCacheSize = "";
         //Keybindings
         private bool settingChat;
         private bool settingScreenshot;
@@ -45,26 +38,38 @@ namespace DarkMultiPlayer
         // Toolbar
         private GUIStyle toolbarBtnStyle;
         private OptionsTab selectedTab = OptionsTab.PLAYER;
-        private string[] optionsTabs = { "Player", "Cache", "Advanced" };
+        //TODO: Ask RockyTV
+        //private string[] optionsTabs = { "Player", "Cache", "Advanced" };
         // New style
         private GUIStyle descriptorStyle;
         private GUIStyle plrNameStyle;
         private GUIStyle textFieldStyle;
         private GUIStyle noteStyle;
         private GUIStyle sectionHeaderStyle;
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private NetworkWorker networkWorker;
+        private PlayerColorWorker playerColorWorker;
+        private UniverseSyncCache universeSyncCache;
+        private ModWorker modWorker;
+        private UniverseConverterWindow universeConverterWindow;
+        private ToolbarSupport toolbarSupport;
 
-        public OptionsWindow()
+        public OptionsWindow(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, UniverseConverterWindow universeConverterWindow, ToolbarSupport toolbarSupport)
         {
-            Client.updateEvent.Add(this.Update);
-            Client.drawEvent.Add(this.Draw);
+            this.dmpSettings = dmpSettings;
+            this.universeSyncCache = universeSyncCache;
+            this.modWorker = modWorker;
+            this.universeConverterWindow = universeConverterWindow;
+            this.toolbarSupport = toolbarSupport;
         }
 
-        public static OptionsWindow fetch
+        public void SetDependencies(DMPGame dmpGame, NetworkWorker networkWorker, PlayerColorWorker playerColorWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.networkWorker = networkWorker;
+            this.playerColorWorker = playerColorWorker;
+            this.dmpGame = dmpGame;
         }
 
         private void InitGUI()
@@ -109,7 +114,7 @@ namespace DarkMultiPlayer
             plrNameStyle.normal.background = new Texture2D(1, 1);
             plrNameStyle.normal.background.SetPixel(0, 0, new Color(0, 0, 0, .54f));
             plrNameStyle.normal.background.Apply();
-            plrNameStyle.normal.textColor = Settings.fetch.playerColor;
+            plrNameStyle.normal.textColor = dmpSettings.playerColor;
             plrNameStyle.padding = new RectOffset(4, 4, 2, 2);
             plrNameStyle.alignment = TextAnchor.MiddleLeft;
             plrNameStyle.fontStyle = FontStyle.Bold;
@@ -138,14 +143,12 @@ namespace DarkMultiPlayer
             sectionHeaderStyle.alignment = TextAnchor.MiddleCenter;
             sectionHeaderStyle.fontStyle = FontStyle.Bold;
 
-            tempColor = new Color();
-            tempColorLabelStyle = new GUIStyle(GUI.skin.label);
             UpdateToolbarString();
         }
 
         private void UpdateToolbarString()
         {
-            switch (Settings.fetch.toolbarType)
+            switch (dmpSettings.toolbarType)
             {
                 case DMPToolbarType.DISABLED:
                     toolbarMode = "Toolbar: Disabled";
@@ -162,12 +165,12 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void Update()
+        public void Update()
         {
             safeDisplay = display;
         }
 
-        private void Draw()
+        public void Draw()
         {
             if (!initialized)
             {
@@ -183,13 +186,6 @@ namespace DarkMultiPlayer
 
         private void DrawContent(int windowID)
         {
-            if (!loadEventHandled)
-            {
-                loadEventHandled = true;
-                tempColor = Settings.fetch.playerColor;
-                newCacheSize = Settings.fetch.cacheSize.ToString();
-            }
-
             if (GUI.Button(new Rect(windowRect.width - 24, 0, 19, 19), "X"))
             {
                 display = false;
@@ -209,29 +205,29 @@ namespace DarkMultiPlayer
                 groupY = 0;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Name:", descriptorStyle);
-                plrNameStyle.normal.textColor = Settings.fetch.playerColor;
-                if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.RUNNING)
+                plrNameStyle.normal.textColor = dmpSettings.playerColor;
+                if (networkWorker != null && networkWorker.state == DarkMultiPlayerCommon.ClientState.RUNNING)
                     GUI.Label(new Rect(descWidth + sepWidth, groupY,
                         windowRect.width - (descWidth + sepWidth) - 20, 20),
-                        Settings.fetch.playerName, plrNameStyle);
+                        dmpSettings.playerName, plrNameStyle);
                 else
                 {
                     string newName = GUI.TextField(new Rect(
                         descWidth + sepWidth,
                         0,
                         windowRect.width - (descWidth + sepWidth) - 20,
-                        20), Settings.fetch.playerName, plrNameStyle);
+                        20), dmpSettings.playerName, plrNameStyle);
 
-                    if (!newName.Equals(Settings.fetch.playerName))
+                    if (!newName.Equals(dmpSettings.playerName))
                     {
-                        Settings.fetch.playerName = newName;
-                        Settings.fetch.SaveSettings();
+                        dmpSettings.playerName = newName;
+                        dmpSettings.SaveSettings();
                     }
                 }
                 groupY += 20 + 4;
 
 
-                Color playerColor = Settings.fetch.playerColor;
+                Color playerColor = dmpSettings.playerColor;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Red:", descriptorStyle);
                 playerColor.r = GUI.HorizontalSlider(new Rect(
@@ -239,7 +235,7 @@ namespace DarkMultiPlayer
                     groupY + 5,
                     windowRect.width - (descWidth + sepWidth) - 20,
                     12
-                    ), Settings.fetch.playerColor.r, 0, 1);
+                    ), dmpSettings.playerColor.r, 0, 1);
                 groupY += 20;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Green:", descriptorStyle);
@@ -248,7 +244,7 @@ namespace DarkMultiPlayer
                     groupY + 5,
                     windowRect.width - (descWidth + sepWidth) - 20,
                     12
-                    ), Settings.fetch.playerColor.g, 0, 1);
+                    ), dmpSettings.playerColor.g, 0, 1);
                 groupY += 20;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Blue:", descriptorStyle);
@@ -257,19 +253,19 @@ namespace DarkMultiPlayer
                     groupY + 5,
                     windowRect.width - (descWidth + sepWidth) - 20,
                     12
-                    ), Settings.fetch.playerColor.b, 0, 1);
+                    ), dmpSettings.playerColor.b, 0, 1);
                 groupY += 22;
 
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Random Color", buttonStyle))
                     playerColor = PlayerColorWorker.GenerateRandomColor();
 
-                if (!playerColor.Equals(Settings.fetch.playerColor))
+                if (!playerColor.Equals(dmpSettings.playerColor))
                 {
-                    Settings.fetch.playerColor = playerColor;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.playerColor = playerColor;
+                    dmpSettings.SaveSettings();
 
-                    if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.RUNNING)
-                        PlayerColorWorker.fetch.SendPlayerColorToServer();
+                    if (networkWorker != null && playerColorWorker != null && networkWorker.state == DarkMultiPlayerCommon.ClientState.RUNNING)
+                        playerColorWorker.SendPlayerColorToServer();
                 }
 
                 GUI.EndGroup();
@@ -283,12 +279,12 @@ namespace DarkMultiPlayer
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Current:", descriptorStyle);
                 GUI.Label(
                     new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 102, 20),
-                    Mathf.Round(UniverseSyncCache.fetch.currentCacheSize / 1024).ToString() + " KB");
+                    Mathf.Round(universeSyncCache.currentCacheSize / 1024).ToString() + " KB");
 
                 groupY += 20;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Maximum:", descriptorStyle);
-                string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), (Settings.fetch.cacheSize / 1024).ToString(), textFieldStyle);
+                string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), (dmpSettings.cacheSize / 1024).ToString(), textFieldStyle);
                 GUI.Label(new Rect(descWidth + sepWidth + 80, groupY, 100, 20), "kilobytes (KB)");
                 int newSize;
                 if (string.IsNullOrEmpty(newSizeStr)) newSize = 1;
@@ -302,21 +298,21 @@ namespace DarkMultiPlayer
                     else newSize = 100000;
                 }
 
-                if (newSize != Settings.fetch.cacheSize)
+                if (newSize != dmpSettings.cacheSize)
                 {
-                    Settings.fetch.cacheSize = newSize * 1024;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.cacheSize = newSize * 1024;
+                    dmpSettings.SaveSettings();
                 }
                 groupY += 22;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Manage:", descriptorStyle);
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Expire"))
-                    UniverseSyncCache.fetch.ExpireCache();
+                    universeSyncCache.ExpireCache();
 
                 groupY += 22;
 
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Delete"))
-                    UniverseSyncCache.fetch.DeleteCache();
+                    universeSyncCache.DeleteCache();
                 GUI.EndGroup();
             }
             //Key bindings
@@ -331,7 +327,7 @@ namespace DarkMultiPlayer
                 groupY += 48;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Chat:", descriptorStyle);
-                string chatKey = Settings.fetch.chatKey.ToString();
+                string chatKey = dmpSettings.chatKey.ToString();
                 if (settingChat)
                 {
                     chatKey = settingKeyMessage;
@@ -339,8 +335,8 @@ namespace DarkMultiPlayer
                     {
                         if (Event.current.keyCode != KeyCode.Escape)
                         {
-                            Settings.fetch.chatKey = Event.current.keyCode;
-                            Settings.fetch.SaveSettings();
+                            dmpSettings.chatKey = Event.current.keyCode;
+                            dmpSettings.SaveSettings();
                         }
                         settingChat = false;
                     }
@@ -354,7 +350,7 @@ namespace DarkMultiPlayer
                 groupY += 22;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Screenshot:", descriptorStyle);
-                string screenshotKey = Settings.fetch.screenshotKey.ToString();
+                string screenshotKey = dmpSettings.screenshotKey.ToString();
                 if (settingScreenshot)
                 {
                     screenshotKey = settingKeyMessage;
@@ -362,8 +358,8 @@ namespace DarkMultiPlayer
                     {
                         if (Event.current.keyCode != KeyCode.Escape)
                         {
-                            Settings.fetch.screenshotKey = Event.current.keyCode;
-                            Settings.fetch.SaveSettings();
+                            dmpSettings.screenshotKey = Event.current.keyCode;
+                            dmpSettings.SaveSettings();
                         }
                         settingScreenshot = false;
                     }
@@ -386,12 +382,12 @@ namespace DarkMultiPlayer
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Generate:", descriptorStyle);
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Whitelist", buttonStyle))
-                    ModWorker.fetch.GenerateModControlFile(true);
+                    modWorker.GenerateModControlFile(true);
 
                 groupY += 22;
 
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Blacklist", buttonStyle))
-                    ModWorker.fetch.GenerateModControlFile(false);
+                    modWorker.GenerateModControlFile(false);
 
                 GUI.EndGroup();
                 windowY += 47;
@@ -402,51 +398,51 @@ namespace DarkMultiPlayer
                 GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 148));
                 groupY = 0;
 
-                bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.compressionEnabled, "Compress Network Traffic");
-                if (toggleCompression != Settings.fetch.compressionEnabled)
+                bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.compressionEnabled, "Compress Network Traffic");
+                if (toggleCompression != dmpSettings.compressionEnabled)
                 {
-                    Settings.fetch.compressionEnabled = toggleCompression;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.compressionEnabled = toggleCompression;
+                    dmpSettings.SaveSettings();
                 }
                 groupY += 22;
 
-                bool toggleRevert = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), Settings.fetch.revertEnabled, "Enable Revert");
-                if (toggleRevert != Settings.fetch.revertEnabled)
+                bool toggleRevert = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.revertEnabled, "Enable Revert");
+                if (toggleRevert != dmpSettings.revertEnabled)
                 {
-                    Settings.fetch.revertEnabled = toggleRevert;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.revertEnabled = toggleRevert;
+                    dmpSettings.SaveSettings();
                 }
                 groupY += 22;
 
-                UniverseConverterWindow.fetch.display = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), UniverseConverterWindow.fetch.display, "Generate DMP universe from saved game...", buttonStyle);
+                universeConverterWindow.display = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), universeConverterWindow.display, "Generate DMP universe from saved game...", buttonStyle);
                 groupY += 22;
 
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Reset Disclaimer", buttonStyle))
                 {
-                    Settings.fetch.disclaimerAccepted = 0;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.disclaimerAccepted = 0;
+                    dmpSettings.SaveSettings();
                 }
                 groupY += 22;
 
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), toolbarMode, buttonStyle))
                 {
-                    int newSetting = (int)Settings.fetch.toolbarType + 1;
+                    int newSetting = (int)dmpSettings.toolbarType + 1;
                     //Overflow to 0
                     if (!Enum.IsDefined(typeof(DMPToolbarType), newSetting))
                     {
                         newSetting = 0;
                     }
-                    Settings.fetch.toolbarType = (DMPToolbarType)newSetting;
-                    Settings.fetch.SaveSettings();
+                    dmpSettings.toolbarType = (DMPToolbarType)newSetting;
+                    dmpSettings.SaveSettings();
                     UpdateToolbarString();
-                    ToolbarSupport.fetch.DetectSettingsChange();
+                    toolbarSupport.DetectSettingsChange();
                 }
                 groupY += 22;
 
 #if DEBUG
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Check missing parts", buttonStyle))
                 {
-                    ModWorker.fetch.CheckCommonStockParts();
+                    modWorker.CheckCommonStockParts();
                 }
 #endif
 
@@ -456,7 +452,7 @@ namespace DarkMultiPlayer
 
         private void CheckWindowLock()
         {
-            if (!Client.fetch.gameRunning)
+            if (dmpGame != null && !dmpGame.running)
             {
                 RemoveWindowLock();
                 return;
@@ -512,6 +508,13 @@ namespace DarkMultiPlayer
                 if (enumVal == OptionsTab.ADVANCED) stringList.Add("Advanced");
             }
             return stringList.ToArray();
+        }
+
+        public void Stop()
+        {
+            networkWorker = null;
+            playerColorWorker = null;
+            dmpGame = null;
         }
     }
 }

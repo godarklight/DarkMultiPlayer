@@ -21,7 +21,6 @@ namespace DarkMultiPlayer
             get;
         }
 
-        private static NetworkWorker singleton = new NetworkWorker();
         private TcpClient clientConnection = null;
         private long lastSendTime = 0;
         private AutoResetEvent sendEvent = new AutoResetEvent(false);
@@ -62,22 +61,67 @@ namespace DarkMultiPlayer
         private Thread sendThread;
         private string serverMotd;
         private bool displayMotd;
+        //Services
+        DMPGame dmpGame;
+        Settings dmpSettings;
+        ConnectionWindow connectionWindow;
+        TimeSyncer timeSyncer;
+        WarpWorker warpWorker;
+        ChatWorker chatWorker;
+        PlayerColorWorker playerColorWorker;
+        FlagSyncer flagSyncer;
+        PartKiller partKiller;
+        KerbalReassigner kerbalReassigner;
+        AsteroidWorker asteroidWorker;
+        VesselWorker vesselWorker;
+        HackyInAtmoLoader hackyInAtmoLoader;
+        PlayerStatusWorker playerStatusWorker;
+        ScenarioWorker scenarioWorker;
+        DynamicTickWorker dynamicTickWorker;
+        CraftLibraryWorker craftLibraryWorker;
+        ScreenshotWorker screenshotWorker;
+        ToolbarSupport toolbarSupport;
+        AdminSystem adminSystem;
+        LockSystem lockSystem;
+        DMPModInterface dmpModInterface;
+        ModWorker modWorker;
+        ConfigNodeSerializer configNodeSerializer;
+        UniverseSyncCache universeSyncCache;
 
-        public NetworkWorker()
+        public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
-            lock (Client.eventLock)
-            {
-                Client.updateEvent.Add(this.Update);
-            }
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.connectionWindow = connectionWindow;
+            this.modWorker = modWorker;
+            this.configNodeSerializer = configNodeSerializer;
+            dmpGame.updateEvent.Add(Update);
         }
 
-        public static NetworkWorker fetch
+        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache)
         {
-            get
-            {
-                return singleton;
-            }
+            this.timeSyncer = timeSyncer;
+            this.warpWorker = warpWorker;
+            this.chatWorker = chatWorker;
+            this.playerColorWorker = playerColorWorker;
+            this.flagSyncer = flagSyncer;
+            this.partKiller = partKiller;
+            this.kerbalReassigner = kerbalReassigner;
+            this.asteroidWorker = asteroidWorker;
+            this.vesselWorker = vesselWorker;
+            this.hackyInAtmoLoader = hackyInAtmoLoader;
+            this.playerStatusWorker = playerStatusWorker;
+            this.scenarioWorker = scenarioWorker;
+            this.dynamicTickWorker = dynamicTickWorker;
+            this.craftLibraryWorker = craftLibraryWorker;
+            this.screenshotWorker = screenshotWorker;
+            this.toolbarSupport = toolbarSupport;
+            this.adminSystem = adminSystem;
+            this.lockSystem = lockSystem;
+            this.dmpModInterface = dmpModInterface;
+            this.universeSyncCache = universeSyncCache;
         }
+
         //Called from main
         private void Update()
         {
@@ -89,23 +133,23 @@ namespace DarkMultiPlayer
 
             if (state == ClientState.CONNECTED)
             {
-                Client.fetch.status = "Connected";
+                connectionWindow.status = "Connected";
             }
 
             if (state == ClientState.HANDSHAKING)
             {
-                Client.fetch.status = "Handshaking";
+                connectionWindow.status = "Handshaking";
             }
 
             if (state == ClientState.AUTHENTICATED)
             {
-                NetworkWorker.fetch.SendPlayerStatus(PlayerStatusWorker.fetch.myPlayerStatus);
+                SendPlayerStatus(playerStatusWorker.myPlayerStatus);
                 DarkLog.Debug("Sending time sync!");
                 state = ClientState.TIME_SYNCING;
-                Client.fetch.status = "Syncing server clock";
+                connectionWindow.status = "Syncing server clock";
                 SendTimeSync();
             }
-            if (TimeSyncer.fetch.synced && state == ClientState.TIME_SYNCING)
+            if (timeSyncer.synced && state == ClientState.TIME_SYNCING)
             {
                 DarkLog.Debug("Time Synced!");
                 state = ClientState.TIME_SYNCED;
@@ -113,59 +157,59 @@ namespace DarkMultiPlayer
             if (state == ClientState.TIME_SYNCED)
             {
                 DarkLog.Debug("Requesting kerbals!");
-                Client.fetch.status = "Syncing kerbals";
+                connectionWindow.status = "Syncing kerbals";
                 state = ClientState.SYNCING_KERBALS;
                 SendKerbalsRequest();
             }
             if (state == ClientState.VESSELS_SYNCED)
             {
                 DarkLog.Debug("Vessels Synced!");
-                Client.fetch.status = "Syncing universe time";
+                connectionWindow.status = "Syncing universe time";
                 state = ClientState.TIME_LOCKING;
                 //The subspaces are held in the warp control messages, but the warp worker will create a new subspace if we aren't locked.
                 //Process the messages so we get the subspaces, but don't enable the worker until the game is started.
-                WarpWorker.fetch.ProcessWarpMessages();
-                TimeSyncer.fetch.workerEnabled = true;
-                ChatWorker.fetch.workerEnabled = true;
-                PlayerColorWorker.fetch.workerEnabled = true;
-                FlagSyncer.fetch.workerEnabled = true;
-                FlagSyncer.fetch.SendFlagList();
-                PlayerColorWorker.fetch.SendPlayerColorToServer();
-                PartKiller.fetch.RegisterGameHooks();
-                KerbalReassigner.fetch.RegisterGameHooks();
+                warpWorker.ProcessWarpMessages();
+                timeSyncer.workerEnabled = true;
+                chatWorker.workerEnabled = true;
+                playerColorWorker.workerEnabled = true;
+                flagSyncer.workerEnabled = true;
+                flagSyncer.SendFlagList();
+                playerColorWorker.SendPlayerColorToServer();
+                partKiller.RegisterGameHooks();
+                kerbalReassigner.RegisterGameHooks();
             }
             if (state == ClientState.TIME_LOCKING)
             {
-                if (TimeSyncer.fetch.locked)
+                if (timeSyncer.locked)
                 {
                     DarkLog.Debug("Time Locked!");
                     DarkLog.Debug("Starting Game!");
-                    Client.fetch.status = "Starting game";
+                    connectionWindow.status = "Starting game";
                     state = ClientState.STARTING;
-                    Client.fetch.startGame = true;
+                    dmpGame.startGame = true;
                 }
             }
             if ((state == ClientState.STARTING) && (HighLogic.LoadedScene == GameScenes.SPACECENTER))
             {
                 state = ClientState.RUNNING;
-                Client.fetch.status = "Running";
-                Client.fetch.gameRunning = true;
-                AsteroidWorker.fetch.workerEnabled = true;
-                VesselWorker.fetch.workerEnabled = true;
-                HackyInAtmoLoader.fetch.workerEnabled = true;
-                PlayerStatusWorker.fetch.workerEnabled = true;
-                ScenarioWorker.fetch.workerEnabled = true;
-                DynamicTickWorker.fetch.workerEnabled = true;
-                WarpWorker.fetch.workerEnabled = true;
-                CraftLibraryWorker.fetch.workerEnabled = true;
-                ScreenshotWorker.fetch.workerEnabled = true;
+                connectionWindow.status = "Running";
+                dmpGame.running = true;
+                asteroidWorker.workerEnabled = true;
+                vesselWorker.workerEnabled = true;
+                hackyInAtmoLoader.workerEnabled = true;
+                playerStatusWorker.workerEnabled = true;
+                scenarioWorker.workerEnabled = true;
+                dynamicTickWorker.workerEnabled = true;
+                warpWorker.workerEnabled = true;
+                craftLibraryWorker.workerEnabled = true;
+                screenshotWorker.workerEnabled = true;
                 SendMotdRequest();
-                ToolbarSupport.fetch.EnableToolbar();
+                toolbarSupport.EnableToolbar();
             }
             if (displayMotd && (HighLogic.LoadedScene != GameScenes.LOADING) && (Time.timeSinceLevelLoad > 2f))
             {
                 displayMotd = false;
-                ScenarioWorker.fetch.UpgradeTheAstronautComplexSoTheGameDoesntBugOut();
+                scenarioWorker.UpgradeTheAstronautComplexSoTheGameDoesntBugOut();
                 ScreenMessages.PostScreenMessage(serverMotd, 10f, ScreenMessageStyle.UPPER_CENTER);
                 //Control locks will bug out the space centre sceen, so remove them before starting.
                 DeleteAllTheControlLocksSoTheSpaceCentreBugGoesAway();
@@ -226,7 +270,7 @@ namespace DarkMultiPlayer
             if (state == ClientState.DISCONNECTED)
             {
                 DarkLog.Debug("Trying to connect to " + address + ", port " + port);
-                Client.fetch.status = "Connecting to " + address + " port " + port;
+                connectionWindow.status = "Connecting to " + address + " port " + port;
                 sendMessageQueueHigh = new Queue<ClientMessage>();
                 sendMessageQueueSplit = new Queue<ClientMessage>();
                 sendMessageQueueLow = new Queue<ClientMessage>();
@@ -254,7 +298,8 @@ namespace DarkMultiPlayer
                                 if (testAddress.AddressFamily == AddressFamily.InterNetwork || testAddress.AddressFamily == AddressFamily.InterNetworkV6)
                                 {
                                     Interlocked.Increment(ref connectingThreads);
-                                    Client.fetch.status = "Connecting";
+                                    connectionWindow.status = "Connecting";
+                                    connectionWindow.networkWorkerDisconnected = false;
                                     lastSendTime = Common.GetCurrentUnixTime();
                                     lastReceiveTime = Common.GetCurrentUnixTime();
                                     state = ClientState.CONNECTING;
@@ -270,28 +315,29 @@ namespace DarkMultiPlayer
                             if (addressToConnectTo.Count == 0)
                             {
                                 DarkLog.Debug("DNS does not contain a valid address entry");
-                                Client.fetch.status = "DNS does not contain a valid address entry";
+                                connectionWindow.status = "DNS does not contain a valid address entry";
                                 return;
                             }
                         }
                         else
                         {
                             DarkLog.Debug("Address is not a IP or DNS name");
-                            Client.fetch.status = "Address is not a IP or DNS name";
+                            connectionWindow.status = "Address is not a IP or DNS name";
                             return;
                         }
                     }
                     catch (Exception e)
                     {
                         DarkLog.Debug("DNS Error: " + e.ToString());
-                        Client.fetch.status = "DNS Error: " + e.Message;
+                        connectionWindow.status = "DNS Error: " + e.Message;
                         return;
                     }
                 }
                 else
                 {
                     Interlocked.Increment(ref connectingThreads);
-                    Client.fetch.status = "Connecting";
+                    connectionWindow.status = "Connecting";
+                    connectionWindow.networkWorkerDisconnected = false;
                     lastSendTime = Common.GetCurrentUnixTime();
                     lastReceiveTime = Common.GetCurrentUnixTime();
                     state = ClientState.CONNECTING;
@@ -324,7 +370,7 @@ namespace DarkMultiPlayer
                             clientConnection = testConnection;
                             //Timeout didn't expire.
                             DarkLog.Debug("Connected to " + destination.Address + " port " + destination.Port);
-                            Client.fetch.status = "Connected";
+                            connectionWindow.status = "Connected";
                             state = ClientState.CONNECTED;
                             sendThread = new Thread(new ThreadStart(SendThreadMain));
                             sendThread.IsBackground = true;
@@ -378,7 +424,7 @@ namespace DarkMultiPlayer
                 if ((Common.GetCurrentUnixTime() - lastReceiveTime) > (Common.INITIAL_CONNECTION_TIMEOUT / 1000))
                 {
                     Disconnect("Failed to connect!");
-                    Client.fetch.status = "Failed to connect - no reply";
+                    connectionWindow.status = "Failed to connect - no reply";
                     if (connectThread != null)
                     {
                         try
@@ -421,14 +467,15 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Disconnected, reason: " + reason);
                     if (!HighLogic.LoadedSceneIsEditor && !HighLogic.LoadedSceneIsFlight)
                     {
-                        NetworkWorker.fetch.SendDisconnect("Force quit to main menu");
-                        Client.fetch.forceQuit = true;
+                        SendDisconnect("Force quit to main menu");
+                        dmpGame.forceQuit = true;
                     }
                     else
                     {
-                        Client.fetch.displayDisconnectMessage = true;
+                        Client.displayDisconnectMessage = true;
                     }
-                    Client.fetch.status = reason;
+                    connectionWindow.status = reason;
+                    connectionWindow.networkWorkerDisconnected = true;
                     state = ClientState.DISCONNECTED;
 
                     try
@@ -641,11 +688,11 @@ namespace DarkMultiPlayer
                         {
                             if (lastSplitMessageType == ClientMessageType.CRAFT_LIBRARY)
                             {
-                                CraftLibraryWorker.fetch.finishedUploadingCraft = true;
+                                craftLibraryWorker.finishedUploadingCraft = true;
                             }
                             if (lastSplitMessageType == ClientMessageType.SCREENSHOT_LIBRARY)
                             {
-                                ScreenshotWorker.fetch.finishedUploadingScreenshot = true;
+                                screenshotWorker.finishedUploadingScreenshot = true;
                             }
                         }
                     }
@@ -787,7 +834,7 @@ namespace DarkMultiPlayer
                         HandlePlayerStatus(message.data);
                         break;
                     case ServerMessageType.PLAYER_COLOR:
-                        PlayerColorWorker.fetch.HandlePlayerColorMessage(message.data);
+                        playerColorWorker.HandlePlayerColorMessage(message.data);
                         break;
                     case ServerMessageType.PLAYER_JOIN:
                         HandlePlayerJoin(message.data);
@@ -829,10 +876,10 @@ namespace DarkMultiPlayer
                         HandleScreenshotLibrary(message.data);
                         break;
                     case ServerMessageType.FLAG_SYNC:
-                        FlagSyncer.fetch.HandleMessage(message.data);
+                        flagSyncer.HandleMessage(message.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
-                        WarpWorker.fetch.HandleSetSubspace(message.data);
+                        warpWorker.HandleSetSubspace(message.data);
                         break;
                     case ServerMessageType.SYNC_TIME_REPLY:
                         HandleSyncTimeReply(message.data);
@@ -847,13 +894,13 @@ namespace DarkMultiPlayer
                         HandleWarpControl(message.data);
                         break;
                     case ServerMessageType.ADMIN_SYSTEM:
-                        AdminSystem.fetch.HandleAdminMessage(message.data);
+                        adminSystem.HandleAdminMessage(message.data);
                         break;
                     case ServerMessageType.LOCK_SYSTEM:
-                        LockSystem.fetch.HandleLockMessage(message.data);
+                        lockSystem.HandleLockMessage(message.data);
                         break;
                     case ServerMessageType.MOD_DATA:
-                        DMPModInterface.fetch.HandleModData(message.data);
+                        dmpModInterface.HandleModData(message.data);
                         break;
                     case ServerMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(message.data);
@@ -883,7 +930,7 @@ namespace DarkMultiPlayer
                     using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
                     {
                         rsa.PersistKeyInCsp = false;
-                        rsa.FromXmlString(Settings.fetch.playerPrivateKey);
+                        rsa.FromXmlString(dmpSettings.playerPrivateKey);
                         byte[] signature = rsa.SignData(challange, CryptoConfig.CreateFromName("SHA256"));
                         SendHandshakeResponse(signature);
                         state = ClientState.HANDSHAKING;
@@ -922,9 +969,9 @@ namespace DarkMultiPlayer
                     //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
-                        Compression.compressionEnabled = mr.Read<bool>() && Settings.fetch.compressionEnabled;
-                        ModWorker.fetch.modControl = (ModControlMode)mr.Read<int>();
-                        if (ModWorker.fetch.modControl != ModControlMode.DISABLED)
+                        Compression.compressionEnabled = mr.Read<bool>() && dmpSettings.compressionEnabled;
+                        modWorker.modControl = (ModControlMode)mr.Read<int>();
+                        if (modWorker.modControl != ModControlMode.DISABLED)
                         {
                             modFileData = mr.Read<string>();
                         }
@@ -941,7 +988,7 @@ namespace DarkMultiPlayer
             {
                 case 0:
                     {
-                        if (ModWorker.fetch.ParseModFile(modFileData))
+                        if (modWorker.ParseModFile(modFileData))
                         {
                             DarkLog.Debug("Handshake successful");
                             state = ClientState.AUTHENTICATED;
@@ -1005,7 +1052,7 @@ namespace DarkMultiPlayer
                                 string[] channelList = mr.Read<string[]>();
                                 foreach (string channelName in channelList)
                                 {
-                                    ChatWorker.fetch.QueueChatJoin(playerName, channelName);
+                                    chatWorker.QueueChatJoin(playerName, channelName);
                                 }
                             }
                         }
@@ -1014,14 +1061,14 @@ namespace DarkMultiPlayer
                         {
                             string playerName = mr.Read<string>();
                             string channelName = mr.Read<string>();
-                            ChatWorker.fetch.QueueChatJoin(playerName, channelName);
+                            chatWorker.QueueChatJoin(playerName, channelName);
                         }
                         break;
                     case ChatMessageType.LEAVE:
                         {
                             string playerName = mr.Read<string>();
                             string channelName = mr.Read<string>();
-                            ChatWorker.fetch.QueueChatLeave(playerName, channelName);
+                            chatWorker.QueueChatLeave(playerName, channelName);
                         }
                         break;
                     case ChatMessageType.CHANNEL_MESSAGE:
@@ -1029,7 +1076,7 @@ namespace DarkMultiPlayer
                             string playerName = mr.Read<string>();
                             string channelName = mr.Read<string>();
                             string channelMessage = mr.Read<string>();
-                            ChatWorker.fetch.QueueChannelMessage(playerName, channelName, channelMessage);
+                            chatWorker.QueueChannelMessage(playerName, channelName, channelMessage);
                         }
                         break;
                     case ChatMessageType.PRIVATE_MESSAGE:
@@ -1037,16 +1084,16 @@ namespace DarkMultiPlayer
                             string fromPlayer = mr.Read<string>();
                             string toPlayer = mr.Read<string>();
                             string privateMessage = mr.Read<string>();
-                            if (toPlayer == Settings.fetch.playerName || fromPlayer == Settings.fetch.playerName)
+                            if (toPlayer == dmpSettings.playerName || fromPlayer == dmpSettings.playerName)
                             {
-                                ChatWorker.fetch.QueuePrivateMessage(fromPlayer, toPlayer, privateMessage);
+                                chatWorker.QueuePrivateMessage(fromPlayer, toPlayer, privateMessage);
                             }
                         }
                         break;
                     case ChatMessageType.CONSOLE_MESSAGE:
                         {
                             string message = mr.Read<string>();
-                            ChatWorker.fetch.QueueSystemMessage(message);
+                            chatWorker.QueueSystemMessage(message);
                         }
                         break;
                 }
@@ -1057,25 +1104,27 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData))
             {
-                WarpWorker.fetch.warpMode = (WarpMode)mr.Read<int>();
-                Client.fetch.gameMode = (GameMode)mr.Read<int>();
-                Client.fetch.serverAllowCheats = mr.Read<bool>();
+                warpWorker.warpMode = (WarpMode)mr.Read<int>();
+                timeSyncer.isSubspace = warpWorker.warpMode == WarpMode.SUBSPACE;
+                dmpGame.gameMode = (GameMode)mr.Read<int>();
+                dmpGame.serverAllowCheats = mr.Read<bool>();
                 numberOfKerbals = mr.Read<int>();
                 numberOfVessels = mr.Read<int>();
-                ScreenshotWorker.fetch.screenshotHeight = mr.Read<int>();
-                AsteroidWorker.fetch.maxNumberOfUntrackedAsteroids = mr.Read<int>();
-                ChatWorker.fetch.consoleIdentifier = mr.Read<string>();
-                Client.fetch.serverDifficulty = (GameDifficulty)mr.Read<int>();
-                VesselWorker.fetch.safetyBubbleDistance = mr.Read<float>();
-                if (Client.fetch.serverDifficulty != GameDifficulty.CUSTOM)
+                screenshotWorker.screenshotHeight = mr.Read<int>();
+                asteroidWorker.maxNumberOfUntrackedAsteroids = mr.Read<int>();
+                chatWorker.consoleIdentifier = mr.Read<string>();
+                dmpGame.serverDifficulty = (GameDifficulty)mr.Read<int>();
+                vesselWorker.safetyBubbleDistance = mr.Read<float>();
+                if (dmpGame.serverDifficulty != GameDifficulty.CUSTOM)
                 {
-                    Client.fetch.serverParameters = GameParameters.GetDefaultParameters(Client.fetch.ConvertGameMode(Client.fetch.gameMode), (GameParameters.Preset)Client.fetch.serverDifficulty);
+                    dmpGame.serverParameters = GameParameters.GetDefaultParameters(Client.ConvertGameMode(dmpGame.gameMode), (GameParameters.Preset)dmpGame.serverDifficulty);
                 }
                 else
                 {
                     GameParameters newParameters = new GameParameters();
-                    GameParameters.AdvancedParams newAdvancedParameters = new GameParameters.AdvancedParams();
-                    CommNet.CommNetParams newCommNetParameters = new CommNet.CommNetParams();
+                    //TODO: Ask RockyTV what these do?
+                    //GameParameters.AdvancedParams newAdvancedParameters = new GameParameters.AdvancedParams();
+                    //CommNet.CommNetParams newCommNetParameters = new CommNet.CommNetParams();
                     newParameters.Difficulty.AllowStockVessels = mr.Read<bool>();
                     newParameters.Difficulty.AutoHireCrews = mr.Read<bool>();
                     newParameters.Difficulty.BypassEntryPurchaseAfterResearch = mr.Read<bool>();
@@ -1112,7 +1161,7 @@ namespace DarkMultiPlayer
                     newParameters.CustomParams<CommNet.CommNetParams>().occlusionMultiplierAtm = mr.Read<float>();
                     newParameters.CustomParams<CommNet.CommNetParams>().enableGroundStations = mr.Read<bool>();
 
-                    Client.fetch.serverParameters = newParameters;
+                    dmpGame.serverParameters = newParameters;
                 }
             }
         }
@@ -1128,7 +1177,7 @@ namespace DarkMultiPlayer
                 newStatus.playerName = playerName;
                 newStatus.vesselText = vesselText;
                 newStatus.statusText = statusText;
-                PlayerStatusWorker.fetch.AddPlayerStatus(newStatus);
+                playerStatusWorker.AddPlayerStatus(newStatus);
             }
         }
 
@@ -1137,7 +1186,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
-                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has joined the server");
+                chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", playerName + " has joined the server");
             }
         }
 
@@ -1146,11 +1195,11 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 string playerName = mr.Read<string>();
-                WarpWorker.fetch.RemovePlayer(playerName);
-                PlayerStatusWorker.fetch.RemovePlayerStatus(playerName);
-                ChatWorker.fetch.QueueRemovePlayer(playerName);
-                LockSystem.fetch.ReleasePlayerLocks(playerName);
-                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", playerName + " has left the server");
+                warpWorker.RemovePlayer(playerName);
+                playerStatusWorker.RemovePlayerStatus(playerName);
+                chatWorker.QueueRemovePlayer(playerName);
+                lockSystem.ReleasePlayerLocks(playerName);
+                chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", playerName + " has left the server");
             }
         }
 
@@ -1161,7 +1210,7 @@ namespace DarkMultiPlayer
                 long clientSend = mr.Read<long>();
                 long serverReceive = mr.Read<long>();
                 long serverSend = mr.Read<long>();
-                TimeSyncer.fetch.HandleSyncTime(clientSend, serverReceive, serverSend);
+                timeSyncer.HandleSyncTime(clientSend, serverReceive, serverSend);
             }
         }
 
@@ -1173,10 +1222,10 @@ namespace DarkMultiPlayer
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
                     byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
-                    ConfigNode scenarioNode = ConfigNodeSerializer.fetch.Deserialize(scenarioData);
+                    ConfigNode scenarioNode = configNodeSerializer.Deserialize(scenarioData);
                     if (scenarioNode != null)
                     {
-                        ScenarioWorker.fetch.QueueScenarioData(scenarioName[i], scenarioNode);
+                        scenarioWorker.QueueScenarioData(scenarioName[i], scenarioNode);
                     }
                     else
                     {
@@ -1195,10 +1244,10 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
                 byte[] kerbalData = mr.Read<byte[]>();
-                ConfigNode kerbalNode = ConfigNodeSerializer.fetch.Deserialize(kerbalData);
+                ConfigNode kerbalNode = configNodeSerializer.Deserialize(kerbalData);
                 if (kerbalNode != null)
                 {
-                    VesselWorker.fetch.QueueKerbal(planetTime, kerbalName, kerbalNode);
+                    vesselWorker.QueueKerbal(planetTime, kerbalName, kerbalNode);
                 }
                 else
                 {
@@ -1209,7 +1258,7 @@ namespace DarkMultiPlayer
             {
                 if (numberOfKerbals != 0)
                 {
-                    Client.fetch.status = "Syncing kerbals " + numberOfKerbalsReceived + "/" + numberOfKerbals + " (" + (int)((numberOfKerbalsReceived / (float)numberOfKerbals) * 100) + "%)";
+                    connectionWindow.status = "Syncing kerbals " + numberOfKerbalsReceived + "/" + numberOfKerbals + " (" + (int)((numberOfKerbalsReceived / (float)numberOfKerbals) * 100) + "%)";
                 }
             }
         }
@@ -1218,7 +1267,7 @@ namespace DarkMultiPlayer
         {
             state = ClientState.KERBALS_SYNCED;
             DarkLog.Debug("Kerbals Synced!");
-            Client.fetch.status = "Kerbals synced";
+            connectionWindow.status = "Kerbals synced";
         }
 
         private void HandleKerbalRemove(byte[] messageData)
@@ -1228,18 +1277,18 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
                 DarkLog.Debug("Kerbal removed: " + kerbalName);
-                ScreenMessages.PostScreenMessage("Kerbal " + kerbalName + " removed from game", 5f, ScreenMessageStyle.UPPER_CENTER);
+                ScreenMessages.PostScreenMessage("Kerbal " + kerbalName + " removed from game at " + planetTime, 5f, ScreenMessageStyle.UPPER_CENTER);
             }
         }
 
         private void HandleVesselList(byte[] messageData)
         {
             state = ClientState.SYNCING_VESSELS;
-            Client.fetch.status = "Syncing vessels";
+            connectionWindow.status = "Syncing vessels";
             using (MessageReader mr = new MessageReader(messageData))
             {
                 List<string> serverVessels = new List<string>(mr.Read<string[]>());
-                List<string> cacheObjects = new List<string>(UniverseSyncCache.fetch.GetCachedObjects());
+                List<string> cacheObjects = new List<string>(universeSyncCache.GetCachedObjects());
                 List<string> requestedObjects = new List<string>();
                 foreach (string serverVessel in serverVessels)
                 {
@@ -1250,10 +1299,10 @@ namespace DarkMultiPlayer
                     else
                     {
                         bool added = false;
-                        byte[] vesselBytes = UniverseSyncCache.fetch.GetFromCache(serverVessel);
+                        byte[] vesselBytes = universeSyncCache.GetFromCache(serverVessel);
                         if (vesselBytes.Length != 0)
                         {
-                            ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselBytes);
+                            ConfigNode vesselNode = configNodeSerializer.Deserialize(vesselBytes);
                             if (vesselNode != null)
                             {
                                 string vesselIDString = Common.ConvertConfigStringToGUIDString(vesselNode.GetValue("pid"));
@@ -1262,7 +1311,7 @@ namespace DarkMultiPlayer
                                     Guid vesselID = new Guid(vesselIDString);
                                     if (vesselID != Guid.Empty)
                                     {
-                                        VesselWorker.fetch.QueueVesselProto(vesselID, 0, vesselNode);
+                                        vesselWorker.QueueVesselProto(vesselID, 0, vesselNode);
                                         added = true;
                                         numberOfVesselsReceived++;
                                     }
@@ -1293,7 +1342,7 @@ namespace DarkMultiPlayer
                 }
                 if (numberOfVessels != 0)
                 {
-                    Client.fetch.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
+                    connectionWindow.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
                 SendVesselsRequest(requestedObjects.ToArray());
             }
@@ -1311,14 +1360,14 @@ namespace DarkMultiPlayer
                 //Flying - don't care.
                 mr.Read<bool>();
                 byte[] vesselData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
-                UniverseSyncCache.fetch.QueueToCache(vesselData);
-                ConfigNode vesselNode = ConfigNodeSerializer.fetch.Deserialize(vesselData);
+                universeSyncCache.QueueToCache(vesselData);
+                ConfigNode vesselNode = configNodeSerializer.Deserialize(vesselData);
                 if (vesselNode != null)
                 {
                     string configGuid = vesselNode.GetValue("pid");
                     if (!String.IsNullOrEmpty(configGuid) && vesselID == Common.ConvertConfigStringToGUIDString(configGuid))
                     {
-                        VesselWorker.fetch.QueueVesselProto(new Guid(vesselID), planetTime, vesselNode);
+                        vesselWorker.QueueVesselProto(new Guid(vesselID), planetTime, vesselNode);
                     }
                     else
                     {
@@ -1339,14 +1388,14 @@ namespace DarkMultiPlayer
                         //Received 102 / 101 vessels!
                         numberOfVessels = numberOfVesselsReceived;
                     }
-                    Client.fetch.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
+                    connectionWindow.status = "Syncing vessels " + numberOfVesselsReceived + "/" + numberOfVessels + " (" + (int)((numberOfVesselsReceived / (float)numberOfVessels) * 100) + "%)";
                 }
             }
         }
 
         private void HandleVesselUpdate(byte[] messageData)
         {
-            VesselUpdate update = new VesselUpdate();
+            VesselUpdate update = new VesselUpdate(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
             {
                 update.planetTime = mr.Read<double>();
@@ -1389,7 +1438,7 @@ namespace DarkMultiPlayer
                 {
                     update.orbit = mr.Read<double[]>();
                 }
-                VesselWorker.fetch.QueueVesselUpdate(update);
+                vesselWorker.QueueVesselUpdate(update);
             }
         }
 
@@ -1399,7 +1448,7 @@ namespace DarkMultiPlayer
             {
                 string player = mr.Read<string>();
                 Guid vesselID = new Guid(mr.Read<string>());
-                VesselWorker.fetch.QueueActiveVessel(player, vesselID);
+                vesselWorker.QueueActiveVessel(player, vesselID);
             }
         }
 
@@ -1425,7 +1474,7 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Got removal command for vessel " + vesselID);
                 }
-                VesselWorker.fetch.QueueVesselRemove(vesselID, planetTime, isDockingUpdate, dockingPlayer);
+                vesselWorker.QueueVesselRemove(vesselID, planetTime, isDockingUpdate, dockingPlayer);
             }
         }
 
@@ -1454,7 +1503,7 @@ namespace DarkMultiPlayer
                                         cce.playerName = player;
                                         cce.craftType = CraftType.VAB;
                                         cce.craftName = vabCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
+                                        craftLibraryWorker.QueueCraftAdd(cce);
                                     }
                                 }
                                 if (sphExists)
@@ -1466,7 +1515,7 @@ namespace DarkMultiPlayer
                                         cce.playerName = player;
                                         cce.craftType = CraftType.SPH;
                                         cce.craftName = sphCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
+                                        craftLibraryWorker.QueueCraftAdd(cce);
                                     }
                                 }
                                 if (subassemblyExists)
@@ -1478,7 +1527,7 @@ namespace DarkMultiPlayer
                                         cce.playerName = player;
                                         cce.craftType = CraftType.SUBASSEMBLY;
                                         cce.craftName = subassemblyCraft;
-                                        CraftLibraryWorker.fetch.QueueCraftAdd(cce);
+                                        craftLibraryWorker.QueueCraftAdd(cce);
                                     }
                                 }
                             }
@@ -1490,8 +1539,8 @@ namespace DarkMultiPlayer
                             cce.playerName = mr.Read<string>();
                             cce.craftType = (CraftType)mr.Read<int>();
                             cce.craftName = mr.Read<string>();
-                            CraftLibraryWorker.fetch.QueueCraftAdd(cce);
-                            ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", cce.playerName + " shared " + cce.craftName + " (" + cce.craftType + ")");
+                            craftLibraryWorker.QueueCraftAdd(cce);
+                            chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", cce.playerName + " shared " + cce.craftName + " (" + cce.craftType + ")");
                         }
                         break;
                     case CraftMessageType.DELETE_FILE:
@@ -1500,7 +1549,7 @@ namespace DarkMultiPlayer
                             cce.playerName = mr.Read<string>();
                             cce.craftType = (CraftType)mr.Read<int>();
                             cce.craftName = mr.Read<string>();
-                            CraftLibraryWorker.fetch.QueueCraftDelete(cce);
+                            craftLibraryWorker.QueueCraftDelete(cce);
                         }
                         break;
                     case CraftMessageType.RESPOND_FILE:
@@ -1513,7 +1562,7 @@ namespace DarkMultiPlayer
                             if (hasCraft)
                             {
                                 cre.craftData = mr.Read<byte[]>();
-                                CraftLibraryWorker.fetch.QueueCraftResponse(cre);
+                                craftLibraryWorker.QueueCraftResponse(cre);
                             }
                             else
                             {
@@ -1535,27 +1584,27 @@ namespace DarkMultiPlayer
                     case ScreenshotMessageType.SEND_START_NOTIFY:
                         {
                             string fromPlayer = mr.Read<string>();
-                            ScreenshotWorker.fetch.downloadingScreenshotFromPlayer = fromPlayer;
+                            screenshotWorker.downloadingScreenshotFromPlayer = fromPlayer;
                         }
                         break;
                     case ScreenshotMessageType.NOTIFY:
                         {
                             string fromPlayer = mr.Read<string>();
-                            ScreenshotWorker.fetch.QueueNewNotify(fromPlayer);
+                            screenshotWorker.QueueNewNotify(fromPlayer);
                         }
                         break;
                     case ScreenshotMessageType.SCREENSHOT:
                         {
                             string fromPlayer = mr.Read<string>();
                             byte[] screenshotData = mr.Read<byte[]>();
-                            ScreenshotWorker.fetch.QueueNewScreenshot(fromPlayer, screenshotData);
+                            screenshotWorker.QueueNewScreenshot(fromPlayer, screenshotData);
                         }
                         break;
                     case ScreenshotMessageType.WATCH:
                         {
                             string fromPlayer = mr.Read<string>();
                             string watchPlayer = mr.Read<string>();
-                            ScreenshotWorker.fetch.QueueNewScreenshotWatch(fromPlayer, watchPlayer);
+                            screenshotWorker.QueueNewScreenshotWatch(fromPlayer, watchPlayer);
                         }
                         break;
 
@@ -1568,7 +1617,7 @@ namespace DarkMultiPlayer
             using (MessageReader mr = new MessageReader(messageData))
             {
                 int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
-                ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
+                chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
             }
 
         }
@@ -1581,14 +1630,14 @@ namespace DarkMultiPlayer
                 if (serverMotd != "")
                 {
                     displayMotd = true;
-                    ChatWorker.fetch.QueueChannelMessage(ChatWorker.fetch.consoleIdentifier, "", serverMotd);
+                    chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", serverMotd);
                 }
             }
         }
 
         private void HandleWarpControl(byte[] messageData)
         {
-            WarpWorker.fetch.QueueWarpMessage(messageData);
+            warpWorker.QueueWarpMessage(messageData);
         }
 
         private void HandleSplitMessage(byte[] messageData)
@@ -1656,11 +1705,11 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>(Common.PROTOCOL_VERSION);
-                mw.Write<string>(Settings.fetch.playerName);
-                mw.Write<string>(Settings.fetch.playerPublicKey);
+                mw.Write<string>(dmpSettings.playerName);
+                mw.Write<string>(dmpSettings.playerPublicKey);
                 mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
-                mw.Write<bool>(Settings.fetch.compressionEnabled);
+                mw.Write<bool>(dmpSettings.compressionEnabled);
                 messageBytes = mw.GetMessageBytes();
             }
             ClientMessage newMessage = new ClientMessage();
@@ -1810,7 +1859,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            if (!AsteroidWorker.fetch.VesselIsAsteroid(vessel) && (DiscoveryLevels)int.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
+            if (!asteroidWorker.VesselIsAsteroid(vessel) && (DiscoveryLevels)int.Parse(vessel.discoveryInfo.GetValue("state")) != DiscoveryLevels.Owned)
             {
                 isContractVessel = true;
             }
@@ -1820,16 +1869,16 @@ namespace DarkMultiPlayer
             if (isContractVessel)
             {
                 ConfigNode dmpNode = new ConfigNode();
-                dmpNode.AddValue("contractOwner", Settings.fetch.playerPublicKey);
+                dmpNode.AddValue("contractOwner", dmpSettings.playerPublicKey);
                 vesselNode.AddNode("DarkMultiPlayer", dmpNode);
             }
 
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
-            byte[] vesselBytes = ConfigNodeSerializer.fetch.Serialize(vesselNode);
+            byte[] vesselBytes = configNodeSerializer.Serialize(vesselNode);
             if (vesselBytes != null && vesselBytes.Length > 0)
             {
-                UniverseSyncCache.fetch.QueueToCache(vesselBytes);
+                universeSyncCache.QueueToCache(vesselBytes);
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
@@ -1912,7 +1961,7 @@ namespace DarkMultiPlayer
                 mw.Write<bool>(isDockingUpdate);
                 if (isDockingUpdate)
                 {
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                 }
                 newMessage.data = mw.GetMessageBytes();
             }
@@ -2049,7 +2098,7 @@ namespace DarkMultiPlayer
         }
 
         /// <summary>
-        /// If you are a mod, call DMPModInterface.fetch.SendModMessage.
+        /// If you are a mod, call dmpModInterface.SendModMessage.
         /// </summary>
         public void SendModMessage(byte[] messageData, bool highPriority)
         {
@@ -2064,7 +2113,7 @@ namespace DarkMultiPlayer
             if (state != ClientState.DISCONNECTING && state >= ClientState.CONNECTED)
             {
                 DarkLog.Debug("Sending disconnect message, reason: " + disconnectReason);
-                Client.fetch.status = "Disconnected: " + disconnectReason;
+                connectionWindow.status = "Disconnected: " + disconnectReason;
                 state = ClientState.DISCONNECTING;
                 byte[] messageBytes;
                 using (MessageWriter mw = new MessageWriter())

@@ -7,7 +7,6 @@ namespace DarkMultiPlayer
     public class PlayerStatusWorker
     {
         public bool workerEnabled;
-        private static PlayerStatusWorker singleton;
         private Queue<PlayerStatus> addStatusQueue = new Queue<PlayerStatus>();
         private Queue<string> removeStatusQueue = new Queue<string>();
         public PlayerStatus myPlayerStatus;
@@ -17,20 +16,22 @@ namespace DarkMultiPlayer
         private const float PLAYER_STATUS_SEND_THROTTLE = 1f;
         private float lastPlayerStatusSend = 0f;
         private float lastPlayerStatusCheck = 0f;
+        //Services
+        private DMPGame dmpGame;
+        private VesselWorker vesselWorker;
+        private LockSystem lockSystem;
+        private NetworkWorker networkWorker;
 
-        public PlayerStatusWorker()
+        public PlayerStatusWorker(DMPGame dmpGame, Settings dmpSettings, VesselWorker vesselWorker, LockSystem lockSystem, NetworkWorker networkWorker)
         {
+            this.dmpGame = dmpGame;
+            this.vesselWorker = vesselWorker;
+            this.lockSystem = lockSystem;
+            this.networkWorker = networkWorker;
             myPlayerStatus = new PlayerStatus();
-            myPlayerStatus.playerName = Settings.fetch.playerName;
+            myPlayerStatus.playerName = dmpSettings.playerName;
             myPlayerStatus.statusText = "Syncing";
-        }
-
-        public static PlayerStatusWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
+            dmpGame.updateEvent.Add(Update);
         }
 
         private void Update()
@@ -47,7 +48,7 @@ namespace DarkMultiPlayer
                         //Send vessel+status update
                         if (FlightGlobals.ActiveVessel != null)
                         {
-                            if (!VesselWorker.fetch.isSpectating)
+                            if (!vesselWorker.isSpectating)
                             {
                                 myPlayerStatus.vesselText = FlightGlobals.ActiveVessel.vesselName;
                                 string bodyName = FlightGlobals.ActiveVessel.mainBody.bodyName;
@@ -67,7 +68,7 @@ namespace DarkMultiPlayer
                                         }
                                         break;
                                     case (Vessel.Situations.FLYING):
-                                        if (!VesselWorker.fetch.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
                                         {
                                             myPlayerStatus.statusText = "Flying above " + bodyName;
                                         }
@@ -77,7 +78,7 @@ namespace DarkMultiPlayer
                                         }
                                         break;
                                     case (Vessel.Situations.LANDED):
-                                        if (!VesselWorker.fetch.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
                                         {
                                             myPlayerStatus.statusText = "Landed on " + bodyName;
                                         }
@@ -90,7 +91,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Orbiting " + bodyName;
                                         break;
                                     case (Vessel.Situations.PRELAUNCH):
-                                        if (!VesselWorker.fetch.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
                                         {
                                             myPlayerStatus.statusText = "Launching from " + bodyName;
                                         }
@@ -116,15 +117,15 @@ namespace DarkMultiPlayer
                             }
                             else
                             {
-                                if (LockSystem.fetch.LockExists("control-" + FlightGlobals.ActiveVessel.id.ToString()))
+                                if (lockSystem.LockExists("control-" + FlightGlobals.ActiveVessel.id.ToString()))
                                 {
-                                    if (LockSystem.fetch.LockIsOurs("control-" + FlightGlobals.ActiveVessel.id.ToString()))
+                                    if (lockSystem.LockIsOurs("control-" + FlightGlobals.ActiveVessel.id.ToString()))
                                     {
                                         myPlayerStatus.statusText = "Waiting for vessel control";
                                     }
                                     else 
                                     {
-                                        myPlayerStatus.statusText = "Spectating " + LockSystem.fetch.LockOwner("control-" + FlightGlobals.ActiveVessel.id.ToString());
+                                        myPlayerStatus.statusText = "Spectating " + lockSystem.LockOwner("control-" + FlightGlobals.ActiveVessel.id.ToString());
                                     }
                                 }
                                 else
@@ -176,7 +177,7 @@ namespace DarkMultiPlayer
                     lastPlayerStatusSend = Client.realtimeSinceStartup;
                     lastPlayerStatus.vesselText = myPlayerStatus.vesselText;
                     lastPlayerStatus.statusText = myPlayerStatus.statusText;
-                    NetworkWorker.fetch.SendPlayerStatus(myPlayerStatus);
+                    networkWorker.SendPlayerStatus(myPlayerStatus);
                 }
 
                 while (addStatusQueue.Count > 0)
@@ -253,18 +254,10 @@ namespace DarkMultiPlayer
             return returnStatus;
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.updateEvent.Remove(singleton.Update);
-                }
-                singleton = new PlayerStatusWorker();
-                Client.updateEvent.Add(singleton.Update);
-            }
+                    workerEnabled = false;
+                    dmpGame.updateEvent.Remove(Update);
         }
     }
 }

@@ -6,7 +6,14 @@ namespace DarkMultiPlayer
     // This disclaimer exists because I was contacted by a moderator pointing me to the addon posting rules.
     public class DisclaimerWindow
     {
-        public static void SpawnDialog()
+        private Settings dmpSettings;
+
+        public DisclaimerWindow(Settings dmpSettings)
+        {
+            this.dmpSettings = dmpSettings;
+        }
+
+        public void SpawnDialog()
         {
             string disclaimerText = "DarkMultiPlayer shares the following possibly personally identifiable information with any server you connect to:\n";
             disclaimerText += "\ta) Your player name you connect with\n";
@@ -30,9 +37,9 @@ namespace DarkMultiPlayer
                                 delegate
                                 {
                                     DarkLog.Debug("User accepted disclaimer, enabling DarkMultiPlayer");
-                                    Settings.fetch.disclaimerAccepted = 1;
-                                    Settings.fetch.SaveSettings();
-                                    Client.fetch.modDisabled = false;
+                                    dmpSettings.disclaimerAccepted = 1;
+                                    dmpSettings.SaveSettings();
+                                    Client.modDisabled = false;
                                 }
                             ),
                             new DialogGUIFlexibleSpace(),

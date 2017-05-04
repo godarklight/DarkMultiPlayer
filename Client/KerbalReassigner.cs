@@ -6,21 +6,12 @@ namespace DarkMultiPlayer
 {
     public class KerbalReassigner
     {
-        private static KerbalReassigner singleton;
         private bool registered = false;
         private static string[] femaleNames;
         private static string[] femaleNamesPrefix;
         private static string[] femaleNamesPostfix;
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
-
-        public static KerbalReassigner fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
 
         public void RegisterGameHooks()
         {
@@ -271,18 +262,12 @@ namespace DarkMultiPlayer
             return ProtoCrewMember.Gender.Male;
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
+
+            if (registered)
             {
-                if (singleton != null)
-                {
-                    if (singleton.registered)
-                    {
-                        singleton.UnregisterGameHooks();
-                    }
-                }
-                singleton = new KerbalReassigner();
+                UnregisterGameHooks();
             }
         }
     }

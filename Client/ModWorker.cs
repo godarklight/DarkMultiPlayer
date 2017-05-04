@@ -8,7 +8,6 @@ namespace DarkMultiPlayer
 {
     public class ModWorker
     {
-        private static ModWorker singleton = new ModWorker();
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool dllListBuilt = false;
         //Dll files, built at startup
@@ -16,19 +15,19 @@ namespace DarkMultiPlayer
         //Accessed from ModWindow
         private List<string> allowedParts;
         private string lastModFileData = "";
+        //Services
+        private ModWindow modWindow;
+
+        public ModWorker(ModWindow modWindow)
+        {
+            this.modWindow = modWindow;
+        }
+
 
         public string failText
         {
             private set;
             get;
-        }
-
-        public static ModWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         private bool CheckFile(string relativeFileName, string referencefileHash)
@@ -387,7 +386,7 @@ namespace DarkMultiPlayer
             if (!modCheckOk)
             {
                 failText = sb.ToString();
-                ModWindow.fetch.display = true;
+                modWindow.display = true;
                 return false;
             }
             allowedParts = parsePartsList;
