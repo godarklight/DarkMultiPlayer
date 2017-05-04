@@ -26,7 +26,7 @@ namespace DarkMultiPlayer
             disclaimerText += "For more information, read the KSP addon rules on the forums.\n";
 
             PopupDialog.SpawnPopupDialog(
-                new MultiOptionDialog(disclaimerText,
+                new MultiOptionDialog("DisclaimerWindow", disclaimerText,
                     "DarkMultiPlayer - Disclaimer",
                     HighLogic.UISkin,
                     new Rect(.5f, .5f, 425f, 150f),

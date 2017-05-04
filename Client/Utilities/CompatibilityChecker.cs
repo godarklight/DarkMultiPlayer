@@ -50,7 +50,7 @@ namespace DarkMultiPlayer.Utilities
         {
             const int compatibleMajor = 1;
             const int compatibleMinor = 2;
-            const int compatibleRevision = 2;
+            const int compatibleRevision = 9;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor) && (Versioning.Revision == compatibleRevision);
 
             /*-----------------------------------------------*\
@@ -160,7 +160,7 @@ namespace DarkMultiPlayer.Utilities
 
             if ((incompatible.Length > 0) || (incompatibleUnity.Length > 0))
             {
-                PopupDialog.SpawnPopupDialog (new MultiOptionDialog(message, "Incompatible Mods Detected", HighLogic.UISkin), true, HighLogic.UISkin);
+                PopupDialog.SpawnPopupDialog(new MultiOptionDialog("CompatibilityChecker", message, "Incompatible Mods Detected", HighLogic.UISkin), true, HighLogic.UISkin);
             }
         }
 
