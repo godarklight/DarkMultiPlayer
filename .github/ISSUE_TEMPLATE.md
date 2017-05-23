@@ -1,6 +1,6 @@
 ### Environment
-- OS: <!-- unix: `uname -srvmo` -->
-- Mono: <!-- only fill this field if you're on a unix-based OS, ignore for Windows. Obtainable with `mono --version` -->
+- OS: <!--- unix: `uname -srvmo` -->
+- Mono: <!--- only fill this field if you're on a unix-based OS, ignore for Windows. `mono -V` -->
 
 ### Description
 Describe what went wrong with DMP.
