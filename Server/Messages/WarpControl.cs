@@ -682,9 +682,11 @@ namespace DarkMultiPlayerServer.Messages
         internal static void DisconnectPlayer(ClientObject client)
         {
             string playerName = client.playerName;
-            if (warpList.ContainsKey(playerName))
-            {
-                warpList.Remove(playerName);
+            if (warpList != null) {
+                if (warpList.ContainsKey(playerName))
+                {
+                    warpList.Remove(playerName);
+                }
             }
             if (voteList != null)
             {
@@ -704,7 +706,7 @@ namespace DarkMultiPlayerServer.Messages
             {
                 SendSetController(null, long.MinValue);
             }
-            if (!Settings.settingsStore.sendPlayerToLatestSubspace)
+            if (!Settings.settingsStore.sendPlayerToLatestSubspace && subspaces.ContainsKey(client.subspace))
             {
                 Subspace clientSubspace = subspaces[client.subspace];
                 double timeDelta = ((DateTime.UtcNow.Ticks - clientSubspace.serverClock) / 10000000d) * clientSubspace.subspaceSpeed;
