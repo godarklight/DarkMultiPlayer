@@ -16,6 +16,18 @@ namespace DarkMultiPlayer
         private bool blockScenarioDataSends = false;
         private float lastScenarioSendTime = 0f;
         private const float SEND_SCENARIO_DATA_INTERVAL = 30f;
+        //Trigger rep loss
+        private bool repLoss = false;
+        //Does rep have a reason to lower
+        private bool repLossHasReason = false;
+        //Last time a rep event happened
+        private float repEventTimer = 0f;
+        //Rep trigger/reason cooldown timer
+        private const float REP_LOSS_COOLDOWN = 2f;
+        //The current rep taking in account for random rep loss
+        private float currentRep = 0f;
+        //Total rep lost
+        private float repLost = 0f;
         //ScenarioType list to check.
         private Dictionary<string, Type> allScenarioTypesInAssemblies;
         //System.Reflection hackiness for loading kerbals into the crew roster:
@@ -27,13 +39,15 @@ namespace DarkMultiPlayer
         private VesselWorker vesselWorker;
         private ConfigNodeSerializer configNodeSerializer;
         private NetworkWorker networkWorker;
+        private LockSystem lockSystem;
 
-        public ScenarioWorker(DMPGame dmpGame, VesselWorker vesselWorker, ConfigNodeSerializer configNodeSerializer, NetworkWorker networkWorker)
+        public ScenarioWorker(DMPGame dmpGame, VesselWorker vesselWorker, ConfigNodeSerializer configNodeSerializer, NetworkWorker networkWorker, LockSystem lockSystem)
         {
             this.dmpGame = dmpGame;
             this.vesselWorker = vesselWorker;
             this.configNodeSerializer = configNodeSerializer;
             this.networkWorker = networkWorker;
+            this.lockSystem = lockSystem;
             dmpGame.updateEvent.Add(Update);
         }
 
@@ -41,12 +55,19 @@ namespace DarkMultiPlayer
         {
             registered = true;
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
+            GameEvents.onCrewKilled.Add(OnCrewKilled);
+            GameEvents.onVesselTerminated.Add(OnVesselTerminated);
+            GameEvents.OnReputationChanged.Add(OnReputationChanged);
+            currentRep = Reputation.Instance.reputation;
         }
 
         private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
+            GameEvents.onCrewKilled.Remove(OnCrewKilled);
+            GameEvents.onVesselTerminated.Remove(OnVesselTerminated);
+            GameEvents.OnReputationChanged.Remove(OnReputationChanged);
         }
 
         private void OnContractAccepted(Contract contract)
@@ -115,11 +136,115 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void OnCrewKilled(EventReport report)
+        {
+            Part part = report.origin;
+
+            if (part != null)
+            {
+                Vessel vessel = part.vessel;
+
+                if (vessel != null)
+                {
+                    if ((lockSystem.LockExists("control-" + vessel.id) && !lockSystem.LockIsOurs("control-" + vessel.id)) || !lockSystem.LockExists("control-" + vessel.id))
+                    {
+                        if (!repLossHasReason)
+                        {
+                            repLossHasReason = true;
+                            repEventTimer = Client.realtimeSinceStartup;
+                        }
+                    }
+                }
+                else
+                {
+                    if (!repLossHasReason)
+                    {
+                        repLossHasReason = true;
+                        repEventTimer = Client.realtimeSinceStartup;
+                    }
+                }
+            }
+            else
+            {
+                if (!repLossHasReason)
+                {
+                    repLossHasReason = true;
+                    repEventTimer = Client.realtimeSinceStartup;
+                }
+            }
+        }
+
+        private void OnVesselTerminated(ProtoVessel pv)
+        {
+            List<ProtoCrewMember> crew = pv.GetVesselCrew();
+
+            if (crew.Count > 0)
+            {
+                if ((lockSystem.LockExists("control-" + pv.vesselID) && lockSystem.LockIsOurs("control-" + pv.vesselID)) || !lockSystem.LockExists("control-" + pv.vesselID))
+                {
+                    if (!repLossHasReason)
+                    {
+                        repLossHasReason = true;
+                        repEventTimer = Client.realtimeSinceStartup;
+                    }
+                }
+            }
+        }
+
+        private void OnReputationChanged(float totalValue, TransactionReasons reason)
+        {
+            if (reason == TransactionReasons.VesselLoss)
+            {
+                if (!repLoss)
+                {
+                    repLoss = true;
+                    repEventTimer = Client.realtimeSinceStartup;
+                }
+                repLost += currentRep - totalValue;
+            }
+            currentRep = totalValue;
+        }
+
         private void Update()
         {
             if (workerEnabled)
             {
                 if (!registered) RegisterGameHooks();
+
+                if (repLossHasReason)
+                {
+                    if (repLoss)
+                    {
+                        repLossHasReason = false;
+                        repLoss = false;
+                        
+                        Reputation.Instance.AddReputation(repLost, TransactionReasons.None);
+
+                        repLost = 0f;
+                    }
+                    else
+                    {
+                        if ((Client.realtimeSinceStartup - repEventTimer) > REP_LOSS_COOLDOWN)
+                        {
+                            repLossHasReason = false;
+
+                            repLost = 0f;
+                        }
+                    }
+                }
+                else
+                {
+                    if (repLoss)
+                    {
+                        if ((Client.realtimeSinceStartup - repEventTimer) > REP_LOSS_COOLDOWN)
+                        {
+                            repLoss = false;
+
+                            repLost = 0f;
+                        }
+                    }
+                }
+                
                 if (!blockScenarioDataSends)
                 {
                     if ((Client.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
