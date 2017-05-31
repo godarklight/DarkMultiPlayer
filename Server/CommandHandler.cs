@@ -20,6 +20,7 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("listclients", ListClients, "Lists connected clients");
                 CommandHandler.RegisterCommand("countclients", CountClients, "Counts connected clients");
                 CommandHandler.RegisterCommand("connectionstats", ConnectionStats, "Displays network traffic usage");
+                CommandHandler.RegisterCommand("nukeall", NukeKSC.RunNukeEverything, "Clears ALL vessels from the ENTIRE game universe");
 
                 //Main loop
                 while (Server.serverRunning)
