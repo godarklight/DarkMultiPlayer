@@ -180,7 +180,7 @@ namespace DarkMultiPlayer
 
             if (crew.Count > 0)
             {
-                if ((lockSystem.LockExists("control-" + pv.vesselID) && lockSystem.LockIsOurs("control-" + pv.vesselID)) || !lockSystem.LockExists("control-" + pv.vesselID))
+                if (lockSystem.LockExists("control-" + pv.vesselID) && !lockSystem.LockIsOurs("control-" + pv.vesselID))
                 {
                     if (!repLossHasReason)
                     {
