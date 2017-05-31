@@ -6,22 +6,12 @@ namespace DarkMultiPlayer
 {
     public class KerbalReassigner
     {
-        private static KerbalReassigner singleton;
         private bool registered = false;
+        private static string[] femaleNames;
+        private static string[] femaleNamesPrefix;
+        private static string[] femaleNamesPostfix;
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
-
-        private delegate bool AddCrewMemberToRosterDelegate(ProtoCrewMember pcm);
-
-        private AddCrewMemberToRosterDelegate AddCrewMemberToRoster;
-
-        public static KerbalReassigner fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
 
         public void RegisterGameHooks()
         {
@@ -137,15 +127,25 @@ namespace DarkMultiPlayer
                                 break;
                             }
                         }
+                        int kerbalTries = 0;
                         while (newKerbal == null)
                         {
                             bool kerbalOk = true;
-                            ProtoCrewMember possibleKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Crew);
-                            if (possibleKerbal.gender != newKerbalGender)
+                            ProtoCrewMember.KerbalType kerbalType = ProtoCrewMember.KerbalType.Crew;
+                            if (newExperienceTrait == "Tourist")
+                            {
+                                kerbalType = ProtoCrewMember.KerbalType.Tourist;
+                            }
+                            if (newExperienceTrait == "Unowned")
+                            {
+                                kerbalType = ProtoCrewMember.KerbalType.Unowned;
+                            }
+                            ProtoCrewMember possibleKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(kerbalType);
+                            if (kerbalTries < 200 && possibleKerbal.gender != newKerbalGender)
                             {
                                 kerbalOk = false;
                             }
-                            if (newExperienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
+                            if (kerbalTries < 100 && newExperienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
                             {
                                 kerbalOk = false;
                             }
@@ -153,7 +153,9 @@ namespace DarkMultiPlayer
                             {
                                 newKerbal = possibleKerbal;
                             }
+                            kerbalTries++;
                         }
+                        DarkLog.Debug("Generated dodged kerbal with " + kerbalTries + " tries");
                         partNode.SetValue("crew", newKerbal.name, crewIndex);
                         newKerbal.seatIdx = crewIndex;
                         newKerbal.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
@@ -180,19 +182,10 @@ namespace DarkMultiPlayer
         {
             if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
             {
-                if (AddCrewMemberToRoster == null)
-                {
-                    MethodInfo addMemberToCrewRosterMethod = typeof(KerbalRoster).GetMethod("AddCrewMember", BindingFlags.NonPublic | BindingFlags.Instance);
-                    AddCrewMemberToRoster = (AddCrewMemberToRosterDelegate)Delegate.CreateDelegate(typeof(AddCrewMemberToRosterDelegate), HighLogic.CurrentGame.CrewRoster, addMemberToCrewRosterMethod);
-                    if (AddCrewMemberToRoster == null)
-                    {
-                        throw new Exception("Failed to load AddCrewMember delegate!");
-                    }
-                }
                 ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
-                pcm.name = kerbalName;
+                pcm.ChangeName(kerbalName);
                 pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
-                AddCrewMemberToRoster(pcm);
+                HighLogic.CurrentGame.CrewRoster.AddCrewMember(pcm);
                 DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");
             }
         }
@@ -204,58 +197,77 @@ namespace DarkMultiPlayer
             if (kerbalName.Contains(" Kerman"))
             {
                 trimmedName = kerbalName.Substring(0, kerbalName.IndexOf(" Kerman"));
-                DarkLog.Debug("Trimming to '" + trimmedName + "'");
+                DarkLog.Debug("(KerbalReassigner) Trimming name to '" + trimmedName + "'");
             }
-            try
+            foreach (FieldInfo fi in typeof(CrewGenerator).GetFields(BindingFlags.Static | BindingFlags.NonPublic))
             {
-                string[] femaleNames = (string[])typeof(CrewGenerator).GetField("\u0004", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                string[] femaleNamesPrefix = (string[])typeof(CrewGenerator).GetField("\u0005", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                string[] femaleNamesPostfix = (string[])typeof(CrewGenerator).GetField("\u0006", BindingFlags.Static | BindingFlags.NonPublic).GetValue(null);
-                //Not part of the generator
-                if (trimmedName == "Valentina")
+                if (fi.FieldType == typeof(string[]))
                 {
-                    return ProtoCrewMember.Gender.Female;
-                }
-                foreach (string name in femaleNames)
-                {
-                    if (name == trimmedName)
+                    string[] fieldValue = (string[])fi.GetValue(null);
+                    foreach (string entry in fieldValue)
                     {
-                        return ProtoCrewMember.Gender.Female;
-                    }
-                }
-                foreach (string prefixName in femaleNamesPrefix)
-                {
-                    if (trimmedName.StartsWith(prefixName))
-                    {
-                        foreach (string postfixName in femaleNamesPostfix)
+                        if (entry == "Alice")
                         {
-                            if (trimmedName == prefixName + postfixName)
-                            {
-                                return ProtoCrewMember.Gender.Female;
-                            }
+                            DarkLog.Debug("Found female single names!");
+                            femaleNames = fieldValue;
+                            break;
+                        }
+                        if (entry == "Aga")
+                        {
+                            DarkLog.Debug("Found female prefixes!");
+                            femaleNamesPrefix = fieldValue;
+                            break;
+                        }
+                        if (entry == "alla")
+                        {
+                            DarkLog.Debug("Found female postfixes!");
+                            femaleNamesPostfix = fieldValue;
+                            break;
                         }
                     }
                 }
             }
-            catch (Exception e)
+            if (femaleNames == null || femaleNamesPrefix == null || femaleNamesPostfix == null)
             {
-                DarkLog.Debug("DarkMultiPlayer name identifier exception: " + e);
+                DarkLog.Debug("Kerbal Gender Assigner is BROKEN!");
+                return ProtoCrewMember.Gender.Male;
+            }
+
+            if (trimmedName == "Valentina")
+            {
+                return ProtoCrewMember.Gender.Female;
+            }
+
+            foreach (string name in femaleNames)
+            {
+                if (name == trimmedName)
+                {
+                    return ProtoCrewMember.Gender.Female;
+                }
+            }
+
+            foreach (string prefixName in femaleNamesPrefix)
+            {
+                if (trimmedName.StartsWith(prefixName))
+                {
+                    foreach (string postfixName in femaleNamesPostfix)
+                    {
+                        if (trimmedName == prefixName + postfixName)
+                        {
+                            return ProtoCrewMember.Gender.Female;
+                        }
+                    }
+                }
             }
             return ProtoCrewMember.Gender.Male;
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
+
+            if (registered)
             {
-                if (singleton != null)
-                {
-                    if (singleton.registered)
-                    {
-                        singleton.UnregisterGameHooks();
-                    }
-                }
-                singleton = new KerbalReassigner();
+                UnregisterGameHooks();
             }
         }
     }

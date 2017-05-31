@@ -6,8 +6,6 @@ namespace DarkMultiPlayer
 {
     public class AsteroidWorker
     {
-        //singleton
-        private static AsteroidWorker singleton;
         //How many asteroids to spawn into the server
         public int maxNumberOfUntrackedAsteroids;
         public bool workerEnabled;
@@ -16,15 +14,23 @@ namespace DarkMultiPlayer
         private const float ASTEROID_CHECK_INTERVAL = 5f;
         ScenarioDiscoverableObjects scenarioController;
         private List<string> serverAsteroids = new List<string>();
-        private Dictionary<string,string> serverAsteroidTrackStatus = new Dictionary<string,string>();
+        private Dictionary<string, string> serverAsteroidTrackStatus = new Dictionary<string, string>();
         private object serverAsteroidListLock = new object();
+        //Services
+        private DMPGame dmpGame;
+        private LockSystem lockSystem;
+        private NetworkWorker networkWorker;
+        private VesselWorker vesselWorker;
 
-        public static AsteroidWorker fetch
+        public AsteroidWorker(DMPGame dmpGame, LockSystem lockSystem, NetworkWorker networkWorker, VesselWorker vesselWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpGame = dmpGame;
+            this.lockSystem = lockSystem;
+            this.networkWorker = networkWorker;
+            this.vesselWorker = vesselWorker;
+            this.dmpGame.updateEvent.Add(Update);
+            GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+            GameEvents.onVesselCreate.Add(OnVesselCreate);
         }
 
         private void Update()
@@ -48,20 +54,20 @@ namespace DarkMultiPlayer
                         }
                     }
                 }
-            
+
                 if (scenarioController != null)
                 {
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastAsteroidCheck) > ASTEROID_CHECK_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastAsteroidCheck) > ASTEROID_CHECK_INTERVAL)
                     {
-                        lastAsteroidCheck = UnityEngine.Time.realtimeSinceStartup;
+                        lastAsteroidCheck = Client.realtimeSinceStartup;
                         //Try to acquire the asteroid-spawning lock if nobody else has it.
-                        if (!LockSystem.fetch.LockExists("asteroid-spawning"))
+                        if (!lockSystem.LockExists("asteroid-spawning"))
                         {
-                            LockSystem.fetch.AcquireLock("asteroid-spawning", false);
+                            lockSystem.AcquireLock("asteroid-spawning", false);
                         }
 
                         //We have the spawn lock, lets do stuff.
-                        if (LockSystem.fetch.LockIsOurs("asteroid-spawning"))
+                        if (lockSystem.LockIsOurs("asteroid-spawning"))
                         {
                             if ((HighLogic.CurrentGame.flightState.protoVessels != null) && (FlightGlobals.fetch.vessels != null))
                             {
@@ -94,7 +100,7 @@ namespace DarkMultiPlayer
                                         ProtoVessel pv = asteroid.BackupVessel();
                                         DarkLog.Debug("Sending changed asteroid, new state: " + asteroid.DiscoveryInfo.trackingStatus.Value + "!");
                                         serverAsteroidTrackStatus[asteroid.id.ToString()] = asteroid.DiscoveryInfo.trackingStatus.Value;
-                                        NetworkWorker.fetch.SendVesselProtoMessage(pv, false, false);
+                                        networkWorker.SendVesselProtoMessage(pv, false, false);
                                     }
                                 }
                             }
@@ -112,7 +118,7 @@ namespace DarkMultiPlayer
                 {
                     lock (serverAsteroidListLock)
                     {
-                        if (LockSystem.fetch.LockIsOurs("asteroid-spawning"))
+                        if (lockSystem.LockIsOurs("asteroid-spawning"))
                         {
                             if (!serverAsteroids.Contains(checkVessel.id.ToString()))
                             {
@@ -120,8 +126,8 @@ namespace DarkMultiPlayer
                                 {
                                     DarkLog.Debug("Spawned in new server asteroid!");
                                     serverAsteroids.Add(checkVessel.id.ToString());
-                                    VesselWorker.fetch.RegisterServerVessel(checkVessel.id);
-                                    NetworkWorker.fetch.SendVesselProtoMessage(checkVessel.protoVessel, false, false);
+                                    vesselWorker.RegisterServerVessel(checkVessel.id);
+                                    networkWorker.SendVesselProtoMessage(checkVessel.protoVessel, false, false);
                                 }
                                 else
                                 {
@@ -250,22 +256,11 @@ namespace DarkMultiPlayer
             scenarioController = null;
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.updateEvent.Remove(singleton.Update);
-                    GameEvents.onGameSceneLoadRequested.Remove(singleton.OnGameSceneLoadRequested);
-                    GameEvents.onVesselCreate.Remove(singleton.OnVesselCreate);
-                }
-                singleton = new AsteroidWorker();
-                Client.updateEvent.Add(singleton.Update);
-                GameEvents.onGameSceneLoadRequested.Add(singleton.OnGameSceneLoadRequested);
-                GameEvents.onVesselCreate.Add(singleton.OnVesselCreate);
-            }
+            dmpGame.updateEvent.Remove(Update);
+            GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
+            GameEvents.onVesselCreate.Remove(OnVesselCreate);
         }
     }
 }

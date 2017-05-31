@@ -5,7 +5,6 @@ namespace DarkMultiPlayer
 {
     public class UniverseConverterWindow
     {
-        private static UniverseConverterWindow singleton = new UniverseConverterWindow();
         public bool loadEventHandled = true;
         public bool display;
         private bool safeDisplay;
@@ -23,19 +22,12 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 300;
         private const float WINDOW_WIDTH = 200;
+        //Services
+        private UniverseConverter universeConverter;
 
-        public UniverseConverterWindow()
+        public UniverseConverterWindow(UniverseConverter universeConverter)
         {
-            Client.updateEvent.Add(this.Update);
-            Client.drawEvent.Add(this.Draw);
-        }
-
-        public static UniverseConverterWindow fetch
-        {
-            get
-            {
-                return singleton;
-            }
+            this.universeConverter = universeConverter;
         }
 
         private void InitGUI()
@@ -55,12 +47,12 @@ namespace DarkMultiPlayer
             layoutOptions[3] = GUILayout.ExpandHeight(true);
         }
 
-        private void Update()
+        public void Update()
         {
             safeDisplay = display;
         }
 
-        private void Draw()
+        public void Draw()
         {
             if (!initialized)
             {
@@ -82,7 +74,7 @@ namespace DarkMultiPlayer
             {
                 if (GUILayout.Button(saveFolder))
                 {
-                    UniverseConverter.GenerateUniverse(saveFolder);
+                    universeConverter.GenerateUniverse(saveFolder);
                 }
             }
             GUILayout.EndScrollView();

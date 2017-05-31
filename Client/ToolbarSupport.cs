@@ -12,17 +12,14 @@ namespace DarkMultiPlayer
         private bool blizzyRegistered;
         private bool stockRegistered;
         private Texture2D buttonTexture;
-		private ApplicationLauncherButton stockDmpButton;
+        private ApplicationLauncherButton stockDmpButton;
         private IButton blizzyButton;
-        //Singleton
-        private static ToolbarSupport singleton;
+        //Services
+        private Settings dmpSettings;
 
-        public static ToolbarSupport fetch
+        public ToolbarSupport(Settings dmpSettings)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpSettings = dmpSettings;
         }
 
         public void DetectSettingsChange()
@@ -43,15 +40,15 @@ namespace DarkMultiPlayer
                 return;
             }
             registered = true;
-            if (Settings.fetch.toolbarType == DMPToolbarType.DISABLED)
+            if (dmpSettings.toolbarType == DMPToolbarType.DISABLED)
             {
                 //Nothing!
             }
-            if (Settings.fetch.toolbarType == DMPToolbarType.FORCE_STOCK)
+            if (dmpSettings.toolbarType == DMPToolbarType.FORCE_STOCK)
             {
                 EnableStockToolbar();
             }
-            if (Settings.fetch.toolbarType == DMPToolbarType.BLIZZY_IF_INSTALLED)
+            if (dmpSettings.toolbarType == DMPToolbarType.BLIZZY_IF_INSTALLED)
             {
                 if (ToolbarManager.ToolbarAvailable)
                 {
@@ -62,7 +59,7 @@ namespace DarkMultiPlayer
                     EnableStockToolbar();
                 }
             }
-            if (Settings.fetch.toolbarType == DMPToolbarType.BOTH_IF_INSTALLED)
+            if (dmpSettings.toolbarType == DMPToolbarType.BOTH_IF_INSTALLED)
             {
                 if (ToolbarManager.ToolbarAvailable)
                 {
@@ -153,23 +150,16 @@ namespace DarkMultiPlayer
 
         private void HandleButtonClick()
         {
-            Client.fetch.toolbarShowGUI = !Client.fetch.toolbarShowGUI;
+            Client.toolbarShowGUI = !Client.toolbarShowGUI;
         }
 
         private void DoNothing()
         {
         }
 
-        public static void Reset()
+        public  void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.DisableToolbar();
-                }
-                singleton = new ToolbarSupport();
-            }
+            DisableToolbar();
         }
     }
 

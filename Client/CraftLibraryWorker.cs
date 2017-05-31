@@ -9,8 +9,6 @@ namespace DarkMultiPlayer
 {
     public class CraftLibraryWorker
     {
-        //Public
-        private static CraftLibraryWorker singleton;
         public bool display;
         public bool workerEnabled;
         //Private
@@ -65,21 +63,23 @@ namespace DarkMultiPlayer
         private const float LIBRARY_WINDOW_HEIGHT = 400;
         private const float LIBRARY_WINDOW_WIDTH = 300;
         private const float CRAFT_MESSAGE_CHECK_INTERVAL = 0.2f;
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private NetworkWorker networkWorker;
 
-        public CraftLibraryWorker()
+        public CraftLibraryWorker(DMPGame dmpGame, Settings dmpSettings, NetworkWorker networkWorker)
         {
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.networkWorker = networkWorker;
             savePath = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
             vabPath = Path.Combine(Path.Combine(savePath, "Ships"), "VAB");
             sphPath = Path.Combine(Path.Combine(savePath, "Ships"), "SPH");
             subassemblyPath = Path.Combine(savePath, "Subassemblies");
-        }
-
-        public static CraftLibraryWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
+            BuildUploadList();
+            dmpGame.updateEvent.Add(Update);
+            dmpGame.drawEvent.Add(Draw);
         }
 
         private void Update()
@@ -121,22 +121,22 @@ namespace DarkMultiPlayer
 
                 if (deleteCraftName != null)
                 {
-                    DeleteCraftEntry(Settings.fetch.playerName, deleteCraftType, deleteCraftName);
+                    DeleteCraftEntry(dmpSettings.playerName, deleteCraftType, deleteCraftName);
                     using (MessageWriter mw = new MessageWriter())
                     {
                         mw.Write<int>((int)CraftMessageType.DELETE_FILE);
-                        mw.Write<string>(Settings.fetch.playerName);
+                        mw.Write<string>(dmpSettings.playerName);
                         mw.Write<int>((int)deleteCraftType);
                         mw.Write<string>(deleteCraftName);
-                        NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
+                        networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
                     }
                     deleteCraftName = null;
                     deleteCraftType = CraftType.VAB;
                 }
 
-                if (displayCraftUploadingMessage && ((UnityEngine.Time.realtimeSinceStartup - lastCraftMessageCheck) > CRAFT_MESSAGE_CHECK_INTERVAL))
+                if (displayCraftUploadingMessage && ((Client.realtimeSinceStartup - lastCraftMessageCheck) > CRAFT_MESSAGE_CHECK_INTERVAL))
                 {
-                    lastCraftMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                    lastCraftMessageCheck = Client.realtimeSinceStartup;
                     if (craftUploadMessage != null)
                     {
                         craftUploadMessage.duration = 0f;
@@ -177,12 +177,12 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)CraftMessageType.UPLOAD_FILE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<int>((int)type);
                     mw.Write<string>(name);
                     mw.Write<byte[]>(fileData);
-                    NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
-                    AddCraftEntry(Settings.fetch.playerName, uploadCraftType, uploadCraftName);
+                    networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
+                    AddCraftEntry(dmpSettings.playerName, uploadCraftType, uploadCraftName);
                     displayCraftUploadingMessage = true;
                 }
             }
@@ -199,11 +199,11 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)CraftMessageType.REQUEST_FILE);
-                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(dmpSettings.playerName);
                 mw.Write<string>(playerName);
                 mw.Write<int>((int)craftType);
                 mw.Write<string>(craftName);
-                NetworkWorker.fetch.SendCraftLibraryMessage(mw.GetMessageBytes());
+                networkWorker.SendCraftLibraryMessage(mw.GetMessageBytes());
             }
         }
 
@@ -243,7 +243,7 @@ namespace DarkMultiPlayer
                         }
                         if (playerList[playerName].Count == 0)
                         {
-                            if (playerName != Settings.fetch.playerName)
+                            if (playerName != dmpSettings.playerName)
                             {
                                 playerList.Remove(playerName);
                                 if (playersWithCrafts.Contains(playerName))
@@ -339,7 +339,7 @@ namespace DarkMultiPlayer
             if (safeDisplay && selectedPlayer != null)
             {
                 //Sanity check
-                if (playersWithCrafts.Contains(selectedPlayer) || selectedPlayer == Settings.fetch.playerName)
+                if (playersWithCrafts.Contains(selectedPlayer) || selectedPlayer == dmpSettings.playerName)
                 {
                     libraryWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6708 + Client.WINDOW_OFFSET, libraryWindowRect, DrawLibraryContent, "DarkMultiPlayer - " + selectedPlayer + " Craft Library", windowStyle, libraryLayoutOptions));
                 }
@@ -357,10 +357,10 @@ namespace DarkMultiPlayer
             GUI.DragWindow(moveRect);
             //Draw the player buttons
             playerScrollPos = GUILayout.BeginScrollView(playerScrollPos, scrollStyle);
-            DrawPlayerButton(Settings.fetch.playerName);
+            DrawPlayerButton(dmpSettings.playerName);
             foreach (string playerName in playersWithCrafts)
             {
-                if (playerName != Settings.fetch.playerName)
+                if (playerName != dmpSettings.playerName)
                 {
                     DrawPlayerButton(playerName);
                 }
@@ -389,7 +389,7 @@ namespace DarkMultiPlayer
             GUILayout.BeginVertical();
             GUI.DragWindow(moveRect);
             bool newShowUpload = false;
-            if (selectedPlayer == Settings.fetch.playerName)
+            if (selectedPlayer == dmpSettings.playerName)
             {
                 newShowUpload = GUILayout.Toggle(showUpload, "Upload", buttonStyle);
             }
@@ -416,7 +416,7 @@ namespace DarkMultiPlayer
 
         private void CheckWindowLock()
         {
-            if (!Client.fetch.gameRunning)
+            if (!dmpGame.running)
             {
                 RemoveWindowLock();
                 return;
@@ -468,11 +468,11 @@ namespace DarkMultiPlayer
                 GUILayout.Label(entryType.Key.ToString(), labelStyle);
                 foreach (string entryName in entryType.Value)
                 {
-                    if (playerList.ContainsKey(Settings.fetch.playerName))
+                    if (playerList.ContainsKey(dmpSettings.playerName))
                     {
-                        if (playerList[Settings.fetch.playerName].ContainsKey(entryType.Key))
+                        if (playerList[dmpSettings.playerName].ContainsKey(entryType.Key))
                         {
-                            if (playerList[Settings.fetch.playerName][entryType.Key].Contains(entryName))
+                            if (playerList[dmpSettings.playerName][entryType.Key].Contains(entryName))
                             {
                                 GUI.enabled = false;
                             }
@@ -532,7 +532,7 @@ namespace DarkMultiPlayer
                     GUILayout.Label(entry.Key.ToString(), labelStyle);
                     foreach (string craftName in entry.Value)
                     {
-                        if (selectedPlayer == Settings.fetch.playerName)
+                        if (selectedPlayer == dmpSettings.playerName)
                         {
                             //Also draw remove button on player screen
                             GUILayout.BeginHorizontal();
@@ -576,38 +576,27 @@ namespace DarkMultiPlayer
             craftResponseQueue.Enqueue(entry);
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    singleton.RemoveWindowLock();
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new CraftLibraryWorker();
-                singleton.BuildUploadList();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
+            workerEnabled = false;
+            RemoveWindowLock();
+            dmpGame.updateEvent.Remove(Update);
+            dmpGame.drawEvent.Remove(Draw);
         }
-    }
-
-    public class CraftChangeEntry
-    {
-        public string playerName;
-        public CraftType craftType;
-        public string craftName;
-    }
-
-    public class CraftResponseEntry
-    {
-        public string playerName;
-        public CraftType craftType;
-        public string craftName;
-        public byte[] craftData;
     }
 }
 
+public class CraftChangeEntry
+{
+    public string playerName;
+    public CraftType craftType;
+    public string craftName;
+}
+
+public class CraftResponseEntry
+{
+    public string playerName;
+    public CraftType craftType;
+    public string craftName;
+    public byte[] craftData;
+}

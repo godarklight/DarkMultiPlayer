@@ -8,7 +8,6 @@ namespace DarkMultiPlayer
 {
     public class ModWorker
     {
-        private static ModWorker singleton = new ModWorker();
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool dllListBuilt = false;
         //Dll files, built at startup
@@ -16,19 +15,19 @@ namespace DarkMultiPlayer
         //Accessed from ModWindow
         private List<string> allowedParts;
         private string lastModFileData = "";
+        //Services
+        private ModWindow modWindow;
+
+        public ModWorker(ModWindow modWindow)
+        {
+            this.modWindow = modWindow;
+        }
+
 
         public string failText
         {
             private set;
             get;
-        }
-
-        public static ModWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         private bool CheckFile(string relativeFileName, string referencefileHash)
@@ -83,8 +82,8 @@ namespace DarkMultiPlayer
             }
 
             //Parse
-            Dictionary<string,string> parseRequired = new Dictionary<string, string>();
-            Dictionary<string,string> parseOptional = new Dictionary<string, string>();
+            Dictionary<string, string> parseRequired = new Dictionary<string, string>();
+            Dictionary<string, string> parseOptional = new Dictionary<string, string>();
             List<string> parseWhiteBlackList = new List<string>();
             List<string> parsePartsList = new List<string>();
             bool isWhiteList = false;
@@ -346,11 +345,11 @@ namespace DarkMultiPlayer
                     {
                         continue;
                     }
-					//Ignore squad plugins
-					if (dllResource.Key.StartsWith("squad/plugins"))
-					{
-						continue;
-					}
+                    //Ignore squad plugins
+                    if (dllResource.Key.StartsWith("squad/plugins"))
+                    {
+                        continue;
+                    }
                     //Check required (Required implies whitelist)
                     if (parseRequired.ContainsKey(dllResource.Key))
                     {
@@ -387,7 +386,7 @@ namespace DarkMultiPlayer
             if (!modCheckOk)
             {
                 failText = sb.ToString();
-                ModWindow.fetch.display = true;
+                modWindow.display = true;
                 return false;
             }
             allowedParts = parsePartsList;
@@ -465,7 +464,7 @@ namespace DarkMultiPlayer
                                 partsList.Add(partName);
                             }
                         }
-                        
+
                     }
                     if (fileIsPartFile)
                     {

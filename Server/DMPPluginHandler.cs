@@ -65,7 +65,7 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-            
+
             //Iterate through the assemblies looking for classes that have the IDMPPlugin interface
 
             Type dmpInterfaceType = typeof(IDMPPlugin);

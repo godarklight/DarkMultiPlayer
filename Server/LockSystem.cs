@@ -59,7 +59,7 @@ namespace DarkMultiPlayerServer
             lock (playerLocks)
             {
                 List<string> removeList = new List<string>();
-                foreach (KeyValuePair<string,string> kvp in playerLocks)
+                foreach (KeyValuePair<string, string> kvp in playerLocks)
                 {
                     if (kvp.Value == playerName)
                     {
@@ -73,7 +73,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        public Dictionary<string,string> GetLockList()
+        public Dictionary<string, string> GetLockList()
         {
             lock (playerLocks)
             {

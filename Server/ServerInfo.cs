@@ -85,6 +85,6 @@ namespace DarkMultiPlayerServer
 
             return sr.ReadToEnd();
         }
-        
+
     }
 }

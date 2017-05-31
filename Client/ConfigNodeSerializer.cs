@@ -6,11 +6,9 @@ using System.Text;
 
 namespace DarkMultiPlayer
 {
-    class ConfigNodeSerializer
+    public class ConfigNodeSerializer
     {
-        private static ConfigNodeSerializer singleton = new ConfigNodeSerializer();
-
-        private delegate void WriteNodeDelegate(ConfigNode configNode,StreamWriter writer);
+        private delegate void WriteNodeDelegate(ConfigNode configNode, StreamWriter writer);
 
         private delegate List<string[]> PreFormatConfigDelegate(string[] cfgData);
 
@@ -25,19 +23,11 @@ namespace DarkMultiPlayer
             CreateDelegates();
         }
 
-        public static ConfigNodeSerializer fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
-
         private void CreateDelegates()
         {
             Type configNodeType = typeof(ConfigNode);
             MethodInfo writeNodeMethodInfo = configNodeType.GetMethod("WriteNode", BindingFlags.NonPublic | BindingFlags.Instance);
-                
+
             //pass null for instance so we only do the slower reflection part once ever, then provide the instance at runtime
             WriteNodeThunk = (WriteNodeDelegate)Delegate.CreateDelegate(typeof(WriteNodeDelegate), null, writeNodeMethodInfo);
 

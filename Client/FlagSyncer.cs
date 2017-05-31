@@ -9,8 +9,6 @@ namespace DarkMultiPlayer
 {
     public class FlagSyncer
     {
-        //Singleton
-        private static FlagSyncer singleton;
         //Public
         public bool workerEnabled;
         public bool flagChangeEvent;
@@ -19,25 +17,25 @@ namespace DarkMultiPlayer
         private string flagPath;
         private Dictionary<string, FlagInfo> serverFlags = new Dictionary<string, FlagInfo>();
         private Queue<FlagRespondMessage> newFlags = new Queue<FlagRespondMessage>();
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private NetworkWorker networkWorker;
 
-        public FlagSyncer()
+        public FlagSyncer(DMPGame dmpGame, Settings dmpSettings, NetworkWorker networkWorker)
         {
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.networkWorker = networkWorker;
             flagPath = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
-        }
-
-        public static FlagSyncer fetch
-        {
-            get
-            {
-                return singleton;
-            }
+            dmpGame.updateEvent.Add(Update);
         }
 
         public void SendFlagList()
         {
             string[] dmpFlags = Directory.GetFiles(flagPath);
             string[] dmpSha = new string[dmpFlags.Length];
-            for (int i=0; i < dmpFlags.Length; i++)
+            for (int i = 0; i < dmpFlags.Length; i++)
             {
                 dmpSha[i] = Common.CalculateSHA256Hash(dmpFlags[i]);
                 dmpFlags[i] = Path.GetFileName(dmpFlags[i]);
@@ -45,10 +43,10 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)FlagMessageType.LIST);
-                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(dmpSettings.playerName);
                 mw.Write<string[]>(dmpFlags);
                 mw.Write<string[]>(dmpSha);
-                NetworkWorker.fetch.SendFlagMessage(mw.GetMessageBytes());
+                networkWorker.SendFlagMessage(mw.GetMessageBytes());
             }
         }
 
@@ -138,7 +136,7 @@ namespace DarkMultiPlayer
                 return;
             }
             string flagName = flagURL.Substring("DarkMultiPlayer/Flags/".Length);
-            if (serverFlags.ContainsKey(flagName) ? serverFlags[flagName].owner != Settings.fetch.playerName : false)
+            if (serverFlags.ContainsKey(flagName) ? serverFlags[flagName].owner != dmpSettings.playerName : false)
             {
                 //If the flag is owned by someone else don't sync it
                 return;
@@ -166,13 +164,13 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)FlagMessageType.UPLOAD_FILE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(Path.GetFileName(flagFile));
                     mw.Write<byte[]>(File.ReadAllBytes(flagFile));
-                    NetworkWorker.fetch.SendFlagMessage(mw.GetMessageBytes());
+                    networkWorker.SendFlagMessage(mw.GetMessageBytes());
                 }
                 FlagInfo fi = new FlagInfo();
-                fi.owner = Settings.fetch.playerName;
+                fi.owner = dmpSettings.playerName;
                 fi.shaSum = Common.CalculateSHA256Hash(flagFile);
                 serverFlags[flagName] = fi;
             }
@@ -214,18 +212,10 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.updateEvent.Remove(singleton.Update);
-                }
-                singleton = new FlagSyncer();
-                Client.updateEvent.Add(singleton.Update);
-            }
+            workerEnabled = false;
+            dmpGame.updateEvent.Remove(Update);
         }
     }
 

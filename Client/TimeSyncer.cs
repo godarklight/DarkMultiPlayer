@@ -81,20 +81,20 @@ namespace DarkMultiPlayer
         private List<long> networkLatency = new List<long>();
         private List<float> requestedRatesList = new List<float>();
         private Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
-        private static TimeSyncer singleton;
+        //Services
+        private DMPGame dmpGame;
+        private NetworkWorker networkWorker;
+        private VesselWorker vesselWorker;
+        public bool isSubspace;
 
-        public TimeSyncer()
+        public TimeSyncer(DMPGame dmpGame, NetworkWorker networkWorker, VesselWorker vesselWorker)
         {
+            this.dmpGame = dmpGame;
+            this.networkWorker = networkWorker;
+            this.vesselWorker = vesselWorker;
+            dmpGame.fixedUpdateEvent.Add(FixedUpdate);
             currentSubspace = -1;
             requestedRate = 1f;
-        }
-
-        public static TimeSyncer fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         public void FixedUpdate()
@@ -109,10 +109,10 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if ((UnityEngine.Time.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastSyncTime) > SYNC_TIME_INTERVAL)
             {
-                lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
-                NetworkWorker.fetch.SendTimeSync();
+                lastSyncTime = Client.realtimeSinceStartup;
+                networkWorker.SendTimeSync();
             }
 
             //Mod API to disable the time syncer
@@ -120,12 +120,12 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            
+
             if (locked)
             {
-                if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
+                if (isSubspace)
                 {
-                    VesselWorker.fetch.DetectReverting();
+                    vesselWorker.DetectReverting();
                 }
                 //Set the universe time here
                 SyncTime();
@@ -161,9 +161,9 @@ namespace DarkMultiPlayer
                 }
             }
 
-            if ((UnityEngine.Time.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
+            if ((Client.realtimeSinceStartup - lastClockSkew) > CLOCK_SET_INTERVAL)
             {
-                lastClockSkew = UnityEngine.Time.realtimeSinceStartup;
+                lastClockSkew = Client.realtimeSinceStartup;
                 if (CanSyncTime())
                 {
                     double targetTime = GetUniverseTime();
@@ -256,7 +256,7 @@ namespace DarkMultiPlayer
                 case Vessel.Situations.SUB_ORBITAL:
                     double altitudeAtUT = checkVessel.orbit.getRelativePositionAtUT(targetTick).magnitude;
                     return (altitudeAtUT > checkVessel.mainBody.Radius + 10000 && checkVessel.altitude > 10000);
-                default :
+                default:
                     return false;
             }
         }
@@ -342,7 +342,7 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                     mw.Write<int>(subspaceID);
-                    NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
                 }
             }
             currentSubspace = subspaceID;
@@ -357,7 +357,7 @@ namespace DarkMultiPlayer
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                 mw.Write<int>(currentSubspace);
-                NetworkWorker.fetch.SendWarpMessage(mw.GetMessageBytes());
+                networkWorker.SendWarpMessage(mw.GetMessageBytes());
             }
         }
 
@@ -416,7 +416,7 @@ namespace DarkMultiPlayer
         public double GetCurrentError()
         {
             if (synced && locked)
-            {   
+            {
                 double currentTime = Planetarium.GetUniversalTime();
                 double targetTime = GetUniverseTime();
                 return (currentTime - targetTime);
@@ -467,7 +467,7 @@ namespace DarkMultiPlayer
                 case GameScenes.SPACECENTER:
                     canSync = true;
                     break;
-                default :
+                default:
                     canSync = false;
                     break;
             }
@@ -517,24 +517,16 @@ namespace DarkMultiPlayer
             //Ask for another time sync if we aren't synced yet.
             if (!synced)
             {
-                lastSyncTime = UnityEngine.Time.realtimeSinceStartup;
-                NetworkWorker.fetch.SendTimeSync();
+                lastSyncTime = Client.realtimeSinceStartup;
+                networkWorker.SendTimeSync();
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.fixedUpdateEvent.Remove(singleton.FixedUpdate);
-                    Time.timeScale = 1f;
-                }
-                singleton = new TimeSyncer();
-                Client.fixedUpdateEvent.Add(singleton.FixedUpdate);
-            }
+            workerEnabled = false;
+            dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
+            Time.timeScale = 1f;
         }
     }
 }
