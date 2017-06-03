@@ -57,7 +57,7 @@ namespace DarkMultiPlayer
 #if DEBUG
             dmpDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
 #else
-            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins";
+            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
 #endif
             dmpDataDir = Path.Combine(dmpDir, "Data");
             gameDataDir = Path.GetFullPath(Path.Combine(dmpDir, "../../"));
