@@ -12,7 +12,7 @@ namespace DarkMultiPlayer
         {
             get
             {
-                return Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
+                return Path.Combine(Path.Combine(Client.dmpClient.gameDataDir, "DarkMultiPlayer"), "Cache");
             }
         }
 

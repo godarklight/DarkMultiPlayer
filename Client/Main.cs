@@ -47,13 +47,26 @@ namespace DarkMultiPlayer
         public DisclaimerWindow disclaimerWindow;
         public DMPModInterface dmpModInterface;
         public DMPGame dmpGame;
+        public string dmpDir;
+        public string dmpDataDir;
+        public string gameDataDir;
+        public string kspRootPath;
 
         public Client()
         {
+#if DEBUG
+            dmpDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+#else
+            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins";
+#endif
+            dmpDataDir = Path.Combine(dmpDir, "Data");
+            gameDataDir = Path.GetFullPath(Path.Combine(dmpDir, "../../"));
+            kspRootPath = Path.GetFullPath(Path.Combine(gameDataDir, "../"));
+
             //Fix DarkLog time/thread marker in the log during init.
             DarkLog.SetMainThread();
             lastClockTicks = DateTime.UtcNow.Ticks;
-            lastRealTimeSinceStartup = Time.realtimeSinceStartup;
+            lastRealTimeSinceStartup = 0f;
 
             dmpClient = this;
             dmpSettings = new Settings();
@@ -620,23 +633,23 @@ namespace DarkMultiPlayer
 
         private void SetupDirectoriesIfNeeded()
         {
-            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer");
             CreateIfNeeded(darkMultiPlayerSavesDirectory);
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Ships"));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
+            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
-            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache"), "Incoming");
+            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache"), "Incoming");
             CreateIfNeeded(darkMultiPlayerIncomingCacheDirectory);
-            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
+            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Flags");
             CreateIfNeeded(darkMultiPlayerFlagsDirectory);
         }
 
         private void SetupBlankGameIfNeeded()
         {
-            string persistentFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
+            string persistentFile = Path.Combine(Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
             if (!File.Exists(persistentFile))
             {
                 DarkLog.Debug("Creating new blank persistent.sfs file");

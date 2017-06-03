@@ -41,12 +41,12 @@ namespace DarkMultiPlayer
 
         public Settings()
         {
-            string darkMultiPlayerDataDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
+            string darkMultiPlayerDataDirectory = Client.dmpClient.dmpDataDir;
             if (!Directory.Exists(darkMultiPlayerDataDirectory))
             {
                 Directory.CreateDirectory(darkMultiPlayerDataDirectory);
             }
-            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(Client.dmpClient.kspRootPath, "saves"), "DarkMultiPlayer");
             if (!Directory.Exists(darkMultiPlayerSavesDirectory))
             {
                 Directory.CreateDirectory(darkMultiPlayerSavesDirectory);

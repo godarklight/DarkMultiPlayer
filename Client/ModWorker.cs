@@ -32,7 +32,7 @@ namespace DarkMultiPlayer
 
         private bool CheckFile(string relativeFileName, string referencefileHash)
         {
-            string fullFileName = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", relativeFileName));
+            string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, relativeFileName);
             string fileHash = Common.CalculateSHA256Hash(fullFileName);
             if (fileHash != referencefileHash)
             {
@@ -45,7 +45,7 @@ namespace DarkMultiPlayer
         public void BuildDllFileList()
         {
             dllList = new Dictionary<string, string>();
-            string[] checkList = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
+            string[] checkList = Directory.GetFiles(Client.dmpClient.gameDataDir, "*", SearchOption.AllDirectories);
 
             foreach (string checkFile in checkList)
             {
@@ -74,7 +74,7 @@ namespace DarkMultiPlayer
             //Save mod file so we can recheck it.
             lastModFileData = modFileData;
             //Err...
-            string tempModFilePath = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data"), "DMPModControl.txt");
+            string tempModFilePath = Path.Combine(Client.dmpClient.dmpDataDir, "DMPModControl.txt");
             using (StreamWriter sw = new StreamWriter(tempModFilePath))
             {
                 sw.WriteLine("#This file is downloaded from the server during connection. It is saved here for convenience.");
@@ -220,7 +220,7 @@ namespace DarkMultiPlayer
                 }
             }
 
-            string[] currentGameDataFiles = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
+            string[] currentGameDataFiles = Directory.GetFiles(Client.dmpClient.gameDataDir, "*", SearchOption.AllDirectories);
             List<string> currentGameDataFilesNormal = new List<string>();
             List<string> currentGameDataFilesLower = new List<string>();
             foreach (string currentFile in currentGameDataFiles)
@@ -249,7 +249,7 @@ namespace DarkMultiPlayer
                     {
 
                         string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(requiredEntry.Key)];
-                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
                         if (!CheckFile(fullFileName, requiredEntry.Value))
                         {
                             modCheckOk = false;
@@ -297,7 +297,7 @@ namespace DarkMultiPlayer
                     {
 
                         string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(optionalEntry.Key)];
-                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
                         if (!CheckFile(fullFileName, optionalEntry.Value))
                         {
                             modCheckOk = false;
@@ -406,7 +406,7 @@ namespace DarkMultiPlayer
 
         public void GenerateModControlFile(bool whitelistMode)
         {
-            string gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            string gameDataDir = Client.dmpClient.gameDataDir;
             string[] topLevelFiles = Directory.GetFiles(gameDataDir);
             string[] modDirectories = Directory.GetDirectories(gameDataDir);
 
@@ -498,7 +498,7 @@ namespace DarkMultiPlayer
                 }
             }
             string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
-            string saveModFile = Path.Combine(KSPUtil.ApplicationRootPath, "DMPModControl.txt");
+            string saveModFile = Path.Combine(Client.dmpClient.kspRootPath, "DMPModControl.txt");
             using (StreamWriter sw = new StreamWriter(saveModFile, false))
             {
                 sw.Write(modFileData);
