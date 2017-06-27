@@ -181,17 +181,15 @@ namespace DarkMultiPlayer
         /// <param name="checkVessel">The vessel to check</param>
         public bool VesselIsAsteroid(ProtoVessel checkVessel)
         {
-            if (checkVessel != null)
-            {
-                if (checkVessel.protoPartSnapshots != null ? (checkVessel.protoPartSnapshots.Count == 1) : false)
-                {
-                    if (checkVessel.protoPartSnapshots[0].partName == "PotatoRoid")
-                    {
-                        return true;
-                    }
-                }
-            }
-            return false;
+            // Short circuit evaluation = faster
+            if (
+                checkVessel != null
+                && checkVessel.protoPartSnapshots != null
+                && checkVessel.protoPartSnapshots.Count == 1
+                && checkVessel.protoPartSnapshots[0].partName == "PotatoRoid")
+                return true;
+            else
+                return false;
         }
 
         private Vessel[] GetCurrentAsteroids()
@@ -209,25 +207,14 @@ namespace DarkMultiPlayer
 
         private int GetAsteroidCount()
         {
-            List<string> seenAsteroids = new List<string>();
-            foreach (Vessel checkAsteroid in GetCurrentAsteroids())
-            {
-                if (!seenAsteroids.Contains(checkAsteroid.id.ToString()))
-                {
-                    seenAsteroids.Add(checkAsteroid.id.ToString());
-                }
-            }
+            int asteroidCount = 0;
+            asteroidCount += GetCurrentAsteroids().Length;
             foreach (ProtoVessel checkAsteroid in HighLogic.CurrentGame.flightState.protoVessels)
             {
                 if (VesselIsAsteroid(checkAsteroid))
-                {
-                    if (!seenAsteroids.Contains(checkAsteroid.vesselID.ToString()))
-                    {
-                        seenAsteroids.Add(checkAsteroid.vesselID.ToString());
-                    }
-                }
+                    asteroidCount++;
             }
-            return seenAsteroids.Count;
+            return asteroidCount;
         }
 
         /// <summary>
