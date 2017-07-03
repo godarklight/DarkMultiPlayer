@@ -70,7 +70,7 @@ namespace DarkMultiPlayer
                 orbit,
                 (uint)SentinelUtilities.RandomRange(random),
                 SentinelUtilities.WeightedAsteroidClass(random),
-                SentinelUtilities.RandomRange(random, baseDays, baseDays + orbit.period), baseDays * orbit.period);
+                double.PositiveInfinity, double.PositiveInfinity);
             return pv;
         }
 
