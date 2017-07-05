@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.2";
+        public const string MODCONTROL_VERSION = "1.3";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -424,7 +424,9 @@ namespace DarkMultiPlayerCommon
                 "RelayAntenna100",
                 "RelayAntenna5",
                 "RelayAntenna50",
-                "HeatShield0"
+                "HeatShield0",
+                // 1.3 part
+                "InfraredTelescope"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION

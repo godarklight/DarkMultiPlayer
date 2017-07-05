@@ -664,17 +664,28 @@ namespace DarkMultiPlayer
             returnGame.startScene = GameScenes.SPACECENTER;
             returnGame.flagURL = dmpSettings.selectedFlag;
             returnGame.Title = "DarkMultiPlayer";
-            if (dmpGame.warpWorker.warpMode == WarpMode.SUBSPACE)
-            {
-                returnGame.Parameters.Flight.CanQuickLoad = true;
-                returnGame.Parameters.Flight.CanRestart = true;
-                returnGame.Parameters.Flight.CanLeaveToEditor = true;
-            }
-            else
+            // Disable everything if we're in main menu
+            // I'm not sure why we need to create a blank game when we're not connected
+            if (HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
                 returnGame.Parameters.Flight.CanQuickLoad = false;
                 returnGame.Parameters.Flight.CanRestart = false;
                 returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            }
+            else
+            {
+                if (dmpGame.warpWorker.warpMode == WarpMode.SUBSPACE)
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = true;
+                    returnGame.Parameters.Flight.CanRestart = true;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = true;
+                }
+                else
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = false;
+                    returnGame.Parameters.Flight.CanRestart = false;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = false;
+                }
             }
             HighLogic.SaveFolder = "DarkMultiPlayer";
 
