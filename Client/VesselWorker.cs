@@ -241,6 +241,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
+            GameEvents.onVesselRename.Add(this.OnVesselRenamed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
             GameEvents.onKerbalRemoved.Add(OnKerbalRemoved);
@@ -252,6 +253,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
+            GameEvents.onVesselRename.Remove(this.OnVesselRenamed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
             GameEvents.onKerbalRemoved.Remove(OnKerbalRemoved);
@@ -1657,6 +1659,14 @@ namespace DarkMultiPlayer
                 return boolValue + ", " + currentPlanetTime;
             }
             return input;
+        }
+
+        public void OnVesselRenamed(GameEvents.HostedFromToAction<Vessel, string> eventData)
+        {
+            Vessel renamedVessel = eventData.host;
+            string fromName = eventData.from, toName = eventData.to;
+            DarkLog.Debug("Sending vessel [" + renamedVessel.name + "] renamed to [" + toName + "]");
+            SendVesselUpdateIfNeeded(renamedVessel);
         }
 
         public void OnVesselDestroyed(Vessel dyingVessel)
