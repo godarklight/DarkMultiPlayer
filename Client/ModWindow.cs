@@ -47,7 +47,7 @@ namespace DarkMultiPlayer
             scrollPos = new Vector2();
         }
 
-        private void Update()
+        public void Update()
         {
             safeDisplay = display;
         }

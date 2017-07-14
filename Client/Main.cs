@@ -310,6 +310,7 @@ namespace DarkMultiPlayer
                 }
 
                 connectionWindow.Update();
+                modWindow.Update();
                 optionsWindow.Update();
                 universeConverterWindow.Update();
                 dmpModInterface.Update();
@@ -537,6 +538,7 @@ namespace DarkMultiPlayer
             if (showGUI)
             {
                 connectionWindow.Draw();
+                modWindow.Draw();
                 optionsWindow.Draw();
                 universeConverterWindow.Draw();
                 if (dmpGame != null)
