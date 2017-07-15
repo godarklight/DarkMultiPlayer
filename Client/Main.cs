@@ -142,6 +142,8 @@ namespace DarkMultiPlayer
             long testTime = Compression.TestSysIOCompression();
             DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
+
+            connectionWindow.SpawnDialog();
         }
 
         private void HandleCommandLineArgs()

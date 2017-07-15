@@ -58,6 +58,60 @@ namespace DarkMultiPlayer
             this.optionsWindow = optionsWindow;
         }
 
+        public void SpawnAddServerDialog(string name = "Name", string address = "Address")
+        {
+            System.Collections.Generic.List<DialogGUIBase> dialog = new System.Collections.Generic.List<DialogGUIBase>();
+            dialog.Add(new DialogGUIVerticalLayout(false, true, 0, new RectOffset(), TextAnchor.LowerCenter, new DialogGUIBase[]
+            {
+                new DialogGUITextInput(name, false, 32, null),
+                new DialogGUITextInput(address, false, 32, null),
+                new DialogGUIHorizontalLayout(true, false, 0, new RectOffset(), TextAnchor.UpperCenter, new DialogGUIBase[]
+                {
+                    new DialogGUIButton("Add", delegate { }, 50, 20, true),
+                    new DialogGUIFlexibleSpace(),
+                    new DialogGUIButton("Cancel", delegate { }, 50, 20, true),
+                })
+            }));
+
+            PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new MultiOptionDialog("Add Server Dialog", "", "Add a Server", UISkinManager.defaultSkin, new Rect(0.5f, 0.5f, 200, 150), dialog.ToArray()), false, UISkinManager.defaultSkin);
+        }
+
+        public void SpawnDialog()
+        {
+            DialogGUIBase[] scrollList = new DialogGUIBase[dmpSettings.servers.Count + 1];
+            scrollList[0] = new DialogGUIContentSizer(UnityEngine.UI.ContentSizeFitter.FitMode.Unconstrained, UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize, true);
+            for (int i = 0; i < dmpSettings.servers.Count; i++)
+            {
+                ServerEntry se = dmpSettings.servers[i];
+                scrollList[i + 1] = new DialogGUIHorizontalLayout(true, false, 0, new RectOffset(), TextAnchor.UpperCenter, new DialogGUIBase[]
+                {
+                    new DialogGUIButton(se.name, delegate { }, 100, 20, false),
+                    new DialogGUIFlexibleSpace(),
+                    new DialogGUIButton("...", delegate { SpawnAddServerDialog(se.name, se.address); }, 5, 20, false)
+                });
+            }
+
+            System.Collections.Generic.List<DialogGUIBase> dialog = new System.Collections.Generic.List<DialogGUIBase>();
+            dialog.Add(new DialogGUIVerticalLayout(false, true, 0, new RectOffset(), TextAnchor.UpperLeft, new DialogGUIBase[]
+            {
+            new DialogGUIHorizontalLayout(true, false, 0, new RectOffset(), TextAnchor.UpperCenter, new DialogGUIBase[]
+            {
+                new DialogGUIButton("Add Server", delegate
+                {
+                    SpawnAddServerDialog();
+                }, 100, 20, false),
+                new DialogGUIButton("Options", delegate
+                {
+                    optionsWindow.Draw();
+                }, 75, 20, false)
+            }),
+            new DialogGUIFlexibleSpace(),
+            new DialogGUIScrollList(new Vector2(280, 300), false, true, new DialogGUIVerticalLayout(10, 100, 4, new RectOffset(6, 48, 10, 10), TextAnchor.MiddleLeft, scrollList))
+            }));
+
+            PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new MultiOptionDialog("Connection Window", "", string.Format("DarkMultiPlayer {0}", version()), UISkinManager.defaultSkin, dialog.ToArray()), false, UISkinManager.defaultSkin);
+        }
+
         public void Update()
         {
             selectedSafe = selected;
