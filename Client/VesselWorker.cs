@@ -1140,7 +1140,8 @@ namespace DarkMultiPlayer
             if (serverKerbals.Count == 0)
             {
                 KerbalRoster newRoster = KerbalRoster.GenerateInitialCrewRoster(HighLogic.CurrentGame.Mode);
-                foreach (ProtoCrewMember pcm in newRoster.Crew) SendKerbalIfDifferent(pcm);
+                foreach (ProtoCrewMember pcm in newRoster.Crew)
+                    SendKerbalIfDifferent(pcm);
             }
 
             int generateKerbals = 0;
@@ -1184,7 +1185,20 @@ namespace DarkMultiPlayer
                 }
             }
 
-            ProtoCrewMember protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
+            ProtoCrewMember protoCrew = null;
+            string kerbalName = null;
+            //Debugging for damaged kerbal bug
+            try
+            {
+                kerbalName = crewNode.GetValue("name");
+                protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
+            }
+            catch
+            {
+                DarkLog.Debug("protoCrew creation failed for " + crewNode.GetValue("name") + " (damaged kerbal type 1)");
+                chatWorker.PMMessageServer("WARNING: Kerbal " + kerbalName + " is DAMAGED!. Skipping load.");
+             
+            }
             if (protoCrew == null)
             {
                 DarkLog.Debug("protoCrew is null!");
@@ -1632,7 +1646,8 @@ namespace DarkMultiPlayer
                     {
                         double maneuverUT = double.Parse(maneuverNode.GetValue("UT"));
                         double currentTime = Planetarium.GetUniversalTime();
-                        if (currentTime > maneuverUT) expiredManeuverNodes.Add(maneuverNode);
+                        if (currentTime > maneuverUT)
+                            expiredManeuverNodes.Add(maneuverNode);
                     }
 
                     if (expiredManeuverNodes.Count != 0)
@@ -1824,7 +1839,8 @@ namespace DarkMultiPlayer
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
                     // Ignore the tourists except those that haven't yet toured
-                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1848,7 +1864,8 @@ namespace DarkMultiPlayer
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
                     // Ignore the tourists except those that haven't yet toured
-                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }

@@ -1244,7 +1244,18 @@ namespace DarkMultiPlayer
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
                 byte[] kerbalData = mr.Read<byte[]>();
-                ConfigNode kerbalNode = configNodeSerializer.Deserialize(kerbalData);
+                ConfigNode kerbalNode = null;
+                bool dataOK = false;
+                for (int i = 0; i < kerbalData.Length; i++) {
+                    //Apparently we have to defend against all NULL files now?
+                    if (kerbalData[i] != 0) {
+                        dataOK = true;
+                        break;
+                    }
+                }
+                if (dataOK) {
+                    kerbalNode = configNodeSerializer.Deserialize(kerbalData);
+                }
                 if (kerbalNode != null)
                 {
                     vesselWorker.QueueKerbal(planetTime, kerbalName, kerbalNode);
@@ -1252,6 +1263,7 @@ namespace DarkMultiPlayer
                 else
                 {
                     DarkLog.Debug("Failed to load kerbal!");
+                    chatWorker.PMMessageServer("WARNING: Kerbal " + kerbalName + " is DAMAGED!. Skipping load.");
                 }
             }
             if (state == ClientState.SYNCING_KERBALS)
@@ -1360,23 +1372,36 @@ namespace DarkMultiPlayer
                 //Flying - don't care.
                 mr.Read<bool>();
                 byte[] vesselData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
-                universeSyncCache.QueueToCache(vesselData);
-                ConfigNode vesselNode = configNodeSerializer.Deserialize(vesselData);
+                bool dataOK = false;
+                for (int i = 0; i < vesselData.Length; i++) {
+                    //Apparently we have to defend against all NULL files now?
+                    if (vesselData[i] != 0) {
+                        dataOK = true;
+                        break;
+                    }
+                }
+                ConfigNode vesselNode = null;
+                if (dataOK) {
+                    vesselNode = configNodeSerializer.Deserialize(vesselData);
+                }
                 if (vesselNode != null)
                 {
                     string configGuid = vesselNode.GetValue("pid");
                     if (!String.IsNullOrEmpty(configGuid) && vesselID == Common.ConvertConfigStringToGUIDString(configGuid))
                     {
+                        universeSyncCache.QueueToCache(vesselData);
                         vesselWorker.QueueVesselProto(new Guid(vesselID), planetTime, vesselNode);
                     }
                     else
                     {
                         DarkLog.Debug("Failed to load vessel " + vesselID + "!");
+                        chatWorker.PMMessageServer("WARNING: Vessel " + vesselID + " is DAMAGED!. Skipping load.");
                     }
                 }
                 else
                 {
                     DarkLog.Debug("Failed to load vessel" + vesselID + "!");
+                    chatWorker.PMMessageServer("WARNING: Vessel " + vesselID + " is DAMAGED!. Skipping load.");
                 }
             }
             if (state == ClientState.SYNCING_VESSELS)
@@ -1876,7 +1901,19 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             byte[] vesselBytes = configNodeSerializer.Serialize(vesselNode);
-            if (vesselBytes != null && vesselBytes.Length > 0)
+            bool dataOK = false;
+            if (vesselBytes != null)
+            {
+                for (int i = 0; i < vesselBytes.Length; i++)
+                {
+                    if (vesselBytes[i] != 0)
+                    {
+                        dataOK = true;
+                        break;
+                    }
+                }
+            }
+            if (vesselBytes != null && vesselBytes.Length > 0 && dataOK)
             {
                 universeSyncCache.QueueToCache(vesselBytes);
                 using (MessageWriter mw = new MessageWriter())
@@ -2034,7 +2071,19 @@ namespace DarkMultiPlayer
 
         public void SendKerbalProtoMessage(string kerbalName, byte[] kerbalBytes)
         {
-            if (kerbalBytes != null && kerbalBytes.Length > 0)
+            bool dataOK = false;
+            if (kerbalBytes != null)
+            {
+                for (int i = 0; i < kerbalBytes.Length; i++)
+                {
+                    if (kerbalBytes[i] != 0)
+                    {
+                        dataOK = true;
+                        break;
+                    }
+                }
+            }
+            if (kerbalBytes != null && kerbalBytes.Length > 0 && dataOK)
             {
                 ClientMessage newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.KERBAL_PROTO;
