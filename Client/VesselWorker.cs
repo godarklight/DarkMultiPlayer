@@ -66,6 +66,7 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, double> lastKillVesselDestroy = new Dictionary<Guid, double>();
         private Dictionary<Guid, double> lastLoadVessel = new Dictionary<Guid, double>();
         private List<Vessel> delayKillVessels = new List<Vessel>();
+        private List<Guid> ignoreVessels = new List<Guid>();
         //Docking related
         private Vessel newActiveVessel;
         private int activeVesselLoadUpdates;
@@ -835,10 +836,15 @@ namespace DarkMultiPlayer
             {
                 SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel);
             }
+
             SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
 
             foreach (Vessel checkVessel in FlightGlobals.fetch.vessels)
             {
+                if (ignoreVessels.Contains(checkVessel.id))
+                {
+                    continue;
+                }
                 //Only update the vessel if it's loaded and unpacked (not on rails). Skip our vessel.
                 if (checkVessel.loaded && !checkVessel.packed && (checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString()) && (checkVessel.state != Vessel.State.DEAD))
                 {
@@ -2321,6 +2327,14 @@ namespace DarkMultiPlayer
             ave.player = player;
             ave.vesselID = vesselID;
             newActiveVessels.Enqueue(ave);
+        }
+
+        public void IgnoreVessel(Guid vesselID)
+        {
+            if (ignoreVessels.Contains(vesselID))
+            {
+                ignoreVessels.Add(vesselID);
+            }
         }
 
         public void RegisterServerVessel(Guid vesselID)
