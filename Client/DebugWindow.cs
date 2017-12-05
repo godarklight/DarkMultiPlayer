@@ -18,6 +18,7 @@ namespace DarkMultiPlayer
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
         private bool displayProfilerStatistics;
+        private bool displayVesselRecorder;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
@@ -45,8 +46,9 @@ namespace DarkMultiPlayer
         private VesselWorker vesselWorker;
         private DynamicTickWorker dynamicTickWorker;
         private WarpWorker warpWorker;
+        private VesselRecorder vesselRecorder;
 
-        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker)
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -55,6 +57,7 @@ namespace DarkMultiPlayer
             this.vesselWorker = vesselWorker;
             this.dynamicTickWorker = dynamicTickWorker;
             this.warpWorker = warpWorker;
+            this.vesselRecorder = vesselRecorder;
             dmpGame.updateEvent.Add(Update);
             dmpGame.drawEvent.Add(Draw);
         }
@@ -143,6 +146,28 @@ namespace DarkMultiPlayer
                 {
                     GUILayout.Label("Timer resolution: " + System.Diagnostics.Stopwatch.Frequency + " hz", labelStyle);
                     GUILayout.Label("Profiling statistics unavailable without a high resolution timer");
+                }
+            }
+            displayVesselRecorder = GUILayout.Toggle(displayVesselRecorder, "Display Vessel Recorder", buttonStyle);
+            if (displayVesselRecorder)
+            {
+                if (!vesselRecorder.active)
+                {
+                    if (GUILayout.Button("Start Recording", buttonStyle))
+                    {
+                        vesselRecorder.StartRecord();
+                    }
+                    if (GUILayout.Button("Playback", buttonStyle))
+                    {
+                        vesselRecorder.StartPlayback();
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Stop Recording", buttonStyle))
+                    {
+                        vesselRecorder.StopRecord();
+                    }
                 }
             }
             GUILayout.EndVertical();

@@ -100,6 +100,7 @@
     <Compile Include="PartKiller.cs" />
     <Compile Include="KerbalReassigner.cs" />
     <Compile Include="DMPGame.cs" />
+    <Compile Include="VesselRecorder.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

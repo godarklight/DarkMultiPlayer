@@ -87,6 +87,7 @@ namespace DarkMultiPlayer
         ModWorker modWorker;
         ConfigNodeSerializer configNodeSerializer;
         UniverseSyncCache universeSyncCache;
+        VesselRecorder vesselRecorder;
 
         public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
@@ -98,7 +99,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(Update);
         }
 
-        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache)
+        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder)
         {
             this.timeSyncer = timeSyncer;
             this.warpWorker = warpWorker;
@@ -120,6 +121,8 @@ namespace DarkMultiPlayer
             this.lockSystem = lockSystem;
             this.dmpModInterface = dmpModInterface;
             this.universeSyncCache = universeSyncCache;
+            this.vesselRecorder = vesselRecorder;
+            vesselRecorder.SetHandlers(HandleVesselProto, HandleVesselUpdate, HandleVesselRemove);
         }
 
         //Called from main
@@ -1927,6 +1930,7 @@ namespace DarkMultiPlayer
                 }
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
+                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO);
             }
             else
             {
@@ -1984,6 +1988,7 @@ namespace DarkMultiPlayer
                 newMessage.data = mw.GetMessageBytes();
             }
             QueueOutgoingMessage(newMessage, false);
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE);
         }
         //Called from vesselWorker
         public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
@@ -2003,6 +2008,7 @@ namespace DarkMultiPlayer
                 newMessage.data = mw.GetMessageBytes();
             }
             QueueOutgoingMessage(newMessage, false);
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE);
         }
         // Called from VesselWorker
         public void SendKerbalRemove(string kerbalName)
