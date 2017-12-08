@@ -47,13 +47,26 @@ namespace DarkMultiPlayer
         public DisclaimerWindow disclaimerWindow;
         public DMPModInterface dmpModInterface;
         public DMPGame dmpGame;
+        public string dmpDir;
+        public string dmpDataDir;
+        public string gameDataDir;
+        public string kspRootPath;
 
         public Client()
         {
+#if DEBUG
+            dmpDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+#else
+            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
+#endif
+            dmpDataDir = Path.Combine(dmpDir, "Data");
+            gameDataDir = Path.GetFullPath(Path.Combine(dmpDir, "../../"));
+            kspRootPath = Path.GetFullPath(Path.Combine(gameDataDir, "../"));
+
             //Fix DarkLog time/thread marker in the log during init.
             DarkLog.SetMainThread();
             lastClockTicks = DateTime.UtcNow.Ticks;
-            lastRealTimeSinceStartup = Time.realtimeSinceStartup;
+            lastRealTimeSinceStartup = 0f;
 
             dmpClient = this;
             dmpSettings = new Settings();
@@ -297,6 +310,7 @@ namespace DarkMultiPlayer
                 }
 
                 connectionWindow.Update();
+                modWindow.Update();
                 optionsWindow.Update();
                 universeConverterWindow.Update();
                 dmpModInterface.Update();
@@ -524,6 +538,7 @@ namespace DarkMultiPlayer
             if (showGUI)
             {
                 connectionWindow.Draw();
+                modWindow.Draw();
                 optionsWindow.Draw();
                 universeConverterWindow.Draw();
                 if (dmpGame != null)
@@ -620,23 +635,23 @@ namespace DarkMultiPlayer
 
         private void SetupDirectoriesIfNeeded()
         {
-            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer");
             CreateIfNeeded(darkMultiPlayerSavesDirectory);
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Ships"));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
+            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
-            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache"), "Incoming");
+            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache"), "Incoming");
             CreateIfNeeded(darkMultiPlayerIncomingCacheDirectory);
-            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
+            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Flags");
             CreateIfNeeded(darkMultiPlayerFlagsDirectory);
         }
 
         private void SetupBlankGameIfNeeded()
         {
-            string persistentFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
+            string persistentFile = Path.Combine(Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
             if (!File.Exists(persistentFile))
             {
                 DarkLog.Debug("Creating new blank persistent.sfs file");
@@ -664,17 +679,28 @@ namespace DarkMultiPlayer
             returnGame.startScene = GameScenes.SPACECENTER;
             returnGame.flagURL = dmpSettings.selectedFlag;
             returnGame.Title = "DarkMultiPlayer";
-            if (dmpGame.warpWorker.warpMode == WarpMode.SUBSPACE)
-            {
-                returnGame.Parameters.Flight.CanQuickLoad = true;
-                returnGame.Parameters.Flight.CanRestart = true;
-                returnGame.Parameters.Flight.CanLeaveToEditor = true;
-            }
-            else
+            // Disable everything if we're in main menu
+            // I'm not sure why we need to create a blank game when we're not connected
+            if (HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
                 returnGame.Parameters.Flight.CanQuickLoad = false;
                 returnGame.Parameters.Flight.CanRestart = false;
                 returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            }
+            else
+            {
+                if (dmpGame.warpWorker.warpMode == WarpMode.SUBSPACE)
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = true;
+                    returnGame.Parameters.Flight.CanRestart = true;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = true;
+                }
+                else
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = false;
+                    returnGame.Parameters.Flight.CanRestart = false;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = false;
+                }
             }
             HighLogic.SaveFolder = "DarkMultiPlayer";
 

@@ -73,7 +73,7 @@ namespace DarkMultiPlayer
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.networkWorker = networkWorker;
-            savePath = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            savePath = Path.Combine(Path.Combine(Client.dmpClient.kspRootPath, "saves"), "DarkMultiPlayer");
             vabPath = Path.Combine(Path.Combine(savePath, "Ships"), "VAB");
             sphPath = Path.Combine(Path.Combine(savePath, "Ships"), "SPH");
             subassemblyPath = Path.Combine(savePath, "Subassemblies");

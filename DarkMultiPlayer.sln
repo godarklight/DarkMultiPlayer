@@ -64,6 +64,9 @@ Global
 		$3.inheritsSet = VisualStudio
 		$3.inheritsScope = text/plain
 		$3.scope = text/plain
+		$0.DotNetNamingPolicy = $4
+		$4.DirectoryNamespaceAssociation = None
+		$4.ResourceNamePolicy = FileFormatDefault
 		StartupItem = Server\Server.csproj
 	EndGlobalSection
 EndGlobal

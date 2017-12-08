@@ -43,7 +43,7 @@
     <MonoDevelop>
       <Properties>
         <Policies>
-          <TextStylePolicy FileWidth="80" TabWidth="4" TabsToSpaces="True" IndentWidth="4" RemoveTrailingWhitespace="True" NoTabsAfterNonTabs="False" EolMarker="Native" inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
+          <TextStylePolicy inheritsSet="VisualStudio" inheritsScope="text/plain" scope="text/plain" />
         </Policies>
       </Properties>
     </MonoDevelop>

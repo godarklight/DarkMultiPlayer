@@ -7,7 +7,7 @@ namespace DarkMultiPlayer
 {
     public class UniverseConverter
     {
-        private static string savesFolder = Path.Combine(KSPUtil.ApplicationRootPath, "saves");
+        private static string savesFolder = Path.Combine(Client.dmpClient.kspRootPath, "saves");
         //Services
         private Settings dmpSettings;
 
@@ -18,7 +18,7 @@ namespace DarkMultiPlayer
 
         public void GenerateUniverse(string saveName)
         {
-            string universeFolder = Path.Combine(KSPUtil.ApplicationRootPath, "Universe");
+            string universeFolder = Path.Combine(Client.dmpClient.kspRootPath, "Universe");
             if (Directory.Exists(universeFolder))
             {
                 Directory.Delete(universeFolder, true);
