@@ -241,6 +241,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Add(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Add(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Add(this.OnVesselDestroyed);
+            GameEvents.onVesselRename.Add(this.OnVesselRenamed);
             GameEvents.onPartCouple.Add(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Add(this.OnCrewBoard);
             GameEvents.onKerbalRemoved.Add(OnKerbalRemoved);
@@ -252,6 +253,7 @@ namespace DarkMultiPlayer
             GameEvents.onVesselRecovered.Remove(this.OnVesselRecovered);
             GameEvents.onVesselTerminated.Remove(this.OnVesselTerminated);
             GameEvents.onVesselDestroy.Remove(this.OnVesselDestroyed);
+            GameEvents.onVesselRename.Remove(this.OnVesselRenamed);
             GameEvents.onPartCouple.Remove(this.OnVesselDock);
             GameEvents.onCrewBoardVessel.Remove(this.OnCrewBoard);
             GameEvents.onKerbalRemoved.Remove(OnKerbalRemoved);
@@ -1138,7 +1140,8 @@ namespace DarkMultiPlayer
             if (serverKerbals.Count == 0)
             {
                 KerbalRoster newRoster = KerbalRoster.GenerateInitialCrewRoster(HighLogic.CurrentGame.Mode);
-                foreach (ProtoCrewMember pcm in newRoster.Crew) SendKerbalIfDifferent(pcm);
+                foreach (ProtoCrewMember pcm in newRoster.Crew)
+                    SendKerbalIfDifferent(pcm);
             }
 
             int generateKerbals = 0;
@@ -1182,7 +1185,20 @@ namespace DarkMultiPlayer
                 }
             }
 
-            ProtoCrewMember protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
+            ProtoCrewMember protoCrew = null;
+            string kerbalName = null;
+            //Debugging for damaged kerbal bug
+            try
+            {
+                kerbalName = crewNode.GetValue("name");
+                protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
+            }
+            catch
+            {
+                DarkLog.Debug("protoCrew creation failed for " + crewNode.GetValue("name") + " (damaged kerbal type 1)");
+                chatWorker.PMMessageServer("WARNING: Kerbal " + kerbalName + " is DAMAGED!. Skipping load.");
+             
+            }
             if (protoCrew == null)
             {
                 DarkLog.Debug("protoCrew is null!");
@@ -1383,7 +1399,7 @@ namespace DarkMultiPlayer
                 //Fix up flag URLS.
                 if (part.flagURL.Length != 0)
                 {
-                    string flagFile = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), part.flagURL + ".png");
+                    string flagFile = Path.Combine(Client.dmpClient.gameDataDir, part.flagURL + ".png");
                     if (!File.Exists(flagFile))
                     {
                         DarkLog.Debug("Flag '" + part.flagURL + "' doesn't exist, setting to default!");
@@ -1630,7 +1646,8 @@ namespace DarkMultiPlayer
                     {
                         double maneuverUT = double.Parse(maneuverNode.GetValue("UT"));
                         double currentTime = Planetarium.GetUniversalTime();
-                        if (currentTime > maneuverUT) expiredManeuverNodes.Add(maneuverNode);
+                        if (currentTime > maneuverUT)
+                            expiredManeuverNodes.Add(maneuverNode);
                     }
 
                     if (expiredManeuverNodes.Count != 0)
@@ -1657,6 +1674,14 @@ namespace DarkMultiPlayer
                 return boolValue + ", " + currentPlanetTime;
             }
             return input;
+        }
+
+        public void OnVesselRenamed(GameEvents.HostedFromToAction<Vessel, string> eventData)
+        {
+            Vessel renamedVessel = eventData.host;
+            string fromName = eventData.from, toName = eventData.to;
+            DarkLog.Debug("Sending vessel [" + renamedVessel.name + "] renamed to [" + toName + "]");
+            SendVesselUpdateIfNeeded(renamedVessel);
         }
 
         public void OnVesselDestroyed(Vessel dyingVessel)
@@ -1814,7 +1839,8 @@ namespace DarkMultiPlayer
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
                     // Ignore the tourists except those that haven't yet toured
-                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }
@@ -1838,7 +1864,8 @@ namespace DarkMultiPlayer
                 foreach (ProtoCrewMember pcm in part.protoModuleCrew)
                 {
                     // Ignore the tourists except those that haven't yet toured
-                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist) SendKerbalIfDifferent(pcm);
+                    if ((pcm.type == ProtoCrewMember.KerbalType.Tourist && !pcm.hasToured) || pcm.type != ProtoCrewMember.KerbalType.Tourist)
+                        SendKerbalIfDifferent(pcm);
                 }
             }
         }

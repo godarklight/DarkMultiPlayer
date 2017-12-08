@@ -79,7 +79,6 @@ namespace DarkMultiPlayer
             if (contractNode.GetValue("type") == "RecoverAsset")
             {
                 string kerbalName = contractNode.GetValue("kerbalName").Trim();
-                int kerbalGender = int.Parse(contractNode.GetValue("gender"));
                 uint partID = uint.Parse(contractNode.GetValue("partID"));
 
                 if (!string.IsNullOrEmpty(kerbalName))
@@ -88,7 +87,7 @@ namespace DarkMultiPlayer
                     if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
                     {
                         DarkLog.Debug("Generating missing kerbal " + kerbalName + " for rescue contract");
-
+                        int kerbalGender = int.Parse(contractNode.GetValue("gender"));
                         rescueKerbal = HighLogic.CurrentGame.CrewRoster.GetNewKerbal(ProtoCrewMember.KerbalType.Unowned);
                         rescueKerbal.ChangeName(kerbalName);
                         rescueKerbal.gender = (ProtoCrewMember.Gender)kerbalGender;
@@ -285,7 +284,7 @@ namespace DarkMultiPlayer
                 return false;
             }
             //Blacklist asteroid module from every game mode
-            if (scenarioName == "ScenarioDiscoverableObjects")
+            if (scenarioName == "DiscoverableObjects")
             {
                 //We hijack this and enable / disable it if we need to.
                 return false;

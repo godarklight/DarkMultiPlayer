@@ -27,7 +27,7 @@ namespace DarkMultiPlayer
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.networkWorker = networkWorker;
-            flagPath = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
+            flagPath = Path.Combine(Path.Combine(Client.dmpClient.gameDataDir, "DarkMultiPlayer"), "Flags");
             dmpGame.updateEvent.Add(Update);
         }
 
