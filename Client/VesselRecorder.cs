@@ -10,7 +10,6 @@ namespace DarkMultiPlayer
         public bool playback = false;
         ScreenMessage screenMessage = null;
         private MemoryStream recording;
-        private ConfigNodeSerializer configNodeSerializer;
         private WarpWorker warpWorker;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
         private Action<byte[]> HandleProtoUpdate, HandleVesselUpdate, HandleVesselRemove;
@@ -19,9 +18,8 @@ namespace DarkMultiPlayer
         private double firstTime = 0;
         private double lastTime = 0;
 
-        public VesselRecorder(DMPGame dmpGame, ConfigNodeSerializer configNodeSerializer, WarpWorker warpWorker, VesselWorker vesselWorker)
+        public VesselRecorder(DMPGame dmpGame, WarpWorker warpWorker, VesselWorker vesselWorker)
         {
-            this.configNodeSerializer = configNodeSerializer;
             this.warpWorker = warpWorker;
             this.vesselWorker = vesselWorker;
             this.dmpGame = dmpGame;
@@ -70,6 +68,13 @@ namespace DarkMultiPlayer
                 byte[] recordingData = recording.ToArray();
                 fs.Write(recordingData, 0, recordingData.Length);
             }
+            recording.Dispose();
+            recording = null;
+        }
+
+        public void CancelRecord()
+        {
+            active = false;
             recording.Dispose();
             recording = null;
         }

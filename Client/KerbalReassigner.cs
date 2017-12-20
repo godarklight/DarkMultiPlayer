@@ -117,7 +117,7 @@ namespace DarkMultiPlayer
                             {
                                 kerbalOk = false;
                             }
-                            if (kerbalOk && newExperienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
+                            if (kerbalOk && newExperienceTrait != null && possibleKerbal.experienceTrait != null && newExperienceTrait != possibleKerbal.experienceTrait.TypeName)
                             {
                                 kerbalOk = false;
                             }

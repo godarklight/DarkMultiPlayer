@@ -18,12 +18,14 @@ namespace DarkMultiPlayer
         private DMPGame dmpGame;
         private LockSystem lockSystem;
         private VesselWorker vesselWorker;
+        private PosistionStatistics posistionStatistics;
 
-        public HackyInAtmoLoader(DMPGame dmpGame, LockSystem lockSystem, VesselWorker vesselWorker)
+        public HackyInAtmoLoader(DMPGame dmpGame, LockSystem lockSystem, VesselWorker vesselWorker, PosistionStatistics posistionStatistics)
         {
             this.dmpGame = dmpGame;
             this.lockSystem = lockSystem;
             this.vesselWorker = vesselWorker;
+            this.posistionStatistics = posistionStatistics;
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -55,7 +57,7 @@ namespace DarkMultiPlayer
                 if (hfvl.lastVesselUpdate != null)
                 {
                     //Stop the vessel from exploding while in unpack range.
-                    hfvl.lastVesselUpdate.Apply();
+                    hfvl.lastVesselUpdate.Apply(posistionStatistics, null);
                 }
                 loadingFlyingVessels.Remove(vessel.id);
             }
@@ -131,6 +133,7 @@ namespace DarkMultiPlayer
                     continue;
                 }
 
+                /*
                 if (!lockSystem.LockExists("update-" + vesselID) || lockSystem.LockIsOurs("update-" + vesselID))
                 {
                     DarkLog.Debug("Hacky load removed: Vessel stopped being controlled by another player");
@@ -138,6 +141,7 @@ namespace DarkMultiPlayer
                     vesselWorker.KillVessel(hfvl.flyingVessel);
                     continue;
                 }
+                */
 
                 if (hfvl.flyingVessel.loaded)
                 {
@@ -187,7 +191,7 @@ namespace DarkMultiPlayer
 
                 if (hfvl.lastVesselUpdate != null)
                 {
-                    hfvl.lastVesselUpdate.Apply();
+                    hfvl.lastVesselUpdate.Apply(posistionStatistics, null);
                 }
             }
         }

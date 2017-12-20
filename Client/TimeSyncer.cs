@@ -459,6 +459,10 @@ namespace DarkMultiPlayer
 
         private bool CanSyncTime()
         {
+            if (!locked)
+            {
+                return false;
+            }
             bool canSync;
             switch (HighLogic.LoadedScene)
             {

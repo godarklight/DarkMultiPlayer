@@ -10,6 +10,7 @@
     <RootNamespace>DarkMultiPlayer</RootNamespace>
     <AssemblyName>DarkMultiPlayer</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <UseMSBuildEngine>false</UseMSBuildEngine>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -101,6 +102,8 @@
     <Compile Include="KerbalReassigner.cs" />
     <Compile Include="DMPGame.cs" />
     <Compile Include="VesselRecorder.cs" />
+    <Compile Include="PosistionStatistics.cs" />
+    <Compile Include="VesselCtrlUpdate.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

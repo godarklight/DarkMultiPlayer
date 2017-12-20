@@ -148,6 +148,7 @@ namespace DarkMultiPlayerServer
             newClientObject.ipAddress = (newClientConnection.Client.RemoteEndPoint as IPEndPoint).Address;
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
+            newClientObject.connection.NoDelay = true;
             StartReceivingIncomingMessages(newClientObject);
             StartSendingOutgoingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
@@ -386,6 +387,12 @@ namespace DarkMultiPlayerServer
             catch (Exception e)
             {
                 HandleDisconnectException("ReceiveCallback", client, e);
+                return;
+            }
+            if (bytesRead == 0)
+            {
+                DarkLog.Normal("Disconnected " + client.endpoint);
+                DisconnectClient(client);
                 return;
             }
             client.bytesReceived += bytesRead;

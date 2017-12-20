@@ -44,6 +44,7 @@ namespace DarkMultiPlayer
         public readonly KerbalReassigner kerbalReassigner;
         public readonly AsteroidWorker asteroidWorker;
         public readonly VesselRecorder vesselRecorder;
+        public readonly PosistionStatistics posistionStatistics;
         private DMPModInterface dmpModInterface;
 
         public DMPGame(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, ConnectionWindow connectionWindow, DMPModInterface dmpModInterface, ToolbarSupport toolbarSupport, OptionsWindow optionsWindow)
@@ -54,6 +55,7 @@ namespace DarkMultiPlayer
             this.connectionWindow = connectionWindow;
             this.dmpModInterface = dmpModInterface;
             this.configNodeSerializer = new ConfigNodeSerializer();
+            this.posistionStatistics = new PosistionStatistics();
             this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer);
             this.adminSystem = new AdminSystem(dmpSettings);
             this.flagSyncer = new FlagSyncer(this, dmpSettings, networkWorker);
@@ -61,17 +63,17 @@ namespace DarkMultiPlayer
             this.partKiller = new PartKiller(lockSystem);
             this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
-            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller);
+            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker);
             this.timeSyncer = new TimeSyncer(this, networkWorker, vesselWorker);
             this.warpWorker = new WarpWorker(this, dmpSettings, timeSyncer, networkWorker, playerStatusWorker);
             this.chatWorker = new ChatWorker(this, dmpSettings, networkWorker, adminSystem, playerStatusWorker);
             this.screenshotWorker = new ScreenshotWorker(this, dmpSettings, chatWorker, networkWorker, playerStatusWorker);
-            this.vesselRecorder = new VesselRecorder(this, configNodeSerializer, warpWorker, vesselWorker);
-            this.debugWindow = new DebugWindow(this, dmpSettings, timeSyncer, networkWorker, vesselWorker, dynamicTickWorker, warpWorker, vesselRecorder);
+            this.vesselRecorder = new VesselRecorder(this, warpWorker, vesselWorker);
+            this.debugWindow = new DebugWindow(this, dmpSettings, timeSyncer, networkWorker, vesselWorker, dynamicTickWorker, warpWorker, vesselRecorder, posistionStatistics);
             this.craftLibraryWorker = new CraftLibraryWorker(this, dmpSettings, networkWorker);
-            this.hackyInAtmoLoader = new HackyInAtmoLoader(this, lockSystem, vesselWorker);
+            this.hackyInAtmoLoader = new HackyInAtmoLoader(this, lockSystem, vesselWorker, posistionStatistics);
             this.asteroidWorker = new AsteroidWorker(this, lockSystem, networkWorker, vesselWorker);
             this.playerColorWorker = new PlayerColorWorker(dmpSettings, lockSystem, networkWorker);
             this.playerStatusWindow = new PlayerStatusWindow(this, dmpSettings, warpWorker, chatWorker, craftLibraryWorker, debugWindow, screenshotWorker, timeSyncer, playerStatusWorker, optionsWindow, playerColorWorker);

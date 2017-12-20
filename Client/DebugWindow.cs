@@ -47,8 +47,9 @@ namespace DarkMultiPlayer
         private DynamicTickWorker dynamicTickWorker;
         private WarpWorker warpWorker;
         private VesselRecorder vesselRecorder;
+        private PosistionStatistics posistionStatistics;
 
-        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder)
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -58,6 +59,7 @@ namespace DarkMultiPlayer
             this.dynamicTickWorker = dynamicTickWorker;
             this.warpWorker = warpWorker;
             this.vesselRecorder = vesselRecorder;
+            this.posistionStatistics = posistionStatistics;
             dmpGame.updateEvent.Add(Update);
             dmpGame.drawEvent.Add(Draw);
         }
@@ -168,6 +170,25 @@ namespace DarkMultiPlayer
                     {
                         vesselRecorder.StopRecord();
                     }
+                    if (GUILayout.Button("Cancel Recording", buttonStyle))
+                    {
+                        vesselRecorder.CancelRecord();
+                    }
+                }
+            }
+            posistionStatistics.active = GUILayout.Toggle(posistionStatistics.active, "Display Posistional Error", buttonStyle);
+            if (posistionStatistics.active)
+            {
+                if (posistionStatistics.selectedVessel != Guid.Empty)
+                {
+                    GUILayout.Label("Posistional Error: " + Math.Round(posistionStatistics.distanceError, 2), labelStyle);
+                    GUILayout.Label("Velocity Error: " + Math.Round(posistionStatistics.velocityError, 2), labelStyle);
+                    GUILayout.Label("Rotational Error: " + Math.Round(posistionStatistics.rotationError, 2), labelStyle);
+                    GUILayout.Label("Update HZ: " + Math.Round(posistionStatistics.updateHz, 2), labelStyle);
+                }
+                else
+                {
+                    GUILayout.Label("(no selected vessel)", labelStyle);
                 }
             }
             GUILayout.EndVertical();
