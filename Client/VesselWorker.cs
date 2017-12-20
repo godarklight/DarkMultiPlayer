@@ -40,6 +40,7 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, double> vesselUpdateHistoryTime = new Dictionary<Guid, double>();
         private Dictionary<string, List<KerbalEntry>> kerbalProtoHistory = new Dictionary<string, List<KerbalEntry>>();
         private Dictionary<string, double> kerbalProtoHistoryTime = new Dictionary<string, double>();
+        private Dictionary<Guid, VesselCtrlUpdate> vesselControlUpdates = new Dictionary<Guid, VesselCtrlUpdate>();
         private double lastUniverseTime = double.NegativeInfinity;
         //Vessel tracking
         private Queue<ActiveVesselEntry> newActiveVessels = new Queue<ActiveVesselEntry>();
@@ -88,8 +89,9 @@ namespace DarkMultiPlayer
         private AsteroidWorker asteroidWorker;
         private PartKiller partKiller;
         private PlayerStatusWorker playerStatusWorker;
+        private PosistionStatistics posistionStatistics;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -100,6 +102,7 @@ namespace DarkMultiPlayer
             this.dynamicTickWorker = dynamicTickWorker;
             this.kerbalReassigner = kerbalReassigner;
             this.partKiller = partKiller;
+            this.posistionStatistics = posistionStatistics;
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -453,7 +456,7 @@ namespace DarkMultiPlayer
                 if (vu != null)
                 {
                     hackyInAtmoLoader.SetVesselUpdate(vesselQueue.Key, vu);
-                    vu.Apply();
+                    vu.Apply(posistionStatistics, vesselControlUpdates);
                 }
             }
         }
@@ -1685,7 +1688,7 @@ namespace DarkMultiPlayer
         public void OnVesselRenamed(GameEvents.HostedFromToAction<Vessel, string> eventData)
         {
             Vessel renamedVessel = eventData.host;
-            string fromName = eventData.from, toName = eventData.to;
+            string toName = eventData.to;
             DarkLog.Debug("Sending vessel [" + renamedVessel.name + "] renamed to [" + toName + "]");
             SendVesselUpdateIfNeeded(renamedVessel);
         }

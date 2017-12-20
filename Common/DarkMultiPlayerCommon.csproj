@@ -10,6 +10,7 @@
     <RootNamespace>DarkMultiPlayerCommon</RootNamespace>
     <AssemblyName>DarkMultiPlayer-Common</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <UseMSBuildEngine>false</UseMSBuildEngine>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>

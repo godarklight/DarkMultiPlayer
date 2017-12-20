@@ -63,6 +63,7 @@ Global
 		$3.FileWidth = 80
 		$3.TabsToSpaces = True
 		$0.DotNetNamingPolicy = $4
+		$0.StandardHeader = $5
 		StartupItem = Server\Server.csproj
 	EndGlobalSection
 EndGlobal
