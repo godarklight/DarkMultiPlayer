@@ -52,33 +52,6 @@ namespace DarkMultiPlayer
         public string gameDataDir;
         public string kspRootPath;
 
-        public Client()
-        {
-            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
-            dmpDataDir = Path.Combine(dmpDir, "Data");
-            gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
-            kspRootPath = KSPUtil.ApplicationRootPath;
-
-            //Fix DarkLog time/thread marker in the log during init.
-            DarkLog.SetMainThread();
-            lastClockTicks = DateTime.UtcNow.Ticks;
-            lastRealTimeSinceStartup = 0f;
-
-            dmpClient = this;
-            dmpSettings = new Settings();
-            toolbarSupport = new ToolbarSupport(dmpSettings);
-            universeSyncCache = new UniverseSyncCache(dmpSettings);
-            modWindow = new ModWindow();
-            modWorker = new ModWorker(modWindow);
-            modWindow.SetDependenices(modWorker);
-            universeConverter = new UniverseConverter(dmpSettings);
-            universeConverterWindow = new UniverseConverterWindow(universeConverter);
-            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
-            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
-            disclaimerWindow = new DisclaimerWindow(dmpSettings);
-            dmpModInterface = new DMPModInterface();
-        }
-
         public Client fetch
         {
             get
@@ -107,6 +80,30 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
+            dmpDataDir = Path.Combine(dmpDir, "Data");
+            gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            kspRootPath = KSPUtil.ApplicationRootPath;
+
+            //Fix DarkLog time/thread marker in the log during init.
+            DarkLog.SetMainThread();
+            lastClockTicks = DateTime.UtcNow.Ticks;
+            lastRealTimeSinceStartup = 0f;
+
+            dmpClient = this;
+            dmpSettings = new Settings();
+            toolbarSupport = new ToolbarSupport(dmpSettings);
+            universeSyncCache = new UniverseSyncCache(dmpSettings);
+            modWindow = new ModWindow();
+            modWorker = new ModWorker(modWindow);
+            modWindow.SetDependenices(modWorker);
+            universeConverter = new UniverseConverter(dmpSettings);
+            universeConverterWindow = new UniverseConverterWindow(universeConverter);
+            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
+            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
+            disclaimerWindow = new DisclaimerWindow(dmpSettings);
+            dmpModInterface = new DMPModInterface();
+
             if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
                 modDisabled = true;
 
