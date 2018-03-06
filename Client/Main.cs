@@ -54,14 +54,10 @@ namespace DarkMultiPlayer
 
         public Client()
         {
-#if DEBUG
-            dmpDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-#else
             dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
-#endif
             dmpDataDir = Path.Combine(dmpDir, "Data");
-            gameDataDir = Path.GetFullPath(Path.Combine(dmpDir, "../../"));
-            kspRootPath = Path.GetFullPath(Path.Combine(gameDataDir, "../"));
+            gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            kspRootPath = KSPUtil.ApplicationRootPath;
 
             //Fix DarkLog time/thread marker in the log during init.
             DarkLog.SetMainThread();
