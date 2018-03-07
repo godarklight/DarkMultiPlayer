@@ -119,9 +119,7 @@ namespace DarkMultiPlayerServer
             //Test compression
             if (Settings.settingsStore.compressionEnabled)
             {
-                long testTime = Compression.TestSysIOCompression();
                 Compression.compressionEnabled = true;
-                DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
             }
 
             //Set day for log change

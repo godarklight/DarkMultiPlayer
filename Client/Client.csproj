@@ -44,9 +44,6 @@
     <Reference Include="MessageWriter2">
       <HintPath>..\MessageWriter2.dll</HintPath>
     </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
