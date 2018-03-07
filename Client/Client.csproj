@@ -101,6 +101,7 @@
     <Compile Include="VesselRecorder.cs" />
     <Compile Include="PosistionStatistics.cs" />
     <Compile Include="VesselCtrlUpdate.cs" />
+    <Compile Include="VesselPackedUpdater.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

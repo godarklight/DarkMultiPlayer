@@ -90,8 +90,9 @@ namespace DarkMultiPlayer
         private PartKiller partKiller;
         private PlayerStatusWorker playerStatusWorker;
         private PosistionStatistics posistionStatistics;
+        private VesselPackedUpdater vesselPackedUpdater;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselPackedUpdater vesselPackedUpdater)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -103,6 +104,7 @@ namespace DarkMultiPlayer
             this.kerbalReassigner = kerbalReassigner;
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
+            this.vesselPackedUpdater = vesselPackedUpdater;
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -218,6 +220,9 @@ namespace DarkMultiPlayer
                 {
                     ProcessNewVesselMessages();
                 }
+
+                //Apply updates to packed vessel
+                vesselPackedUpdater.Update();
 
                 //Update the screen spectate message.
                 UpdateOnScreenSpectateMessage();
@@ -455,8 +460,8 @@ namespace DarkMultiPlayer
                 //Apply it if there is any
                 if (vu != null)
                 {
-                    hackyInAtmoLoader.SetVesselUpdate(vesselQueue.Key, vu);
                     vu.Apply(posistionStatistics, vesselControlUpdates);
+                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu);
                 }
             }
         }
@@ -1440,7 +1445,7 @@ namespace DarkMultiPlayer
                 {
                     //Don't replace the vessel if it's unpacked, not landed, close to the ground, and has the same amount of parts.
                     double hft = oldVessel.GetHeightFromTerrain();
-                    if (oldVessel.loaded && !oldVessel.packed && !oldVessel.Landed && (hft != -1) && (hft < 1000) && (currentProto.protoPartSnapshots.Count == oldVessel.parts.Count))
+                    if (oldVessel.loaded && !oldVessel.packed && !oldVessel.Landed && (hft > 0) && (hft < 1000) && (currentProto.protoPartSnapshots.Count == oldVessel.parts.Count))
                     {
                         DarkLog.Debug("Skipped loading protovessel " + currentProto.vesselID.ToString() + " because it is flying close to the ground and may get destroyed");
                         return;

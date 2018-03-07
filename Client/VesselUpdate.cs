@@ -144,7 +144,6 @@ namespace DarkMultiPlayer
                 //DarkLog.Debug("ApplyVesselUpdate - updateBody not found");
                 return;
             }
-
             Quaternion normalRotate = Quaternion.identity;
             double distanceError = 0;
             double velocityError = 0;
@@ -262,7 +261,7 @@ namespace DarkMultiPlayer
             }
 
             //Angular velocity
-            Vector3 angularVelocity = updateVessel.ReferenceTransform.rotation * new Vector3(this.angularVelocity[0], this.angularVelocity[1], this.angularVelocity[2]);
+            Vector3 angularVel = updateVessel.ReferenceTransform.rotation * new Vector3(angularVelocity[0], angularVelocity[1], angularVelocity[2]);
             updateVessel.precalc.CalculatePhysicsStats();
 
             if (updateVessel.parts != null)
@@ -272,12 +271,12 @@ namespace DarkMultiPlayer
                     Part vesselPart = updateVessel.parts[i];
                     if (vesselPart.rb != null && vesselPart.State != PartStates.DEAD)
                     {
-                        vesselPart.rb.angularVelocity = angularVelocity;
+                        vesselPart.rb.angularVelocity = angularVel;
                         if (vesselPart != updateVessel.rootPart)
                         {
                             Vector3 rootVel = FlightGlobals.ActiveVessel.rootPart.rb.velocity;
                             Vector3 diffPos = vesselPart.rb.position - updateVessel.CoM;
-                            Vector3 partVelDifference = Vector3.Cross(angularVelocity, diffPos);
+                            Vector3 partVelDifference = Vector3.Cross(angularVel, diffPos);
                             vesselPart.rb.velocity = rootVel + partVelDifference;
                         }
                     }
