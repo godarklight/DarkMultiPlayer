@@ -41,9 +41,11 @@ namespace DarkMultiPlayer.Utilities
 
             if (!IsCorrectlyInstalled())
             {
+                string message = string.Format("DarkMultiPlayer is not correctly installed.\n\nCurrent location: {0}\n\nCorrect location: {1}\n", currentPath, correctPath);
+
                 Debug.Log(String.Format("[InstallChecker] Mod '{0}' is not correctly installed.", Assembly.GetExecutingAssembly().GetName().Name));
                 Debug.Log(String.Format("[InstallChecker] DMP is Currently installed on '{0}', should be installed at '{1}'", currentPath, correctPath));
-                PopupDialog.SpawnPopupDialog(new MultiOptionDialog("InstallChecker", String.Format("DarkMultiPlayer is not correctly installed.\n\nCurrent location: {0}\n\nCorrect location: {1}\n", currentPath, correctPath), "Incorrect Install Detected", HighLogic.UISkin), true, HighLogic.UISkin);
+                PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "InstallChecker", "Incorrect Install Detected", message, "OK", true, HighLogic.UISkin);
             }
         }
     }
