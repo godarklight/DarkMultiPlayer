@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
         private PosistionStatistics posistionStatistics;
         private LockSystem lockSystem;
         private Dictionary<Guid, VesselUpdate> currentVesselUpdates = new Dictionary<Guid, VesselUpdate>();
+        private Dictionary<Guid, VesselUpdate> previousVesselUpdates = new Dictionary<Guid, VesselUpdate>();
 
         public VesselPackedUpdater (LockSystem lockSystem, PosistionStatistics posistionStatistics)
         {
@@ -15,10 +16,10 @@ namespace DarkMultiPlayer
             this.posistionStatistics = posistionStatistics;
         }
 
-        public void SetVesselUpdate(Guid vesselID, VesselUpdate vesselUpdate)
+        public void SetVesselUpdate(Guid vesselID, VesselUpdate vesselUpdate, VesselUpdate previousUpdate)
         {
-            DarkLog.Debug("Vessel update set: " + vesselID);
             currentVesselUpdates[vesselID] = vesselUpdate;
+            previousVesselUpdates[vesselID] = previousUpdate;
         }
 
         public void Update()
@@ -35,16 +36,17 @@ namespace DarkMultiPlayer
                 {
                     continue;
                 }
-                if (!updateVessel.packed)
-                {
-                    continue;
-                }
                 VesselUpdate vu = currentVesselUpdates[vesselID];
+                VesselUpdate pu = null;
+                if (previousVesselUpdates.ContainsKey(vesselID))
+                {
+                    pu = previousVesselUpdates[vesselID];
+                }
                 //Apply updates for up to 5 seconds
                 double timeDiff = Planetarium.GetUniversalTime() - vu.planetTime;
                 if (timeDiff < 5f && timeDiff > -5f)
                 {
-                    vu.Apply(posistionStatistics, null);
+                    vu.Apply(posistionStatistics, null, pu);
                 }
             }
         }

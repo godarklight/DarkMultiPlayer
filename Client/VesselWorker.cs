@@ -31,6 +31,7 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, Queue<VesselProtoUpdate>> vesselProtoQueue = new Dictionary<Guid, Queue<VesselProtoUpdate>>();
         private Dictionary<Guid, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<Guid, Queue<VesselUpdate>>();
         private Dictionary<string, Queue<KerbalEntry>> kerbalProtoQueue = new Dictionary<string, Queue<KerbalEntry>>();
+        private Dictionary<Guid, VesselUpdate> previousUpdates = new Dictionary<Guid, VesselUpdate>();
         //Incoming revert support
         private Dictionary<Guid, List<VesselRemoveEntry>> vesselRemoveHistory = new Dictionary<Guid, List<VesselRemoveEntry>>();
         private Dictionary<Guid, double> vesselRemoveHistoryTime = new Dictionary<Guid, double>();
@@ -460,8 +461,14 @@ namespace DarkMultiPlayer
                 //Apply it if there is any
                 if (vu != null)
                 {
-                    vu.Apply(posistionStatistics, vesselControlUpdates);
-                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu);
+                    VesselUpdate previousUpdate = null;
+                    if (previousUpdates.ContainsKey(vu.vesselID))
+                    {
+                        previousUpdate = previousUpdates[vu.vesselID];
+                    }
+                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate);
+                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate);
+                    previousUpdates[vu.vesselID] = vu;
                 }
             }
         }
