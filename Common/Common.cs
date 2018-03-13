@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.3";
+        public const string MODCONTROL_VERSION = "1.4";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -431,20 +431,20 @@ namespace DarkMultiPlayerCommon
                 "kerbalEVAVintage",
                 "kerbalEVAfemaleVintage",
                 "mk1-3pod",
-                "Decoupler_0",
-                "Decoupler_1",
-                "Decoupler_2",
-                "Decoupler_3",
-                "Separator_0",
-                "Separator_1",
-                "Separator_2",
-                "Separator_3",
+                "Decoupler.0",
+                "Decoupler.1",
+                "Decoupler.2",
+                "Decoupler.3",
+                "Separator.0",
+                "Separator.1",
+                "Separator.2",
+                "Separator.3",
                 "externalTankCapsule",
                 "externalTankRound",
                 "externalTankToroid",
-                "Rockomax16_BW",
-                "Rockomax32_BW",
-                "Rockomax64_BW",
+                "Rockomax16.BW",
+                "Rockomax32.BW",
+                "Rockomax64.BW",
                 "Rockomax8BW"
             };
             return stockPartList;
