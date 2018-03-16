@@ -6,4 +6,4 @@
 *.suo
 *.csproj.user
 saves/
-Client/DarkMultiPlayer/
+.vs/

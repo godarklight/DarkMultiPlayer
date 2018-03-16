@@ -45,7 +45,7 @@ namespace DarkMultiPlayer
         public readonly AsteroidWorker asteroidWorker;
         public readonly VesselRecorder vesselRecorder;
         public readonly PosistionStatistics posistionStatistics;
-        public readonly VesselPackedUpdater vesselPackedUpdater;
+        public readonly VesselInterFrameUpdater vesselPackedUpdater;
         private DMPModInterface dmpModInterface;
 
         public DMPGame(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, ConnectionWindow connectionWindow, DMPModInterface dmpModInterface, ToolbarSupport toolbarSupport, OptionsWindow optionsWindow)
@@ -64,7 +64,7 @@ namespace DarkMultiPlayer
             this.partKiller = new PartKiller(lockSystem);
             this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
-            this.vesselPackedUpdater = new VesselPackedUpdater(lockSystem, posistionStatistics);
+            this.vesselPackedUpdater = new VesselInterFrameUpdater(lockSystem, posistionStatistics);
             this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, vesselPackedUpdater);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker);

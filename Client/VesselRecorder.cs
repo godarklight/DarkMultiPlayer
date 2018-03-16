@@ -87,8 +87,6 @@ namespace DarkMultiPlayer
             {
                 while (fs.Position < fs.Length)
                 {
-                    DarkLog.Debug(fs.Position.ToString());
-                    DarkLog.Debug(fs.Length.ToString());
                     messagesLoaded++;
                     byte[] headerBytes = new byte[8];
                     fs.Read(headerBytes, 0, 8);

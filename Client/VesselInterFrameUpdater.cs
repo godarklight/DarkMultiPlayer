@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using DarkMultiPlayer;
 namespace DarkMultiPlayer
 {
-    public class VesselPackedUpdater
+    public class VesselInterFrameUpdater
     {
         private PosistionStatistics posistionStatistics;
         private LockSystem lockSystem;
         private Dictionary<Guid, VesselUpdate> currentVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> previousVesselUpdates = new Dictionary<Guid, VesselUpdate>();
 
-        public VesselPackedUpdater (LockSystem lockSystem, PosistionStatistics posistionStatistics)
+        public VesselInterFrameUpdater (LockSystem lockSystem, PosistionStatistics posistionStatistics)
         {
             this.lockSystem = lockSystem;
             this.posistionStatistics = posistionStatistics;
