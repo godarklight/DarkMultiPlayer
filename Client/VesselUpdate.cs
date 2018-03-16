@@ -228,7 +228,7 @@ namespace DarkMultiPlayer
             Quaternion updateRotation = normalRotate * unfudgedRotation;
             //Rotational error tracking
             double rotationalError = Quaternion.Angle(updateVessel.srfRelRotation, updateRotation);
-            //updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
+            updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
             updateVessel.srfRelRotation = updateRotation;
             updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
 

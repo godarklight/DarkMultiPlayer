@@ -181,6 +181,7 @@ namespace DarkMultiPlayer
             if (!loadingFlyingVessels.ContainsKey(hackyVessel.id))
             {
                 HackyFlyingVesselLoad hfvl = new HackyFlyingVesselLoad();
+                hfvl.flyingVessel = hackyVessel;
                 hfvl.lastUnpackTime = Client.realtimeSinceStartup;
                 loadingFlyingVessels.Add(hackyVessel.id, hfvl);
             }
