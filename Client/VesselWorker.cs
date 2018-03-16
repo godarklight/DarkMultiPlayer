@@ -91,9 +91,9 @@ namespace DarkMultiPlayer
         private PartKiller partKiller;
         private PlayerStatusWorker playerStatusWorker;
         private PosistionStatistics posistionStatistics;
-        private VesselPackedUpdater vesselPackedUpdater;
+        private VesselInterFrameUpdater vesselPackedUpdater;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselPackedUpdater vesselPackedUpdater)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselInterFrameUpdater vesselPackedUpdater)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -106,6 +106,7 @@ namespace DarkMultiPlayer
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
             this.vesselPackedUpdater = vesselPackedUpdater;
+            dmpGame.updateEvent.Add(Update);
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -118,8 +119,45 @@ namespace DarkMultiPlayer
             this.playerStatusWorker = playerStatusWorker;
         }
 
-        //Called from main
         private void FixedUpdate()
+        {
+            if (HighLogic.LoadedScene == GameScenes.LOADING)
+            {
+                return;
+            }
+
+            if (Time.timeSinceLevelLoad < 1f)
+            {
+                return;
+            }
+
+            if (HighLogic.LoadedScene == GameScenes.FLIGHT)
+            {
+                if (!FlightGlobals.ready)
+                {
+                    return;
+                }
+            }
+            if (workerEnabled)
+            {
+                //Kill any queued vessels
+                foreach (Vessel dyingVessel in delayKillVessels.ToArray())
+                {
+                    if (FlightGlobals.fetch.vessels.Contains(dyingVessel) && dyingVessel.state != Vessel.State.DEAD)
+                    {
+                        DarkLog.Debug("Delay killing " + dyingVessel.id.ToString());
+                        KillVessel(dyingVessel);
+                    }
+                    else
+                    {
+                        delayKillVessels.Remove(dyingVessel);
+                    }
+                }
+            }
+        }
+
+        //Called from main
+        private void Update()
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING)
             {
@@ -1466,21 +1504,6 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        /*
-                            Sorry guys - KSP's protovessel positioning is not as accurate as it could be.
-
-                            The loading vessel needs to come off rails in order for the error to be corrected,
-                            but taking it off rails will allow the vessel to collide with others while it's in the incorrect spot for that fixed update.
-                        
-                            If the vessel is the selected target, close (unpacked), and has the same number of parts, we'll skip the protovessel load.
-                        */
-
-                        if (wasTarget && !oldVessel.LandedOrSplashed && oldVessel.loaded && !oldVessel.packed && (oldVessel.parts.Count == currentProto.protoPartSnapshots.Count))
-                        {
-
-                            DarkLog.Debug("Skipping loading protovessel " + currentProto.vesselID.ToString() + " because it is the selected target and may crash into us");
-                            return;
-                        }
                         KillVessel(oldVessel);
                     }
                 }
@@ -1993,6 +2016,7 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Error unloading vessel: " + unloadException);
                     }
                 }
+
                 //Remove the kerbal from the craft
                 foreach (ProtoPartSnapshot pps in killVessel.protoVessel.protoPartSnapshots)
                 {
@@ -2363,6 +2387,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
+            dmpGame.updateEvent.Remove(Update);
             dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
             if (registered)
             {

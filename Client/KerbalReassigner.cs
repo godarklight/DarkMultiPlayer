@@ -7,9 +7,10 @@ namespace DarkMultiPlayer
     public class KerbalReassigner
     {
         private bool registered = false;
-        private static string[] femaleNames;
-        private static string[] femaleNamesPrefix;
-        private static string[] femaleNamesPostfix;
+        private static bool inited = false;
+        private static bool broken = false;
+        private static HashSet<string> femaleNames = new HashSet<string>();
+        private static HashSet<string> femaleNamesSpecial = new HashSet<string>();
         private Dictionary<Guid, List<string>> vesselToKerbal = new Dictionary<Guid, List<string>>();
         private Dictionary<string, Guid> kerbalToVessel = new Dictionary<string, Guid>();
 
@@ -183,9 +184,9 @@ namespace DarkMultiPlayer
             if (!HighLogic.CurrentGame.CrewRoster.Exists(kerbalName))
             {
                 ProtoCrewMember pcm = CrewGenerator.RandomCrewMemberPrototype(ProtoCrewMember.KerbalType.Crew);
+                HighLogic.CurrentGame.CrewRoster.AddCrewMember(pcm);
                 pcm.ChangeName(kerbalName);
                 pcm.rosterStatus = ProtoCrewMember.RosterStatus.Assigned;
-                HighLogic.CurrentGame.CrewRoster.AddCrewMember(pcm);
                 DarkLog.Debug("Created kerbal " + pcm.name + " for vessel " + vesselID + ", Kerbal was missing");
             }
         }
@@ -193,44 +194,47 @@ namespace DarkMultiPlayer
         //Better not use a bool for this and enforce the gender binary on xir!
         public static ProtoCrewMember.Gender GetKerbalGender(string kerbalName)
         {
-            string trimmedName = kerbalName;
-            if (kerbalName.Contains(" Kerman"))
+            if (broken)
             {
-                trimmedName = kerbalName.Substring(0, kerbalName.IndexOf(" Kerman"));
-                DarkLog.Debug("(KerbalReassigner) Trimming name to '" + trimmedName + "'");
+                return ProtoCrewMember.Gender.Male;
             }
-            foreach (FieldInfo fi in typeof(CrewGenerator).GetFields(BindingFlags.Static | BindingFlags.NonPublic))
+
+            if (!inited)
             {
-                if (fi.FieldType == typeof(string[]))
+                string[] femaleNamesArray = null;
+                string[] femaleNamesSpecialArray = null;
+                FieldInfo femaleNamesArrayFI = typeof(CrewGenerator).GetField("kerbalNamesFemale", BindingFlags.NonPublic | BindingFlags.Static);
+                FieldInfo femaleNamesSpecialFI = typeof(CrewGenerator).GetField("specialNamesFemale", BindingFlags.NonPublic | BindingFlags.Static);
+                if (femaleNamesArrayFI != null && femaleNamesSpecialFI != null)
                 {
-                    string[] fieldValue = (string[])fi.GetValue(null);
-                    foreach (string entry in fieldValue)
+                    femaleNamesArray = (string[])femaleNamesArrayFI.GetValue(null);
+                    femaleNamesSpecialArray = (string[])femaleNamesSpecialFI.GetValue(null);
+                }
+                inited = true;
+                if (femaleNamesArray == null || femaleNamesSpecialArray == null)
+                {
+                    broken = true;
+                    DarkLog.Debug("Kerbal Gender Assigner is BROKEN!");
+                    return ProtoCrewMember.Gender.Male;
+                }
+                else
+                {
+                    foreach (string name in femaleNamesArray)
                     {
-                        if (entry == "Alice")
-                        {
-                            DarkLog.Debug("Found female single names!");
-                            femaleNames = fieldValue;
-                            break;
-                        }
-                        if (entry == "Aga")
-                        {
-                            DarkLog.Debug("Found female prefixes!");
-                            femaleNamesPrefix = fieldValue;
-                            break;
-                        }
-                        if (entry == "alla")
-                        {
-                            DarkLog.Debug("Found female postfixes!");
-                            femaleNamesPostfix = fieldValue;
-                            break;
-                        }
+                        femaleNames.Add(name);
+                    }
+
+                    foreach (string name in femaleNamesSpecialArray)
+                    {
+                        femaleNamesSpecial.Add(name);
                     }
                 }
             }
-            if (femaleNames == null || femaleNamesPrefix == null || femaleNamesPostfix == null)
+
+            string trimmedName = kerbalName;
+            if (kerbalName.Contains(" "))
             {
-                DarkLog.Debug("Kerbal Gender Assigner is BROKEN!");
-                return ProtoCrewMember.Gender.Male;
+                trimmedName = kerbalName.Substring(0, kerbalName.LastIndexOf(" "));
             }
 
             if (trimmedName == "Valentina")
@@ -238,27 +242,16 @@ namespace DarkMultiPlayer
                 return ProtoCrewMember.Gender.Female;
             }
 
-            foreach (string name in femaleNames)
+            if (femaleNames.Contains(trimmedName))
             {
-                if (name == trimmedName)
-                {
-                    return ProtoCrewMember.Gender.Female;
-                }
+                return ProtoCrewMember.Gender.Female;
             }
 
-            foreach (string prefixName in femaleNamesPrefix)
+            if (femaleNamesSpecial.Contains(trimmedName))
             {
-                if (trimmedName.StartsWith(prefixName))
-                {
-                    foreach (string postfixName in femaleNamesPostfix)
-                    {
-                        if (trimmedName == prefixName + postfixName)
-                        {
-                            return ProtoCrewMember.Gender.Female;
-                        }
-                    }
-                }
+                return ProtoCrewMember.Gender.Female;
             }
+
             return ProtoCrewMember.Gender.Male;
         }
 
