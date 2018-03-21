@@ -108,7 +108,6 @@ namespace DarkMultiPlayer
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
             this.vesselPackedUpdater = vesselPackedUpdater;
-            dmpGame.updateEvent.Add(Update);
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -121,45 +120,8 @@ namespace DarkMultiPlayer
             this.playerStatusWorker = playerStatusWorker;
         }
 
-        private void FixedUpdate()
-        {
-            if (HighLogic.LoadedScene == GameScenes.LOADING)
-            {
-                return;
-            }
-
-            if (Time.timeSinceLevelLoad < 1f)
-            {
-                return;
-            }
-
-            if (HighLogic.LoadedScene == GameScenes.FLIGHT)
-            {
-                if (!FlightGlobals.ready)
-                {
-                    return;
-                }
-            }
-            if (workerEnabled)
-            {
-                //Kill any queued vessels
-                foreach (Vessel dyingVessel in delayKillVessels.ToArray())
-                {
-                    if (FlightGlobals.fetch.vessels.Contains(dyingVessel) && dyingVessel.state != Vessel.State.DEAD)
-                    {
-                        DarkLog.Debug("Delay killing " + dyingVessel.id.ToString());
-                        KillVessel(dyingVessel);
-                    }
-                    else
-                    {
-                        delayKillVessels.Remove(dyingVessel);
-                    }
-                }
-            }
-        }
-
         //Called from main
-        private void Update()
+        private void FixedUpdate()
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING)
             {
@@ -506,7 +468,7 @@ namespace DarkMultiPlayer
                     {
                         previousUpdate = previousUpdates[vu.vesselID];
                     }
-                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate);
+                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, dmpSettings.extrapolationEnabled);
                     vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate);
                     previousUpdates[vu.vesselID] = vu;
                 }
@@ -2389,7 +2351,6 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.updateEvent.Remove(Update);
             dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
             if (registered)
             {

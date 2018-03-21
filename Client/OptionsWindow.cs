@@ -26,7 +26,7 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         //const
-        private const float WINDOW_HEIGHT = 300;
+        private const float WINDOW_HEIGHT = 320;
         private const float WINDOW_WIDTH = 300;
         private const int descWidth = 75;
         private const int sepWidth = 5;
@@ -38,8 +38,6 @@ namespace DarkMultiPlayer
         // Toolbar
         private GUIStyle toolbarBtnStyle;
         private OptionsTab selectedTab = OptionsTab.PLAYER;
-        //TODO: Ask RockyTV
-        //private string[] optionsTabs = { "Player", "Cache", "Advanced" };
         // New style
         private GUIStyle descriptorStyle;
         private GUIStyle plrNameStyle;
@@ -410,6 +408,22 @@ namespace DarkMultiPlayer
                 if (toggleRevert != dmpSettings.revertEnabled)
                 {
                     dmpSettings.revertEnabled = toggleRevert;
+                    dmpSettings.SaveSettings();
+                }
+                groupY += 22;
+
+                bool toggleExtrapolation = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.extrapolationEnabled, "Enable Extrapolation");
+                if (toggleExtrapolation != dmpSettings.extrapolationEnabled)
+                {
+                    dmpSettings.extrapolationEnabled = toggleExtrapolation;
+                    dmpSettings.SaveSettings();
+                }
+                groupY += 22;
+
+                bool toggleInterframeUpdater = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.interframeEnabled, "Position loaded vessels");
+                if (toggleInterframeUpdater != dmpSettings.interframeEnabled)
+                {
+                    dmpSettings.interframeEnabled = toggleInterframeUpdater;
                     dmpSettings.SaveSettings();
                 }
                 groupY += 22;

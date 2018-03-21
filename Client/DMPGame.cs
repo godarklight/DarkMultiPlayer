@@ -64,7 +64,7 @@ namespace DarkMultiPlayer
             this.partKiller = new PartKiller(lockSystem);
             this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
-            this.vesselPackedUpdater = new VesselInterFrameUpdater(lockSystem, posistionStatistics);
+            this.vesselPackedUpdater = new VesselInterFrameUpdater(lockSystem, posistionStatistics, dmpSettings);
             this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, vesselPackedUpdater);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker);
