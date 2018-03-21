@@ -35,6 +35,7 @@ namespace DarkMultiPlayer
         private bool settingScreenshot;
         private string settingKeyMessage = "cancel";
         private string toolbarMode;
+        private string interpolatorMode;
         // Toolbar
         private GUIStyle toolbarBtnStyle;
         private OptionsTab selectedTab = OptionsTab.PLAYER;
@@ -142,6 +143,7 @@ namespace DarkMultiPlayer
             sectionHeaderStyle.fontStyle = FontStyle.Bold;
 
             UpdateToolbarString();
+            UpdateInterpolatorString();
         }
 
         private void UpdateToolbarString()
@@ -159,6 +161,28 @@ namespace DarkMultiPlayer
                     break;
                 case DMPToolbarType.BOTH_IF_INSTALLED:
                     toolbarMode = "Toolbar: Both";
+                    break;
+            }
+        }
+
+        private void UpdateInterpolatorString()
+        {
+            switch (dmpSettings.interpolatorType)
+            {
+                case InterpolatorType.DISABLED:
+                    interpolatorMode = "Interpolator: Disabled";
+                    break;
+                case InterpolatorType.EXTRAPOLATE_FULL:
+                    interpolatorMode = "Extrapolate with rotational acceleration";
+                    break;
+                case InterpolatorType.EXTRAPOLATE_NO_ROT:
+                    interpolatorMode = "Extrapolate without rotational acceleration";
+                    break;
+                case InterpolatorType.INTERPOLATE1S:
+                    interpolatorMode = "Interpolate with 1 second delay (default)";
+                    break;
+                case InterpolatorType.INTERPOLATE3S:
+                    interpolatorMode = "Interpolate with 3 seconds delay";
                     break;
             }
         }
@@ -393,7 +417,7 @@ namespace DarkMultiPlayer
                 GUI.Box(new Rect(2, windowY, windowRect.width - 4, 20), "Other", sectionHeaderStyle);
                 windowY += 22;
 
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 148));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 178));
                 groupY = 0;
 
                 bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.compressionEnabled, "Compress Network Traffic");
@@ -412,20 +436,27 @@ namespace DarkMultiPlayer
                 }
                 groupY += 22;
 
-                bool toggleExtrapolation = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.extrapolationEnabled, "Enable Extrapolation");
-                if (toggleExtrapolation != dmpSettings.extrapolationEnabled)
-                {
-                    dmpSettings.extrapolationEnabled = toggleExtrapolation;
-                    dmpSettings.SaveSettings();
-                }
-                groupY += 22;
-
-                bool toggleInterframeUpdater = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.interframeEnabled, "Position loaded vessels");
+                bool toggleInterframeUpdater = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.interframeEnabled, "Position Loaded Vessels");
                 if (toggleInterframeUpdater != dmpSettings.interframeEnabled)
                 {
                     dmpSettings.interframeEnabled = toggleInterframeUpdater;
                     dmpSettings.SaveSettings();
                 }
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), interpolatorMode, buttonStyle))
+                {
+                    int newSetting = (int)dmpSettings.interpolatorType + 1;
+                    //Overflow to 0
+                    if (!Enum.IsDefined(typeof(InterpolatorType), newSetting))
+                    {
+                        newSetting = 0;
+                    }
+                    dmpSettings.interpolatorType = (InterpolatorType)newSetting;
+                    dmpSettings.SaveSettings();
+                    UpdateInterpolatorString();
+                }
+
                 groupY += 22;
 
                 universeConverterWindow.display = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), universeConverterWindow.display, "Generate DMP universe from saved game...", buttonStyle);

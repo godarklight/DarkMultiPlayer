@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
         private PosistionStatistics posistionStatistics;
         private LockSystem lockSystem;
         private Settings dmpSettings;
+        private Dictionary<Guid, VesselUpdate> nextVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> currentVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> previousVesselUpdates = new Dictionary<Guid, VesselUpdate>();
 
@@ -18,10 +19,19 @@ namespace DarkMultiPlayer
             this.dmpSettings = dmpSettings;
         }
 
-        public void SetVesselUpdate(Guid vesselID, VesselUpdate vesselUpdate, VesselUpdate previousUpdate)
+        public void SetVesselUpdate(Guid vesselID, VesselUpdate vesselUpdate, VesselUpdate previousUpdate, VesselUpdate nextUpdate)
         {
+            nextVesselUpdates[vesselID] = nextUpdate;
             currentVesselUpdates[vesselID] = vesselUpdate;
             previousVesselUpdates[vesselID] = previousUpdate;
+        }
+
+        public void SetNextUpdate(Guid vesselID, VesselUpdate nextUpdate)
+        {
+            if (nextVesselUpdates.ContainsKey(vesselID))
+            {
+                nextVesselUpdates[vesselID] = nextUpdate;
+            }
         }
 
         public void Update()
@@ -42,17 +52,26 @@ namespace DarkMultiPlayer
                 {
                     return;
                 }
+                if (dmpSettings.interpolatorType == InterpolatorType.DISABLED)
+                {
+                    return;
+                }
                 VesselUpdate vu = currentVesselUpdates[vesselID];
                 VesselUpdate pu = null;
                 if (previousVesselUpdates.ContainsKey(vesselID))
                 {
                     pu = previousVesselUpdates[vesselID];
                 }
+                VesselUpdate nu = null;
+                if (nextVesselUpdates.ContainsKey(vesselID))
+                {
+                    nu = nextVesselUpdates[vesselID];
+                }
                 //Apply updates for up to 5 seconds
                 double timeDiff = Planetarium.GetUniversalTime() - vu.planetTime;
                 if (timeDiff < 5f && timeDiff > -5f)
                 {
-                    vu.Apply(posistionStatistics, null, pu, dmpSettings.extrapolationEnabled);
+                    vu.Apply(posistionStatistics, null, pu, nu, dmpSettings);
                 }
             }
         }
