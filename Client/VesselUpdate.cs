@@ -27,6 +27,7 @@ namespace DarkMultiPlayer
         public int autopilotMode;
         public float[] lockedRotation;
         //Private
+        private const double STEP_DISTANCE = 0.05;
         private VesselWorker vesselWorker;
 
         public VesselUpdate(VesselWorker vesselWorker)
@@ -120,7 +121,7 @@ namespace DarkMultiPlayer
             return returnUpdate;
         }
 
-        public void Apply(PosistionStatistics posistionStatistics, Dictionary<Guid, VesselCtrlUpdate> ctrlUpdate, VesselUpdate previousUpdate)
+        public void Apply(PosistionStatistics posistionStatistics, Dictionary<Guid, VesselCtrlUpdate> ctrlUpdate, VesselUpdate previousUpdate, bool extrapolationEnabled)
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING)
             {
@@ -156,7 +157,6 @@ namespace DarkMultiPlayer
                 VesselUtil.DMPRaycastPair dmpRaycast = VesselUtil.RaycastGround(position[0], position[1], updateBody);
                 if (dmpRaycast.altitude != -1d && position[3] != -1d)
                 {
-
                     Vector3 theirNormal = new Vector3(terrainNormal[0], terrainNormal[1], terrainNormal[2]);
                     altitudeFudge = dmpRaycast.altitude - position[3];
                     if (Math.Abs(position[2] - position[3]) < 50f)
@@ -165,30 +165,19 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                double planetariumDifference = Planetarium.GetUniversalTime() - planetTime;
-
-                //Velocity fudge
                 Vector3d updateAcceleration = updateBody.bodyTransform.rotation * new Vector3d(acceleration[0], acceleration[1], acceleration[2]);
-                Vector3d velocityFudge = Vector3d.zero;
-                if (Math.Abs(planetariumDifference) < 3f)
+                Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(velocity[0], velocity[1], velocity[2]);
+                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2] + altitudeFudge);
+                Vector3d newUpdatePostion = updatePostion;
+
+                double planetariumDifference = Planetarium.GetUniversalTime() - planetTime;
+                if (Math.Abs(planetariumDifference) < 3f && previousUpdate != null && extrapolationEnabled)
                 {
-                    //Velocity = a*t
-                    velocityFudge = updateAcceleration * planetariumDifference;
+                    StepExtrapolate(previousUpdate, updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion);
                 }
 
-                //Position fudge
-                Vector3d updateVelocity = updateBody.bodyTransform.rotation * new Vector3d(velocity[0], velocity[1], velocity[2]) + velocityFudge;
-                Vector3d positionFudge = Vector3d.zero;
-
-                if (Math.Abs(planetariumDifference) < 3f)
-                {
-                    //Use the average velocity to determine the new position
-                    //Displacement = v0*t + 1/2at^2.
-                    positionFudge = (updateVelocity * planetariumDifference) + (0.5d * updateAcceleration * planetariumDifference * planetariumDifference);
-                }
-                Vector3d updatePostion = updateBody.GetWorldSurfacePosition(position[0], position[1], position[2] + altitudeFudge) + positionFudge;
-                Vector3d orbitalPos = updatePostion - updateBody.position;
-                Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(updatePostion);
+                Vector3d orbitalPos = newUpdatePostion - updateBody.position;
+                Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(newUpdatePostion);
                 Vector3d orbitalVel = updateVelocity + surfaceOrbitVelDiff;
                 updateVessel.orbitDriver.orbit.UpdateFromStateVectors(orbitalPos.xzy, orbitalVel.xzy, updateBody, Planetarium.GetUniversalTime());
             }
@@ -205,7 +194,7 @@ namespace DarkMultiPlayer
             //Rotation
             Quaternion unfudgedRotation = new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
             //Rotation extrapolation? :O
-            if (previousUpdate != null)
+            if (previousUpdate != null && extrapolationEnabled)
             {
                 double deltaUpdateT = planetTime - previousUpdate.planetTime;
                 double deltaRealT = Planetarium.GetUniversalTime() - previousUpdate.planetTime;
@@ -213,16 +202,7 @@ namespace DarkMultiPlayer
                 if (Math.Abs(deltaRealT) < 3f)
                 {
                     Quaternion previousRotation = new Quaternion(previousUpdate.rotation[0], previousUpdate.rotation[1], previousUpdate.rotation[2], previousUpdate.rotation[3]);
-                    Quaternion rotationDelta = unfudgedRotation * Quaternion.Inverse(previousRotation);
-                    Vector3 rotAxis;
-                    float rotAngle;
-                    rotationDelta.ToAngleAxis(out rotAngle, out rotAxis);
-                    if (rotAngle > 180)
-                    {
-                        rotAngle -= 360;
-                    }
-                    rotAngle = (rotAngle * scaling) % 360;
-                    unfudgedRotation = Quaternion.AngleAxis(rotAngle, rotAxis) * unfudgedRotation;
+                    unfudgedRotation = RotationLerp(previousRotation, unfudgedRotation, scaling);
                 }
             }
             Quaternion updateRotation = normalRotate * unfudgedRotation;
@@ -293,6 +273,48 @@ namespace DarkMultiPlayer
                 updateVessel.Autopilot.SAS.LockRotation(new Quaternion(lockedRotation[0], lockedRotation[1], lockedRotation[2], lockedRotation[3]));
             }
             posistionStatistics.LogError(updateVessel.id, distanceError, velocityError, rotationalError, planetTime);
+        }
+
+        private void StepExtrapolate(VesselUpdate previous, Vector3d pos, Vector3d vel, Vector3d acc, double timeDiff, out Vector3d newPostion)
+        {
+            Vector3d stepPos = pos;
+            Vector3d stepVel = vel;
+            //Option for adding rotation, this seems to make things worse
+            //Quaternion previousRot = new Quaternion(previous.rotation[0], previous.rotation[1], previous.rotation[2], previous.rotation[3]);
+            //Quaternion thisRot = new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
+            //Quaternion rotDelta = thisRot * Quaternion.Inverse(previousRot);
+            int steps = (int)(Math.Abs(timeDiff) / STEP_DISTANCE);
+            if (steps == 0)
+            {
+                steps = 1;
+            }
+            double actualStepDiff = timeDiff / steps;
+            double rotDiff = planetTime - previous.planetTime;
+            for (int i = 0; i < steps; i++)
+            {
+                //double scaling = (i * actualStepDiff) / rotDiff;
+                //Quaternion rotAcc = RotationLerp(Quaternion.identity, rotDelta, (float)scaling);
+                //Vector3d stepAcc = rotAcc * acc;
+                Vector3d stepAcc = acc;
+                stepVel = stepVel + stepAcc * actualStepDiff;
+                stepPos = stepPos + stepVel * actualStepDiff;
+            }
+            newPostion = stepPos;
+        }
+
+        //Supports scaling past 1x, unlike Quaternion.Lerp
+        private Quaternion RotationLerp(Quaternion from, Quaternion to, float scaling)
+        {
+            Quaternion rotationDelta = to * Quaternion.Inverse(from);
+            Vector3 rotAxis;
+            float rotAngle;
+            rotationDelta.ToAngleAxis(out rotAngle, out rotAxis);
+            if (rotAngle > 180)
+            {
+                rotAngle -= 360;
+            }
+            rotAngle = (rotAngle * scaling) % 360;
+            return Quaternion.AngleAxis(rotAngle, rotAxis) * to;
         }
     }
 }

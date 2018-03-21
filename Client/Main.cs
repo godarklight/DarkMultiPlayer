@@ -80,6 +80,7 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, TimingManagerFixedUpdate);
             dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
             dmpDataDir = Path.Combine(dmpDir, "Data");
             gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
@@ -470,7 +471,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void FixedUpdate()
+        public void TimingManagerFixedUpdate()
         {
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (modDisabled)

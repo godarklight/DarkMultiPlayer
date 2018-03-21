@@ -22,6 +22,8 @@ namespace DarkMultiPlayer
         public string selectedFlag;
         public bool compressionEnabled;
         public bool revertEnabled;
+        public bool extrapolationEnabled;
+        public bool interframeEnabled;
         public DMPToolbarType toolbarType;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string OLD_SETTINGS_FILE = "servers.xml";
@@ -267,6 +269,20 @@ namespace DarkMultiPlayer
                     saveAfterLoad = true;
                 }
 
+                if (!settingsNode.TryGetValue("extrapolation", ref extrapolationEnabled))
+                {
+                    DarkLog.Debug("[Settings]: Adding extrapolation flag to settings file");
+                    extrapolationEnabled = true;
+                    saveAfterLoad = true;
+                }
+
+                if (!settingsNode.TryGetValue("posLoadedVessels", ref interframeEnabled))
+                {
+                    DarkLog.Debug("[Settings]: Adding interframe flag to settings file");
+                    interframeEnabled = true;
+                    saveAfterLoad = true;
+                }
+
                 int toolbarType;
                 if (!int.TryParse(settingsNode.GetValue("toolbar"), out toolbarType))
                 {
@@ -358,6 +374,8 @@ namespace DarkMultiPlayer
             settingsNode.SetValue("disclaimer", disclaimerAccepted, true);
             settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
+            settingsNode.SetValue("extrapolation", extrapolationEnabled, true);
+            settingsNode.SetValue("posLoadedVessels", interframeEnabled, true);
             settingsNode.SetValue("toolbar", (int)toolbarType, true);
 
             ConfigNode serversNode = settingsNode.AddNode("SERVERS");
