@@ -22,9 +22,9 @@ namespace DarkMultiPlayer
         public string selectedFlag;
         public bool compressionEnabled;
         public bool revertEnabled;
-        public bool extrapolationEnabled;
         public bool interframeEnabled;
         public DMPToolbarType toolbarType;
+        public InterpolatorType interpolatorType;
         private const string DEFAULT_PLAYER_NAME = "Player";
         private const string OLD_SETTINGS_FILE = "servers.xml";
         private const string SETTINGS_FILE = "settings.cfg";
@@ -269,11 +269,17 @@ namespace DarkMultiPlayer
                     saveAfterLoad = true;
                 }
 
-                if (!settingsNode.TryGetValue("extrapolation", ref extrapolationEnabled))
+                string interpolatorString = null;
+                int interpolatorInt = 0;
+                if (!settingsNode.TryGetValue("interpolation", ref interpolatorString) || !int.TryParse(interpolatorString, out interpolatorInt))
                 {
-                    DarkLog.Debug("[Settings]: Adding extrapolation flag to settings file");
-                    extrapolationEnabled = true;
+                    DarkLog.Debug("[Settings]: Adding interpolation flag to settings file");
+                    interpolatorType = InterpolatorType.INTERPOLATE1S;
                     saveAfterLoad = true;
+                }
+                else
+                {
+                    interpolatorType = (InterpolatorType)interpolatorInt;
                 }
 
                 if (!settingsNode.TryGetValue("posLoadedVessels", ref interframeEnabled))
@@ -374,7 +380,7 @@ namespace DarkMultiPlayer
             settingsNode.SetValue("disclaimer", disclaimerAccepted, true);
             settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
-            settingsNode.SetValue("extrapolation", extrapolationEnabled, true);
+            settingsNode.SetValue("interpolation", (int)interpolatorType, true);
             settingsNode.SetValue("posLoadedVessels", interframeEnabled, true);
             settingsNode.SetValue("toolbar", (int)toolbarType, true);
 
@@ -424,6 +430,15 @@ namespace DarkMultiPlayer
         public string name;
         public string address;
         public int port;
+    }
+
+    public enum InterpolatorType
+    {
+        DISABLED,
+        EXTRAPOLATE_FULL,
+        EXTRAPOLATE_NO_ROT,
+        INTERPOLATE1S,
+        INTERPOLATE3S
     }
 }
 

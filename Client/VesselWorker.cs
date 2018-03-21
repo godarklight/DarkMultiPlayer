@@ -407,12 +407,21 @@ namespace DarkMultiPlayer
 
         private void ProcessNewVesselMessages()
         {
+            double interpolatorDelay = 0f;
+            if (dmpSettings.interpolatorType == InterpolatorType.INTERPOLATE1S)
+            {
+                interpolatorDelay = 1f;
+            }
+            if (dmpSettings.interpolatorType == InterpolatorType.INTERPOLATE3S)
+            {
+                interpolatorDelay = 3f;
+            }
             Dictionary<Guid, double> removeList = new Dictionary<Guid, double>();
             lock (vesselRemoveQueue)
             {
                 foreach (KeyValuePair<Guid, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
                 {
-                    while (vesselRemoveSubspace.Value.Count > 0 ? ((vesselRemoveSubspace.Value.Peek().planetTime + delayTime) < Planetarium.GetUniversalTime()) : false)
+                    while (vesselRemoveSubspace.Value.Count > 0 && ((vesselRemoveSubspace.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
                     {
                         VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
                         RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
@@ -423,7 +432,7 @@ namespace DarkMultiPlayer
 
             foreach (KeyValuePair<string, Queue<KerbalEntry>> kerbalProtoSubspace in kerbalProtoQueue)
             {
-                while (kerbalProtoSubspace.Value.Count > 0 ? ((kerbalProtoSubspace.Value.Peek().planetTime + delayTime) < Planetarium.GetUniversalTime()) : false)
+                while (kerbalProtoSubspace.Value.Count > 0 && ((kerbalProtoSubspace.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
                 {
                     KerbalEntry kerbalEntry = kerbalProtoSubspace.Value.Dequeue();
                     LoadKerbal(kerbalEntry.kerbalNode);
@@ -434,7 +443,7 @@ namespace DarkMultiPlayer
             {
                 VesselProtoUpdate vpu = null;
                 //Get the latest proto update
-                while (vesselQueue.Value.Count > 0 ? ((vesselQueue.Value.Peek().planetTime + delayTime) < Planetarium.GetUniversalTime()) : false)
+                while (vesselQueue.Value.Count > 0 && ((vesselQueue.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
                 {
                     VesselProtoUpdate newVpu = vesselQueue.Value.Dequeue();
                     if (newVpu != null)
@@ -447,7 +456,7 @@ namespace DarkMultiPlayer
                     }
                 }
                 //Apply it if there is any
-                if (vpu != null ? vpu.vesselNode != null : false)
+                if (vpu != null && vpu.vesselNode != null)
                 {
                     LoadVessel(vpu.vesselNode, vpu.vesselID, false);
                 }
@@ -456,7 +465,7 @@ namespace DarkMultiPlayer
             {
                 VesselUpdate vu = null;
                 //Get the latest position update
-                while (vesselQueue.Value.Count > 0 ? ((vesselQueue.Value.Peek().planetTime + delayTime) < Planetarium.GetUniversalTime()) : false)
+                while (vesselQueue.Value.Count > 0 && ((vesselQueue.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
                 {
                     vu = vesselQueue.Value.Dequeue();
                 }
@@ -468,8 +477,13 @@ namespace DarkMultiPlayer
                     {
                         previousUpdate = previousUpdates[vu.vesselID];
                     }
-                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, dmpSettings.extrapolationEnabled);
-                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate);
+                    VesselUpdate nextUpdate = null;
+                    if (vesselQueue.Value.Count > 0)
+                    {
+                        nextUpdate = vesselQueue.Value.Peek();
+                    }
+                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, nextUpdate, dmpSettings);
+                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate, nextUpdate);
                     previousUpdates[vu.vesselID] = vu;
                 }
             }
@@ -2304,6 +2318,11 @@ namespace DarkMultiPlayer
                             }
                         }
                     }
+                }
+                //We might have gotten the update late, so set the next update if we've ran out.
+                if (vuQueue.Count == 0)
+                {
+                    vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
                 }
                 vuQueue.Enqueue(update);
                 //Mark the last update time
