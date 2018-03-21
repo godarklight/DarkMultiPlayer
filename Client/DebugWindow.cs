@@ -19,12 +19,14 @@ namespace DarkMultiPlayer
         private bool displayRequestedRates;
         private bool displayProfilerStatistics;
         private bool displayVesselRecorder;
+        private bool displayVesselTimeDelay;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
         private string dynamicTickText = "";
         private string requestedRateText = "";
         private string profilerText = "";
+        private string vesselworkerTimeDelay = "0";
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -190,6 +192,26 @@ namespace DarkMultiPlayer
                 {
                     GUILayout.Label("(no selected vessel)", labelStyle);
                 }
+            }
+            displayVesselTimeDelay = GUILayout.Toggle(displayVesselTimeDelay, "Vessel Delay Settings", buttonStyle);
+            if (displayVesselTimeDelay)
+            {
+                GUILayout.BeginHorizontal();
+                vesselworkerTimeDelay = GUILayout.TextArea(vesselworkerTimeDelay, textAreaOptions);
+                if (GUILayout.Button("Set", buttonStyle))
+                {
+                    float newDelay = 0f;
+                    if (float.TryParse(vesselworkerTimeDelay, out newDelay))
+                    {
+                        vesselWorker.delayTime = newDelay;
+                    }
+                    else
+                    {
+                        vesselWorker.delayTime = 0f;
+                        vesselworkerTimeDelay = "0";
+                    }
+                }
+                GUILayout.EndHorizontal();
             }
             GUILayout.EndVertical();
         }
