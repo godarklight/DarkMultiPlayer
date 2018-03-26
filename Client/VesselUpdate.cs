@@ -228,7 +228,7 @@ namespace DarkMultiPlayer
             //Rotation
             Quaternion unfudgedRotation = new Quaternion(rotation[0], rotation[1], rotation[2], rotation[3]);
             //Rotation extrapolation? :O
-            if (previousUpdate != null && extrapolatorEnabled)
+            if (previousUpdate != null && (extrapolatorEnabled || (interpolatorEnabled && !isSurfaceUpdate)))
             {
                 double deltaUpdateT = planetTime - previousUpdate.planetTime;
                 double deltaRealT = Planetarium.GetUniversalTime() - previousUpdate.planetTime;
@@ -240,7 +240,7 @@ namespace DarkMultiPlayer
                 }
             }
 
-            if (nextUpdate != null && interpolatorEnabled)
+                if (nextUpdate != null && interpolatorEnabled && isSurfaceUpdate)
             {
                 double deltaUpdateT = nextUpdate.planetTime - planetTime;
                 double deltaRealT = Planetarium.GetUniversalTime() - interpolatorDelay - planetTime;
@@ -257,7 +257,6 @@ namespace DarkMultiPlayer
             double rotationalError = Quaternion.Angle(updateVessel.srfRelRotation, updateRotation);
             updateVessel.SetRotation(updateVessel.mainBody.bodyTransform.rotation * updateRotation);
             updateVessel.srfRelRotation = updateRotation;
-            updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
 
             Vector3 angularVel = updateVessel.ReferenceTransform.rotation * new Vector3(angularVelocity[0], angularVelocity[1], angularVelocity[2]);
             if (updateVessel.parts != null && !updateVessel.packed)
@@ -290,9 +289,7 @@ namespace DarkMultiPlayer
             updateVessel.latitude = updateBody.GetLatitude(updateVessel.GetWorldPos3D());
             updateVessel.longitude = updateBody.GetLongitude(updateVessel.GetWorldPos3D());
             updateVessel.altitude = updateBody.GetAltitude(updateVessel.GetWorldPos3D());
-            updateVessel.protoVessel.latitude = updateVessel.latitude;
-            updateVessel.protoVessel.longitude = updateVessel.longitude;
-            updateVessel.protoVessel.altitude = updateVessel.altitude;
+
             double distanceError = Vector3d.Distance(oldPos, updateVessel.GetWorldPos3D());
             double velocityError = Vector3d.Distance(oldVelocity, updateVessel.orbitDriver.orbit.GetVel());
             if (ctrlUpdate != null)
@@ -319,7 +316,29 @@ namespace DarkMultiPlayer
                 updateVessel.Autopilot.SetMode((VesselAutopilot.AutopilotMode)autopilotMode);
                 updateVessel.Autopilot.SAS.LockRotation(new Quaternion(lockedRotation[0], lockedRotation[1], lockedRotation[2], lockedRotation[3]));
             }
+            UpdateProtovessel(updateVessel);
             posistionStatistics.LogError(updateVessel.id, distanceError, velocityError, rotationalError, planetTime);
+        }
+
+        private void UpdateProtovessel(Vessel updateVessel)
+        {
+            updateVessel.protoVessel.latitude = updateVessel.latitude;
+            updateVessel.protoVessel.longitude = updateVessel.longitude;
+            updateVessel.protoVessel.altitude = updateVessel.altitude;
+            updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
+            updateVessel.protoVessel.height = updateVessel.heightFromTerrain;
+            updateVessel.protoVessel.normal = updateVessel.terrainNormal;
+            updateVessel.protoVessel.rotation = updateVessel.srfRelRotation;
+            updateVessel.protoVessel.orbitSnapShot.argOfPeriapsis = updateVessel.orbit.argumentOfPeriapsis;
+            updateVessel.protoVessel.orbitSnapShot.eccentricity = updateVessel.orbit.eccentricity;
+            updateVessel.protoVessel.orbitSnapShot.epoch = updateVessel.orbit.epoch;
+            updateVessel.protoVessel.orbitSnapShot.inclination = updateVessel.orbit.inclination;
+            updateVessel.protoVessel.orbitSnapShot.LAN = updateVessel.orbit.LAN;
+            updateVessel.protoVessel.orbitSnapShot.meanAnomalyAtEpoch = updateVessel.orbit.meanAnomalyAtEpoch;
+            updateVessel.protoVessel.orbitSnapShot.semiMajorAxis = updateVessel.orbit.semiMajorAxis;
+            updateVessel.protoVessel.orbitSnapShot.ReferenceBodyIndex = updateVessel.orbit.referenceBody.flightGlobalsIndex;
+            updateVessel.protoVessel.CoM = updateVessel.localCoM;
+
         }
 
         private void StepExtrapolate(Vector3d pos, Vector3d vel, Vector3d acc, double timeDiff, out Vector3d newPostion, out Vector3d newVelocity)
