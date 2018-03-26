@@ -416,12 +416,20 @@ namespace DarkMultiPlayer
             {
                 interpolatorDelay = 3f;
             }
+
+            double thisPlanetTime = Planetarium.GetUniversalTime();
+            double thisDelayTime = delayTime - interpolatorDelay;
+            if (thisDelayTime < 0f)
+            {
+                thisDelayTime = 0f;
+            }
+
             Dictionary<Guid, double> removeList = new Dictionary<Guid, double>();
             lock (vesselRemoveQueue)
             {
                 foreach (KeyValuePair<Guid, Queue<VesselRemoveEntry>> vesselRemoveSubspace in vesselRemoveQueue)
                 {
-                    while (vesselRemoveSubspace.Value.Count > 0 && ((vesselRemoveSubspace.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
+                    while (vesselRemoveSubspace.Value.Count > 0 && ((vesselRemoveSubspace.Value.Peek().planetTime + thisDelayTime + interpolatorDelay) < thisPlanetTime))
                     {
                         VesselRemoveEntry removeVessel = vesselRemoveSubspace.Value.Dequeue();
                         RemoveVessel(removeVessel.vesselID, removeVessel.isDockingUpdate, removeVessel.dockingPlayer);
@@ -432,7 +440,7 @@ namespace DarkMultiPlayer
 
             foreach (KeyValuePair<string, Queue<KerbalEntry>> kerbalProtoSubspace in kerbalProtoQueue)
             {
-                while (kerbalProtoSubspace.Value.Count > 0 && ((kerbalProtoSubspace.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
+                while (kerbalProtoSubspace.Value.Count > 0 && ((kerbalProtoSubspace.Value.Peek().planetTime + thisDelayTime + interpolatorDelay) < thisPlanetTime))
                 {
                     KerbalEntry kerbalEntry = kerbalProtoSubspace.Value.Dequeue();
                     LoadKerbal(kerbalEntry.kerbalNode);
@@ -443,16 +451,29 @@ namespace DarkMultiPlayer
             {
                 VesselProtoUpdate vpu = null;
                 //Get the latest proto update
-                while (vesselQueue.Value.Count > 0 && ((vesselQueue.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
+                bool applyDelay = vesselUpdateQueue.ContainsKey(vesselQueue.Key) && vesselUpdateQueue[vesselQueue.Key].Count > 0 && vesselUpdateQueue[vesselQueue.Key].Peek().isSurfaceUpdate;
+                double thisInterpolatorDelay = 0f;
+                if (applyDelay)
                 {
-                    VesselProtoUpdate newVpu = vesselQueue.Value.Dequeue();
-                    if (newVpu != null)
+                    thisInterpolatorDelay = interpolatorDelay;
+                }
+                while (vesselQueue.Value.Count > 0)
+                {
+                    if ((vesselQueue.Value.Peek().planetTime + thisDelayTime + thisInterpolatorDelay) < thisPlanetTime)
                     {
-                        //Skip any protovessels that have been removed in the future
-                        if (removeList.ContainsKey(vesselQueue.Key) ? removeList[vesselQueue.Key] < vpu.planetTime : true)
+                        VesselProtoUpdate newVpu = vesselQueue.Value.Dequeue();
+                        if (newVpu != null)
                         {
-                            vpu = newVpu;
+                            //Skip any protovessels that have been removed in the future
+                            if (!removeList.ContainsKey(vesselQueue.Key) || removeList[vesselQueue.Key] < vpu.planetTime)
+                            {
+                                vpu = newVpu;
+                            }
                         }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
                 //Apply it if there is any
@@ -461,13 +482,26 @@ namespace DarkMultiPlayer
                     LoadVessel(vpu.vesselNode, vpu.vesselID, false);
                 }
             }
+
             foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
             {
                 VesselUpdate vu = null;
                 //Get the latest position update
-                while (vesselQueue.Value.Count > 0 && ((vesselQueue.Value.Peek().planetTime + delayTime + interpolatorDelay) < Planetarium.GetUniversalTime()))
+                while (vesselQueue.Value.Count > 0)
                 {
-                    vu = vesselQueue.Value.Dequeue();
+                    double thisInterpolatorDelay = 0f;
+                    if (vesselQueue.Value.Peek().isSurfaceUpdate)
+                    {
+                        thisInterpolatorDelay = interpolatorDelay;
+                    }
+                    if ((vesselQueue.Value.Peek().planetTime + thisDelayTime + thisInterpolatorDelay) < thisPlanetTime)
+                    {
+                        vu = vesselQueue.Value.Dequeue();
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
                 //Apply it if there is any
                 if (vu != null)
