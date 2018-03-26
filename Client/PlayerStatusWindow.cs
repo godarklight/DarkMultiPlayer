@@ -263,13 +263,21 @@ namespace DarkMultiPlayer
                 {
                     if (currentPlayer == dmpSettings.playerName)
                     {
-                        DrawPlayerEntry(playerStatusWorker.myPlayerStatus);
+                        DrawPlayerEntry(playerStatusWorker.myPlayerStatus, playerColorWorker.GetPlayerColor(currentPlayer));
                     }
                     else
                     {
-                        DrawPlayerEntry(playerStatusWorker.GetPlayerStatus(currentPlayer));
+                        DrawPlayerEntry(playerStatusWorker.GetPlayerStatus(currentPlayer), playerColorWorker.GetPlayerColor(currentPlayer));
                     }
                 }
+            }
+            if (DateTime.Now.Day == 1 && DateTime.Now.Month == 4)
+            {
+                PlayerStatus easterEgg = new PlayerStatus();
+                easterEgg.playerName = "Princess Luna";
+                easterEgg.statusText = "Stranded on the Mün";
+                easterEgg.vesselText = "";
+                DrawPlayerEntry(easterEgg, new Color(0.251f, 0.275f, 0.502f));
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
@@ -634,7 +642,7 @@ namespace DarkMultiPlayer
             GUILayout.EndVertical();
         }
 
-        private void DrawPlayerEntry(PlayerStatus playerStatus)
+        private void DrawPlayerEntry(PlayerStatus playerStatus, Color playerColor)
         {
             if (playerStatus == null)
             {
@@ -645,9 +653,9 @@ namespace DarkMultiPlayer
             if (!playerNameStyle.ContainsKey(playerStatus.playerName))
             {
                 playerNameStyle[playerStatus.playerName] = new GUIStyle(GUI.skin.label);
-                playerNameStyle[playerStatus.playerName].normal.textColor = playerColorWorker.GetPlayerColor(playerStatus.playerName);
-                playerNameStyle[playerStatus.playerName].hover.textColor = playerColorWorker.GetPlayerColor(playerStatus.playerName);
-                playerNameStyle[playerStatus.playerName].active.textColor = playerColorWorker.GetPlayerColor(playerStatus.playerName);
+                playerNameStyle[playerStatus.playerName].normal.textColor = playerColor;
+                playerNameStyle[playerStatus.playerName].hover.textColor = playerColor;
+                playerNameStyle[playerStatus.playerName].active.textColor = playerColor;
                 playerNameStyle[playerStatus.playerName].fontStyle = FontStyle.Bold;
                 playerNameStyle[playerStatus.playerName].stretchWidth = true;
                 playerNameStyle[playerStatus.playerName].wordWrap = false;
