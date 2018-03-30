@@ -1262,6 +1262,12 @@ namespace DarkMultiPlayer
             try
             {
                 kerbalName = crewNode.GetValue("name");
+                string traitName = crewNode.GetValue("trait");
+                if (!GameDatabase.Instance.ExperienceConfigs.TraitNames.Contains(traitName))
+                {
+                    DarkLog.Debug("Skipping load of " + kerbalName + ", we are missing the '" + traitName + "' trait.");
+                    return;
+                }
                 protoCrew = new ProtoCrewMember(HighLogic.CurrentGame.Mode, crewNode);
             }
             catch
