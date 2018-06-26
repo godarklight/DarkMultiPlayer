@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
@@ -14,8 +15,7 @@ namespace DarkMultiPlayerServer
     /// </summary>
     public static class RCON
     {
-        public delegate void CommandReceivedEventHandler(object sender, RconCommandEventArgs e);
-        public static event CommandReceivedEventHandler CommandReceived;
+        public delegate void CommandCallback(string output);
 
         private static bool _running;
         private static TcpListener _tcpListener;
@@ -26,6 +26,12 @@ namespace DarkMultiPlayerServer
         /// </summary>
         public static void Start()
         {
+            if (Settings.settingsStore.rconPassword == "changeme")
+            {
+                DarkLog.Error("RCON password has not been changed - RCON disabled.");
+                return;
+            }
+
             _tcpListener = new TcpListener(new IPEndPoint(IPAddress.Any, Settings.settingsStore.rconPort));
 
             _tcpListener.Start();
@@ -43,27 +49,18 @@ namespace DarkMultiPlayerServer
             TcpClient tcpClient = _tcpListener.EndAcceptTcpClient(ar);
             RCONClient client = new RCONClient(tcpClient);
 
-            DarkLog.Normal("RCON connection from " + ((IPEndPoint)client.TcpClient.Client.RemoteEndPoint).Address.ToString());
+            DarkLog.Normal("RCON connection from " + client.RemoteIP.ToString());
             _clients.Add(client);
 
             // accept another client
             _tcpListener.BeginAcceptTcpClient(AcceptTcpClient, null);
-        }
-
-        public static void ProcessCommand(RCONClient client, string command)
-        {
-            CommandReceived?.Invoke(client, new RconCommandEventArgs()
-            {
-                CommandText = command,
-                OriginIP = ((IPEndPoint)client.TcpClient.Client.RemoteEndPoint).Address
-            });
         }
     }
 
     public class RCONClient
     {
         public RCONClientState State { get; set; }
-        public TcpClient TcpClient;
+        public TcpClient TcpClient { get; }
         public IPAddress RemoteIP
         {
             get
@@ -77,12 +74,9 @@ namespace DarkMultiPlayerServer
             TcpClient = client;
             State = RCONClientState.UNAUTHENTICATED;
 
-            Thread readThread = new Thread(ReadLoop)
-            {
-                IsBackground = true,
-                Name = "RCON Client Read Thread (" + RemoteIP.ToString() + ")"
-            };
-            readThread.Start();
+            // create task for asynchronous reading 
+            Task readTask = new Task(ReadLoop);
+            readTask.Start();
         }
 
         private void ReadLoop()
@@ -154,29 +148,74 @@ namespace DarkMultiPlayerServer
             switch (packet.Type)
             {
                 case RCONPacketType.SERVERDATA_AUTH:
-                    bool authenticated = packet.Body == Settings.settingsStore.rconPassword;
-
-                    // send response
-                    SendPacket(new RCONPacket()
                     {
-                        ID = (authenticated ? packet.ID : -1),  // match packet id if pass good, otherwise -1
-                        Type = RCONPacketType.SERVERDATA_AUTH_RESPONSE
-                    });
+                        bool authenticated = packet.Body == Settings.settingsStore.rconPassword;
 
-                    if (authenticated)
-                        State = RCONClientState.AUTHENTICATED;
+                        // send response
+                        SendPacket(new RCONPacket()
+                        {
+                            ID = (authenticated ? packet.ID : -1),  // match packet id if pass good, otherwise -1
+                            Type = RCONPacketType.SERVERDATA_AUTH_RESPONSE
+                        });
 
+                        if (authenticated)
+                            State = RCONClientState.AUTHENTICATED;
+                    }
                     break;
                 case RCONPacketType.SERVERDATA_EXECCOMMAND: // command
-                    if (State != RCONClientState.AUTHENTICATED)
                     {
-                        // not authenticated
-                        Close();
-                        break;
+                        if (State != RCONClientState.AUTHENTICATED)
+                        {
+                            // not authenticated
+                            Close();
+                            break;
+                        }
+
+                        // we use a wait handle because the server must always execute RCON commands in order
+                        using (AutoResetEvent waitHandle = new AutoResetEvent(false))
+                        {
+                            DarkLog.Normal("RCON command from " + RemoteIP.ToString() + ": " + packet.Body);
+                            CommandHandler.HandleServerInput(packet.Body, (string output) =>
+                            {
+                            // we can fit 4082 characters in a single packet
+                            List<string> responses = new List<string>
+                                {
+                                    output.Substring(0, Math.Min(RCONPacket.MAXIMUM_BODY_LENGTH, output.Length))
+                                };
+
+                                while (output.Length - (RCONPacket.MAXIMUM_BODY_LENGTH * responses.Count) > RCONPacket.MAXIMUM_BODY_LENGTH)
+                                {
+                                    responses.Add(output.Substring(RCONPacket.MAXIMUM_BODY_LENGTH * responses.Count, RCONPacket.MAXIMUM_BODY_LENGTH));
+                                }
+
+                                // send the packet(s)
+                                foreach (string response in responses)
+                                {
+                                    SendPacket(new RCONPacket()
+                                    {
+                                        Body = response,
+                                        Type = RCONPacketType.SERVERDATA_RESPONSE_VALUE,
+                                        ID = packet.ID
+                                    });
+                                }
+
+                                // release wait handle
+                                waitHandle.Set();
+                            });
+                            waitHandle.WaitOne();
+                        }
                     }
-                    RCON.ProcessCommand(this, packet.Body); // run command
-                    DarkLog.Normal("RCON command from " + RemoteIP.ToString() + ": " + packet.Body);
-                    // TODO: send command response
+                    break;
+                case RCONPacketType.SERVERDATA_RESPONSE_VALUE:  // see comment below
+                    {
+                        // see: https://developer.valvesoftware.com/wiki/Source_RCON_Protocol#Multiple-packet_Responses
+                        SendPacket(packet);
+                        SendPacket(new RCONPacket()
+                        {
+                            Type = RCONPacketType.SERVERDATA_RESPONSE_VALUE,
+                            BodyRaw = new List<byte>(new byte[] { 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00 })
+                        });
+                    }
                     break;
             }
         }
@@ -184,6 +223,21 @@ namespace DarkMultiPlayerServer
 
     public class RCONPacket
     {
+        /// <summary>
+        /// The minimum size of a packet, including the size field
+        /// </summary>
+        public const int PACKET_OVERHEAD = 14;
+
+        /// <summary>
+        /// The maximum size of a packet
+        /// </summary>
+        public const int MAXIMUM_SIZE = 4096;
+
+        /// <summary>
+        /// The maximum length of the packet body, in chars
+        /// </summary>
+        public const int MAXIMUM_BODY_LENGTH = MAXIMUM_SIZE - PACKET_OVERHEAD;
+
         public List<byte> RawData
         {
             get
@@ -220,7 +274,20 @@ namespace DarkMultiPlayerServer
 
         public RCONPacketType Type { get; set; }
 
-        public string Body { get; set; } = "";
+        public string Body
+        {
+            get
+            {
+                return Encoding.ASCII.GetString(BodyRaw.ToArray());
+            }
+            set
+            {
+                BodyRaw.Clear();
+                BodyRaw.AddRange(Encoding.ASCII.GetBytes(value));
+            }
+        }
+
+        public List<byte> BodyRaw { get; set; } = new List<byte>();
     }
 
     public class RconCommandEventArgs : EventArgs

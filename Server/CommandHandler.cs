@@ -66,8 +66,17 @@ namespace DarkMultiPlayerServer
             }
         }
 
-        public static void HandleServerInput(string input)
+        public static void HandleServerInput(string input, RCON.CommandCallback outputCallback = null)
         {
+            // capture command output for RCON
+            // this might capture unrelated output, but this is the only way without rewriting the command handling system
+            List<string> commandOutput = new List<string>();
+            void OnLog(string message)
+            {
+                commandOutput.Add(message);
+            };
+            DarkLog.OnLog += OnLog;
+
             string commandPart = input;
             string argumentPart = "";
             if (commandPart.Contains(" "))
@@ -96,6 +105,12 @@ namespace DarkMultiPlayerServer
                     DarkLog.Normal("Unknown server command: " + commandPart);
                 }
             }
+
+            // remove event listener
+            DarkLog.OnLog -= OnLog;
+
+            // send output back to rcon
+            outputCallback?.Invoke(string.Join("\n", commandOutput));
         }
 
         public static void RegisterCommand(string command, Action<string> func, string description)

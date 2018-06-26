@@ -8,6 +8,8 @@ namespace DarkMultiPlayerServer
         public static string LogFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
         public static string LogFilename = Path.Combine(LogFolder, "dmpserver " + DateTime.Now.ToString("yyyy-MM-dd HH-mm-ss") + ".log");
         private static object logLock = new object();
+        public delegate void OnLogEventHandler(string logText);
+        public static event OnLogEventHandler OnLog;
 
         public enum LogLevels
         {
@@ -40,6 +42,7 @@ namespace DarkMultiPlayerServer
                 {
                     Console.WriteLine(output);
                     Messages.Chat.SendConsoleMessageToAdmins(output);
+                    OnLog?.Invoke(output);
                 }
                 try
                 {
