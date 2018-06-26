@@ -153,10 +153,7 @@ namespace DarkMultiPlayerServer
         /// <param name="packet"></param>
         public void SendPacket(RCONPacket packet)
         {
-            lock (TcpClient)
-            {
-                TcpClient.GetStream().Write(packet.RawData.ToArray(), 0, packet.RawData.Count);
-            }
+            TcpClient.GetStream().Write(packet.RawData.ToArray(), 0, packet.RawData.Count);
         }
 
         /// <summary>
@@ -303,7 +300,7 @@ namespace DarkMultiPlayerServer
                 Body = Encoding.ASCII.GetString(buffer.ToArray(), 0, (size - 10));  // subtract size of header + suffix
             }
         }
-        
+
         /// <summary>
         /// The size of the packet in bytes, not including the size field
         /// </summary>
