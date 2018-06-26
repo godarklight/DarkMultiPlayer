@@ -11,7 +11,7 @@ using DarkMultiPlayerCommon;
 namespace DarkMultiPlayerServer
 {
     /// <summary>
-    /// A system to use SRCDS-style RCON commands.
+    /// A system to use SRCDS-style RCON commands. See https://developer.valvesoftware.com/wiki/Source_RCON_Protocol
     /// </summary>
     public static class RCON
     {
@@ -41,6 +41,20 @@ namespace DarkMultiPlayerServer
             DarkLog.Normal("Started RCON server on port " + Settings.settingsStore.rconPort);
         }
 
+        /// <summary>
+        /// Stops the RCON server and closes any existing connections
+        /// </summary>
+        public static void Stop()
+        {
+            // close all clients
+            foreach (RCONClient client in _clients)
+                client.Dispose();
+
+            _running = false;
+            _tcpListener.Stop();
+            _tcpListener = null;
+        }
+
         private static void AcceptTcpClient(IAsyncResult ar)
         {
             if (!_running)
@@ -57,7 +71,10 @@ namespace DarkMultiPlayerServer
         }
     }
 
-    public class RCONClient
+    /// <summary>
+    /// Represent an RCON client capable of executing server commands
+    /// </summary>
+    public class RCONClient : IDisposable
     {
         public RCONClientState State { get; set; }
         public TcpClient TcpClient { get; }
@@ -130,17 +147,24 @@ namespace DarkMultiPlayerServer
             return buffer;
         }
 
-        public void SendPacket(RCONPacket p)
+        /// <summary>
+        /// Sends an <see cref="RCONPacket"/> to the RCON client
+        /// </summary>
+        /// <param name="packet"></param>
+        public void SendPacket(RCONPacket packet)
         {
             lock (TcpClient)
             {
-                TcpClient.GetStream().Write(p.RawData.ToArray(), 0, p.RawData.Count);
+                TcpClient.GetStream().Write(packet.RawData.ToArray(), 0, packet.RawData.Count);
             }
         }
 
+        /// <summary>
+        /// Closes the client connection. Consider calling <see cref="Dispose"/> instead.
+        /// </summary>
         public void Close()
         {
-            TcpClient.Close();
+            TcpClient?.Close();
         }
 
         private void HandlePacket(RCONPacket packet)
@@ -177,8 +201,8 @@ namespace DarkMultiPlayerServer
                             DarkLog.Normal("RCON command from " + RemoteIP.ToString() + ": " + packet.Body);
                             CommandHandler.HandleServerInput(packet.Body, (string output) =>
                             {
-                            // we can fit 4082 characters in a single packet
-                            List<string> responses = new List<string>
+                                // we can fit 4082 characters in a single packet
+                                List<string> responses = new List<string>
                                 {
                                     output.Substring(0, Math.Min(RCONPacket.MAXIMUM_BODY_LENGTH, output.Length))
                                 };
@@ -219,8 +243,24 @@ namespace DarkMultiPlayerServer
                     break;
             }
         }
+
+        ~RCONClient()
+        {
+            Dispose();
+        }
+
+        /// <summary>
+        /// Closes the client connection and disposes the client
+        /// </summary>
+        public void Dispose()
+        {
+            Close();
+        }
     }
 
+    /// <summary>
+    /// Represents a packet over the RCON connection
+    /// </summary>
     public class RCONPacket
     {
         /// <summary>
@@ -238,6 +278,9 @@ namespace DarkMultiPlayerServer
         /// </summary>
         public const int MAXIMUM_BODY_LENGTH = MAXIMUM_SIZE - PACKET_OVERHEAD;
 
+        /// <summary>
+        /// The raw data of the packet to be sent (or already sent) over the TCP connection.
+        /// </summary>
         public List<byte> RawData
         {
             get
@@ -260,7 +303,10 @@ namespace DarkMultiPlayerServer
                 Body = Encoding.ASCII.GetString(buffer.ToArray(), 0, (size - 10));  // subtract size of header + suffix
             }
         }
-
+        
+        /// <summary>
+        /// The size of the packet in bytes, not including the size field
+        /// </summary>
         public int Size
         {
             get
@@ -270,10 +316,19 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        /// <summary>
+        /// The ID of the packet
+        /// </summary>
         public int ID { get; set; } = 0;
 
+        /// <summary>
+        /// The type of packet
+        /// </summary>
         public RCONPacketType Type { get; set; }
 
+        /// <summary>
+        /// The string representation of the packet body
+        /// </summary>
         public string Body
         {
             get
@@ -287,13 +342,10 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        /// <summary>
+        /// The raw body of the packet. Usually an ASCII encoded string
+        /// </summary>
         public List<byte> BodyRaw { get; set; } = new List<byte>();
-    }
-
-    public class RconCommandEventArgs : EventArgs
-    {
-        public string CommandText { get; set; }
-        public IPAddress OriginIP { get; set; }
     }
 
     public enum RCONPacketType
