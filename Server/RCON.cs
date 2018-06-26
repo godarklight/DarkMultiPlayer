@@ -166,6 +166,7 @@ namespace DarkMultiPlayerServer
         public void SendPacket(RCONPacket packet)
         {
             TcpClient.GetStream().Write(packet.RawData.ToArray(), 0, packet.RawData.Count);
+            TcpClient.GetStream().Flush();
         }
 
         /// <summary>
