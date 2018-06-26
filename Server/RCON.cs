@@ -16,10 +16,10 @@ namespace DarkMultiPlayerServer
     public static class RCON
     {
         public delegate void CommandCallback(string output);
+        public static List<RCONClient> Clients { get; } = new List<RCONClient>();
 
         private static bool _running;
         private static TcpListener _tcpListener;
-        private static List<RCONClient> _clients = new List<RCONClient>();
 
         /// <summary>
         /// Start the RCON server
@@ -47,7 +47,7 @@ namespace DarkMultiPlayerServer
         public static void Stop()
         {
             // close all clients
-            foreach (RCONClient client in _clients)
+            foreach (RCONClient client in Clients)
                 client.Dispose();
 
             _running = false;
@@ -64,7 +64,8 @@ namespace DarkMultiPlayerServer
             RCONClient client = new RCONClient(tcpClient);
 
             DarkLog.Normal("RCON connection from " + client.RemoteIP.ToString());
-            _clients.Add(client);
+            Clients.Add(client);
+            client.Start();
 
             // accept another client
             _tcpListener.BeginAcceptTcpClient(AcceptTcpClient, null);
@@ -86,11 +87,22 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        private int _hashCode;
+
         public RCONClient(TcpClient client)
         {
+            // assign a random permanent hash code
+            _hashCode = new Random().Next();
+
             TcpClient = client;
             State = RCONClientState.UNAUTHENTICATED;
+        }
 
+        /// <summary>
+        /// Starts the RCON connection. No data will be transferred until this happens.
+        /// </summary>
+        public void Start()
+        {
             // create task for asynchronous reading 
             Task readTask = new Task(ReadLoop);
             readTask.Start();
@@ -162,6 +174,7 @@ namespace DarkMultiPlayerServer
         public void Close()
         {
             TcpClient?.Close();
+            RCON.Clients.Remove(this);
         }
 
         private void HandlePacket(RCONPacket packet)
@@ -180,7 +193,14 @@ namespace DarkMultiPlayerServer
                         });
 
                         if (authenticated)
+                        {
                             State = RCONClientState.AUTHENTICATED;
+                        }
+                        else
+                        {
+                            DarkLog.Normal(RemoteIP.ToString() + ": Bad RCON Password");
+                            Close();
+                        }
                     }
                     break;
                 case RCONPacketType.SERVERDATA_EXECCOMMAND: // command
@@ -252,6 +272,16 @@ namespace DarkMultiPlayerServer
         public void Dispose()
         {
             Close();
+        }
+
+        public override int GetHashCode()
+        {
+            return _hashCode;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return GetHashCode() == obj.GetHashCode();
         }
     }
 
