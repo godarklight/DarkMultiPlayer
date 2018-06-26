@@ -42,6 +42,12 @@ namespace DarkMultiPlayerServer
         public string address = "0.0.0.0";
         [Description("The port the server listens on.")]
         public int port = 6702;
+        [Description("Whether to enabled SRCDS-style RCON (Remote Console)")]
+        public bool rconEnabled = false;
+        [Description("The password to use for RCON.\n# WARNING: Anyone with this password can access your server console and have full control over your server!\n# Change this before enabling RCON")]
+        public string rconPassword = "changeme";
+        [Description("The port to use for RCON connections.")]
+        public int rconPort = 6703;
         [Description("Specify the warp type.")]
         public WarpMode warpMode = WarpMode.SUBSPACE;
         [Description("Specify the game type.")]

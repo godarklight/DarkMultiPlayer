@@ -172,6 +172,14 @@ namespace DarkMultiPlayerServer
                 }
 
                 StartHTTPServer();
+
+                // start RCON server
+                if (Settings.settingsStore.rconEnabled)
+                {
+                    DarkLog.Debug("Starting RCON server on port " + Settings.settingsStore.rconPort);
+                    RCON.Start();
+                }
+
                 DarkLog.Normal("Ready!");
                 DMPPluginHandler.FireOnServerStart();
                 while (serverRunning)

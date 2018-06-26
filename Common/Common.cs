@@ -3,11 +3,72 @@ using System.Text;
 using System.Security.Cryptography;
 using System.IO;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DarkMultiPlayerCommon
 {
-    public class Common
+    public static class Common
     {
+        /// <summary>
+        /// Reverses a <see cref="List{byte}"/> if the <see cref="BitConverter"/> is Little-Endian
+        /// </summary>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static List<byte> ReverseIfLittleEndian(this List<byte> list)
+        {
+            if (BitConverter.IsLittleEndian)
+                list.Reverse();
+            return list;
+        }
+
+        /// <summary>
+        /// Reverses a <see cref="byte[]"/> if the <see cref="BitConverter"/> is Little-Endian
+        /// </summary>
+        /// <param name="array"></param>
+        /// <returns></returns>
+        public static byte[] ReverseIfLittleEndian(this byte[] array)
+        {
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(array);
+            return array;
+        }
+
+        /// <summary>
+        /// Reverses a <see cref="List{byte}"/> if the <see cref="BitConverter"/> is Big-Endian
+        /// </summary>
+        /// <param name="list"></param>
+        /// <returns></returns>
+        public static List<byte> ReverseIfBigEndian(this List<byte> list)
+        {
+            if (!BitConverter.IsLittleEndian)
+                list.Reverse();
+            return list;
+        }
+
+        /// <summary>
+        /// Reverses a <see cref="byte[]"/> if the <see cref="BitConverter"/> is Big-Endian
+        /// </summary>
+        /// <param name="array"></param>
+        /// <returns></returns>
+        public static byte[] ReverseIfBigEndian(this byte[] array)
+        {
+            if (!BitConverter.IsLittleEndian)
+                Array.Reverse(array);
+            return array;
+        }
+
+        /// <summary>
+        /// Reads the next int from the collection and removes it
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <returns></returns>
+        public static int ReadNextInt(this List<byte> bytes)
+        {
+            int num = BitConverter.ToInt32(bytes.ToArray(), 0);
+            bytes.RemoveRange(0, 4);
+            return num;
+        }
+
         //Timeouts in milliseconds
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long INITIAL_CONNECTION_TIMEOUT = 5000;
