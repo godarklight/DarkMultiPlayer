@@ -61,9 +61,20 @@ namespace DarkMultiPlayerServer
                 return;
 
             TcpClient tcpClient = _tcpListener.EndAcceptTcpClient(ar);
+
+            // check if IP is on banlist
+            if (BanSystem.fetch.IsIPBanned(((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address))
+            {
+                DarkLog.Normal("Refused RCON connection from " + ((IPEndPoint)tcpClient.Client.RemoteEndPoint).Address.ToString() + " (IP Banned)");
+                tcpClient.Close();
+                _tcpListener.BeginAcceptTcpClient(AcceptTcpClient, null);
+                return;
+            }
+
             RCONClient client = new RCONClient(tcpClient);
 
             DarkLog.Normal("RCON connection from " + client.RemoteIP.ToString());
+
             Clients.Add(client);
             client.Start();
 
