@@ -50,7 +50,7 @@ namespace DarkMultiPlayer.Utilities
         {
             const int compatibleMajor = 1;
             const int compatibleMinor = 4;
-            const int compatibleRevision = 4;
+            const int compatibleRevision = 5;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor) && (Versioning.Revision == compatibleRevision);
 
             /*-----------------------------------------------*\
