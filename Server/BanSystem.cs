@@ -29,9 +29,9 @@ namespace DarkMultiPlayerServer
                 if (instance == null)
                 {
                     string confdir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
-                    banlistFile = Path.Combine(confdir + "DMPPlayerBans.txt");
-                    ipBanlistFile = Path.Combine(confdir + "DMPIPBans.txt");
-                    publicKeyBanlistFile = Path.Combine(confdir + "DMPKeyBans.txt");
+                    banlistFile = Path.Combine(confdir, "DMPPlayerBans.txt");
+                    ipBanlistFile = Path.Combine(confdir, "DMPIPBans.txt");
+                    publicKeyBanlistFile = Path.Combine(confdir, "DMPKeyBans.txt");
                     instance = new BanSystem();
                 }
                 return instance;
