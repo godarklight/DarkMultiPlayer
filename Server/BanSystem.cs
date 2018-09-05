@@ -28,9 +28,10 @@ namespace DarkMultiPlayerServer
                 //Lazy loading
                 if (instance == null)
                 {
-                    banlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPPlayerBans.txt");
-                    ipBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPIPBans.txt");
-                    publicKeyBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory + "DMPKeyBans.txt");
+                    string confdir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
+                    banlistFile = Path.Combine(confdir, "DMPPlayerBans.txt");
+                    ipBanlistFile = Path.Combine(confdir, "DMPIPBans.txt");
+                    publicKeyBanlistFile = Path.Combine(confdir, "DMPKeyBans.txt");
                     instance = new BanSystem();
                 }
                 return instance;

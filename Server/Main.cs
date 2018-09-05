@@ -55,7 +55,7 @@ namespace DarkMultiPlayerServer
 
             //Set universe directory and modfile path
             universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
-            modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+            modFile = Path.Combine(Server.configDirectory, "DMPModControl.txt");
 
             if (!Directory.Exists(configDirectory))
             {
