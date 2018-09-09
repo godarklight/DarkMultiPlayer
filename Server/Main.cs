@@ -53,9 +53,8 @@ namespace DarkMultiPlayerServer
             //Periodic day check
             long lastDayCheck = 0;
 
-            //Set universe directory and modfile path
+            //Set universe directory
             universeDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Universe");
-            modFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
 
             if (!Directory.Exists(configDirectory))
             {
@@ -63,9 +62,9 @@ namespace DarkMultiPlayerServer
             }
 
             string oldSettingsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPServerSettings.txt");
-            string newSettingsFile = Path.Combine(Server.configDirectory, "Settings.txt");
+            string newSettingsFile = Path.Combine(configDirectory, "Settings.txt");
             string oldGameplayFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPGameplaySettings.txt");
-            string newGameplayFile = Path.Combine(Server.configDirectory, "GameplaySettings.txt");
+            string newGameplayFile = Path.Combine(configDirectory, "GameplaySettings.txt");
 
             // Run the conversion
             BackwardsCompatibility.ConvertSettings(oldSettingsFile, newSettingsFile);
@@ -76,6 +75,67 @@ namespace DarkMultiPlayerServer
                     File.Move(oldGameplayFile, newGameplayFile);
                 }
                 File.Delete(oldGameplayFile);
+            }
+
+            string oldModFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPModControl.txt");
+            modFile = Path.Combine(configDirectory, "mod-control.txt");
+
+            // Move mod control file to Config/mod-control.txt
+            if (File.Exists(oldModFile))
+            {
+                if (!File.Exists(modFile))
+                {
+                    File.Move(oldModFile, modFile);
+                }
+                File.Delete(modFile);
+            }
+
+            // Move DMPPlayerBans to Config/banned-players.txt
+            string oldBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPPlayerBans.txt");
+            string newBanlistFile = Path.Combine(configDirectory, "banned-players.txt");
+            if (File.Exists(oldBanlistFile))
+            {
+                if (!File.Exists(newBanlistFile))
+                {
+                    File.Move(oldBanlistFile, newBanlistFile);
+                }
+                File.Delete(oldBanlistFile);
+            }
+
+            // Move DMPIPBans to Config/banned-ips.txt
+            oldBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPIPBans.txt");
+            newBanlistFile = Path.Combine(configDirectory, "banned-ips.txt");
+            if (File.Exists(oldBanlistFile))
+            {
+                if (!File.Exists(newBanlistFile))
+                {
+                    File.Move(oldBanlistFile, newBanlistFile);
+                }
+                File.Delete(oldBanlistFile);
+            }
+
+            // Move DMPKeyBans to Config/banned-keys.txt
+            oldBanlistFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPKeyBans.txt");
+            newBanlistFile = Path.Combine(configDirectory, "banned-keys.txt");
+            if (File.Exists(oldBanlistFile))
+            {
+                if (!File.Exists(newBanlistFile))
+                {
+                    File.Move(oldBanlistFile, newBanlistFile);
+                }
+                File.Delete(oldBanlistFile);
+            }
+
+            // Move DMPAdmins to Config/admins.txt
+            string oldAdminsFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "DMPAdmins.txt");
+            string newAdminsFile = Path.Combine(configDirectory, "admins.txt");
+            if (File.Exists(oldAdminsFile))
+            {
+                if (!File.Exists(newAdminsFile))
+                {
+                    File.Move(oldAdminsFile, newAdminsFile);
+                }
+                File.Delete(oldAdminsFile);
             }
 
             //Register the server commands
