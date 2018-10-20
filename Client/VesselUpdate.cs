@@ -209,8 +209,8 @@ namespace DarkMultiPlayer
                     newUpdatePostion = Vector3d.Lerp(updatePostion, nextPosition, scaling);
                     newUpdateVelocity = Vector3d.Lerp(updateVelocity, nextVelocity, scaling);
                 }
-
-                Vector3d orbitalPos = newUpdatePostion - updateBody.position;
+                Vector3d vectorBetweenCoMandRoot = updateVessel.orbitDriver.driverTransform.rotation * updateVessel.localCoM;
+                Vector3d orbitalPos = newUpdatePostion + vectorBetweenCoMandRoot - updateBody.position;
                 Vector3d surfaceOrbitVelDiff = updateBody.getRFrmVel(newUpdatePostion);
                 Vector3d orbitalVel = newUpdateVelocity + surfaceOrbitVelDiff;
                 updateVessel.orbitDriver.orbit.UpdateFromStateVectors(orbitalPos.xzy, orbitalVel.xzy, updateBody, Planetarium.GetUniversalTime());
