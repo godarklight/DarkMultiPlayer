@@ -31,9 +31,6 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="MessageWriter2">
-      <HintPath>..\MessageWriter2.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
@@ -103,6 +100,10 @@
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MessageStream2\MessageStream2\MessageStream2.csproj">
+      <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
+      <Name>MessageStream2</Name>
     </ProjectReference>
   </ItemGroup>
 </Project>

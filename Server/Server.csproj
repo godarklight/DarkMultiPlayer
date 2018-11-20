@@ -29,15 +29,9 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="SettingsParser">
-      <HintPath>..\SettingsParser.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml" />
-    <Reference Include="MessageWriter2">
-      <HintPath>..\MessageWriter2.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GameplaySettings.cs" />
@@ -93,6 +87,14 @@
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MessageStream2\MessageStream2\MessageStream2.csproj">
+      <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
+      <Name>MessageStream2</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SettingsParser\SettingsParser\SettingsParser.csproj">
+      <Project>{A54C3B53-C088-496A-91A3-6FEE31BD7402}</Project>
+      <Name>SettingsParser</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup />

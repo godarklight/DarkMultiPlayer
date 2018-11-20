@@ -1,19 +1,17 @@
 FROM mono:latest
 
-# Copy source files
-COPY ./Common /build/Common
-COPY ./Server /build/Server
+COPY . /tmp/build/
 
-# Copy required libraries
-COPY ./SettingsParser.dll /build/
-COPY ./MessageWriter2 /build/
+RUN ls /tmp/build
 
 # Compile the Server project
-RUN msbuild /build/Server/Server.csproj /p:Configuration=Release
+RUN msbuild /tmp/build/Server/Server.csproj /p:Configuration=Release
 
 WORKDIR /server/
 
-RUN cp -r /build/Server/bin/Release/* /server/
+RUN cp -r /tmp/build/Server/bin/Release/* /server/
+
+RUN rm -r /tmp/build
 
 EXPOSE 6702
 
