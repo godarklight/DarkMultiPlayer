@@ -1,6 +1,6 @@
 [submodule "SettingsParser"]
 	path = SettingsParser
-	url = git@github.com:godarklight/SettingsParser.git
+	url = http://github.com/godarklight/SettingsParser.git
 [submodule "MessageStream2"]
 	path = MessageStream2
-	url = git@github.com:godarklight/MessageStream2.git
+	url = http://github.com/godarklight/MessageStream2.git
