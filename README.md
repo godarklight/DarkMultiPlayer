@@ -16,7 +16,7 @@ In Linux or macOS, you must have [Mono](http://mono-project.com) installed to be
 * Download [DMPUpdater](http://godarklight.info.tm/dmp/downloads/dmpupdater/), place the program on your server folder and run it.
   - NOTE: you must have a previous server version in the folder for DMPUpdater to work.
 
-You can configure your server by editing `Config/Settings.txt`.  
+You can configure your server by editing `Config/Settings.txt`.
 If your server's game difficulty is set to `CUSTOM`, you can alter gameplay settings by editing `Config/GameplaySettings.txt`.
 
 ## Compiling
@@ -33,3 +33,12 @@ Read `DMPModControl.txt`, it's commented. The file can be copied from a developm
 If you are running a private server, it's safe enough to just add the missing parts.
 
 You can get the DMP client to make a `DMPModControl.txt` file specific for your GameData directory by pressing `Options -> Advanced -> Mod Control -> Generate`. The whitelist option will only allow you to connect with the mods in your GameData directory. The blacklist option will allow you to connect with any mods.
+
+## Docker image
+The docker image contains a base linux install of DMP, with no mods, confiuration or universe.
+
+### Configuration
+The `/opt/dmp/Config` directory contains all of the configuration files for DMP.
+
+### Universe
+The `/opt/dmp/Universe` directory contains all of the game's state in DMP.
