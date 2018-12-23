@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.5";
+        public const string MODCONTROL_VERSION = "1.6";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
