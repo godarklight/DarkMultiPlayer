@@ -74,7 +74,7 @@ namespace DarkMultiPlayer
             //Save mod file so we can recheck it.
             lastModFileData = modFileData;
             //Err...
-            string tempModFilePath = Path.Combine(Client.dmpClient.dmpDataDir, "DMPModControl.txt");
+            string tempModFilePath = Path.Combine(Client.dmpClient.dmpDataDir, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(tempModFilePath))
             {
                 sw.WriteLine("#This file is downloaded from the server during connection. It is saved here for convenience.");
@@ -236,7 +236,7 @@ namespace DarkMultiPlayer
             {
                 if (!requiredEntry.Key.EndsWith("dll"))
                 {
-                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
                     {
                         modCheckOk = false;
@@ -286,7 +286,7 @@ namespace DarkMultiPlayer
             {
                 if (!optionalEntry.Key.EndsWith("dll"))
                 {
-                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
                     {
                         //File is optional, nothing to check if it doesn't exist.
@@ -498,12 +498,12 @@ namespace DarkMultiPlayer
                 }
             }
             string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
-            string saveModFile = Path.Combine(Client.dmpClient.kspRootPath, "DMPModControl.txt");
+            string saveModFile = Path.Combine(Client.dmpClient.kspRootPath, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(saveModFile, false))
             {
                 sw.Write(modFileData);
             }
-            ScreenMessages.PostScreenMessage("DMPModFile.txt file generated in your KSP folder", 5f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage("mod-control.txt file generated in your KSP folder\nMove it to DMPServer/Config/", 5f, ScreenMessageStyle.UPPER_CENTER);
         }
 
         public void CheckCommonStockParts()
