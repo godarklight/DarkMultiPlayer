@@ -11,6 +11,7 @@ namespace DarkMultiPlayer
     public class ScenarioWorker
     {
         public bool workerEnabled = false;
+        private static ScenarioWorker singleton;
         private Dictionary<string, string> checkData = new Dictionary<string, string>();
         private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
         private bool blockScenarioDataSends = false;
@@ -393,7 +394,6 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Skipped '" + entry.scenarioName + "' scenario data  in " + dmpGame.gameMode + " mode");
                 return;
             }
-
             //Load data from DMP
             if (entry.scenarioNode == null)
             {
@@ -403,33 +403,36 @@ namespace DarkMultiPlayer
             }
 
             //Load data into game
-            bool loaded = false;
-            foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
+            if (DidScenarioChange(entry))
             {
-                if (psm.moduleName == entry.scenarioName)
+                bool loaded = false;
+                foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
                 {
-                    DarkLog.Debug("Loading existing " + entry.scenarioName + " scenario module");
-                    try
+                    if (psm.moduleName == entry.scenarioName)
                     {
-                        if (psm.moduleRef == null)
+                        DarkLog.Debug("Loading existing " + entry.scenarioName + " scenario module");
+                        try
                         {
-                            DarkLog.Debug("Fixing null scenario module!");
-                            psm.moduleRef = new ScenarioModule();
+                            if (psm.moduleRef == null)
+                            {
+                                DarkLog.Debug("Fixing null scenario module!");
+                                psm.moduleRef = new ScenarioModule();
+                            }
+                            psm.moduleRef.Load(entry.scenarioNode);
                         }
-                        psm.moduleRef.Load(entry.scenarioNode);
+                        catch (Exception e)
+                        {
+                            DarkLog.Debug("Error loading " + entry.scenarioName + " scenario module, Exception: " + e);
+                            blockScenarioDataSends = true;
+                        }
+                        loaded = true;
                     }
-                    catch (Exception e)
-                    {
-                        DarkLog.Debug("Error loading " + entry.scenarioName + " scenario module, Exception: " + e);
-                        blockScenarioDataSends = true;
-                    }
-                    loaded = true;
                 }
-            }
-            if (!loaded)
-            {
-                DarkLog.Debug("Loading new " + entry.scenarioName + " scenario module");
-                LoadNewScenarioData(entry.scenarioNode);
+                if (!loaded)
+                {
+                    DarkLog.Debug("Loading new " + entry.scenarioName + " scenario module");
+                    LoadNewScenarioData(entry.scenarioNode);
+                }
             }
         }
 
@@ -456,6 +459,17 @@ namespace DarkMultiPlayer
             scenarioQueue.Enqueue(entry);
         }
 
+        private bool DidScenarioChange(ScenarioEntry scenarioEntry)
+        {
+            string previousScenarioHash = null;
+            string currentScenarioHash = Common.CalculateSHA256Hash(ConfigNodeSerializer.fetch.Serialize(scenarioEntry.scenarioNode));
+            if (checkData.TryGetValue(scenarioEntry.scenarioName, out previousScenarioHash))
+            {
+                return previousScenarioHash != currentScenarioHash;
+            }
+            return true;
+        }
+
         public void Stop()
         {
             workerEnabled = false;
@@ -469,4 +483,3 @@ namespace DarkMultiPlayer
         public ConfigNode scenarioNode;
     }
 }
-
