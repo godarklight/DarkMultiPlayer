@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
@@ -135,23 +136,34 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             string flagName = mr.Read<string>();
                             byte[] flagData = mr.Read<byte[]>();
-                            string playerFlagPath = Path.Combine(flagPath, client.playerName);
-                            if (!Directory.Exists(playerFlagPath))
+                            // Do not save null files
+                            if (flagData.Length > 0)
                             {
-                                Directory.CreateDirectory(playerFlagPath);
+                                // Check if the specified file is a valid PNG file
+                                byte[] pngSequence = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+                                if (pngSequence.SequenceEqual(flagData.Take(pngSequence.Length)))
+                                {
+                                    string playerFlagPath = Path.Combine(flagPath, client.playerName);
+
+                                    if (!Directory.Exists(playerFlagPath))
+                                        Directory.CreateDirectory(playerFlagPath);
+
+                                    DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
+                                    File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
+
+                                    ServerMessage newMessage = new ServerMessage();
+                                    newMessage.type = ServerMessageType.FLAG_SYNC;
+                                    using (MessageWriter mw = new MessageWriter())
+                                    {
+                                        mw.Write<int>((int)FlagMessageType.FLAG_DATA);
+                                        mw.Write<string>(client.playerName);
+                                        mw.Write<string>(flagName);
+                                        mw.Write<byte[]>(flagData);
+                                    }
+
+                                    ClientHandler.SendToAll(client, newMessage, false);
+                                }
                             }
-                            DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
-                            File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.FLAG_SYNC;
-                            using (MessageWriter mw = new MessageWriter())
-                            {
-                                mw.Write<int>((int)FlagMessageType.FLAG_DATA);
-                                mw.Write<string>(client.playerName);
-                                mw.Write<string>(flagName);
-                                mw.Write<byte[]>(flagData);
-                            }
-                            ClientHandler.SendToAll(client, newMessage, false);
                         }
                         break;
                 }

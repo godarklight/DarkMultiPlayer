@@ -19,7 +19,7 @@ namespace DarkMultiPlayer
             {
                 inputRect.x = xMin;
             }
-            if (inputRect.x  > xMax)
+            if (inputRect.x > xMax)
             {
                 inputRect.x = xMax;
             }

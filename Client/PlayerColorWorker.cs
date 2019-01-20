@@ -11,6 +11,23 @@ namespace DarkMultiPlayer
     {
         //As this worker is entirely event based, we need to register and unregister hooks in the workerEnabled accessor.
         private bool privateWorkerEnabled;
+        //Services
+        private Settings dmpSettings;
+        private LockSystem lockSystem;
+        private PlayerStatusWindow playerStatusWindow;
+        private NetworkWorker networkWorker;
+
+        public PlayerColorWorker(Settings dmpSettings, LockSystem lockSystem, NetworkWorker networkWorker)
+        {
+            this.dmpSettings = dmpSettings;
+            this.lockSystem = lockSystem;
+            this.networkWorker = networkWorker;
+        }
+
+        public void SetDependencies(PlayerStatusWindow playerStatusWindow)
+        {
+            this.playerStatusWindow = playerStatusWindow;
+        }
 
         public bool workerEnabled
         {
@@ -23,40 +40,31 @@ namespace DarkMultiPlayer
                 if (!privateWorkerEnabled && value)
                 {
                     GameEvents.onVesselCreate.Add(this.SetVesselColor);
-                    LockSystem.fetch.RegisterAcquireHook(this.OnLockAcquire);
-                    LockSystem.fetch.RegisterReleaseHook(this.OnLockRelease);
+                    lockSystem.RegisterAcquireHook(this.OnLockAcquire);
+                    lockSystem.RegisterReleaseHook(this.OnLockRelease);
                 }
                 if (privateWorkerEnabled && !value)
                 {
                     GameEvents.onVesselCreate.Remove(this.SetVesselColor);
-                    LockSystem.fetch.UnregisterAcquireHook(this.OnLockAcquire);
-                    LockSystem.fetch.UnregisterReleaseHook(this.OnLockRelease);
+                    lockSystem.UnregisterAcquireHook(this.OnLockAcquire);
+                    lockSystem.UnregisterReleaseHook(this.OnLockRelease);
                 }
                 privateWorkerEnabled = value;
             }
         }
 
-        private static PlayerColorWorker singleton;
-        private Dictionary<string,Color> playerColors = new Dictionary<string, Color>();
+        private Dictionary<string, Color> playerColors = new Dictionary<string, Color>();
         private object playerColorLock = new object();
         //Can't declare const - But no touchy.
         public readonly Color DEFAULT_COLOR = Color.grey;
-
-        public static PlayerColorWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
 
         private void SetVesselColor(Vessel colorVessel)
         {
             if (workerEnabled)
             {
-                if (LockSystem.fetch.LockExists("control-" + colorVessel.id.ToString()) && !LockSystem.fetch.LockIsOurs("control-" + colorVessel.id.ToString()))
+                if (lockSystem.LockExists("control-" + colorVessel.id.ToString()) && !lockSystem.LockIsOurs("control-" + colorVessel.id.ToString()))
                 {
-                    string vesselOwner = LockSystem.fetch.LockOwner("control-" + colorVessel.id.ToString());
+                    string vesselOwner = lockSystem.LockOwner("control-" + colorVessel.id.ToString());
                     DarkLog.Debug("Vessel " + colorVessel.id.ToString() + " owner is " + vesselOwner);
                     colorVessel.orbitDriver.orbitColor = GetPlayerColor(vesselOwner);
                 }
@@ -110,9 +118,9 @@ namespace DarkMultiPlayer
         {
             lock (playerColorLock)
             {
-                if (playerName == Settings.fetch.playerName)
+                if (playerName == dmpSettings.playerName)
                 {
-                    return Settings.fetch.playerColor;
+                    return dmpSettings.playerColor;
                 }
                 if (playerColors.ContainsKey(playerName))
                 {
@@ -141,7 +149,7 @@ namespace DarkMultiPlayer
                                     string playerName = mr.Read<string>();
                                     Color playerColor = ConvertFloatArrayToColor(mr.Read<float[]>());
                                     playerColors.Add(playerName, playerColor);
-                                    PlayerStatusWindow.fetch.colorEventHandled = false;
+                                    playerStatusWindow.colorEventHandled = false;
                                 }
                             }
                         }
@@ -155,7 +163,7 @@ namespace DarkMultiPlayer
                                 DarkLog.Debug("Color message, name: " + playerName + " , color: " + playerColor.ToString());
                                 playerColors[playerName] = playerColor;
                                 UpdateAllVesselColors();
-                                PlayerStatusWindow.fetch.colorEventHandled = false;
+                                playerStatusWindow.colorEventHandled = false;
                             }
                         }
                         break;
@@ -168,9 +176,9 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)PlayerColorMessageType.SET);
-                mw.Write<string>(Settings.fetch.playerName);
-                mw.Write<float[]>(ConvertColorToFloatArray(Settings.fetch.playerColor));
-                NetworkWorker.fetch.SendPlayerColorMessage(mw.GetMessageBytes());
+                mw.Write<string>(dmpSettings.playerName);
+                mw.Write<float[]>(ConvertColorToFloatArray(dmpSettings.playerColor));
+                networkWorker.SendPlayerColorMessage(mw.GetMessageBytes());
             }
         }
         //Helpers
@@ -218,7 +226,7 @@ namespace DarkMultiPlayer
                 case 10:
                     return new Color(0.043f, 0.855f, 0.318f, 1); //Malachite
                 case 11:
-                    return Color.cyan;  
+                    return Color.cyan;
                 case 12:
                     return new Color(0.537f, 0.812f, 0.883f, 1); //Baby blue;
                 case 13:
@@ -232,16 +240,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                }
-                singleton = new PlayerColorWorker();
-            }
+            workerEnabled = false;
         }
     }
 }

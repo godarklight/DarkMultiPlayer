@@ -9,26 +9,38 @@ namespace DarkMultiPlayer
     {
         public static Queue<string> messageQueue = new Queue<string>();
         private static object externalLogLock = new object();
+        private static int mainThreadID;
+
+        public static void SetMainThread()
+        {
+            mainThreadID = System.Threading.Thread.CurrentThread.ManagedThreadId;
+        }
 
         public static void Debug(string message)
         {
-            //Use messageQueue if looking for messages that don't normally show up in the log.
-
-            messageQueue.Enqueue("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
-            //UnityEngine.Debug.Log("[" + UnityEngine.Time.realtimeSinceStartup + "] DarkMultiPlayer: " + message);
+            message = string.Format("[{0}] {1}", Client.realtimeSinceStartup, message);
+            if (System.Threading.Thread.CurrentThread.ManagedThreadId == mainThreadID)
+            {
+                UnityEngine.Debug.Log("DarkMultiPlayer: " + message);
+            }
+            else
+            {
+                lock (messageQueue)
+                {
+                    messageQueue.Enqueue("DarkMultiPlayer: [THREAD] " + message);
+                }
+            }
         }
 
         public static void Update()
         {
             while (messageQueue.Count > 0)
             {
-                string message = messageQueue.Dequeue();
-                UnityEngine.Debug.Log(message);
-                /*
-                using (StreamWriter sw = new StreamWriter("DarkLog.txt", true, System.Text.Encoding.UTF8)) {
-                    sw.WriteLine(message);
+                lock (messageQueue)
+                {
+                    string message = messageQueue.Dequeue();
+                    UnityEngine.Debug.Log(message);
                 }
-                */
             }
         }
 
@@ -36,7 +48,7 @@ namespace DarkMultiPlayer
         {
             lock (externalLogLock)
             {
-                using (StreamWriter sw = new StreamWriter(Path.Combine(KSPUtil.ApplicationRootPath, "DMP.log"), true))
+                using (StreamWriter sw = new StreamWriter(Path.Combine(Client.dmpClient.kspRootPath, "DMP.log"), true))
                 {
                     sw.WriteLine(debugText);
                 }

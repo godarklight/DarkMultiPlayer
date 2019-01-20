@@ -10,7 +10,7 @@ namespace DarkMultiPlayerServer
     /// client - The client that has sent the message
     /// modData - The mod byte[] payload
     /// </summary>
-    public delegate void DMPMessageCallback(ClientObject client,byte[] modData);
+    public delegate void DMPMessageCallback(ClientObject client, byte[] modData);
     public class DMPModInterface
     {
         private static Dictionary<string, DMPMessageCallback> registeredMods = new Dictionary<string, DMPMessageCallback>();
@@ -75,7 +75,7 @@ namespace DarkMultiPlayerServer
                 mw.Write<byte[]>(messageData);
                 newMessage.data = mw.GetMessageBytes();
             }
-            ClientHandler.SendToClient(client, newMessage , highPriority);
+            ClientHandler.SendToClient(client, newMessage, highPriority);
         }
 
         public static void SendDMPModMessageToAll(ClientObject excludeClient, string modName, byte[] messageData, bool highPriority)
@@ -90,7 +90,7 @@ namespace DarkMultiPlayerServer
             }
             ClientHandler.SendToAll(excludeClient, newMessage, highPriority);
         }
-       
+
 
         /// <summary>
         /// Internal use only - Called when a mod message is received from ClientHandler.

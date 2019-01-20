@@ -10,7 +10,6 @@ namespace DarkMultiPlayer
     {
         //Height setting
         public int screenshotHeight = 720;
-        private static ScreenshotWorker singleton;
         //GUI stuff
         private bool initialized;
         private bool isWindowLocked = false;
@@ -54,13 +53,22 @@ namespace DarkMultiPlayer
         private const float BUTTON_WIDTH = 150;
         private const float SCREENSHOT_MESSAGE_CHECK_INTERVAL = .2f;
         private const float MIN_SCREENSHOT_SEND_INTERVAL = 3f;
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private ChatWorker chatWorker;
+        private NetworkWorker networkWorker;
+        private PlayerStatusWorker playerStatusWorker;
 
-        public static ScreenshotWorker fetch
+        public ScreenshotWorker(DMPGame dmpGame, Settings dmpSettings, ChatWorker chatWorker, NetworkWorker networkWorker, PlayerStatusWorker playerStatusWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.chatWorker = chatWorker;
+            this.networkWorker = networkWorker;
+            this.playerStatusWorker = playerStatusWorker;
+            dmpGame.updateEvent.Add(Update);
+            dmpGame.drawEvent.Add(Draw);
         }
 
         private void InitGUI()
@@ -105,7 +113,7 @@ namespace DarkMultiPlayer
                             highlightedPlayers.Add(notifyPlayer);
                         }
                     }
-                    ChatWorker.fetch.QueueChannelMessage("Server", "", notifyPlayer + " shared screenshot");
+                    chatWorker.QueueChannelMessage("Server", "", notifyPlayer + " shared screenshot");
                 }
 
                 //Update highlights
@@ -163,7 +171,7 @@ namespace DarkMultiPlayer
                     WatchPlayer(selectedPlayer);
                 }
 
-                if (Input.GetKey(Settings.fetch.screenshotKey))
+                if (Input.GetKey(dmpSettings.screenshotKey))
                 {
                     uploadEventHandled = false;
                 }
@@ -171,9 +179,9 @@ namespace DarkMultiPlayer
                 if (!uploadEventHandled)
                 {
                     uploadEventHandled = true;
-                    if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
+                    if ((Client.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL)
                     {
-                        lastScreenshotSend = UnityEngine.Time.realtimeSinceStartup;
+                        lastScreenshotSend = Client.realtimeSinceStartup;
                         screenshotTaken = false;
                         finishedUploadingScreenshot = false;
                         uploadScreenshot = true;
@@ -181,11 +189,11 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                if ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastScreenshotMessageCheck) > SCREENSHOT_MESSAGE_CHECK_INTERVAL)
                 {
                     if (screenshotTaken && displayScreenshotUploadingMessage)
                     {
-                        lastScreenshotMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                        lastScreenshotMessageCheck = Client.realtimeSinceStartup;
                         if (screenshotUploadMessage != null)
                         {
                             screenshotUploadMessage.duration = 0f;
@@ -258,15 +266,15 @@ namespace DarkMultiPlayer
             GUILayout.BeginHorizontal();
             GUILayout.BeginVertical();
             scrollPos = GUILayout.BeginScrollView(scrollPos, scrollStyle, fixedButtonSizeOption);
-            DrawPlayerButton(Settings.fetch.playerName);
-            foreach (PlayerStatus player in PlayerStatusWorker.fetch.playerStatusList)
+            DrawPlayerButton(dmpSettings.playerName);
+            foreach (PlayerStatus player in playerStatusWorker.playerStatusList)
             {
                 DrawPlayerButton(player.playerName);
             }
             GUILayout.EndScrollView();
             GUILayout.FlexibleSpace();
-            GUI.enabled = ((UnityEngine.Time.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
-            if (GUILayout.Button("Upload (" + Settings.fetch.screenshotKey.ToString() + ")", buttonStyle))
+            GUI.enabled = ((Client.realtimeSinceStartup - lastScreenshotSend) > MIN_SCREENSHOT_SEND_INTERVAL);
+            if (GUILayout.Button("Upload (" + dmpSettings.screenshotKey.ToString() + ")", buttonStyle))
             {
                 uploadEventHandled = false;
             }
@@ -284,11 +292,11 @@ namespace DarkMultiPlayer
 
         private void CheckWindowLock()
         {
-            if (!Client.fetch.gameRunning)
-            {
-                RemoveWindowLock();
-                return;
-            }
+            if (!dmpGame.running)
+             {
+                 RemoveWindowLock();
+                 return;
+             }
 
             if (HighLogic.LoadedSceneIsFlight)
             {
@@ -352,9 +360,9 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ScreenshotMessageType.WATCH);
-                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(dmpSettings.playerName);
                 mw.Write<string>(playerName);
-                NetworkWorker.fetch.SendScreenshotMessage(mw.GetMessageBytes());
+                networkWorker.SendScreenshotMessage(mw.GetMessageBytes());
             }
         }
         //Called from main due to WaitForEndOfFrame timing.
@@ -363,9 +371,9 @@ namespace DarkMultiPlayer
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ScreenshotMessageType.SCREENSHOT);
-                mw.Write<string>(Settings.fetch.playerName);
+                mw.Write<string>(dmpSettings.playerName);
                 mw.Write<byte[]>(GetScreenshotBytes());
-                NetworkWorker.fetch.SendScreenshotMessage(mw.GetMessageBytes());
+                networkWorker.SendScreenshotMessage(mw.GetMessageBytes());
             }
         }
         //Adapted from KMP.
@@ -396,7 +404,7 @@ namespace DarkMultiPlayer
             ourTexture.Apply();
             ResizeTextureIfNeeded(ref ourTexture);
             //Save our texture in memory.
-            screenshots[Settings.fetch.playerName] = ourTexture;
+            screenshots[dmpSettings.playerName] = ourTexture;
 
             RenderTexture.active = null;
             return resizedTexture.EncodeToPNG();
@@ -424,34 +432,27 @@ namespace DarkMultiPlayer
             newScreenshotNotifiyQueue.Enqueue(fromPlayer);
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    singleton.RemoveWindowLock();
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new ScreenshotWorker();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
+            workerEnabled = false;
+            RemoveWindowLock();
+            dmpGame.updateEvent.Remove(Update);
+            dmpGame.drawEvent.Remove(Draw);
+
         }
     }
-
-    class ScreenshotEntry
-    {
-        public string fromPlayer;
-        public byte[] screenshotData;
-    }
-
-    class ScreenshotWatchEntry
-    {
-        public string fromPlayer;
-        public string watchPlayer;
-    }
 }
+
+class ScreenshotEntry
+{
+    public string fromPlayer;
+    public byte[] screenshotData;
+}
+
+class ScreenshotWatchEntry
+{
+    public string fromPlayer;
+    public string watchPlayer;
+}
+
 

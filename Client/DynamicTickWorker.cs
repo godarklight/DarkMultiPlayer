@@ -7,7 +7,6 @@ namespace DarkMultiPlayer
     public class DynamicTickWorker
     {
         public bool workerEnabled;
-        private static DynamicTickWorker singleton;
         private float lastDynamicTickRateCheck;
         private const float DYNAMIC_TICK_RATE_CHECK_INTERVAL = 1f;
         //Twiddle these knobs
@@ -19,14 +18,19 @@ namespace DarkMultiPlayer
         private const int MASTER_TICK_SCALING = 100 * 1024;
         //1000KB
         private const int MASTER_SECONDARY_VESSELS_SCALING = 200 * 1024;
+        //Services
+        private DMPGame dmpGame;
+        private NetworkWorker networkWorker;
 
-        public static DynamicTickWorker fetch
+        public DynamicTickWorker(DMPGame dmpGame, NetworkWorker networkWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpGame = dmpGame;
+            this.networkWorker = networkWorker;
+            maxSecondryVesselsPerTick = MASTER_MAX_SECONDARY_VESSELS;
+            sendTickRate = MASTER_MAX_TICKS_PER_SECOND;
+            dmpGame.updateEvent.Add(Update);
         }
+
         //Restricted access variables
         public int maxSecondryVesselsPerTick
         {
@@ -44,9 +48,9 @@ namespace DarkMultiPlayer
         {
             if (workerEnabled)
             {
-                if ((UnityEngine.Time.realtimeSinceStartup - lastDynamicTickRateCheck) > DYNAMIC_TICK_RATE_CHECK_INTERVAL)
+                if ((Client.realtimeSinceStartup - lastDynamicTickRateCheck) > DYNAMIC_TICK_RATE_CHECK_INTERVAL)
                 {
-                    lastDynamicTickRateCheck = UnityEngine.Time.realtimeSinceStartup;
+                    lastDynamicTickRateCheck = Client.realtimeSinceStartup;
                     CalculateRates();
                 }
             }
@@ -54,7 +58,7 @@ namespace DarkMultiPlayer
 
         private void CalculateRates()
         {
-            long currentQueuedBytes = NetworkWorker.fetch.GetStatistics("QueuedOutBytes");
+            long currentQueuedBytes = networkWorker.GetStatistics("QueuedOutBytes");
 
             //Tick Rate math - Clamp to minimum value.
             long newTickRate = MASTER_MAX_TICKS_PER_SECOND - (currentQueuedBytes / (MASTER_TICK_SCALING / (MASTER_MAX_TICKS_PER_SECOND - MASTER_MIN_TICKS_PER_SECOND)));
@@ -65,20 +69,10 @@ namespace DarkMultiPlayer
             maxSecondryVesselsPerTick = newSecondryVesselsPerTick > MASTER_MIN_SECONDARY_VESSELS ? (int)newSecondryVesselsPerTick : MASTER_MIN_SECONDARY_VESSELS;
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.workerEnabled = false;
-                    Client.updateEvent.Remove(singleton.Update);
-                }
-                singleton = new DynamicTickWorker();
-                singleton.maxSecondryVesselsPerTick = MASTER_MAX_SECONDARY_VESSELS;
-                singleton.sendTickRate = MASTER_MAX_TICKS_PER_SECOND;
-                Client.updateEvent.Add(singleton.Update);
-            }
+            workerEnabled = false;
+            dmpGame.updateEvent.Remove(Update);
         }
     }
 }

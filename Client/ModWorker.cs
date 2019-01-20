@@ -8,7 +8,6 @@ namespace DarkMultiPlayer
 {
     public class ModWorker
     {
-        private static ModWorker singleton = new ModWorker();
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
         public bool dllListBuilt = false;
         //Dll files, built at startup
@@ -16,6 +15,14 @@ namespace DarkMultiPlayer
         //Accessed from ModWindow
         private List<string> allowedParts;
         private string lastModFileData = "";
+        //Services
+        private ModWindow modWindow;
+
+        public ModWorker(ModWindow modWindow)
+        {
+            this.modWindow = modWindow;
+        }
+
 
         public string failText
         {
@@ -23,17 +30,9 @@ namespace DarkMultiPlayer
             get;
         }
 
-        public static ModWorker fetch
-        {
-            get
-            {
-                return singleton;
-            }
-        }
-
         private bool CheckFile(string relativeFileName, string referencefileHash)
         {
-            string fullFileName = Path.Combine(KSPUtil.ApplicationRootPath, Path.Combine("GameData", relativeFileName));
+            string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, relativeFileName);
             string fileHash = Common.CalculateSHA256Hash(fullFileName);
             if (fileHash != referencefileHash)
             {
@@ -46,7 +45,7 @@ namespace DarkMultiPlayer
         public void BuildDllFileList()
         {
             dllList = new Dictionary<string, string>();
-            string[] checkList = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
+            string[] checkList = Directory.GetFiles(Client.dmpClient.gameDataDir, "*", SearchOption.AllDirectories);
 
             foreach (string checkFile in checkList)
             {
@@ -75,7 +74,7 @@ namespace DarkMultiPlayer
             //Save mod file so we can recheck it.
             lastModFileData = modFileData;
             //Err...
-            string tempModFilePath = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data"), "DMPModControl.txt");
+            string tempModFilePath = Path.Combine(Client.dmpClient.dmpDataDir, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(tempModFilePath))
             {
                 sw.WriteLine("#This file is downloaded from the server during connection. It is saved here for convenience.");
@@ -83,8 +82,8 @@ namespace DarkMultiPlayer
             }
 
             //Parse
-            Dictionary<string,string> parseRequired = new Dictionary<string, string>();
-            Dictionary<string,string> parseOptional = new Dictionary<string, string>();
+            Dictionary<string, string> parseRequired = new Dictionary<string, string>();
+            Dictionary<string, string> parseOptional = new Dictionary<string, string>();
             List<string> parseWhiteBlackList = new List<string>();
             List<string> parsePartsList = new List<string>();
             bool isWhiteList = false;
@@ -221,7 +220,7 @@ namespace DarkMultiPlayer
                 }
             }
 
-            string[] currentGameDataFiles = Directory.GetFiles(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "*", SearchOption.AllDirectories);
+            string[] currentGameDataFiles = Directory.GetFiles(Client.dmpClient.gameDataDir, "*", SearchOption.AllDirectories);
             List<string> currentGameDataFilesNormal = new List<string>();
             List<string> currentGameDataFilesLower = new List<string>();
             foreach (string currentFile in currentGameDataFiles)
@@ -237,7 +236,7 @@ namespace DarkMultiPlayer
             {
                 if (!requiredEntry.Key.EndsWith("dll"))
                 {
-                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
                     {
                         modCheckOk = false;
@@ -250,7 +249,7 @@ namespace DarkMultiPlayer
                     {
 
                         string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(requiredEntry.Key)];
-                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
                         if (!CheckFile(fullFileName, requiredEntry.Value))
                         {
                             modCheckOk = false;
@@ -287,7 +286,7 @@ namespace DarkMultiPlayer
             {
                 if (!optionalEntry.Key.EndsWith("dll"))
                 {
-                    //Protect against windows-style entries in DMPModControl.txt. Also use case insensitive matching.
+                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
                     {
                         //File is optional, nothing to check if it doesn't exist.
@@ -298,7 +297,7 @@ namespace DarkMultiPlayer
                     {
 
                         string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(optionalEntry.Key)];
-                        string fullFileName = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), normalCaseFileName);
+                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
                         if (!CheckFile(fullFileName, optionalEntry.Value))
                         {
                             modCheckOk = false;
@@ -346,6 +345,11 @@ namespace DarkMultiPlayer
                     {
                         continue;
                     }
+                    //Ignore squad plugins
+                    if (dllResource.Key.StartsWith("squad/plugins"))
+                    {
+                        continue;
+                    }
                     //Check required (Required implies whitelist)
                     if (parseRequired.ContainsKey(dllResource.Key))
                     {
@@ -382,7 +386,7 @@ namespace DarkMultiPlayer
             if (!modCheckOk)
             {
                 failText = sb.ToString();
-                ModWindow.fetch.display = true;
+                modWindow.display = true;
                 return false;
             }
             allowedParts = parsePartsList;
@@ -402,14 +406,14 @@ namespace DarkMultiPlayer
 
         public void GenerateModControlFile(bool whitelistMode)
         {
-            string gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            string gameDataDir = Client.dmpClient.gameDataDir;
             string[] topLevelFiles = Directory.GetFiles(gameDataDir);
             string[] modDirectories = Directory.GetDirectories(gameDataDir);
 
             List<string> requiredFiles = new List<string>();
             List<string> optionalFiles = new List<string>();
             List<string> partsList = Common.GetStockParts();
-             //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
+            //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
             foreach (string dllFile in topLevelFiles)
             {
                 if (Path.GetExtension(dllFile).ToLower() == ".dll")
@@ -460,7 +464,7 @@ namespace DarkMultiPlayer
                                 partsList.Add(partName);
                             }
                         }
-                        
+
                     }
                     if (fileIsPartFile)
                     {
@@ -494,12 +498,38 @@ namespace DarkMultiPlayer
                 }
             }
             string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
-            string saveModFile = Path.Combine(KSPUtil.ApplicationRootPath, "DMPModControl.txt");
+            string saveModFile = Path.Combine(Client.dmpClient.kspRootPath, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(saveModFile, false))
             {
                 sw.Write(modFileData);
             }
-            ScreenMessages.PostScreenMessage("DMPModFile.txt file generated in your KSP folder", 5f, ScreenMessageStyle.UPPER_CENTER);
+            ScreenMessages.PostScreenMessage("mod-control.txt file generated in your KSP folder\nMove it to DMPServer/Config/", 5f, ScreenMessageStyle.UPPER_CENTER);
+        }
+
+        public void CheckCommonStockParts()
+        {
+            int totalParts = 0;
+            int missingParts = 0;
+            List<string> stockParts = Common.GetStockParts();
+            DarkLog.Debug("Missing parts start");
+            foreach (AvailablePart part in PartLoader.LoadedPartsList)
+            {
+                totalParts++;
+                if (!stockParts.Contains(part.name))
+                {
+                    missingParts++;
+                    DarkLog.Debug("Missing '" + part.name + "'");
+                }
+            }
+            DarkLog.Debug("Missing parts end");
+            if (missingParts != 0)
+            {
+                ScreenMessages.PostScreenMessage(missingParts + " missing part(s) from Common.dll printed to debug log (" + totalParts + " total)", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
+            else
+            {
+                ScreenMessages.PostScreenMessage("No missing parts out of from Common.dll (" + totalParts + " total)", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
     }
 }

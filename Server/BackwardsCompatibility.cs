@@ -1,11 +1,104 @@
 using System;
+using System.Collections.Generic;
+using System.Text;
 using System.IO;
 using System.Reflection;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayerServer
 {
     public class BackwardsCompatibility
     {
+        public static void UpdateModcontrolPartList()
+        {
+            if (!File.Exists(Server.modFile))
+            {
+                return;
+            }
+            bool readingParts = false;
+            string modcontrolVersion = "";
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("#MODCONTROLVERSION=" + Common.MODCONTROL_VERSION);
+            List<string> stockParts = Common.GetStockParts();
+            List<string> modParts = new List<string>();
+            bool partsPrinted = false;
+            using (StreamReader sr = new StreamReader(Server.modFile))
+            {
+                string currentLine = null;
+                while ((currentLine = sr.ReadLine()) != null)
+                {
+                    string trimmedLine = currentLine.Trim();
+                    if (!readingParts)
+                    {
+                        if (trimmedLine.StartsWith("#MODCONTROLVERSION="))
+                        {
+                            modcontrolVersion = trimmedLine.Substring(currentLine.IndexOf("=") + 1);
+                            if (modcontrolVersion == Common.MODCONTROL_VERSION)
+                            {
+                                //Mod control file is up to date.
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            sb.AppendLine(currentLine);
+                        }
+                        if (trimmedLine == "!partslist")
+                        {
+                            readingParts = true;
+                        }
+                    }
+                    else
+                    {
+                        if (trimmedLine.StartsWith("#") || trimmedLine == string.Empty)
+                        {
+                            sb.AppendLine(currentLine);
+                            continue;
+                        }
+                        //This is an edge case, but it's still possible if someone moves something manually.
+                        if (trimmedLine.StartsWith("!"))
+                        {
+                            if (!partsPrinted)
+                            {
+                                partsPrinted = true;
+                                foreach (string stockPart in stockParts)
+                                {
+                                    sb.AppendLine(stockPart);
+                                }
+                                foreach (string modPart in modParts)
+                                {
+                                    sb.AppendLine(modPart);
+                                }
+                            }
+                            readingParts = false;
+                            sb.AppendLine(currentLine);
+                            continue;
+                        }
+                        if (!stockParts.Contains(currentLine))
+                        {
+                            modParts.Add(currentLine);
+                        }
+                    }
+                }
+            }
+            if (!partsPrinted)
+            {
+                partsPrinted = true;
+                foreach (string stockPart in stockParts)
+                {
+                    sb.AppendLine(stockPart);
+                }
+                foreach (string modPart in modParts)
+                {
+                    sb.AppendLine(modPart);
+                }
+            }
+            File.WriteAllText(Server.modFile + ".new", sb.ToString());
+            File.Copy(Server.modFile + ".new", Server.modFile, true);
+            File.Delete(Server.modFile + ".new");
+            DarkLog.Debug("Added " + Common.MODCONTROL_VERSION + " parts to modcontrol.txt");
+        }
+
         public static void RemoveOldPlayerTokens()
         {
             string playerDirectory = Path.Combine(Server.universeDirectory, "Players");

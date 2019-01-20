@@ -5,30 +5,31 @@ using MessageStream2;
 
 namespace DarkMultiPlayer
 {
-    public delegate void AcquireEvent(string playerName,string lockName,bool lockResult);
-    public delegate void ReleaseEvent(string playerName,string lockName);
+    public delegate void AcquireEvent(string playerName, string lockName, bool lockResult);
+    public delegate void ReleaseEvent(string playerName, string lockName);
     public class LockSystem
     {
-        private static LockSystem singleton;
         private Dictionary<string, string> serverLocks = new Dictionary<string, string>();
         private List<AcquireEvent> lockAcquireEvents = new List<AcquireEvent>();
         private List<ReleaseEvent> lockReleaseEvents = new List<ReleaseEvent>();
         private Dictionary<string, double> lastAcquireTime = new Dictionary<string, double>();
         private object lockObject = new object();
 
-        public static LockSystem fetch
+        //Services
+        private Settings dmpSettings;
+        private NetworkWorker networkWorker;
+
+        public LockSystem(Settings dmpSettings, NetworkWorker networkWorker)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpSettings = dmpSettings;
+            this.networkWorker = networkWorker;
         }
 
         public void ThrottledAcquireLock(string lockname)
         {
-            if (lastAcquireTime.ContainsKey(lockname) ? ((UnityEngine.Time.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
+            if (lastAcquireTime.ContainsKey(lockname) ? ((Client.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
             {
-                lastAcquireTime[lockname] = UnityEngine.Time.realtimeSinceStartup;
+                lastAcquireTime[lockname] = Client.realtimeSinceStartup;
                 AcquireLock(lockname, false);
             }
         }
@@ -40,10 +41,10 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.ACQUIRE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
                     mw.Write<bool>(force);
-                    NetworkWorker.fetch.SendLockSystemMessage(mw.GetMessageBytes());
+                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
                 }
             }
         }
@@ -55,9 +56,9 @@ namespace DarkMultiPlayer
                 using (MessageWriter mw = new MessageWriter())
                 {
                     mw.Write<int>((int)LockMessageType.RELEASE);
-                    mw.Write<string>(Settings.fetch.playerName);
+                    mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
-                    NetworkWorker.fetch.SendLockSystemMessage(mw.GetMessageBytes());
+                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
                 }
                 if (LockIsOurs(lockName))
                 {
@@ -71,7 +72,7 @@ namespace DarkMultiPlayer
             lock (lockObject)
             {
                 List<string> removeList = new List<string>();
-                foreach (KeyValuePair<string,string> kvp in serverLocks)
+                foreach (KeyValuePair<string, string> kvp in serverLocks)
                 {
                     if (kvp.Value == playerName)
                     {
@@ -92,7 +93,7 @@ namespace DarkMultiPlayer
             lock (lockObject)
             {
                 List<string> removeList = new List<string>();
-                foreach (KeyValuePair<string,string> kvp in serverLocks)
+                foreach (KeyValuePair<string, string> kvp in serverLocks)
                 {
                     if (kvp.Key.StartsWith(prefix) && kvp.Value == playerName)
                     {
@@ -101,7 +102,7 @@ namespace DarkMultiPlayer
                 }
                 foreach (string removeValue in removeList)
                 {
-                    if (playerName == Settings.fetch.playerName)
+                    if (playerName == dmpSettings.playerName)
                     {
                         DarkLog.Debug("Releasing lock " + removeValue);
                         ReleaseLock(removeValue);
@@ -217,7 +218,7 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("Error thrown in release lock event, exception " + e);
                 }
-            } 
+            }
         }
 
         public bool LockIsOurs(string lockName)
@@ -226,7 +227,7 @@ namespace DarkMultiPlayer
             {
                 if (serverLocks.ContainsKey(lockName))
                 {
-                    if (serverLocks[lockName] == Settings.fetch.playerName)
+                    if (serverLocks[lockName] == dmpSettings.playerName)
                     {
                         return true;
                     }
@@ -252,14 +253,6 @@ namespace DarkMultiPlayer
                     return serverLocks[lockName];
                 }
                 return "";
-            }
-        }
-
-        public static void Reset()
-        {
-            lock (Client.eventLock)
-            {
-                singleton = new LockSystem();
             }
         }
     }

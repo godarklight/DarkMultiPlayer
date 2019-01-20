@@ -19,10 +19,12 @@ namespace DarkMultiPlayer
             gameObject = new GameObject();
             lineRenderer = gameObject.AddComponent<LineRenderer>();
             //Linerenderer setup
-            lineRenderer.SetWidth(0.1f, 0.1f);
-            lineRenderer.SetVertexCount(2);
-            lineRenderer.SetColors(Color.red, Color.red);
-            lineRenderer.material = new Material(Shader.Find("Unlit/Texture"));
+            lineRenderer.startWidth = 0.1f;
+            lineRenderer.endWidth = 0.1f;
+            lineRenderer.positionCount = 2;
+            lineRenderer.startColor = lineColour;
+            lineRenderer.endColor = lineColour;
+            lineRenderer.material = new Material(Shader.Find("KSP/UnlitColor"));
             lineRenderer.material.mainTexture = newTex;
         }
         public void UpdatePosition(Vector3 startPos, Vector3 endPos)

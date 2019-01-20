@@ -23,23 +23,23 @@ namespace DarkMultiPlayerServer
         /// </summary>
         void OnClientConnect(ClientObject client);
         /// <summary>
-        /// Fires just after the client has authenticated
+        /// Fires just after the client has authenticated.
         /// </summary>
         void OnClientAuthenticated(ClientObject client);
         /// <summary>
-        /// Fires when a client disconnects
+        /// Fires when a client disconnects.
         /// </summary>
         void OnClientDisconnect(ClientObject client);
         /// <summary>
-        /// Fires every time a message is received from a client
+        /// Fires every time a message is received from a client.
         /// </summary>
         /// <param name="client">The client that has sent the message</param>
         /// <param name="messageData">The message payload (Null for certain types)</param>
         void OnMessageReceived(ClientObject client, ClientMessage messageData);
         /// <summary>
-        /// Fires every time a message is received from a client
+        /// Fires every time a message is sent to a client.
         /// </summary>
-        /// <param name="client">The client that has sent the message</param>
+        /// <param name="client">The client that will receive the message</param>
         /// <param name="messageData">The message payload (Null for certain types)</param>
         void OnMessageSent(ClientObject client, ServerMessage messageData);
     }

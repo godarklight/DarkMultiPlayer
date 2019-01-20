@@ -6,19 +6,17 @@ namespace DarkMultiPlayer
 {
     public class PartKiller
     {
-        private static PartKiller singleton;
         //Bidictionary
         private Dictionary<Vessel, List<uint>> vesselToPart = new Dictionary<Vessel, List<uint>>();
         private Dictionary<uint, List<Vessel>> partToVessel = new Dictionary<uint, List<Vessel>>();
         private Guid loadGuid = Guid.Empty;
         private bool registered = false;
+        //Services
+        private LockSystem lockSystem;
 
-        public static PartKiller fetch
+        public PartKiller(LockSystem lockSystem)
         {
-            get
-            {
-                return singleton;
-            }
+            this.lockSystem = lockSystem;
         }
 
         public void RegisterGameHooks()
@@ -70,7 +68,7 @@ namespace DarkMultiPlayer
                             vesselOk = true;
                         }
                         //Either of the locks are ours or neither of the locks exist
-                        if (LockSystem.fetch.LockIsOurs("control-" + otherVessel.id) || LockSystem.fetch.LockIsOurs("update-" + otherVessel.id) || (!LockSystem.fetch.LockExists("control-" + otherVessel.id) && !LockSystem.fetch.LockExists("update-" + otherVessel.id)))
+                        if (lockSystem.LockIsOurs("control-" + otherVessel.id) || lockSystem.LockIsOurs("update-" + otherVessel.id) || (!lockSystem.LockExists("control-" + otherVessel.id) && !lockSystem.LockExists("update-" + otherVessel.id)))
                         {
                             vesselOk = true;
                         }
@@ -184,18 +182,11 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
+            if (registered)
             {
-                if (singleton != null)
-                {
-                    if (singleton.registered)
-                    {
-                        singleton.UnregisterGameHooks();
-                    }
-                }
-                singleton = new PartKiller();
+                UnregisterGameHooks();
             }
         }
     }

@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using DarkMultiPlayerCommon;
-using System.Reflection;
 using DarkMultiPlayer.Utilities;
 
 namespace DarkMultiPlayer
@@ -11,117 +10,129 @@ namespace DarkMultiPlayer
     [KSPAddon(KSPAddon.Startup.Instantly, true)]
     public class Client : MonoBehaviour
     {
-        private static Client singleton;
-        //Global state vars
-        public string status;
-        public bool startGame;
-        public bool forceQuit;
-        public bool showGUI = true;
-        public bool toolbarShowGUI = true;
-        public bool modDisabled = false;
-        public bool dmpSaveChecked = false;
-        public string assemblyPath;
-        //Game running is directly set from NetworkWorker.fetch after a successful connection
-        public bool gameRunning;
-        public bool fireReset;
-        public GameMode gameMode;
-        public bool serverAllowCheats = true;
+        private bool showGUI = true;
+        public static bool toolbarShowGUI = true;
+        public static bool modDisabled = false;
+        private bool dmpSaveChecked = false;
+
         //Disconnect message
-        public bool displayDisconnectMessage;
-        private ScreenMessage disconnectMessage;
-        private float lastDisconnectMessageCheck;
-        public static List<Action> updateEvent = new List<Action>();
-        public static List<Action> fixedUpdateEvent = new List<Action>();
-        public static List<Action> drawEvent = new List<Action>();
-        public static List<Action> resetEvent = new List<Action>();
-        public static object eventLock = new object();
+        public static bool displayDisconnectMessage;
+        public static ScreenMessage disconnectMessage;
+        public static float lastDisconnectMessageCheck;
+
         //Chosen by a 2147483647 sided dice roll. Guaranteed to be random.
         public const int WINDOW_OFFSET = 1664952404;
         //Hack gravity fix.
-        private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody,double>();
+        private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody, double>();
         //Command line connect
-        public static ServerEntry commandLineConnect;
+        private static ServerEntry commandLineConnect;
 
-        // Server setting
-        public GameDifficulty serverDifficulty;
-        public GameParameters serverParameters;
+        //Thread safe RealTimeSinceStartup
+        private static float lastRealTimeSinceStartup;
+        private static long lastClockTicks;
 
-        public Client()
-        {
-            singleton = this;
-        }
+        //This singleton is only for other mod access to the following services.
+        public static Client dmpClient;
 
-        public static Client fetch
+        //Services
+        public Settings dmpSettings;
+        public ToolbarSupport toolbarSupport;
+        public UniverseSyncCache universeSyncCache;
+        public ModWorker modWorker;
+        public ModWindow modWindow;
+        public ConnectionWindow connectionWindow;
+        public OptionsWindow optionsWindow;
+        public UniverseConverter universeConverter;
+        public UniverseConverterWindow universeConverterWindow;
+        public DisclaimerWindow disclaimerWindow;
+        public DMPModInterface dmpModInterface;
+        public DMPGame dmpGame;
+        public string dmpDir;
+        public string dmpDataDir;
+        public string gameDataDir;
+        public string kspRootPath;
+
+        public Client fetch
         {
             get
             {
-                return singleton;
+                return dmpClient;
             }
         }
 
-        public void Awake()
+        public DMPGame fetchGame
         {
+            get
+            {
+                return dmpGame;
+            }
+        }
+
+        public static float realtimeSinceStartup
+        {
+            get
+            {
+                long ticksDiff = DateTime.UtcNow.Ticks - lastClockTicks;
+                double secondsSinceUpdate = ticksDiff / 10000000d;
+                return lastRealTimeSinceStartup + (float)secondsSinceUpdate;
+            }
+        }
+
+        public void Start()
+        {
+            TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, TimingManagerFixedUpdate);
+            dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
+            dmpDataDir = Path.Combine(dmpDir, "Data");
+            gameDataDir = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            kspRootPath = KSPUtil.ApplicationRootPath;
+
+            //Fix DarkLog time/thread marker in the log during init.
+            DarkLog.SetMainThread();
+            lastClockTicks = DateTime.UtcNow.Ticks;
+            lastRealTimeSinceStartup = 0f;
+
+            dmpClient = this;
+            dmpSettings = new Settings();
+            toolbarSupport = new ToolbarSupport(dmpSettings);
+            universeSyncCache = new UniverseSyncCache(dmpSettings);
+            modWindow = new ModWindow();
+            modWorker = new ModWorker(modWindow);
+            modWindow.SetDependenices(modWorker);
+            universeConverter = new UniverseConverter(dmpSettings);
+            universeConverterWindow = new UniverseConverterWindow(universeConverter);
+            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
+            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
+            disclaimerWindow = new DisclaimerWindow(dmpSettings);
+            dmpModInterface = new DMPModInterface();
+
+            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
+                modDisabled = true;
+
+            if (dmpSettings.disclaimerAccepted != 1)
+            {
+                modDisabled = true;
+                disclaimerWindow.SpawnDialog();
+            }
+
             Profiler.DMPReferenceTime.Start();
-            GameObject.DontDestroyOnLoad(this);
-            assemblyPath = new DirectoryInfo(Assembly.GetExecutingAssembly().Location).FullName;
-            string kspPath = new DirectoryInfo(KSPUtil.ApplicationRootPath).FullName;
-            //I find my abuse of Path.Combine distrubing.
-            UnityEngine.Debug.Log("KSP installed at " + kspPath);
-            UnityEngine.Debug.Log("DMP installed at " + assemblyPath);
-            //Prevents symlink warning for development.
-            if (Settings.fetch.disclaimerAccepted != 1)
-            {
-                modDisabled = true;
-                DisclaimerWindow.Enable();
-            }
-            if (!CompatibilityChecker.IsCompatible())
-            {
-                modDisabled = true;
-            }
-            #if !DEBUG
-            if (!InstallChecker.IsCorrectlyInstalled())
-            {
-                modDisabled = true;
-            }
-            #endif
+            DontDestroyOnLoad(this);
+
+            // Prevents symlink warning for development.
             SetupDirectoriesIfNeeded();
-            //UniverseSyncCache needs to run expiry here
-            UniverseSyncCache.fetch.ExpireCache();
-            //Register events needed to bootstrap the workers.
-            lock (eventLock)
-            {
-                resetEvent.Add(LockSystem.Reset);
-                resetEvent.Add(AdminSystem.Reset);
-                resetEvent.Add(AsteroidWorker.Reset);
-                resetEvent.Add(ChatWorker.Reset);
-                resetEvent.Add(CraftLibraryWorker.Reset);
-                resetEvent.Add(DebugWindow.Reset);
-                resetEvent.Add(DynamicTickWorker.Reset);
-                resetEvent.Add(FlagSyncer.Reset);
-                resetEvent.Add(HackyInAtmoLoader.Reset);
-                resetEvent.Add(PlayerColorWorker.Reset);
-                resetEvent.Add(PlayerStatusWindow.Reset);
-                resetEvent.Add(PlayerStatusWorker.Reset);
-                resetEvent.Add(PartKiller.Reset);
-                resetEvent.Add(ScenarioWorker.Reset);
-                resetEvent.Add(ScreenshotWorker.Reset);
-                resetEvent.Add(TimeSyncer.Reset);
-                resetEvent.Add(ToolbarSupport.Reset);
-                resetEvent.Add(VesselWorker.Reset);
-                resetEvent.Add(WarpWorker.Reset);
-                GameEvents.onHideUI.Add(() =>
-                {
-                    showGUI = false;
-                });
-                GameEvents.onShowUI.Add(() =>
+
+            // UniverseSyncCache needs to run expiry here
+            universeSyncCache.ExpireCache();
+
+            GameEvents.onHideUI.Add(() =>
+    {
+        showGUI = false;
+    });
+            GameEvents.onShowUI.Add(() =>
                 {
                     showGUI = true;
                 });
-            }
-            FireResetEvent();
+
             HandleCommandLineArgs();
-            long testTime = Compression.TestSysIOCompression();
-            DarkLog.Debug("System.IO compression works: " + Compression.sysIOCompressionWorks + ", test time: " + testTime + " ms.");
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
         }
 
@@ -203,7 +214,10 @@ namespace DarkMultiPlayer
         public void Update()
         {
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
+            lastClockTicks = DateTime.UtcNow.Ticks;
+            lastRealTimeSinceStartup = Time.realtimeSinceStartup;
             DarkLog.Update();
+
             if (modDisabled)
             {
                 return;
@@ -212,10 +226,10 @@ namespace DarkMultiPlayer
             {
                 if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                 {
-                    if (!ModWorker.fetch.dllListBuilt)
+                    if (!modWorker.dllListBuilt)
                     {
-                        ModWorker.fetch.dllListBuilt = true;
-                        ModWorker.fetch.BuildDllFileList();
+                        modWorker.dllListBuilt = true;
+                        modWorker.BuildDllFileList();
                     }
                     if (!dmpSaveChecked)
                     {
@@ -225,107 +239,116 @@ namespace DarkMultiPlayer
                 }
 
                 //Handle GUI events
-                if (!PlayerStatusWindow.fetch.disconnectEventHandled)
+
+                if (!connectionWindow.renameEventHandled)
                 {
-                    PlayerStatusWindow.fetch.disconnectEventHandled = true;
-                    forceQuit = true;
-                    NetworkWorker.fetch.SendDisconnect("Quit");
+                    dmpSettings.SaveSettings();
+                    connectionWindow.renameEventHandled = true;
                 }
-                if (!ConnectionWindow.fetch.renameEventHandled)
+                if (!connectionWindow.addEventHandled)
                 {
-                    PlayerStatusWorker.fetch.myPlayerStatus.playerName = Settings.fetch.playerName;
-                    Settings.fetch.SaveSettings();
-                    ConnectionWindow.fetch.renameEventHandled = true;
+                    dmpSettings.servers.Add(connectionWindow.addEntry);
+                    connectionWindow.addEntry = null;
+                    dmpSettings.SaveSettings();
+                    connectionWindow.addingServer = false;
+                    connectionWindow.addEventHandled = true;
                 }
-                if (!ConnectionWindow.fetch.addEventHandled)
+                if (!connectionWindow.editEventHandled)
                 {
-                    Settings.fetch.servers.Add(ConnectionWindow.fetch.addEntry);
-                    ConnectionWindow.fetch.addEntry = null;
-                    Settings.fetch.SaveSettings();
-                    ConnectionWindow.fetch.addingServer = false;
-                    ConnectionWindow.fetch.addEventHandled = true;
+                    dmpSettings.servers[connectionWindow.selected].name = connectionWindow.editEntry.name;
+                    dmpSettings.servers[connectionWindow.selected].address = connectionWindow.editEntry.address;
+                    dmpSettings.servers[connectionWindow.selected].port = connectionWindow.editEntry.port;
+                    connectionWindow.editEntry = null;
+                    dmpSettings.SaveSettings();
+                    connectionWindow.addingServer = false;
+                    connectionWindow.editEventHandled = true;
                 }
-                if (!ConnectionWindow.fetch.editEventHandled)
+                if (!connectionWindow.removeEventHandled)
                 {
-                    Settings.fetch.servers[ConnectionWindow.fetch.selected].name = ConnectionWindow.fetch.editEntry.name;
-                    Settings.fetch.servers[ConnectionWindow.fetch.selected].address = ConnectionWindow.fetch.editEntry.address;
-                    Settings.fetch.servers[ConnectionWindow.fetch.selected].port = ConnectionWindow.fetch.editEntry.port;
-                    ConnectionWindow.fetch.editEntry = null;
-                    Settings.fetch.SaveSettings();
-                    ConnectionWindow.fetch.addingServer = false;
-                    ConnectionWindow.fetch.editEventHandled = true;
+                    dmpSettings.servers.RemoveAt(connectionWindow.selected);
+                    connectionWindow.selected = -1;
+                    dmpSettings.SaveSettings();
+                    connectionWindow.removeEventHandled = true;
                 }
-                if (!ConnectionWindow.fetch.removeEventHandled)
+                if (!connectionWindow.connectEventHandled)
                 {
-                    Settings.fetch.servers.RemoveAt(ConnectionWindow.fetch.selected);
-                    ConnectionWindow.fetch.selected = -1;
-                    Settings.fetch.SaveSettings();
-                    ConnectionWindow.fetch.removeEventHandled = true;
-                }
-                if (!ConnectionWindow.fetch.connectEventHandled)
-                {
-                    ConnectionWindow.fetch.connectEventHandled = true;
-                    NetworkWorker.fetch.ConnectToServer(Settings.fetch.servers[ConnectionWindow.fetch.selected].address, Settings.fetch.servers[ConnectionWindow.fetch.selected].port);
+                    connectionWindow.connectEventHandled = true;
+                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow);
+                    dmpGame.networkWorker.ConnectToServer(dmpSettings.servers[connectionWindow.selected].address, dmpSettings.servers[connectionWindow.selected].port);
                 }
                 if (commandLineConnect != null && HighLogic.LoadedScene == GameScenes.MAINMENU && Time.timeSinceLevelLoad > 1f)
                 {
-                    NetworkWorker.fetch.ConnectToServer(commandLineConnect.address, commandLineConnect.port);
+                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow);
+                    dmpGame.networkWorker.ConnectToServer(commandLineConnect.address, commandLineConnect.port);
                     commandLineConnect = null;
                 }
 
-                if (!ConnectionWindow.fetch.disconnectEventHandled)
+                if (!connectionWindow.disconnectEventHandled)
                 {
-                    ConnectionWindow.fetch.disconnectEventHandled = true;
-                    gameRunning = false;
-                    fireReset = true;
-                    if (NetworkWorker.fetch.state == ClientState.CONNECTING)
+                    connectionWindow.disconnectEventHandled = true;
+                    if (dmpGame != null)
                     {
-                        NetworkWorker.fetch.Disconnect("Cancelled connection to server");
-                    }
-                    else
-                    {
-                        NetworkWorker.fetch.SendDisconnect("Quit during initial sync");
+                        if (dmpGame.networkWorker.state == ClientState.CONNECTING)
+                        {
+                            dmpGame.networkWorker.Disconnect("Cancelled connection to server");
+                        }
+                        else
+                        {
+                            dmpGame.networkWorker.SendDisconnect("Quit during initial sync");
+                        }
+                        dmpGame.Stop();
+                        dmpGame = null;
                     }
                 }
 
-                foreach (Action updateAction in updateEvent)
+                connectionWindow.Update();
+                modWindow.Update();
+                optionsWindow.Update();
+                universeConverterWindow.Update();
+                dmpModInterface.Update();
+
+                if (dmpGame != null)
                 {
-                    try
+                    foreach (Action updateAction in dmpGame.updateEvent)
                     {
-                        updateAction();
-                    }
-                    catch (Exception e)
-                    {
-                        DarkLog.Debug("Threw in UpdateEvent, exception: " + e);
-                        if (NetworkWorker.fetch.state != ClientState.RUNNING)
+                        try
                         {
-                            if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                            updateAction();
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Debug("Threw in UpdateEvent, exception: " + e);
+                            if (dmpGame.networkWorker.state != ClientState.RUNNING)
                             {
-                                NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
-                            }
-                            else
-                            {
-                                NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
+                                if (dmpGame.networkWorker.state != ClientState.DISCONNECTED)
+                                {
+                                    dmpGame.networkWorker.SendDisconnect("Unhandled error while syncing!");
+                                }
+                                else
+                                {
+                                    dmpGame.networkWorker.Disconnect("Unhandled error while syncing!");
+                                }
                             }
                         }
                     }
                 }
                 //Force quit
-                if (forceQuit)
+                if (dmpGame != null && dmpGame.forceQuit)
                 {
-                    forceQuit = false;
-                    gameRunning = false;
-                    fireReset = true;
+                    dmpGame.forceQuit = false;
+                    dmpGame.Stop();
+                    dmpGame = null;
                     StopGame();
                 }
+
 
                 if (displayDisconnectMessage)
                 {
                     if (HighLogic.LoadedScene != GameScenes.MAINMENU)
                     {
-                        if ((UnityEngine.Time.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
+                        if ((Client.realtimeSinceStartup - lastDisconnectMessageCheck) > 1f)
                         {
-                            lastDisconnectMessageCheck = UnityEngine.Time.realtimeSinceStartup;
+                            lastDisconnectMessageCheck = Client.realtimeSinceStartup;
                             if (disconnectMessage != null)
                             {
                                 disconnectMessage.duration = 0;
@@ -340,27 +363,28 @@ namespace DarkMultiPlayer
                 }
 
                 //Normal quit
-                if (gameRunning)
+                if (dmpGame != null && dmpGame.running)
                 {
-                    if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                    if (!dmpGame.playerStatusWindow.disconnectEventHandled)
                     {
-                        gameRunning = false;
-                        fireReset = true;
-                        NetworkWorker.fetch.SendDisconnect("Quit to main menu");
+                        dmpGame.playerStatusWindow.disconnectEventHandled = true;
+                        dmpGame.forceQuit = true;
+                        dmpGame.scenarioWorker.SendScenarioModules(true); // Send scenario modules before disconnecting
+                        dmpGame.networkWorker.SendDisconnect("Quit");
                     }
 
-                    if (ScreenshotWorker.fetch.uploadScreenshot)
+                    if (dmpGame.screenshotWorker.uploadScreenshot)
                     {
-                        ScreenshotWorker.fetch.uploadScreenshot = false;
+                        dmpGame.screenshotWorker.uploadScreenshot = false;
                         StartCoroutine(UploadScreenshot());
                     }
 
-                    if (HighLogic.CurrentGame.flagURL != Settings.fetch.selectedFlag)
+                    if (HighLogic.CurrentGame.flagURL != dmpSettings.selectedFlag)
                     {
                         DarkLog.Debug("Saving selected flag");
-                        Settings.fetch.selectedFlag = HighLogic.CurrentGame.flagURL;
-                        Settings.fetch.SaveSettings();
-                        FlagSyncer.fetch.flagChangeEvent = true;
+                        dmpSettings.selectedFlag = HighLogic.CurrentGame.flagURL;
+                        dmpSettings.SaveSettings();
+                        dmpGame.flagSyncer.flagChangeEvent = true;
                     }
 
                     // save every GeeASL from each body in FlightGlobals
@@ -373,12 +397,15 @@ namespace DarkMultiPlayer
                     }
 
                     //handle use of cheats
-                    if (!serverAllowCheats)
+                    if (!dmpGame.serverAllowCheats)
                     {
-                        CheatOptions.InfiniteFuel = false;
-                        CheatOptions.InfiniteEVAFuel = false;
-                        CheatOptions.InfiniteRCS = false;
+                        CheatOptions.InfinitePropellant = false;
                         CheatOptions.NoCrashDamage = false;
+                        CheatOptions.IgnoreAgencyMindsetOnContracts = false;
+                        CheatOptions.IgnoreMaxTemperature = false;
+                        CheatOptions.InfiniteElectricity = false;
+                        CheatOptions.NoCrashDamage = false;
+                        CheatOptions.UnbreakableJoints = false;
 
                         foreach (KeyValuePair<CelestialBody, double> gravityEntry in bodiesGees)
                         {
@@ -388,39 +415,47 @@ namespace DarkMultiPlayer
 
                     if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready)
                     {
-                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = !VesselWorker.fetch.isSpectating && Settings.fetch.revertEnabled || (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
+                        HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = !dmpGame.vesselWorker.isSpectating && dmpSettings.revertEnabled || (PauseMenu.canSaveAndExit == ClearToSaveStatus.CLEAR);
                     }
                     else
                     {
                         HighLogic.CurrentGame.Parameters.Flight.CanLeaveToSpaceCenter = true;
                     }
+
+                    if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                    {
+                        dmpGame.networkWorker.SendDisconnect("Quit to main menu");
+                        dmpGame.Stop();
+                        dmpGame = null;
+                    }
                 }
 
-                if (fireReset)
+                if (dmpGame != null && dmpGame.startGame)
                 {
-                    fireReset = false;
-                    FireResetEvent();
-                }
-
-                if (startGame)
-                {
-                    startGame = false;
+                    dmpGame.startGame = false;
                     StartGame();
                 }
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Threw in Update, state " + NetworkWorker.fetch.state.ToString() + ", exception" + e);
-                if (NetworkWorker.fetch.state != ClientState.RUNNING)
+                if (dmpGame != null)
                 {
-                    if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                    DarkLog.Debug("Threw in Update, state " + dmpGame.networkWorker.state.ToString() + ", exception: " + e);
+                    if (dmpGame.networkWorker.state != ClientState.RUNNING)
                     {
-                        NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
+                        if (dmpGame.networkWorker.state != ClientState.DISCONNECTED)
+                        {
+                            dmpGame.networkWorker.SendDisconnect("Unhandled error while syncing!");
+                        }
+                        else
+                        {
+                            dmpGame.networkWorker.Disconnect("Unhandled error while syncing!");
+                        }
                     }
-                    else
-                    {
-                        NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
-                    }
+                }
+                else
+                {
+                    DarkLog.Debug("Threw in Update, state NO_NETWORKWORKER, exception: " + e);
                 }
             }
             Profiler.updateData.ReportTime(startClock);
@@ -429,35 +464,47 @@ namespace DarkMultiPlayer
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
         {
             yield return new WaitForEndOfFrame();
-            ScreenshotWorker.fetch.SendScreenshot();
-            ScreenshotWorker.fetch.screenshotTaken = true;
+            if (dmpGame != null)
+            {
+                dmpGame.screenshotWorker.SendScreenshot();
+                dmpGame.screenshotWorker.screenshotTaken = true;
+            }
         }
 
-        public void FixedUpdate()
+        public void TimingManagerFixedUpdate()
         {
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (modDisabled)
             {
                 return;
             }
-            foreach (Action fixedUpdateAction in fixedUpdateEvent)
+
+            dmpModInterface.FixedUpdate();
+
+            if (dmpGame != null)
             {
-                try
+                foreach (Action fixedUpdateAction in dmpGame.fixedUpdateEvent)
                 {
-                    fixedUpdateAction();
-                }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Threw in FixedUpdate event, exception: " + e);
-                    if (NetworkWorker.fetch.state != ClientState.RUNNING)
+                    try
                     {
-                        if (NetworkWorker.fetch.state != ClientState.DISCONNECTED)
+                        fixedUpdateAction();
+                    }
+                    catch (Exception e)
+                    {
+                        DarkLog.Debug("Threw in FixedUpdate event, exception: " + e);
+                        if (dmpGame.networkWorker != null)
                         {
-                            NetworkWorker.fetch.SendDisconnect("Unhandled error while syncing!");
-                        }
-                        else
-                        {
-                            NetworkWorker.fetch.Disconnect("Unhandled error while syncing!");
+                            if (dmpGame.networkWorker.state != ClientState.RUNNING)
+                            {
+                                if (dmpGame.networkWorker.state != ClientState.DISCONNECTED)
+                                {
+                                    dmpGame.networkWorker.SendDisconnect("Unhandled error while syncing!");
+                                }
+                                else
+                                {
+                                    dmpGame.networkWorker.Disconnect("Unhandled error while syncing!");
+                                }
+                            }
                         }
                     }
                 }
@@ -480,17 +527,26 @@ namespace DarkMultiPlayer
             //Converter window: 6712
             //Disclaimer window: 6713
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
-            if (showGUI && toolbarShowGUI)
+            if (showGUI)
             {
-                foreach (Action drawAction in drawEvent)
+                connectionWindow.Draw();
+                modWindow.Draw();
+                optionsWindow.Draw();
+                universeConverterWindow.Draw();
+                if (dmpGame != null)
                 {
-                    try
+                    foreach (Action drawAction in dmpGame.drawEvent)
                     {
-                        drawAction();
-                    }
-                    catch (Exception e)
-                    {
-                        DarkLog.Debug("Threw in OnGUI event, exception: " + e);
+                        try
+                        {
+                            // Don't hide the connectionWindow if we disabled DMP GUI
+                            if (toolbarShowGUI || (!toolbarShowGUI && drawAction.Target.ToString() == "DarkMultiPlayer.connectionWindow"))
+                                drawAction();
+                        }
+                        catch (Exception e)
+                        {
+                            DarkLog.Debug("Threw in OnGUI event, exception: " + e);
+                        }
                     }
                 }
             }
@@ -503,32 +559,31 @@ namespace DarkMultiPlayer
             HighLogic.CurrentGame = CreateBlankGame();
 
             //Set the game mode
-            HighLogic.CurrentGame.Mode = ConvertGameMode(gameMode);
+            HighLogic.CurrentGame.Mode = ConvertGameMode(dmpGame.gameMode);
 
             //Set difficulty
-            HighLogic.CurrentGame.Parameters = serverParameters;
+            HighLogic.CurrentGame.Parameters = dmpGame.serverParameters;
 
             //Set universe time
-            HighLogic.CurrentGame.flightState.universalTime = TimeSyncer.fetch.GetUniverseTime();
-
+            HighLogic.CurrentGame.flightState.universalTime = dmpGame.timeSyncer.GetUniverseTime();
             //Load DMP stuff
-            VesselWorker.fetch.LoadKerbalsIntoGame();
-            VesselWorker.fetch.LoadVesselsIntoGame();
+            dmpGame.vesselWorker.LoadKerbalsIntoGame();
+            dmpGame.vesselWorker.LoadVesselsIntoGame();
 
             //Load the scenarios from the server
-            ScenarioWorker.fetch.LoadScenarioDataIntoGame();
+            dmpGame.scenarioWorker.LoadScenarioDataIntoGame();
 
             //Load the missing scenarios as well (Eg, Contracts and stuff for career mode
-            ScenarioWorker.fetch.LoadMissingScenarioDataIntoGame();
+            dmpGame.scenarioWorker.LoadMissingScenarioDataIntoGame();
 
             //This only makes KSP complain
             HighLogic.CurrentGame.CrewRoster.ValidateAssignments(HighLogic.CurrentGame);
-            DarkLog.Debug("Starting " + gameMode + " game...");
+            DarkLog.Debug("Starting " + dmpGame.gameMode + " game...");
 
             //.Start() seems to stupidly .Load() somewhere - Let's overwrite it so it loads correctly.
             GamePersistence.SaveGame(HighLogic.CurrentGame, "persistent", HighLogic.SaveFolder, SaveMode.OVERWRITE);
             HighLogic.CurrentGame.Start();
-            ChatWorker.fetch.display = true;
+            dmpGame.chatWorker.display = true;
             DarkLog.Debug("Started!");
         }
 
@@ -539,11 +594,11 @@ namespace DarkMultiPlayer
             {
                 HighLogic.LoadScene(GameScenes.MAINMENU);
             }
-            HighLogic.CurrentGame = null;
+            //HighLogic.CurrentGame = null; This is no bueno
             bodiesGees.Clear();
         }
 
-        public Game.Modes ConvertGameMode(GameMode inputMode)
+        public static Game.Modes ConvertGameMode(GameMode inputMode)
         {
             if (inputMode == GameMode.SANDBOX)
             {
@@ -560,40 +615,35 @@ namespace DarkMultiPlayer
             return Game.Modes.SANDBOX;
         }
 
-        private void FireResetEvent()
+        private void OnApplicationQuit()
         {
-            foreach (Action resetAction in resetEvent)
+            if (dmpGame != null && dmpGame.networkWorker.state == ClientState.RUNNING)
             {
-                try
-                {
-                    resetAction();
-                }
-                catch (Exception e)
-                {
-                    DarkLog.Debug("Threw in FireResetEvent, exception: " + e);
-                }
+                Application.CancelQuit();
+                dmpGame.scenarioWorker.SendScenarioModules(true);
+                HighLogic.LoadScene(GameScenes.MAINMENU);
             }
         }
 
         private void SetupDirectoriesIfNeeded()
         {
-            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer");
+            string darkMultiPlayerSavesDirectory = Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer");
             CreateIfNeeded(darkMultiPlayerSavesDirectory);
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Ships"));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "VAB")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, Path.Combine("Ships", "SPH")));
             CreateIfNeeded(Path.Combine(darkMultiPlayerSavesDirectory, "Subassemblies"));
-            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
+            string darkMultiPlayerCacheDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache");
             CreateIfNeeded(darkMultiPlayerCacheDirectory);
-            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache"), "Incoming");
+            string darkMultiPlayerIncomingCacheDirectory = Path.Combine(Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Cache"), "Incoming");
             CreateIfNeeded(darkMultiPlayerIncomingCacheDirectory);
-            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Flags");
+            string darkMultiPlayerFlagsDirectory = Path.Combine(Path.Combine(gameDataDir, "DarkMultiPlayer"), "Flags");
             CreateIfNeeded(darkMultiPlayerFlagsDirectory);
         }
 
         private void SetupBlankGameIfNeeded()
         {
-            string persistentFile = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
+            string persistentFile = Path.Combine(Path.Combine(Path.Combine(kspRootPath, "saves"), "DarkMultiPlayer"), "persistent.sfs");
             if (!File.Exists(persistentFile))
             {
                 DarkLog.Debug("Creating new blank persistent.sfs file");
@@ -612,22 +662,37 @@ namespace DarkMultiPlayer
 
             //Flightstate is null on new Game();
             returnGame.flightState = new FlightState();
+            if (returnGame.flightState.mapViewFilterState == 0)
+            {
+                returnGame.flightState.mapViewFilterState = -1026;
+            }
 
             //DMP stuff
             returnGame.startScene = GameScenes.SPACECENTER;
-            returnGame.flagURL = Settings.fetch.selectedFlag;
+            returnGame.flagURL = dmpSettings.selectedFlag;
             returnGame.Title = "DarkMultiPlayer";
-            if (WarpWorker.fetch.warpMode == WarpMode.SUBSPACE)
-            {
-                returnGame.Parameters.Flight.CanQuickLoad = true;
-                returnGame.Parameters.Flight.CanRestart = true;
-                returnGame.Parameters.Flight.CanLeaveToEditor = true;
-            }
-            else
+            // Disable everything if we're in main menu
+            // I'm not sure why we need to create a blank game when we're not connected
+            if (HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
                 returnGame.Parameters.Flight.CanQuickLoad = false;
                 returnGame.Parameters.Flight.CanRestart = false;
                 returnGame.Parameters.Flight.CanLeaveToEditor = false;
+            }
+            else
+            {
+                if (dmpGame.warpWorker.warpMode == WarpMode.SUBSPACE)
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = true;
+                    returnGame.Parameters.Flight.CanRestart = true;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = true;
+                }
+                else
+                {
+                    returnGame.Parameters.Flight.CanQuickLoad = false;
+                    returnGame.Parameters.Flight.CanRestart = false;
+                    returnGame.Parameters.Flight.CanLeaveToEditor = false;
+                }
             }
             HighLogic.SaveFolder = "DarkMultiPlayer";
 

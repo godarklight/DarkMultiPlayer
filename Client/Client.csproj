@@ -10,6 +10,7 @@
     <RootNamespace>DarkMultiPlayer</RootNamespace>
     <AssemblyName>DarkMultiPlayer</AssemblyName>
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <UseMSBuildEngine>false</UseMSBuildEngine>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -30,22 +31,23 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="System" />
+    <Reference Include="MessageWriter2">
+      <HintPath>..\MessageWriter2.dll</HintPath>
+    </Reference>
     <Reference Include="Assembly-CSharp">
       <HintPath>..\Assembly-CSharp.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="Assembly-CSharp-firstpass">
+      <HintPath>..\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine">
       <HintPath>..\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="System" />
     <Reference Include="System.Xml" />
-    <Reference Include="MessageWriter2">
-      <HintPath>..\MessageWriter2.dll</HintPath>
-    </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>..\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -90,6 +92,12 @@
     <Compile Include="3DDebug.cs" />
     <Compile Include="HackyInAtmoLoader.cs" />
     <Compile Include="PartKiller.cs" />
+    <Compile Include="KerbalReassigner.cs" />
+    <Compile Include="DMPGame.cs" />
+    <Compile Include="VesselRecorder.cs" />
+    <Compile Include="PosistionStatistics.cs" />
+    <Compile Include="VesselCtrlUpdate.cs" />
+    <Compile Include="VesselInterFrameUpdater.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

@@ -10,7 +10,6 @@ namespace DarkMultiPlayer
         private bool safeDisplay = false;
         private bool initialized = false;
         private bool isWindowLocked = false;
-        private static DebugWindow singleton;
         //private parts
         private bool displayFast;
         private bool displayVectors;
@@ -19,12 +18,15 @@ namespace DarkMultiPlayer
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
         private bool displayProfilerStatistics;
+        private bool displayVesselRecorder;
+        private bool displayVesselTimeDelay;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
         private string dynamicTickText = "";
         private string requestedRateText = "";
         private string profilerText = "";
+        private string vesselworkerTimeDelay = "0";
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -38,13 +40,30 @@ namespace DarkMultiPlayer
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 350;
         private const float DISPLAY_UPDATE_INTERVAL = .2f;
+        //Services
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private TimeSyncer timeSyncer;
+        private NetworkWorker networkWorker;
+        private VesselWorker vesselWorker;
+        private DynamicTickWorker dynamicTickWorker;
+        private WarpWorker warpWorker;
+        private VesselRecorder vesselRecorder;
+        private PosistionStatistics posistionStatistics;
 
-        public static DebugWindow fetch
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics)
         {
-            get
-            {
-                return singleton;
-            }
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.timeSyncer = timeSyncer;
+            this.networkWorker = networkWorker;
+            this.vesselWorker = vesselWorker;
+            this.dynamicTickWorker = dynamicTickWorker;
+            this.warpWorker = warpWorker;
+            this.vesselRecorder = vesselRecorder;
+            this.posistionStatistics = posistionStatistics;
+            dmpGame.updateEvent.Add(Update);
+            dmpGame.drawEvent.Add(Draw);
         }
 
         private void InitGUI()
@@ -133,6 +152,67 @@ namespace DarkMultiPlayer
                     GUILayout.Label("Profiling statistics unavailable without a high resolution timer");
                 }
             }
+            displayVesselRecorder = GUILayout.Toggle(displayVesselRecorder, "Display Vessel Recorder", buttonStyle);
+            if (displayVesselRecorder)
+            {
+                if (!vesselRecorder.active)
+                {
+                    if (GUILayout.Button("Start Recording", buttonStyle))
+                    {
+                        vesselRecorder.StartRecord();
+                    }
+                    if (GUILayout.Button("Playback", buttonStyle))
+                    {
+                        vesselRecorder.StartPlayback();
+                    }
+                }
+                else
+                {
+                    if (GUILayout.Button("Stop Recording", buttonStyle))
+                    {
+                        vesselRecorder.StopRecord();
+                    }
+                    if (GUILayout.Button("Cancel Recording", buttonStyle))
+                    {
+                        vesselRecorder.CancelRecord();
+                    }
+                }
+            }
+            posistionStatistics.active = GUILayout.Toggle(posistionStatistics.active, "Display Posistional Error", buttonStyle);
+            if (posistionStatistics.active)
+            {
+                if (posistionStatistics.selectedVessel != Guid.Empty)
+                {
+                    GUILayout.Label("Posistional Error: " + Math.Round(posistionStatistics.distanceError, 2), labelStyle);
+                    GUILayout.Label("Velocity Error: " + Math.Round(posistionStatistics.velocityError, 2), labelStyle);
+                    GUILayout.Label("Rotational Error: " + Math.Round(posistionStatistics.rotationError, 2), labelStyle);
+                    GUILayout.Label("Update HZ: " + Math.Round(posistionStatistics.updateHz, 2), labelStyle);
+                }
+                else
+                {
+                    GUILayout.Label("(no selected vessel)", labelStyle);
+                }
+            }
+            displayVesselTimeDelay = GUILayout.Toggle(displayVesselTimeDelay, "Vessel Delay Settings", buttonStyle);
+            if (displayVesselTimeDelay)
+            {
+                GUILayout.BeginHorizontal();
+                vesselworkerTimeDelay = GUILayout.TextArea(vesselworkerTimeDelay, textAreaOptions);
+                if (GUILayout.Button("Set", buttonStyle))
+                {
+                    float newDelay = 0f;
+                    if (float.TryParse(vesselworkerTimeDelay, out newDelay))
+                    {
+                        vesselWorker.delayTime = newDelay;
+                    }
+                    else
+                    {
+                        vesselWorker.delayTime = 0f;
+                        vesselworkerTimeDelay = "0";
+                    }
+                }
+                GUILayout.EndHorizontal();
+            }
             GUILayout.EndVertical();
         }
 
@@ -141,11 +221,12 @@ namespace DarkMultiPlayer
             safeDisplay = display;
             if (display)
             {
-                if (((UnityEngine.Time.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
+                if (((Client.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
-                    lastUpdateTime = UnityEngine.Time.realtimeSinceStartup;
+                    lastUpdateTime = Client.realtimeSinceStartup;
                     //Vector text
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null) {
+                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null)
+                    {
                         Vessel ourVessel = FlightGlobals.fetch.activeVessel;
                         vectorText = "Forward vector: " + ourVessel.GetFwdVector() + "\n";
                         vectorText += "Up vector: " + (Vector3)ourVessel.upAxis + "\n";
@@ -160,50 +241,51 @@ namespace DarkMultiPlayer
                         {
                             vectorText += "Frame Velocity: " + (Vector3)ourVessel.orbitDriver.orbit.GetFrameVel() + ", |v|: " + ourVessel.orbitDriver.orbit.GetFrameVel().magnitude + "\n";
                         }
-                        vectorText += "CoM offset vector: " + ourVessel.orbitDriver.CoMoffset + "\n";
+                        vectorText += "CoM offset vector: " + ourVessel.CoM.ToString() + "\n";
                         vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
                         vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
                     }
-                    else {
+                    else
+                    {
                         vectorText = "You have to be in flight";
                     }
 
                     //NTP text
                     ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
-                    ntpText += "Current subspace: " + TimeSyncer.fetch.currentSubspace + ".\n";
-                    if (TimeSyncer.fetch.locked)
+                    ntpText += "Current subspace: " + timeSyncer.currentSubspace + ".\n";
+                    if (timeSyncer.locked)
                     {
-                        ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.lockedSubspace.subspaceSpeed, 3) + "x.\n";
+                        ntpText += "Current subspace rate: " + Math.Round(timeSyncer.lockedSubspace.subspaceSpeed, 3) + "x.\n";
                     }
                     else
                     {
-                        ntpText += "Current subspace rate: " + Math.Round(TimeSyncer.fetch.requestedRate, 3) + "x.\n";
+                        ntpText += "Current subspace rate: " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
                     }
-                    ntpText += "Current Error: " + Math.Round((TimeSyncer.fetch.GetCurrentError() * 1000), 0) + " ms.\n";
+                    ntpText += "Current Error: " + Math.Round((timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
                     ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
-                    ntpText += "Network latency: " + Math.Round((TimeSyncer.fetch.networkLatencyAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server clock difference: " + Math.Round((TimeSyncer.fetch.clockOffsetAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server lag: " + Math.Round((TimeSyncer.fetch.serverLag / 10000f), 3) + " ms\n";
+                    ntpText += "Network latency: " + Math.Round((timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
+                    ntpText += "Server clock difference: " + Math.Round((timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
+                    ntpText += "Server lag: " + Math.Round((timeSyncer.serverLag / 10000f), 3) + " ms\n";
 
                     //Connection queue text
-                    connectionText = "Last send time: " + NetworkWorker.fetch.GetStatistics("LastSendTime") + "ms.\n";
-                    connectionText += "Last receive time: " + NetworkWorker.fetch.GetStatistics("LastReceiveTime") + "ms.\n";
-                    connectionText += "Queued outgoing messages (High): " + NetworkWorker.fetch.GetStatistics("HighPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Split): " + NetworkWorker.fetch.GetStatistics("SplitPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Low): " + NetworkWorker.fetch.GetStatistics("LowPriorityQueueLength") + ".\n";
-                    connectionText += "Queued out bytes: " + NetworkWorker.fetch.GetStatistics("QueuedOutBytes") + ".\n";
-                    connectionText += "Sent bytes: " + NetworkWorker.fetch.GetStatistics("SentBytes") + ".\n";
-                    connectionText += "Received bytes: " + NetworkWorker.fetch.GetStatistics("ReceivedBytes") + ".\n";
-                    connectionText += "Stored future updates: " + VesselWorker.fetch.GetStatistics("StoredFutureUpdates") + "\n";
-                    connectionText += "Stored future proto updates: " + VesselWorker.fetch.GetStatistics("StoredFutureProtoUpdates") + ".\n";
+                    connectionText = "Last send time: " + networkWorker.GetStatistics("LastSendTime") + "ms.\n";
+                    connectionText += "Last receive time: " + networkWorker.GetStatistics("LastReceiveTime") + "ms.\n";
+                    connectionText += "Queued outgoing messages (High): " + networkWorker.GetStatistics("HighPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Split): " + networkWorker.GetStatistics("SplitPriorityQueueLength") + ".\n";
+                    connectionText += "Queued outgoing messages (Low): " + networkWorker.GetStatistics("LowPriorityQueueLength") + ".\n";
+                    connectionText += "Queued out bytes: " + networkWorker.GetStatistics("QueuedOutBytes") + ".\n";
+                    connectionText += "Sent bytes: " + networkWorker.GetStatistics("SentBytes") + ".\n";
+                    connectionText += "Received bytes: " + networkWorker.GetStatistics("ReceivedBytes") + ".\n";
+                    connectionText += "Stored future updates: " + vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
+                    connectionText += "Stored future proto updates: " + vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
 
                     //Dynamic tick text
-                    dynamicTickText = "Current tick rate: " + DynamicTickWorker.fetch.sendTickRate + "hz.\n";
-                    dynamicTickText += "Current max secondry vessels: " + DynamicTickWorker.fetch.maxSecondryVesselsPerTick + ".\n";
+                    dynamicTickText = "Current tick rate: " + dynamicTickWorker.sendTickRate + "hz.\n";
+                    dynamicTickText += "Current max secondry vessels: " + dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
 
                     //Requested rates text
-                    requestedRateText = Settings.fetch.playerName + ": " + Math.Round(TimeSyncer.fetch.requestedRate, 3) + "x.\n";
-                    foreach (KeyValuePair<string, float> playerEntry in WarpWorker.fetch.clientSkewList)
+                    requestedRateText = dmpSettings.playerName + ": " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
+                    foreach (KeyValuePair<string, float> playerEntry in warpWorker.clientSkewList)
                     {
                         requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
                     }
@@ -217,7 +299,7 @@ namespace DarkMultiPlayer
 
         private void CheckWindowLock()
         {
-            if (!Client.fetch.gameRunning)
+            if (!dmpGame.running)
             {
                 RemoveWindowLock();
                 return;
@@ -262,21 +344,12 @@ namespace DarkMultiPlayer
             }
         }
 
-        public static void Reset()
+        public void Stop()
         {
-            lock (Client.eventLock)
-            {
-                if (singleton != null)
-                {
-                    singleton.display = false;
-                    singleton.RemoveWindowLock();
-                    Client.updateEvent.Remove(singleton.Update);
-                    Client.drawEvent.Remove(singleton.Draw);
-                }
-                singleton = new DebugWindow();
-                Client.updateEvent.Add(singleton.Update);
-                Client.drawEvent.Add(singleton.Draw);
-            }
+            display = false;
+            RemoveWindowLock();
+            dmpGame.updateEvent.Remove(Update);
+            dmpGame.drawEvent.Remove(Draw);
         }
     }
 }

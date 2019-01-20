@@ -148,6 +148,7 @@ namespace DarkMultiPlayerServer
             newClientObject.ipAddress = (newClientConnection.Client.RemoteEndPoint as IPEndPoint).Address;
             //Keep the connection reference
             newClientObject.connection = newClientConnection;
+            newClientObject.connection.NoDelay = true;
             StartReceivingIncomingMessages(newClientObject);
             StartSendingOutgoingMessages(newClientObject);
             DMPPluginHandler.FireOnClientConnect(newClientObject);
@@ -388,6 +389,12 @@ namespace DarkMultiPlayerServer
                 HandleDisconnectException("ReceiveCallback", client, e);
                 return;
             }
+            if (bytesRead == 0)
+            {
+                DarkLog.Normal("Disconnected " + client.endpoint);
+                DisconnectClient(client);
+                return;
+            }
             client.bytesReceived += bytesRead;
             client.receiveMessageBytesLeft -= bytesRead;
             if (client.receiveMessageBytesLeft == 0)
@@ -401,7 +408,7 @@ namespace DarkMultiPlayerServer
 
                         int messageType = mr.Read<int>();
                         int messageLength = mr.Read<int>();
-                        if (messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
+                        if (messageType < 0 || messageType > (Enum.GetNames(typeof(ClientMessageType)).Length - 1))
                         {
                             //Malformed message, most likely from a non DMP-client.
                             Messages.ConnectionEnd.SendConnectionEnd(client, "Invalid DMP message. Disconnected.");
@@ -421,7 +428,7 @@ namespace DarkMultiPlayerServer
                         }
                         else
                         {
-                            if (messageLength < Common.MAX_MESSAGE_SIZE)
+                            if (messageLength > 0 && messageLength < Common.MAX_MESSAGE_SIZE)
                             {
                                 client.isReceivingMessage = true;
                                 client.receiveMessage.data = new byte[messageLength];
@@ -442,19 +449,19 @@ namespace DarkMultiPlayerServer
                 {
                     //We have the message data to a non-null message, handle it
                     client.isReceivingMessage = false;
-                    #if !DEBUG
+#if !DEBUG
                     try
                     {
-                    #endif
-                        HandleMessage(client, client.receiveMessage);
-                    #if !DEBUG
+#endif
+                    HandleMessage(client, client.receiveMessage);
+#if !DEBUG
                     }
                     catch (Exception e)
                     {
                         HandleDisconnectException("ReceiveCallback", client, e);
                         return;
                     }
-                    #endif
+#endif
                     client.receiveMessage.type = 0;
                     client.receiveMessage.data = new byte[8];
                     client.receiveMessageBytesLeft = client.receiveMessage.data.Length;
@@ -507,11 +514,7 @@ namespace DarkMultiPlayerServer
                     Server.playerCount = GetActiveClientCount();
                     Server.players = GetActivePlayerNames();
                     DarkLog.Debug("Online players is now: " + Server.playerCount + ", connected: " + clients.Count);
-                    if (!Settings.settingsStore.keepTickingWhileOffline && clients.Count == 0)
-                    {
-                        Messages.WarpControl.HoldSubspace();
-                    }
-                    Messages.WarpControl.DisconnectPlayer(client.playerName);
+                    Messages.WarpControl.DisconnectPlayer(client);
                 }
                 //Disconnect
                 if (client.connectionStatus != ConnectionStatus.DISCONNECTED)
@@ -572,98 +575,101 @@ namespace DarkMultiPlayerServer
                 return;
             }
 
-            #if !DEBUG
+#if !DEBUG
             try
             {
-                #endif
-                switch (message.type)
-                {
-                    case ClientMessageType.HEARTBEAT:
-                        //Don't do anything for heartbeats, they just keep the connection alive
+#endif
+            switch (message.type)
+            {
+                case ClientMessageType.HEARTBEAT:
+                    //Don't do anything for heartbeats, they just keep the connection alive
+                    break;
+                case ClientMessageType.HANDSHAKE_RESPONSE:
+                    Messages.Handshake.HandleHandshakeResponse(client, message.data);
+                    break;
+                case ClientMessageType.CHAT_MESSAGE:
+                    Messages.Chat.HandleChatMessage(client, message.data);
+                    break;
+                case ClientMessageType.PLAYER_STATUS:
+                    Messages.PlayerStatus.HandlePlayerStatus(client, message.data);
+                    break;
+                case ClientMessageType.PLAYER_COLOR:
+                    Messages.PlayerColor.HandlePlayerColor(client, message.data);
+                    break;
+                case ClientMessageType.SCENARIO_DATA:
+                    Messages.ScenarioData.HandleScenarioModuleData(client, message.data);
+                    break;
+                case ClientMessageType.SYNC_TIME_REQUEST:
+                    Messages.SyncTimeRequest.HandleSyncTimeRequest(client, message.data);
+                    break;
+                case ClientMessageType.KERBALS_REQUEST:
+                    Messages.KerbalsRequest.HandleKerbalsRequest(client);
+                    break;
+                case ClientMessageType.KERBAL_PROTO:
+                    Messages.KerbalProto.HandleKerbalProto(client, message.data);
+                    break;
+                case ClientMessageType.VESSELS_REQUEST:
+                    Messages.VesselRequest.HandleVesselsRequest(client, message.data);
+                    break;
+                case ClientMessageType.VESSEL_PROTO:
+                    Messages.VesselProto.HandleVesselProto(client, message.data);
+                    break;
+                case ClientMessageType.VESSEL_UPDATE:
+                    Messages.VesselUpdate.HandleVesselUpdate(client, message.data);
+                    break;
+                case ClientMessageType.VESSEL_REMOVE:
+                    Messages.VesselRemove.HandleVesselRemoval(client, message.data);
+                    break;
+                case ClientMessageType.CRAFT_LIBRARY:
+                    Messages.CraftLibrary.HandleCraftLibrary(client, message.data);
+                    break;
+                case ClientMessageType.SCREENSHOT_LIBRARY:
+                    Messages.ScreenshotLibrary.HandleScreenshotLibrary(client, message.data);
+                    break;
+                case ClientMessageType.FLAG_SYNC:
+                    Messages.FlagSync.HandleFlagSync(client, message.data);
+                    break;
+                case ClientMessageType.PING_REQUEST:
+                    Messages.PingRequest.HandlePingRequest(client, message.data);
+                    break;
+                case ClientMessageType.MOTD_REQUEST:
+                    Messages.MotdRequest.HandleMotdRequest(client);
+                    break;
+                case ClientMessageType.WARP_CONTROL:
+                    Messages.WarpControl.HandleWarpControl(client, message.data);
+                    break;
+                case ClientMessageType.LOCK_SYSTEM:
+                    Messages.LockSystem.HandleLockSystemMessage(client, message.data);
+                    break;
+                case ClientMessageType.MOD_DATA:
+                    Messages.ModData.HandleModDataMessage(client, message.data);
+                    break;
+                case ClientMessageType.KERBAL_REMOVE:
+                    Messages.VesselRemove.HandleKerbalRemoval(client, message.data);
+                    break;
+                case ClientMessageType.SPLIT_MESSAGE:
+                    Messages.SplitMessage.HandleSplitMessage(client, message.data);
+                    break;
+                case ClientMessageType.CONNECTION_END:
+                    Messages.ConnectionEnd.HandleConnectionEnd(client, message.data);
+                    break;
+                default:
+                    DarkLog.Debug("Unhandled message type " + message.type);
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);
+#if DEBUG
+                    throw new NotImplementedException("Message type not implemented");
+#else
                         break;
-                    case ClientMessageType.HANDSHAKE_RESPONSE:
-                        Messages.Handshake.HandleHandshakeResponse(client, message.data);
-                        break;
-                    case ClientMessageType.CHAT_MESSAGE:
-                        Messages.Chat.HandleChatMessage(client, message.data);
-                        break;
-                    case ClientMessageType.PLAYER_STATUS:
-                        Messages.PlayerStatus.HandlePlayerStatus(client, message.data);
-                        break;
-                    case ClientMessageType.PLAYER_COLOR:
-                        Messages.PlayerColor.HandlePlayerColor(client, message.data);
-                        break;
-                    case ClientMessageType.SCENARIO_DATA:
-                        Messages.ScenarioData.HandleScenarioModuleData(client, message.data);
-                        break;
-                    case ClientMessageType.SYNC_TIME_REQUEST:
-                        Messages.SyncTimeRequest.HandleSyncTimeRequest(client, message.data);
-                        break;
-                    case ClientMessageType.KERBALS_REQUEST:
-                        Messages.KerbalsRequest.HandleKerbalsRequest(client);
-                        break;
-                    case ClientMessageType.KERBAL_PROTO:
-                        Messages.KerbalProto.HandleKerbalProto(client, message.data);
-                        break;
-                    case ClientMessageType.VESSELS_REQUEST:
-                        Messages.VesselRequest.HandleVesselsRequest(client, message.data);
-                        break;
-                    case ClientMessageType.VESSEL_PROTO:
-                        Messages.VesselProto.HandleVesselProto(client, message.data);
-                        break;
-                    case ClientMessageType.VESSEL_UPDATE:
-                        Messages.VesselUpdate.HandleVesselUpdate(client, message.data);
-                        break;
-                    case ClientMessageType.VESSEL_REMOVE:
-                        Messages.VesselRemove.HandleVesselRemoval(client, message.data);
-                        break;
-                    case ClientMessageType.CRAFT_LIBRARY:
-                        Messages.CraftLibrary.HandleCraftLibrary(client, message.data);
-                        break;
-                    case ClientMessageType.SCREENSHOT_LIBRARY:
-                        Messages.ScreenshotLibrary.HandleScreenshotLibrary(client, message.data);
-                        break;
-                    case ClientMessageType.FLAG_SYNC:
-                        Messages.FlagSync.HandleFlagSync(client, message.data);
-                        break;
-                    case ClientMessageType.PING_REQUEST:
-                        Messages.PingRequest.HandlePingRequest(client, message.data);
-                        break;
-                    case ClientMessageType.MOTD_REQUEST:
-                        Messages.MotdRequest.HandleMotdRequest(client);  
-                        break;
-                    case ClientMessageType.WARP_CONTROL:
-                        Messages.WarpControl.HandleWarpControl(client, message.data);
-                        break;
-                    case ClientMessageType.LOCK_SYSTEM:
-                        Messages.LockSystem.HandleLockSystemMessage(client, message.data);
-                        break;
-                    case ClientMessageType.MOD_DATA:
-                        Messages.ModData.HandleModDataMessage(client, message.data);
-                        break;
-                    case ClientMessageType.SPLIT_MESSAGE:
-                        Messages.SplitMessage.HandleSplitMessage(client, message.data);
-                        break;
-                    case ClientMessageType.CONNECTION_END:
-                        Messages.ConnectionEnd.HandleConnectionEnd(client, message.data);
-                        break;
-                    default:
-                        DarkLog.Debug("Unhandled message type " + message.type);
-                        Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);
-                        #if DEBUG
-                        throw new NotImplementedException("Message type not implemented");
-                        #else
-                        break;
-                        #endif
-                }
-                #if !DEBUG
+#endif
+            }
+#if !DEBUG
             }
             catch (Exception e)
             {
                 DarkLog.Debug("Error handling " + message.type + " from " + client.playerName + ", exception: " + e);
                 Messages.ConnectionEnd.SendConnectionEnd(client, "Server failed to process " + message.type + " message");
             }
-            #endif
+#endif
         }
 
         //Call with null client to send to all clients. Also called from Dekessler and NukeKSC.

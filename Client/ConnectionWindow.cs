@@ -7,6 +7,7 @@ namespace DarkMultiPlayer
     public class ConnectionWindow
     {
         public bool display = false;
+        public bool networkWorkerDisconnected = true;
         public bool connectEventHandled = true;
         public bool disconnectEventHandled = true;
         public bool addEventHandled = true;
@@ -17,11 +18,9 @@ namespace DarkMultiPlayer
         public bool addingServerSafe = false;
         public int selected = -1;
         private int selectedSafe = -1;
-        private string status = "";
+        public string status = "";
         public ServerEntry addEntry = null;
         public ServerEntry editEntry = null;
-        //private parts
-        private static ConnectionWindow singleton = new ConnectionWindow();
         private bool initialized;
         //Add window
         private string serverName = "Local";
@@ -49,27 +48,18 @@ namespace DarkMultiPlayer
             }
             return Common.PROGRAM_VERSION;
         }
+        //Services
+        Settings dmpSettings;
+        OptionsWindow optionsWindow;
 
-        public ConnectionWindow()
+        public ConnectionWindow(Settings dmpSettings, OptionsWindow optionsWindow)
         {
-            lock (Client.eventLock)
-            {
-                Client.updateEvent.Add(this.Update);
-                Client.drawEvent.Add(this.Draw);
-            }
+            this.dmpSettings = dmpSettings;
+            this.optionsWindow = optionsWindow;
         }
 
-        public static ConnectionWindow fetch
+        public void Update()
         {
-            get
-            {
-                return singleton;
-            }
-        }
-
-        private void Update()
-        {
-            status = Client.fetch.status;
             selectedSafe = selected;
             addingServerSafe = addingServer;
             display = (HighLogic.LoadedScene == GameScenes.MAINMENU);
@@ -99,7 +89,7 @@ namespace DarkMultiPlayer
             labelOptions[0] = GUILayout.Width(100);
         }
 
-        private void Draw()
+        public void Draw()
         {
             if (!initialized)
             {
@@ -119,10 +109,11 @@ namespace DarkMultiPlayer
             GUILayout.Space(20);
             GUILayout.BeginHorizontal();
             GUILayout.Label("Player name:", labelOptions);
-            string oldPlayerName = Settings.fetch.playerName;
-            Settings.fetch.playerName = GUILayout.TextArea(Settings.fetch.playerName, 32, textAreaStyle); // Max 32 characters
-            if (oldPlayerName != Settings.fetch.playerName)
+            string oldPlayerName = dmpSettings.playerName;
+            dmpSettings.playerName = GUILayout.TextArea(dmpSettings.playerName, 32, textAreaStyle); // Max 32 characters
+            if (oldPlayerName != dmpSettings.playerName)
             {
+                dmpSettings.playerName = dmpSettings.playerName.Replace("\n", "");
                 renameEventHandled = false;
             }
             GUILayout.EndHorizontal();
@@ -140,14 +131,13 @@ namespace DarkMultiPlayer
                 if (selected != -1)
                 {
                     //Load the existing server settings
-                    serverName = Settings.fetch.servers[selected].name;
-                    serverAddress = Settings.fetch.servers[selected].address;
-                    serverPort = Settings.fetch.servers[selected].port.ToString();
+                    serverName = dmpSettings.servers[selected].name;
+                    serverAddress = dmpSettings.servers[selected].address;
+                    serverPort = dmpSettings.servers[selected].port.ToString();
                 }
             }
-
             //Draw connect button
-            if (NetworkWorker.fetch.state == DarkMultiPlayerCommon.ClientState.DISCONNECTED)
+            if (networkWorkerDisconnected)
             {
                 GUI.enabled = (selectedSafe != -1);
                 if (GUILayout.Button("Connect", buttonStyle))
@@ -171,7 +161,7 @@ namespace DarkMultiPlayer
                 }
             }
             GUI.enabled = true;
-            OptionsWindow.fetch.display = GUILayout.Toggle(OptionsWindow.fetch.display, "Options", buttonStyle);
+            optionsWindow.display = GUILayout.Toggle(optionsWindow.display, "Options", buttonStyle);
             GUILayout.EndHorizontal();
             if (addingServerSafe)
             {
@@ -212,18 +202,17 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-
             GUILayout.Label("Servers:");
-            if (Settings.fetch.servers.Count == 0)
+            if (dmpSettings.servers.Count == 0)
             {
                 GUILayout.Label("(None - Add a server first)");
             }
 
             scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Width(WINDOW_WIDTH - 5), GUILayout.Height(WINDOW_HEIGHT - 100));
 
-            for (int serverPos = 0; serverPos < Settings.fetch.servers.Count; serverPos++)
+            for (int serverPos = 0; serverPos < dmpSettings.servers.Count; serverPos++)
             {
-                bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, Settings.fetch.servers[serverPos].name, buttonStyle);
+                bool thisSelected = GUILayout.Toggle(serverPos == selectedSafe, dmpSettings.servers[serverPos].name, buttonStyle);
                 if (selected == selectedSafe)
                 {
                     if (thisSelected)

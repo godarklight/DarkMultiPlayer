@@ -8,13 +8,11 @@ namespace DarkMultiPlayer
 {
     public class UniverseSyncCache
     {
-        private static UniverseSyncCache singleton = new UniverseSyncCache();
-
         public string cacheDirectory
         {
             get
             {
-                return Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Cache");
+                return Path.Combine(Path.Combine(Client.dmpClient.gameDataDir, "DarkMultiPlayer"), "Cache");
             }
         }
 
@@ -22,6 +20,8 @@ namespace DarkMultiPlayer
         private Queue<byte[]> incomingQueue = new Queue<byte[]>();
         private Dictionary<string, long> fileLengths = new Dictionary<string, long>();
         private Dictionary<string, DateTime> fileCreationTimes = new Dictionary<string, DateTime>();
+        //Services
+        private Settings dmpSettings;
 
         public long currentCacheSize
         {
@@ -29,19 +29,12 @@ namespace DarkMultiPlayer
             private set;
         }
 
-        public UniverseSyncCache()
+        public UniverseSyncCache(Settings dmpSettings)
         {
+            this.dmpSettings = dmpSettings;
             Thread processingThread = new Thread(new ThreadStart(ProcessingThreadMain));
             processingThread.IsBackground = true;
             processingThread.Start();
-        }
-
-        public static UniverseSyncCache fetch
-        {
-            get
-            {
-                return singleton;
-            }
         }
 
         private void ProcessingThreadMain()
@@ -101,23 +94,26 @@ namespace DarkMultiPlayer
             currentCacheSize = 0;
             foreach (string cacheObject in cacheObjects)
             {
-                string cacheFile = Path.Combine(cacheDirectory, cacheObject + ".txt");
-                //If the file is older than a week, delete it.
-                if (File.GetCreationTime(cacheFile).AddDays(7d) < DateTime.Now)
+                if (!string.IsNullOrEmpty(cacheObject))
                 {
-                    DarkLog.Debug("Deleting cached object " + cacheObject + ", reason: Expired!");
-                    File.Delete(cacheFile);
-                }
-                else
-                {
-                    FileInfo fi = new FileInfo(cacheFile);
-                    fileCreationTimes[cacheObject] = fi.CreationTime;
-                    fileLengths[cacheObject] = fi.Length;
-                    currentCacheSize += fi.Length;
+                    string cacheFile = Path.Combine(cacheDirectory, cacheObject + ".txt");
+                    //If the file is older than a week, delete it.
+                    if (File.GetCreationTime(cacheFile).AddDays(7d) < DateTime.Now)
+                    {
+                        DarkLog.Debug("Deleting cached object " + cacheObject + ", reason: Expired!");
+                        File.Delete(cacheFile);
+                    }
+                    else
+                    {
+                        FileInfo fi = new FileInfo(cacheFile);
+                        fileCreationTimes[cacheObject] = fi.CreationTime;
+                        fileLengths[cacheObject] = fi.Length;
+                        currentCacheSize += fi.Length;
+                    }
                 }
             }
             //While the directory is over (cacheSize) MB
-            while (currentCacheSize > (Settings.fetch.cacheSize * 1024 * 1024))
+            while (currentCacheSize > (dmpSettings.cacheSize * 1024 * 1024))
             {
                 string deleteObject = null;
                 //Find oldest file
