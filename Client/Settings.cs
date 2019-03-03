@@ -15,7 +15,7 @@ namespace DarkMultiPlayer
         public string playerPrivateKey;
         public int cacheSize;
         public int disclaimerAccepted;
-        public List<ServerEntry> servers;
+        public List<ServerEntry> servers = new List<ServerEntry>();
         public Color playerColor;
         public KeyCode screenshotKey;
         public KeyCode chatKey;
@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
                 revertEnabled = Boolean.Parse(xmlDoc.SelectSingleNode("/settings/global/@revert").Value);
                 toolbarType = (DMPToolbarType)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@toolbar").Value);
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
-                servers = new List<ServerEntry>();
+                servers.Clear();
                 foreach (XmlNode xmlNode in serverNodeList)
                 {
                     ServerEntry newServer = new ServerEntry();
@@ -302,7 +302,7 @@ namespace DarkMultiPlayer
                 }
 
                 ConfigNode serversNode = settingsNode.GetNode("SERVERS");
-                servers = new List<ServerEntry>();
+                servers.Clear();
                 if (serversNode.HasNode("SERVER"))
                 {
                     foreach (ConfigNode serverNode in serversNode.GetNodes("SERVER"))
@@ -417,11 +417,6 @@ namespace DarkMultiPlayer
 
             mainNode.AddNode(settingsNode);
             return mainNode;
-        }
-
-        private string newXMLString()
-        {
-            return String.Format("<?xml version=\"1.0\"?><settings><global username=\"{0}\" cache-size=\"{1}\"/><servers></servers></settings>", DEFAULT_PLAYER_NAME, DEFAULT_CACHE_SIZE);
         }
     }
 
