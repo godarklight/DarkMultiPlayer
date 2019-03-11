@@ -9,8 +9,8 @@
     <OutputType>Library</OutputType>
     <RootNamespace>DarkMultiPlayer</RootNamespace>
     <AssemblyName>DarkMultiPlayer</AssemblyName>
-    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <UseMSBuildEngine>false</UseMSBuildEngine>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -48,6 +48,12 @@
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\UnityEngine.UI.dll</HintPath>
+    </Reference>
+    <Reference Include="UDPMeshLib">
+      <HintPath>..\UDPMeshLib.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -98,6 +104,7 @@
     <Compile Include="PosistionStatistics.cs" />
     <Compile Include="VesselCtrlUpdate.cs" />
     <Compile Include="VesselInterFrameUpdater.cs" />
+    <Compile Include="GlobalSuppressions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

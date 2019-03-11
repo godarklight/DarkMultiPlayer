@@ -43,7 +43,7 @@ namespace DarkMultiPlayer
         {
             if (node == null)
             {
-                throw new ArgumentNullException("node");
+                throw new ArgumentNullException(nameof(node));
             }
 
             //Call the insides of what ConfigNode would have called if we said Save(filename)

@@ -10,8 +10,8 @@ namespace DarkMultiPlayerServer
             string reason = "";
             if (commandArgs.Contains(" "))
             {
-                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ", StringComparison.Ordinal) + 1);
             }
             ClientObject player = null;
 

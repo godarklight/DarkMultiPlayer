@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 48;
+        public const int PROTOCOL_VERSION = 49;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -591,6 +591,12 @@ namespace DarkMultiPlayerCommon
         CONNECTION_END
     }
 
+    public enum MeshMessageType
+    {
+        SET_PLAYER,
+        VESSEL_UPDATE
+    }
+
     public enum ServerMessageType
     {
         HEARTBEAT,
@@ -788,7 +794,7 @@ namespace DarkMultiPlayerCommon
         public double planetTime = 0;
     }
 
-    public enum HandshakeReply : int
+    public enum HandshakeReply
     {
         HANDSHOOK_SUCCESSFULLY = 0,
         PROTOCOL_MISMATCH = 1,
@@ -802,7 +808,7 @@ namespace DarkMultiPlayerCommon
         MALFORMED_HANDSHAKE = 99
     }
 
-    public enum GameDifficulty : int
+    public enum GameDifficulty
     {
         EASY,
         NORMAL,

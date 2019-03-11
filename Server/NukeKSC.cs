@@ -26,9 +26,9 @@ namespace DarkMultiPlayerServer
                         while (currentLine != null && !landedAtKSC && !landedAtRunway)
                         {
                             string trimmedLine = currentLine.Trim();
-                            if (trimmedLine.StartsWith("landedAt = "))
+                            if (trimmedLine.StartsWith("landedAt = ", StringComparison.Ordinal))
                             {
-                                string landedAt = trimmedLine.Substring(trimmedLine.IndexOf("=") + 2);
+                                string landedAt = trimmedLine.Substring(trimmedLine.IndexOf("=", StringComparison.Ordinal) + 2);
                                 if (landedAt == "KSC")
                                 {
                                     landedAtKSC = true;

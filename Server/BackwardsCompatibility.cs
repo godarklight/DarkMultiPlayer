@@ -30,9 +30,9 @@ namespace DarkMultiPlayerServer
                     string trimmedLine = currentLine.Trim();
                     if (!readingParts)
                     {
-                        if (trimmedLine.StartsWith("#MODCONTROLVERSION="))
+                        if (trimmedLine.StartsWith("#MODCONTROLVERSION=", StringComparison.Ordinal))
                         {
-                            modcontrolVersion = trimmedLine.Substring(currentLine.IndexOf("=") + 1);
+                            modcontrolVersion = trimmedLine.Substring(currentLine.IndexOf("=", StringComparison.Ordinal) + 1);
                             if (modcontrolVersion == Common.MODCONTROL_VERSION)
                             {
                                 //Mod control file is up to date.
@@ -50,13 +50,13 @@ namespace DarkMultiPlayerServer
                     }
                     else
                     {
-                        if (trimmedLine.StartsWith("#") || trimmedLine == string.Empty)
+                        if (trimmedLine.StartsWith("#", StringComparison.Ordinal) || trimmedLine == string.Empty)
                         {
                             sb.AppendLine(currentLine);
                             continue;
                         }
                         //This is an edge case, but it's still possible if someone moves something manually.
-                        if (trimmedLine.StartsWith("!"))
+                        if (trimmedLine.StartsWith("!", StringComparison.Ordinal))
                         {
                             if (!partsPrinted)
                             {
@@ -143,9 +143,9 @@ namespace DarkMultiPlayerServer
                     string fileLine;
                     while ((fileLine = sr.ReadLine()) != null)
                     {
-                        if (fileLine.StartsWith("name = "))
+                        if (fileLine.StartsWith("name = ", StringComparison.Ordinal))
                         {
-                            kerbalName = fileLine.Substring(fileLine.IndexOf("name = ") + 7);
+                            kerbalName = fileLine.Substring(fileLine.IndexOf("name = ", StringComparison.Ordinal) + 7);
                             break;
                         }
                     }
@@ -181,11 +181,11 @@ namespace DarkMultiPlayerServer
                     while ((currentLine = sr.ReadLine()) != null)
                     {
                         string trimmedLine = currentLine.Trim();
-                        if (!trimmedLine.Contains(",") || trimmedLine.StartsWith("#") || trimmedLine == string.Empty)
+                        if (!trimmedLine.Contains(",") || trimmedLine.StartsWith("#", StringComparison.Ordinal) || trimmedLine == string.Empty)
                         {
                             continue;
                         }
-                        int seperatorIndex = trimmedLine.IndexOf(",");
+                        int seperatorIndex = trimmedLine.IndexOf(",", StringComparison.Ordinal);
                         string keyPart = trimmedLine.Substring(0, seperatorIndex).Trim();
                         string valuePart = trimmedLine.Substring(seperatorIndex + 1).Trim();
                         string realKey = keyPart;

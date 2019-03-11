@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DarkMultiPlayer
 {
-    enum OptionsTab : int
+    enum OptionsTab
     {
         PLAYER,
         CACHE,
@@ -14,7 +14,7 @@ namespace DarkMultiPlayer
     public class OptionsWindow
     {
         public bool display;
-        private bool isWindowLocked = false;
+        private bool isWindowLocked;
         private bool safeDisplay;
         private bool initialized;
         //GUI Layout
@@ -162,6 +162,8 @@ namespace DarkMultiPlayer
                 case DMPToolbarType.BOTH_IF_INSTALLED:
                     toolbarMode = "Toolbar: Both";
                     break;
+                default:
+                    break;
             }
         }
 
@@ -208,10 +210,7 @@ namespace DarkMultiPlayer
 
         private void DrawContent(int windowID)
         {
-            if (GUI.Button(new Rect(windowRect.width - 24, 0, 19, 19), "X"))
-            {
-                display = false;
-            }
+            display &= !GUI.Button(new Rect(windowRect.width - 24, 0, 19, 19), "X");
             //Player color
             GUI.DragWindow(moveRect);
             GUI.Box(new Rect(2, 20, windowRect.width - 4, 20), string.Empty, sectionHeaderStyle);

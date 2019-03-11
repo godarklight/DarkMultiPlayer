@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
 {
     public class WarpWorker
     {
-        public bool workerEnabled = false;
+        public bool workerEnabled;
         public WarpMode warpMode = WarpMode.SUBSPACE;
         //The current warp state of warping players
         private Dictionary<string, PlayerWarpRate> clientWarpList = new Dictionary<string, PlayerWarpRate>();
@@ -26,8 +26,8 @@ namespace DarkMultiPlayer
         private bool voteSent;
         private double lastScreenMessageCheck;
         //MCW_Lowest state
-        private bool requestPhysWarp = false;
-        private int requestIndex = 0;
+        private bool requestPhysWarp;
+        private int requestIndex;
         //Subspace simple tracking
         private bool canSubspaceSimpleWarp;
         //Report tracking
@@ -352,21 +352,10 @@ namespace DarkMultiPlayer
             bool resetWarp = true;
             if ((warpMode == WarpMode.MCW_FORCE) || (warpMode == WarpMode.MCW_VOTE) || (warpMode == WarpMode.MCW_LOWEST))
             {
-                if (warpMaster != "")
-                {
-                    //It could be us or another player. If it's another player it will be controlled from Update() instead.
-                    resetWarp = false;
-                }
+                resetWarp &= warpMaster == "";
             }
-            if (warpMode == WarpMode.SUBSPACE)
-            {
-                //Never reset warp in SUBSPACE mode.
-                resetWarp = false;
-            }
-            if (warpMode == WarpMode.SUBSPACE_SIMPLE && canSubspaceSimpleWarp)
-            {
-                resetWarp = false;
-            }
+            resetWarp &= warpMode != WarpMode.SUBSPACE;
+            resetWarp &= (warpMode != WarpMode.SUBSPACE_SIMPLE || !canSubspaceSimpleWarp);
             if ((TimeWarp.CurrentRateIndex > 0) && resetWarp)
             {
                 //DarkLog.Debug("Resetting warp rate back to 0");
@@ -435,7 +424,9 @@ namespace DarkMultiPlayer
                         HandleMCWLowestInput(startWarpKey, stopWarpKey);
                         break;
                     case WarpMode.SUBSPACE_SIMPLE:
-                        HandleSubspaceSimpleInput(startWarpKey, stopWarpKey);
+                        HandleSubspaceSimpleInput(startWarpKey);
+                        break;
+                    default:
                         break;
                 }
             }
@@ -549,10 +540,7 @@ namespace DarkMultiPlayer
                 {
                     newRequestIndex = 0;
                 }
-                if (newRequestIndex == 0)
-                {
-                    newRequestPhysWarp = false;
-                }
+                newRequestPhysWarp &= newRequestIndex != 0;
             }
             if ((newRequestIndex != requestIndex) || (newRequestPhysWarp != requestPhysWarp))
             {
@@ -577,7 +565,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleSubspaceSimpleInput(bool startWarpKey, bool stopWarpKey)
+        private void HandleSubspaceSimpleInput(bool startWarpKey)
         {
             if (startWarpKey && !canSubspaceSimpleWarp)
             {
@@ -625,9 +613,9 @@ namespace DarkMultiPlayer
                         break;
                     case WarpMessageType.REPLY_VOTE:
                         {
-                            int voteYesCount = mr.Read<int>();
-                            int voteNoCount = mr.Read<int>();
-                            HandleReplyVote(voteYesCount, voteNoCount);
+                            int incomingVoteYesCount = mr.Read<int>();
+                            int incomingVoteNoCount = mr.Read<int>();
+                            HandleReplyVote(incomingVoteYesCount, incomingVoteNoCount);
                         }
                         break;
                     case WarpMessageType.SET_CONTROLLER:

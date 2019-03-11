@@ -6,17 +6,18 @@ namespace DarkMultiPlayer
 {
     public class VesselRecorder
     {
-        public bool active = false;
-        public bool playback = false;
-        ScreenMessage screenMessage = null;
+        public bool active;
+        public bool playback;
+        ScreenMessage screenMessage;
         private MemoryStream recording;
         private WarpWorker warpWorker;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
-        private Action<byte[]> HandleProtoUpdate, HandleVesselUpdate, HandleVesselRemove;
+        private Action<byte[]> HandleProtoUpdate, HandleVesselRemove;
+        private Action<byte[], bool> HandleVesselUpdate;
         private VesselWorker vesselWorker;
         private DMPGame dmpGame;
-        private double firstTime = 0;
-        private double lastTime = 0;
+        private double firstTime;
+        private double lastTime;
 
         public VesselRecorder(DMPGame dmpGame, WarpWorker warpWorker, VesselWorker vesselWorker)
         {
@@ -26,7 +27,7 @@ namespace DarkMultiPlayer
             this.dmpGame.updateEvent.Add(Update);
         }
 
-        public void SetHandlers(Action<byte[]> HandleProtoUpdate, Action<byte[]> HandleVesselUpdate, Action<byte[]> HandleVesselRemove)
+        public void SetHandlers(Action<byte[]> HandleProtoUpdate, Action<byte[], bool> HandleVesselUpdate, Action<byte[]> HandleVesselRemove)
         {
             this.HandleProtoUpdate = HandleProtoUpdate;
             this.HandleVesselUpdate = HandleVesselUpdate;
@@ -122,10 +123,12 @@ namespace DarkMultiPlayer
                                 HandleProtoUpdate(dataBytes);
                                 break;
                             case ClientMessageType.VESSEL_UPDATE:
-                                HandleVesselUpdate(dataBytes);
+                                HandleVesselUpdate(dataBytes, false);
                                 break;
                             case ClientMessageType.VESSEL_REMOVE:
                                 HandleVesselRemove(dataBytes);
+                                break;
+                            default:
                                 break;
                         }
                     }

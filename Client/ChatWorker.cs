@@ -138,7 +138,7 @@ namespace DarkMultiPlayer
         {
             if (commandArgs != "" && commandArgs != "Global" && commandArgs != consoleIdentifier && commandArgs != "#Global" && commandArgs != "#" + consoleIdentifier)
             {
-                if (commandArgs.StartsWith("#"))
+                if (commandArgs.StartsWith("#", StringComparison.Ordinal))
                 {
                     commandArgs = commandArgs.Substring(1);
                 }
@@ -220,7 +220,7 @@ namespace DarkMultiPlayer
             func = commandArgs;
             if (commandArgs.Contains(" "))
             {
-                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
                 if (commandArgs.Substring(func.Length).Contains(" "))
                 {
                     try
@@ -394,10 +394,10 @@ namespace DarkMultiPlayer
 
         public void HandleChatInput(string input)
         {
-            if (!input.StartsWith("/") || input.StartsWith("//"))
+            if (!input.StartsWith("/", StringComparison.Ordinal) || input.StartsWith("//", StringComparison.Ordinal))
             {
                 //Handle chat messages
-                if (input.StartsWith("//"))
+                if (input.StartsWith("//", StringComparison.Ordinal))
                 {
                     input = input.Substring(1);
                 }
@@ -1104,7 +1104,7 @@ namespace DarkMultiPlayer
             public int CompareTo(object obj)
             {
                 var cmd = obj as ChatCommand;
-                return this.name.CompareTo(cmd.name);
+                return string.Compare(name, cmd.name, StringComparison.Ordinal);
             }
         }
 

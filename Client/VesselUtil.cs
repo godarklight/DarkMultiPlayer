@@ -48,7 +48,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            if (highestHit == double.NegativeInfinity)
+            if (double.IsNegativeInfinity(highestHit))
             {
                 return new DMPRaycastPair(-1f, Vector3.up);
             }

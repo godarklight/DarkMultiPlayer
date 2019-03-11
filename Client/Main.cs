@@ -155,11 +155,11 @@ namespace DarkMultiPlayer
                         {
                             //IPv6 literal
                             address = commandLineArg.Substring("dmp://[".Length);
-                            address = address.Substring(0, address.LastIndexOf("]"));
+                            address = address.Substring(0, address.LastIndexOf("]", StringComparison.Ordinal));
                             if (commandLineArg.Contains("]:"))
                             {
                                 //With port
-                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf("]:") + 1);
+                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf("]:", StringComparison.Ordinal) + 1);
                                 if (!Int32.TryParse(portString, out port))
                                 {
                                     valid = false;
@@ -173,8 +173,8 @@ namespace DarkMultiPlayer
                             {
                                 //With port
                                 address = commandLineArg.Substring("dmp://".Length);
-                                address = address.Substring(0, address.LastIndexOf(":"));
-                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf(":") + 1);
+                                address = address.Substring(0, address.LastIndexOf(":", StringComparison.Ordinal));
+                                string portString = commandLineArg.Substring(commandLineArg.LastIndexOf(":", StringComparison.Ordinal) + 1);
                                 if (!Int32.TryParse(portString, out port))
                                 {
                                     valid = false;

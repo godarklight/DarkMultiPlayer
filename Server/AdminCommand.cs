@@ -15,7 +15,7 @@ namespace DarkMultiPlayerServer
             func = commandArgs;
             if (commandArgs.Contains(" "))
             {
-                func = commandArgs.Substring(0, commandArgs.IndexOf(" "));
+                func = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
                 if (commandArgs.Substring(func.Length).Contains(" "))
                 {
                     playerName = commandArgs.Substring(func.Length + 1);

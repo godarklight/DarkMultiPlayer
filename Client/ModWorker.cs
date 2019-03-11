@@ -9,7 +9,7 @@ namespace DarkMultiPlayer
     public class ModWorker
     {
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
-        public bool dllListBuilt = false;
+        public bool dllListBuilt;
         //Dll files, built at startup
         private Dictionary<string, string> dllList;
         //Accessed from ModWindow
@@ -50,13 +50,13 @@ namespace DarkMultiPlayer
             foreach (string checkFile in checkList)
             {
                 //Only check DLL's
-                if (checkFile.ToLower().EndsWith(".dll"))
+                if (checkFile.ToLower().EndsWith(".dll", StringComparison.CurrentCulture))
                 {
                     //We want the relative path to check against, example: DarkMultiPlayer/Plugins/DarkMultiPlayer.dll
                     //Strip off everything from GameData
                     //Replace windows backslashes with mac/linux forward slashes.
                     //Make it lowercase so we don't worry about case sensitivity.
-                    string relativeFilePath = checkFile.ToLowerInvariant().Substring(checkFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
+                    string relativeFilePath = checkFile.ToLowerInvariant().Substring(checkFile.ToLowerInvariant().IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace('\\', '/');
                     string fileHash = Common.CalculateSHA256Hash(checkFile);
                     dllList.Add(relativeFilePath, fileHash);
                     DarkLog.Debug("Hashed file: " + relativeFilePath + ", hash: " + fileHash);
@@ -100,12 +100,12 @@ namespace DarkMultiPlayer
                     }
                     //Remove tabs/spaces from the start & end.
                     string trimmedLine = currentLine.Trim();
-                    if (trimmedLine.StartsWith("#") || String.IsNullOrEmpty(trimmedLine))
+                    if (trimmedLine.StartsWith("#", StringComparison.Ordinal) || String.IsNullOrEmpty(trimmedLine))
                     {
                         //Skip comments or empty lines.
                         continue;
                     }
-                    if (trimmedLine.StartsWith("!"))
+                    if (trimmedLine.StartsWith("!", StringComparison.Ordinal))
                     {
                         //New section
                         switch (trimmedLine.Substring(1))
@@ -122,6 +122,8 @@ namespace DarkMultiPlayer
                             case "resource-whitelist":
                                 readMode = trimmedLine.Substring(1);
                                 isWhiteList = true;
+                                break;
+                            default:
                                 break;
                         }
                     }
@@ -200,7 +202,7 @@ namespace DarkMultiPlayer
                                 {
                                     string lowerFixedLine = trimmedLine.ToLowerInvariant().Replace('\\', '/');
                                     //Resource is dll's only.
-                                    if (lowerFixedLine.ToLowerInvariant().EndsWith(".dll"))
+                                    if (lowerFixedLine.ToLowerInvariant().EndsWith(".dll", StringComparison.Ordinal))
                                     {
                                         if (parseWhiteBlackList.Contains(lowerFixedLine))
                                         {
@@ -215,6 +217,8 @@ namespace DarkMultiPlayer
                                     parsePartsList.Add(trimmedLine);
                                 }
                                 break;
+                            default:
+                                break;
                         }
                     }
                 }
@@ -225,7 +229,7 @@ namespace DarkMultiPlayer
             List<string> currentGameDataFilesLower = new List<string>();
             foreach (string currentFile in currentGameDataFiles)
             {
-                string relativeFilePath = currentFile.Substring(currentFile.ToLowerInvariant().IndexOf("gamedata") + 9).Replace('\\', '/');
+                string relativeFilePath = currentFile.Substring(currentFile.ToLowerInvariant().IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace('\\', '/');
                 currentGameDataFilesNormal.Add(relativeFilePath);
                 currentGameDataFilesLower.Add(relativeFilePath.ToLowerInvariant());
             }
@@ -234,7 +238,7 @@ namespace DarkMultiPlayer
             //Check Required
             foreach (KeyValuePair<string, string> requiredEntry in parseRequired)
             {
-                if (!requiredEntry.Key.EndsWith("dll"))
+                if (!requiredEntry.Key.EndsWith("dll", StringComparison.Ordinal))
                 {
                     //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
@@ -284,7 +288,7 @@ namespace DarkMultiPlayer
             //Check Optional
             foreach (KeyValuePair<string, string> optionalEntry in parseOptional)
             {
-                if (!optionalEntry.Key.EndsWith("dll"))
+                if (!optionalEntry.Key.EndsWith("dll", StringComparison.Ordinal))
                 {
                     //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
                     if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
@@ -346,7 +350,7 @@ namespace DarkMultiPlayer
                         continue;
                     }
                     //Ignore squad plugins
-                    if (dllResource.Key.StartsWith("squad/plugins"))
+                    if (dllResource.Key.StartsWith("squad/plugins", StringComparison.Ordinal))
                     {
                         continue;
                     }
@@ -424,16 +428,16 @@ namespace DarkMultiPlayer
 
             foreach (string modDirectory in modDirectories)
             {
-                string lowerDirectoryName = modDirectory.Substring(modDirectory.ToLower().IndexOf("gamedata") + 9).ToLower();
-                if (lowerDirectoryName.StartsWith("squad"))
+                string lowerDirectoryName = modDirectory.Substring(modDirectory.ToLower().IndexOf("gamedata", StringComparison.Ordinal) + 9).ToLower();
+                if (lowerDirectoryName.StartsWith("squad", StringComparison.Ordinal))
                 {
                     continue;
                 }
-                if (lowerDirectoryName.StartsWith("nasamission"))
+                if (lowerDirectoryName.StartsWith("nasamission", StringComparison.Ordinal))
                 {
                     continue;
                 }
-                if (lowerDirectoryName.StartsWith("darkmultiplayer"))
+                if (lowerDirectoryName.StartsWith("darkmultiplayer", StringComparison.Ordinal))
                 {
                     continue;
                 }
@@ -444,7 +448,7 @@ namespace DarkMultiPlayer
                 foreach (string partFile in partFiles)
                 {
                     bool fileIsPartFile = false;
-                    string relativeFileName = partFile.Substring(partFile.ToLower().IndexOf("gamedata") + 9).Replace(@"\", "/");
+                    string relativeFileName = partFile.Substring(partFile.ToLower().IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace(@"\", "/");
                     if (Path.GetExtension(partFile).ToLower() == ".cfg")
                     {
                         ConfigNode cn = ConfigNode.Load(partFile);

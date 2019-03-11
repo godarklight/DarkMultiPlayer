@@ -44,8 +44,8 @@ namespace DarkMultiPlayerServer
 
             if (commandArgs.Contains(" "))
             {
-                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
+                playerName = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ", StringComparison.Ordinal) + 1);
             }
 
             if (playerName != "")
@@ -77,8 +77,8 @@ namespace DarkMultiPlayerServer
 
             if (commandArgs.Contains(" "))
             {
-                ip = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
+                ip = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ", StringComparison.Ordinal) + 1);
             }
 
             IPAddress ipAddress;
@@ -110,8 +110,8 @@ namespace DarkMultiPlayerServer
 
             if (commandArgs.Contains(" "))
             {
-                publicKey = commandArgs.Substring(0, commandArgs.IndexOf(" "));
-                reason = commandArgs.Substring(commandArgs.IndexOf(" ") + 1);
+                publicKey = commandArgs.Substring(0, commandArgs.IndexOf(" ", StringComparison.Ordinal));
+                reason = commandArgs.Substring(commandArgs.IndexOf(" ", StringComparison.Ordinal) + 1);
             }
 
             ClientObject player = ClientHandler.GetClientByPublicKey(publicKey);

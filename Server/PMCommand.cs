@@ -14,7 +14,7 @@ namespace DarkMultiPlayerServer
                 if (testPlayer.authenticated)
                 {
                     //Try to match the longest player name
-                    if (commandArgs.StartsWith(testPlayer.playerName) && testPlayer.playerName.Length > matchedLength)
+                    if (commandArgs.StartsWith(testPlayer.playerName, StringComparison.Ordinal) && testPlayer.playerName.Length > matchedLength)
                     {
                         //Double check there is a space after the player name
                         if ((commandArgs.Length > (testPlayer.playerName.Length + 1)) ? commandArgs[testPlayer.playerName.Length] == ' ' : false)

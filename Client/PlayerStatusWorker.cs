@@ -14,8 +14,8 @@ namespace DarkMultiPlayer
         public List<PlayerStatus> playerStatusList = new List<PlayerStatus>();
         private const float PLAYER_STATUS_CHECK_INTERVAL = .2f;
         private const float PLAYER_STATUS_SEND_THROTTLE = 1f;
-        private float lastPlayerStatusSend = 0f;
-        private float lastPlayerStatusCheck = 0f;
+        private float lastPlayerStatusSend;
+        private float lastPlayerStatusCheck;
         //Services
         private DMPGame dmpGame;
         private VesselWorker vesselWorker;
@@ -113,6 +113,8 @@ namespace DarkMultiPlayer
                                             myPlayerStatus.statusText = "Descending to " + bodyName;
                                         }
                                         break;
+                                    default:
+                                        break;
                                 }
                             }
                             else
@@ -164,7 +166,8 @@ namespace DarkMultiPlayer
                             case (GameScenes.LOADING):
                                 myPlayerStatus.statusText = "Loading";
                                 break;
-
+                            default:
+                                break;
                         }
                     }
                 }

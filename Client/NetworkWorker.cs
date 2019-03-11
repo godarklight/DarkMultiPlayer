@@ -2,13 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 using System.Security.Cryptography;
 using System.Threading;
-using UnityEngine;
 using DarkMultiPlayerCommon;
 using MessageStream2;
+using UDPMeshLib;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
@@ -59,6 +58,11 @@ namespace DarkMultiPlayer
         private List<Thread> parallelConnectThreads = new List<Thread>();
         private Thread receiveThread;
         private Thread sendThread;
+        //Mesh stuff
+        private UdpMeshClient meshClient;
+        private Thread meshClientThread;
+        private double lastSendSetPlayer;
+        private Dictionary<string, Guid> meshPlayerGuids = new Dictionary<string, Guid>();
         private string serverMotd;
         private bool displayMotd;
         //Services
@@ -234,6 +238,7 @@ namespace DarkMultiPlayer
                 {
                     CheckDisconnection();
                     SendHeartBeat();
+                    SendMeshSetPlayer();
                     bool sentMessage = SendOutgoingMessages();
                     if (!sentMessage)
                     {
@@ -374,6 +379,33 @@ namespace DarkMultiPlayer
                             //Timeout didn't expire.
                             DarkLog.Debug("Connected to " + destination.Address + " port " + destination.Port);
                             connectionWindow.status = "Connected";
+                            if (UdpMeshCommon.IsIPv4(destination.Address))
+                            {
+                                IPAddress[] myAddresses = new IPAddress[0];
+                                try
+                                {
+                                    myAddresses = UdpMeshCommon.GetLocalIPAddresses();
+                                }
+                                catch
+                                {
+                                }
+                                meshClient = new UdpMeshClient(destination, null, myAddresses, DarkLog.Debug);
+                            }
+                            if (UdpMeshCommon.IsIPv6(destination.Address))
+                            {
+                                IPAddress[] myAddresses = new IPAddress[0];
+                                try
+                                {
+                                    myAddresses = UdpMeshCommon.GetLocalIPAddresses();
+                                }
+                                catch
+                                {
+                                }
+                                meshClient = new UdpMeshClient(null, destination, myAddresses, DarkLog.Debug);
+                            }
+                            meshClient.RegisterCallback((int)MeshMessageType.SET_PLAYER, HandleMeshSetPlayer);
+                            meshClient.RegisterCallback((int)MeshMessageType.VESSEL_UPDATE, HandleMeshVesselUpdate);
+                            meshClientThread = meshClient.Start();
                             state = ClientState.CONNECTED;
                             sendThread = new Thread(new ThreadStart(SendThreadMain));
                             sendThread.IsBackground = true;
@@ -544,6 +576,36 @@ namespace DarkMultiPlayer
 
         #region Network writers/readers
 
+        private void HandleMeshSetPlayer(byte[] inputData, Guid clientGuid, IPEndPoint endPoint)
+        {
+            string fromPlayer = System.Text.Encoding.UTF8.GetString(inputData, 24, inputData.Length - 24);
+            meshPlayerGuids[fromPlayer] = clientGuid;
+            DarkLog.Debug("Mesh message from " + fromPlayer + ", GUID: " + clientGuid);
+        }
+
+        private void HandleMeshVesselUpdate(byte[] inputData, Guid clientGuid, IPEndPoint endPoint)
+        {
+
+        }
+
+        public void SendMeshSetPlayer()
+        {
+            if (state >= ClientState.CONNECTED)
+            {
+                if ((Common.GetCurrentUnixTime() - lastSendSetPlayer) > 5)
+                {
+                    lastSendSetPlayer = Common.GetCurrentUnixTime();
+                    foreach (UdpPeer peer in meshClient.GetPeers())
+                    {
+                        if (peer.guid != UdpMeshCommon.GetMeshAddress())
+                        {
+                            meshClient.SendMessageToClient(peer.guid, (int)MeshMessageType.SET_PLAYER, System.Text.Encoding.UTF8.GetBytes(dmpSettings.playerName));
+                        }
+                    }
+                }
+            }
+        }
+
         private void StartReceivingIncomingMessages()
         {
             lastReceiveTime = Common.GetCurrentUnixTime();
@@ -604,7 +666,6 @@ namespace DarkMultiPlayer
                                         case ServerMessageType.VESSEL_COMPLETE:
                                             HandleMessage(receiveMessage);
                                             break;
-                                        default: break;
                                     }
                                     receiveMessage.type = 0;
                                     receiveMessage.data = new byte[8];
@@ -865,7 +926,7 @@ namespace DarkMultiPlayer
                         HandleVesselProto(message.data);
                         break;
                     case ServerMessageType.VESSEL_UPDATE:
-                        HandleVesselUpdate(message.data);
+                        HandleVesselUpdate(message.data, false);
                         break;
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
@@ -1100,6 +1161,8 @@ namespace DarkMultiPlayer
                             chatWorker.QueueSystemMessage(message);
                         }
                         break;
+                    default:
+                        break;
                 }
             }
         }
@@ -1250,14 +1313,17 @@ namespace DarkMultiPlayer
                 byte[] kerbalData = mr.Read<byte[]>();
                 ConfigNode kerbalNode = null;
                 bool dataOK = false;
-                for (int i = 0; i < kerbalData.Length; i++) {
+                for (int i = 0; i < kerbalData.Length; i++)
+                {
                     //Apparently we have to defend against all NULL files now?
-                    if (kerbalData[i] != 0) {
+                    if (kerbalData[i] != 0)
+                    {
                         dataOK = true;
                         break;
                     }
                 }
-                if (dataOK) {
+                if (dataOK)
+                {
                     kerbalNode = configNodeSerializer.Deserialize(kerbalData);
                 }
                 if (kerbalNode != null)
@@ -1377,15 +1443,18 @@ namespace DarkMultiPlayer
                 mr.Read<bool>();
                 byte[] vesselData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                 bool dataOK = false;
-                for (int i = 0; i < vesselData.Length; i++) {
+                for (int i = 0; i < vesselData.Length; i++)
+                {
                     //Apparently we have to defend against all NULL files now?
-                    if (vesselData[i] != 0) {
+                    if (vesselData[i] != 0)
+                    {
                         dataOK = true;
                         break;
                     }
                 }
                 ConfigNode vesselNode = null;
-                if (dataOK) {
+                if (dataOK)
+                {
                     vesselNode = configNodeSerializer.Deserialize(vesselData);
                 }
                 if (vesselNode != null)
@@ -1422,7 +1491,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleVesselUpdate(byte[] messageData)
+        private VesselUpdate VeselUpdateFromBytes(byte[] messageData)
         {
             VesselUpdate update = new VesselUpdate(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
@@ -1473,8 +1542,21 @@ namespace DarkMultiPlayer
                     update.autopilotMode = mr.Read<int>();
                     update.lockedRotation = mr.Read<float[]>();
                 }
-                vesselWorker.QueueVesselUpdate(update);
+                return update;
             }
+        }
+
+        private void HandleVesselUpdate(byte[] messageData, bool fromMesh)
+        {
+            //Strip mesh header
+            if (fromMesh)
+            {
+                byte[] tempData = new byte[messageData.Length - 24];
+                Array.Copy(messageData, 24, tempData, 0, tempData.Length);
+                messageData = tempData;
+            }
+            VesselUpdate update = VeselUpdateFromBytes(messageData);
+            vesselWorker.QueueVesselUpdate(update, fromMesh);
         }
 
         private void HandleSetActiveVessel(byte[] messageData)
@@ -1944,8 +2026,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Failed to create byte[] data for " + vessel.vesselID);
             }
         }
-        //Called from vesselWorker
-        public void SendVesselUpdate(VesselUpdate update)
+        private ClientMessage GetVesselUpdateMessage(VesselUpdate update)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
@@ -2000,8 +2081,26 @@ namespace DarkMultiPlayer
                 }
                 newMessage.data = mw.GetMessageBytes();
             }
+            return newMessage;
+        }
+        //Called from vesselWorker
+        public void SendVesselUpdate(VesselUpdate update)
+        {
+            ClientMessage newMessage = GetVesselUpdateMessage(update);
             QueueOutgoingMessage(newMessage, false);
             vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE);
+        }
+        //Called from vesselWorker
+        public void SendVesselUpdateMesh(VesselUpdate update)
+        {
+            ClientMessage newMessage = GetVesselUpdateMessage(update);
+            foreach (string playerName in warpWorker.GetClientsInSubspace(timeSyncer.currentSubspace))
+            {
+                if (meshPlayerGuids.ContainsKey(playerName))
+                {
+                    meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data);
+                }
+            }
         }
         //Called from vesselWorker
         public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)

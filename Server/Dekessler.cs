@@ -25,9 +25,9 @@ namespace DarkMultiPlayerServer
                         while (currentLine != null && !vesselIsDebris)
                         {
                             string trimmedLine = currentLine.Trim();
-                            if (trimmedLine.StartsWith("type = "))
+                            if (trimmedLine.StartsWith("type = ", StringComparison.Ordinal))
                             {
-                                string vesselType = trimmedLine.Substring(trimmedLine.IndexOf("=") + 2);
+                                string vesselType = trimmedLine.Substring(trimmedLine.IndexOf("=", StringComparison.Ordinal) + 2);
                                 if (vesselType == "Debris")
                                 {
                                     vesselIsDebris = true;

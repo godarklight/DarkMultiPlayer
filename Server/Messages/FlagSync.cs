@@ -140,7 +140,7 @@ namespace DarkMultiPlayerServer.Messages
                             if (flagData.Length > 0)
                             {
                                 // Check if the specified file is a valid PNG file
-                                byte[] pngSequence = new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 };
+                                byte[] pngSequence = { 137, 80, 78, 71, 13, 10, 26, 10 };
                                 if (pngSequence.SequenceEqual(flagData.Take(pngSequence.Length)))
                                 {
                                     string playerFlagPath = Path.Combine(flagPath, client.playerName);

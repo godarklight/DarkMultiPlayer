@@ -27,7 +27,7 @@ namespace DarkMultiPlayer
 
         public void ThrottledAcquireLock(string lockname)
         {
-            if (lastAcquireTime.ContainsKey(lockname) ? ((Client.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f) : true)
+            if (!lastAcquireTime.ContainsKey(lockname) || ((Client.realtimeSinceStartup - lastAcquireTime[lockname]) > 5f))
             {
                 lastAcquireTime[lockname] = Client.realtimeSinceStartup;
                 AcquireLock(lockname, false);
@@ -95,7 +95,7 @@ namespace DarkMultiPlayer
                 List<string> removeList = new List<string>();
                 foreach (KeyValuePair<string, string> kvp in serverLocks)
                 {
-                    if (kvp.Key.StartsWith(prefix) && kvp.Value == playerName)
+                    if (kvp.Key.StartsWith(prefix, StringComparison.Ordinal) && kvp.Value == playerName)
                     {
                         removeList.Add(kvp.Key);
                     }
@@ -159,6 +159,8 @@ namespace DarkMultiPlayer
                                 }
                                 FireReleaseEvent(playerName, lockName);
                             }
+                            break;
+                        default:
                             break;
                     }
                 }

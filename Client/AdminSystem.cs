@@ -46,6 +46,8 @@ namespace DarkMultiPlayer
                             UnregisterServerAdmin(adminName);
                         }
                         break;
+                    default:
+                        break;
                 }
             }
         }

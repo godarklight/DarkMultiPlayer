@@ -18,7 +18,7 @@ namespace DarkMultiPlayer
         private bool safeDisplay;
         private bool initialized;
         private bool showUpload;
-        private bool isWindowLocked = false;
+        private bool isWindowLocked;
         private string selectedPlayer;
         private List<string> playersWithCrafts = new List<string>();
         //Player -> Craft type -> Craft name
@@ -53,8 +53,8 @@ namespace DarkMultiPlayer
         private CraftType deleteCraftType;
         private string deleteCraftName;
         //Screen message
-        private bool displayCraftUploadingMessage = false;
-        public bool finishedUploadingCraft = false;
+        private bool displayCraftUploadingMessage;
+        public bool finishedUploadingCraft;
         private float lastCraftMessageCheck;
         ScreenMessage craftUploadMessage;
         //const
@@ -168,6 +168,8 @@ namespace DarkMultiPlayer
                     break;
                 case CraftType.SUBASSEMBLY:
                     uploadPath = subassemblyPath;
+                    break;
+                default:
                     break;
             }
             string filePath = Path.Combine(uploadPath, name + ".craft");
@@ -283,6 +285,8 @@ namespace DarkMultiPlayer
                     break;
                 case CraftType.SUBASSEMBLY:
                     savePath = subassemblyPath;
+                    break;
+                default:
                     break;
             }
             if (!Directory.Exists(savePath))
@@ -472,10 +476,7 @@ namespace DarkMultiPlayer
                     {
                         if (playerList[dmpSettings.playerName].ContainsKey(entryType.Key))
                         {
-                            if (playerList[dmpSettings.playerName][entryType.Key].Contains(entryName))
-                            {
-                                GUI.enabled = false;
-                            }
+                            GUI.enabled &= !playerList[dmpSettings.playerName][entryType.Key].Contains(entryName);
                         }
                     }
                     if (GUILayout.Button(entryName, buttonStyle))

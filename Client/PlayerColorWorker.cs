@@ -93,7 +93,7 @@ namespace DarkMultiPlayer
 
         private void UpdateVesselColorsFromLockName(string lockName)
         {
-            if (lockName.StartsWith("control-"))
+            if (lockName.StartsWith("control-", StringComparison.Ordinal))
             {
                 string vesselID = lockName.Substring(8);
                 foreach (Vessel findVessel in FlightGlobals.fetch.vessels)
@@ -166,6 +166,8 @@ namespace DarkMultiPlayer
                                 playerStatusWindow.colorEventHandled = false;
                             }
                         }
+                        break;
+                    default:
                         break;
                 }
             }

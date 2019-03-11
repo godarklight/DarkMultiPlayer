@@ -602,7 +602,7 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     //Ignore the comment line.
                     string firstLine = "";
-                    while (firstLine.StartsWith("#") || String.IsNullOrEmpty(firstLine))
+                    while (firstLine.StartsWith("#", StringComparison.Ordinal) || String.IsNullOrEmpty(firstLine))
                     {
                         firstLine = sr.ReadLine().Trim();
                     }

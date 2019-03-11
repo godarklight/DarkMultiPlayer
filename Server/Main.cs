@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using DarkMultiPlayerCommon;
-using SettingsParser;
+using UDPMeshLib;
 
 namespace DarkMultiPlayerServer
 {
@@ -18,6 +18,8 @@ namespace DarkMultiPlayerServer
         public static string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
         public static Stopwatch serverClock;
         public static HttpListener httpListener;
+        public static UdpMeshServer meshServer;
+        private static Thread meshServerThread;
         private static long ctrlCTime;
         public static int playerCount = 0;
         public static string players = "";
@@ -230,7 +232,7 @@ namespace DarkMultiPlayerServer
                 {
                     Thread.Sleep(500);
                 }
-
+                StartMeshServer();
                 StartHTTPServer();
                 DarkLog.Normal("Ready!");
                 DMPPluginHandler.FireOnServerStart();
@@ -417,7 +419,9 @@ namespace DarkMultiPlayerServer
             serverStarting = false;
             serverRunning = false;
             ForceStopHTTPServer();
+            StopMeshServer();
         }
+
         //Gracefully shut down
         private static void CatchExit(object sender, ConsoleCancelEventArgs args)
         {
@@ -432,6 +436,29 @@ namespace DarkMultiPlayerServer
             {
                 DarkLog.Debug("Terminating!");
             }
+        }
+
+        private static void StartMeshServer()
+        {
+            //Only enable mesh server when we can bind on all ports
+            if (Settings.settingsStore.address == "0.0.0.0" || Settings.settingsStore.address == "::")
+            {
+                DarkLog.Debug("Starting mesh server");
+                meshServer = new UdpMeshServer(Settings.settingsStore.port, DarkLog.Debug);
+                meshServerThread = meshServer.Start();
+            }
+            else
+            {
+                DarkLog.Normal("Not starting mesh server because we are bound on a specific address");
+            }
+        }
+
+
+        private static void StopMeshServer()
+        {
+            DarkLog.Debug("Stopping mesh server");
+            meshServer.Shutdown();
+            meshServerThread = null;
         }
 
         private static void StartHTTPServer()
@@ -527,7 +554,7 @@ namespace DarkMultiPlayerServer
                 string responseText = "";
                 bool handled = false;
 
-                if (context.Request.Url.PathAndQuery.StartsWith("/modcontrol"))
+                if (context.Request.Url.PathAndQuery.StartsWith("/modcontrol", StringComparison.Ordinal))
                 {
                     if (!File.Exists(modFile))
                     {

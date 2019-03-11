@@ -43,7 +43,7 @@ namespace DarkMultiPlayerServer
                         Thread.Sleep(500);
                     }
                     DarkLog.Normal("Command input: " + input);
-                    if (input.StartsWith("/"))
+                    if (input.StartsWith("/", StringComparison.Ordinal))
                     {
                         HandleServerInput(input.Substring(1));
                     }

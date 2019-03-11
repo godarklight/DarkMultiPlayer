@@ -234,7 +234,7 @@ namespace DarkMultiPlayer
             string trimmedName = kerbalName;
             if (kerbalName.Contains(" "))
             {
-                trimmedName = kerbalName.Substring(0, kerbalName.LastIndexOf(" "));
+                trimmedName = kerbalName.Substring(0, kerbalName.LastIndexOf(" ", StringComparison.Ordinal));
             }
 
             if (trimmedName == "Valentina")

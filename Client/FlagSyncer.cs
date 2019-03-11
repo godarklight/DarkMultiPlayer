@@ -107,13 +107,15 @@ namespace DarkMultiPlayer
                             }
                         }
                         break;
+                    default:
+                        break;
                 }
             }
         }
 
         private void Update()
         {
-            if (workerEnabled && syncComplete && (HighLogic.CurrentGame != null ? HighLogic.CurrentGame.flagURL != null : false))
+            if (workerEnabled && syncComplete && (HighLogic.CurrentGame != null && HighLogic.CurrentGame.flagURL != null))
             {
                 if (flagChangeEvent)
                 {
@@ -130,13 +132,13 @@ namespace DarkMultiPlayer
         private void HandleFlagChangeEvent()
         {
             string flagURL = HighLogic.CurrentGame.flagURL;
-            if (!flagURL.ToLower().StartsWith("darkmultiplayer/flags/"))
+            if (!flagURL.ToLower().StartsWith("darkmultiplayer/flags/", StringComparison.Ordinal))
             {
                 //If it's not a DMP flag don't sync it.
                 return;
             }
             string flagName = flagURL.Substring("DarkMultiPlayer/Flags/".Length);
-            if (serverFlags.ContainsKey(flagName) ? serverFlags[flagName].owner != dmpSettings.playerName : false)
+            if (serverFlags.ContainsKey(flagName) && serverFlags[flagName].owner != dmpSettings.playerName)
             {
                 //If the flag is owned by someone else don't sync it
                 return;
@@ -152,10 +154,10 @@ namespace DarkMultiPlayer
                 }
             }
             //Sanity check to make sure we found the file
-            if (flagFile != "" ? File.Exists(flagFile) : false)
+            if (flagFile != "" && File.Exists(flagFile))
             {
                 string shaSum = Common.CalculateSHA256Hash(flagFile);
-                if (serverFlags.ContainsKey(flagName) ? serverFlags[flagName].shaSum == shaSum : false)
+                if (serverFlags.ContainsKey(flagName) && serverFlags[flagName].shaSum == shaSum)
                 {
                     //Don't send the flag when the SHA sum already matches
                     return;
@@ -191,10 +193,7 @@ namespace DarkMultiPlayer
                 bool containsTexture = false;
                 foreach (GameDatabase.TextureInfo databaseTi in GameDatabase.Instance.databaseTexture)
                 {
-                    if (databaseTi.name == ti.name)
-                    {
-                        containsTexture = true;
-                    }
+                    containsTexture |= databaseTi.name == ti.name;
                 }
                 if (!containsTexture)
                 {
