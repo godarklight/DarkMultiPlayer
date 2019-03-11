@@ -487,6 +487,51 @@ namespace DarkMultiPlayer
 
             foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
             {
+                //If we are receiving messages from mesh vessels, do not apply normal updates, and clear them
+                if (vesselUpdateMeshQueue.ContainsKey(vesselQueue.Key) && vesselUpdateMeshQueue[vesselQueue.Key].Count > 0)
+                {
+                    vesselQueue.Value.Clear();
+                    continue;
+                }
+                VesselUpdate vu = null;
+                //Get the latest position update
+                while (vesselQueue.Value.Count > 0)
+                {
+                    double thisInterpolatorDelay = 0f;
+                    if (vesselQueue.Value.Peek().isSurfaceUpdate)
+                    {
+                        thisInterpolatorDelay = interpolatorDelay;
+                    }
+                    if ((vesselQueue.Value.Peek().planetTime + thisDelayTime + thisInterpolatorDelay) < thisPlanetTime)
+                    {
+                        vu = vesselQueue.Value.Dequeue();
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+                //Apply it if there is any
+                if (vu != null)
+                {
+                    VesselUpdate previousUpdate = null;
+                    if (previousUpdates.ContainsKey(vu.vesselID))
+                    {
+                        previousUpdate = previousUpdates[vu.vesselID];
+                    }
+                    VesselUpdate nextUpdate = null;
+                    if (vesselQueue.Value.Count > 0)
+                    {
+                        nextUpdate = vesselQueue.Value.Peek();
+                    }
+                    vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, nextUpdate, dmpSettings);
+                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate, nextUpdate);
+                    previousUpdates[vu.vesselID] = vu;
+                }
+            }
+
+            foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateMeshQueue)
+            {
                 VesselUpdate vu = null;
                 //Get the latest position update
                 while (vesselQueue.Value.Count > 0)
@@ -544,6 +589,7 @@ namespace DarkMultiPlayer
                     kerbalProtoQueue.Clear();
                     vesselProtoQueue.Clear();
                     vesselUpdateQueue.Clear();
+                    vesselUpdateMeshQueue.Clear();
                     vesselRemoveQueue.Clear();
                     //Kerbal queue
                     KerbalEntry lastKerbalEntry = null;
@@ -1031,7 +1077,7 @@ namespace DarkMultiPlayer
             bool notRecentlySentProtoUpdate = !serverVesselsProtoUpdate.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL);
             bool notRecentlySentPositionUpdate = !serverVesselsPositionUpdate.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / (float)dynamicTickWorker.sendTickRate));
             //20Hz mesh rate
-            bool notRecentlySentPositionUpdateForMesh = !serverVesselsPositionUpdateMesh.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > .05f);
+            bool notRecentlySentPositionUpdateForMesh = !serverVesselsPositionUpdateMesh.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdateMesh[checkVessel.id]) > .05f);
 
             //Check that is hasn't been recently sent
             if (notRecentlySentProtoUpdate)
@@ -2334,9 +2380,8 @@ namespace DarkMultiPlayer
         {
             lock (updateQueueLock)
             {
-                if (fromMesh)
+                if (!fromMesh)
                 {
-
                     if (!vesselUpdateQueue.ContainsKey(update.vesselID))
                     {
                         vesselUpdateQueue.Add(update.vesselID, new Queue<VesselUpdate>());
@@ -2401,7 +2446,16 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    throw new NotImplementedException("We got a vessel message from the mesh!");
+                    if (!vesselUpdateMeshQueue.ContainsKey(update.vesselID))
+                    {
+                        vesselUpdateMeshQueue.Add(update.vesselID, new Queue<VesselUpdate>());
+                    }
+                    Queue<VesselUpdate> vuQueue = vesselUpdateQueue[update.vesselID];
+                    vuQueue.Enqueue(update);
+                    if (vuQueue.Count == 0)
+                    {
+                        vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
+                    }
                 }
             }
         }

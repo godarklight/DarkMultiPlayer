@@ -401,6 +401,7 @@ namespace DarkMultiPlayerServer
             serverStarting = false;
             serverRunning = false;
             StopHTTPServer();
+            StopMeshServer();
         }
         //Restart
         private static void Restart(string commandArgs)

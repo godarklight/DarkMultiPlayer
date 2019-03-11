@@ -526,6 +526,10 @@ namespace DarkMultiPlayer
                     {
                         DarkLog.Debug("Error closing connection: " + e.Message);
                     }
+                    if (meshClient != null)
+                    {
+                        meshClient.Shutdown();
+                    }
                     terminateThreadsOnNextUpdate = true;
                 }
             }
@@ -569,6 +573,13 @@ namespace DarkMultiPlayer
             catch
             {
                 //Don't care
+            }
+            try
+            {
+                meshClientThread.Abort();
+            }
+            catch
+            {
             }
         }
 
@@ -707,7 +718,10 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                HandleDisconnectException(e);
+                if (state != ClientState.DISCONNECTED)
+                {
+                    HandleDisconnectException(e);
+                }
             }
         }
 
@@ -853,7 +867,10 @@ namespace DarkMultiPlayer
             }
             catch (Exception e)
             {
-                HandleDisconnectException(e);
+                if (state != ClientState.DISCONNECTED)
+                {
+                    HandleDisconnectException(e);
+                }
             }
         }
 
@@ -2096,7 +2113,7 @@ namespace DarkMultiPlayer
             ClientMessage newMessage = GetVesselUpdateMessage(update);
             foreach (string playerName in warpWorker.GetClientsInSubspace(timeSyncer.currentSubspace))
             {
-                if (meshPlayerGuids.ContainsKey(playerName))
+                if (meshPlayerGuids.ContainsKey(playerName) && playerName != dmpSettings.playerName)
                 {
                     meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data);
                 }
