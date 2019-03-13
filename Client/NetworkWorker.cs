@@ -591,12 +591,23 @@ namespace DarkMultiPlayer
         {
             string fromPlayer = System.Text.Encoding.UTF8.GetString(inputData, 24, inputData.Length - 24);
             meshPlayerGuids[fromPlayer] = clientGuid;
-            DarkLog.Debug("Mesh message from " + fromPlayer + ", GUID: " + clientGuid);
         }
 
         private void HandleMeshVesselUpdate(byte[] inputData, Guid clientGuid, IPEndPoint endPoint)
         {
+            HandleVesselUpdate(inputData, true);
+        }
 
+        public string GetMeshPlayername(Guid peerGuid)
+        {
+            foreach (KeyValuePair<string, Guid> kvp in meshPlayerGuids)
+            {
+                if (kvp.Value == peerGuid)
+                {
+                    return kvp.Key;
+                }
+            }
+            return null;
         }
 
         public void SendMeshSetPlayer()
@@ -2334,6 +2345,11 @@ namespace DarkMultiPlayer
                     return ((Common.GetCurrentUnixTime() - lastSendTime) * 1000);
             }
             return 0;
+        }
+
+        public UdpMeshClient GetMesh()
+        {
+            return meshClient;
         }
 
         #endregion

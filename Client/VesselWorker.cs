@@ -62,6 +62,7 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, float> serverVesselsProtoUpdate = new Dictionary<Guid, float>();
         private Dictionary<Guid, float> serverVesselsPositionUpdate = new Dictionary<Guid, float>();
         private Dictionary<Guid, float> serverVesselsPositionUpdateMesh = new Dictionary<Guid, float>();
+        private Dictionary<Guid, float> serverVesselsPositionUpdateMeshReceive = new Dictionary<Guid, float>();
         //Track when the vessel was last controlled.
         private Dictionary<Guid, double> latestVesselUpdate = new Dictionary<Guid, double>();
         private Dictionary<Guid, double> latestUpdateSent = new Dictionary<Guid, double>();
@@ -488,7 +489,7 @@ namespace DarkMultiPlayer
             foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
             {
                 //If we are receiving messages from mesh vessels, do not apply normal updates, and clear them
-                if (vesselUpdateMeshQueue.ContainsKey(vesselQueue.Key) && vesselUpdateMeshQueue[vesselQueue.Key].Count > 0)
+                if (serverVesselsPositionUpdateMeshReceive.ContainsKey(vesselQueue.Key) && (Time.realtimeSinceStartup - serverVesselsPositionUpdateMeshReceive[vesselQueue.Key] < 10f))
                 {
                     vesselQueue.Value.Clear();
                     continue;
@@ -2446,11 +2447,12 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
+                    serverVesselsPositionUpdateMeshReceive[update.vesselID] = Time.realtimeSinceStartup;
                     if (!vesselUpdateMeshQueue.ContainsKey(update.vesselID))
                     {
                         vesselUpdateMeshQueue.Add(update.vesselID, new Queue<VesselUpdate>());
                     }
-                    Queue<VesselUpdate> vuQueue = vesselUpdateQueue[update.vesselID];
+                    Queue<VesselUpdate> vuQueue = vesselUpdateMeshQueue[update.vesselID];
                     vuQueue.Enqueue(update);
                     if (vuQueue.Count == 0)
                     {

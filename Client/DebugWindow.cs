@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UDPMeshLib;
 
 namespace DarkMultiPlayer
 {
@@ -20,6 +21,7 @@ namespace DarkMultiPlayer
         private bool displayProfilerStatistics;
         private bool displayVesselRecorder;
         private bool displayVesselTimeDelay;
+        private bool displayMeshStats;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
@@ -212,6 +214,46 @@ namespace DarkMultiPlayer
                     }
                 }
                 GUILayout.EndHorizontal();
+            }
+            displayMeshStats = GUILayout.Toggle(displayMeshStats, "Mesh statistics", buttonStyle);
+            if (displayMeshStats)
+            {
+                UdpMeshClient udpMesh = networkWorker.GetMesh();
+                foreach (UdpPeer peer in udpMesh.GetPeers())
+                {
+                    if (peer.guid != UdpMeshCommon.GetMeshAddress())
+                    {
+                        string playerName = networkWorker.GetMeshPlayername(peer.guid);
+                        if (playerName != null)
+                        {
+                            GUILayout.Label(playerName + ":", labelStyle);
+
+                        }
+                        else
+                        {
+                            GUILayout.Label(peer.guid + ":", labelStyle);
+                        }
+                        double latency4 = peer.latency4 / (double)TimeSpan.TicksPerMillisecond;
+                        double latency6 = peer.latency6 / (double)TimeSpan.TicksPerMillisecond;
+                        double offset = peer.offset / (double)TimeSpan.TicksPerSecond;
+                        if (peer.usev4)
+                        {
+                            GUILayout.Label("V4 Latency: " + Math.Round(latency4, 2) + "ms", labelStyle);
+                        }
+                        if (peer.usev6)
+                        {
+                            GUILayout.Label("V6 Latency: " + Math.Round(latency6, 2) + "ms", labelStyle);
+                        }
+                        if (peer.usev4 || peer.usev6)
+                        {
+                            GUILayout.Label("Clock offset: " + Math.Round(offset, 2), labelStyle);
+                        }
+                        else
+                        {
+                            GUILayout.Label("No contact - using server relay", labelStyle);
+                        }
+                    }
+                }
             }
             GUILayout.EndVertical();
         }

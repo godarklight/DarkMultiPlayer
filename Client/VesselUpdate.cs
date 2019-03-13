@@ -259,7 +259,7 @@ namespace DarkMultiPlayer
             updateVessel.srfRelRotation = updateRotation;
 
             Vector3 angularVel = updateVessel.ReferenceTransform.rotation * new Vector3(angularVelocity[0], angularVelocity[1], angularVelocity[2]);
-            if (updateVessel.parts != null && !updateVessel.packed)
+            if (updateVessel.parts != null)
             {
                 for (int i = 0; i < updateVessel.parts.Count; i++)
                 {
