@@ -257,18 +257,6 @@ namespace DarkMultiPlayer
                 return "";
             }
         }
-
-        public List<string> GetPlayerLocks(string playerName)
-        {
-            List<string> retVal = new List<string>();
-            foreach (KeyValuePair<string, string> kvp in serverLocks)
-            {
-                if (kvp.Value == playerName)
-                {
-                    retVal.Add(kvp.Key);
-                }
-            }
-            return retVal;
-        }
     }
 }
+

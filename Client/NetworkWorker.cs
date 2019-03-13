@@ -1587,6 +1587,16 @@ namespace DarkMultiPlayer
             vesselWorker.QueueVesselUpdate(update, fromMesh);
         }
 
+        private void HandleSetActiveVessel(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                string player = mr.Read<string>();
+                Guid vesselID = new Guid(mr.Read<string>());
+                vesselWorker.QueueActiveVessel(player, vesselID);
+            }
+        }
+
         private void HandleVesselComplete()
         {
             state = ClientState.VESSELS_SYNCED;
@@ -2116,20 +2126,7 @@ namespace DarkMultiPlayer
             {
                 if (meshPlayerGuids.ContainsKey(playerName) && playerName != dmpSettings.playerName)
                 {
-                    List<string> playerLocks = lockSystem.GetPlayerLocks(playerName);
-                    Vessel closeVessel = null;
-                    foreach (string testLock in playerLocks)
-                    {
-                        if (testLock.StartsWith("control-"))
-                        {
-                            Guid vesselGuid = new Guid(testLock.Substring(8));
-                            closeVessel = FlightGlobals.Vessels.Find(v => v.id == vesselGuid);
-                        }
-                    }
-                    if (closeVessel != null && closeVessel.loaded)
-                    {
-                        meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data);
-                    }
+                    meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data);
                 }
             }
         }

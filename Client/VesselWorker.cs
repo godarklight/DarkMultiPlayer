@@ -47,6 +47,7 @@ namespace DarkMultiPlayer
         private Dictionary<Guid, VesselCtrlUpdate> vesselControlUpdates = new Dictionary<Guid, VesselCtrlUpdate>();
         private double lastUniverseTime = double.NegativeInfinity;
         //Vessel tracking
+        private Queue<ActiveVesselEntry> newActiveVessels = new Queue<ActiveVesselEntry>();
         private HashSet<Guid> serverVessels = new HashSet<Guid>();
         private Dictionary<Guid, bool> vesselPartsOk = new Dictionary<Guid, bool>();
         //Vessel state tracking
@@ -1123,7 +1124,7 @@ namespace DarkMultiPlayer
                 }
             }
             //Mesh send
-            if (checkVessel == FlightGlobals.fetch.activeVessel && notRecentlySentPositionUpdateForMesh && checkVessel.vesselType != VesselType.Flag)
+            if (notRecentlySentPositionUpdateForMesh && checkVessel.vesselType != VesselType.Flag)
             {
                 //Send a position update - Except for flags. They aren't exactly known for their mobility.
                 serverVesselsPositionUpdateMesh[checkVessel.id] = Client.realtimeSinceStartup;
@@ -2459,6 +2460,14 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+        }
+
+        public void QueueActiveVessel(string player, Guid vesselID)
+        {
+            ActiveVesselEntry ave = new ActiveVesselEntry();
+            ave.player = player;
+            ave.vesselID = vesselID;
+            newActiveVessels.Enqueue(ave);
         }
 
         public void IgnoreVessel(Guid vesselID)
