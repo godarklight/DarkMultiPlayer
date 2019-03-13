@@ -68,7 +68,7 @@ namespace DarkMultiPlayer
                                         }
                                         break;
                                     case (Vessel.Situations.FLYING):
-                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!SafetyBubble.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody, vesselWorker.safetyBubbleDistance))
                                         {
                                             myPlayerStatus.statusText = "Flying above " + bodyName;
                                         }
@@ -78,7 +78,7 @@ namespace DarkMultiPlayer
                                         }
                                         break;
                                     case (Vessel.Situations.LANDED):
-                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!SafetyBubble.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody, vesselWorker.safetyBubbleDistance))
                                         {
                                             myPlayerStatus.statusText = "Landed on " + bodyName;
                                         }
@@ -91,7 +91,7 @@ namespace DarkMultiPlayer
                                         myPlayerStatus.statusText = "Orbiting " + bodyName;
                                         break;
                                     case (Vessel.Situations.PRELAUNCH):
-                                        if (!vesselWorker.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+                                        if (!SafetyBubble.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody, vesselWorker.safetyBubbleDistance))
                                         {
                                             myPlayerStatus.statusText = "Launching from " + bodyName;
                                         }

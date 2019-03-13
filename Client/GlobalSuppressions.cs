@@ -24,4 +24,5 @@
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:DarkMultiPlayer.Button.mouseEntered(System.Object)")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE1006:Naming Styles", Justification = "<Pending>", Scope = "member", Target = "~M:DarkMultiPlayer.Button.mouseLeft(System.Object)")]
 [assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Potential Code Quality Issues", "RECS0082:Parameter has the same name as a member and hides it", Justification = "<Pending>", Scope = "member", Target = "~M:DarkMultiPlayer.Button.detachEventHandler(System.Reflection.EventInfo,System.Delegate,System.Object)")]
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("Potential Code Quality Issues", "RECS0018:Comparison of floating point numbers with equality operator", Justification = "<Pending>", Scope = "member", Target = "~M:DarkMultiPlayer.SafetyBubblePosition.Equals(System.Object)~System.Boolean")]
 

@@ -104,6 +104,7 @@ namespace DarkMultiPlayer
             connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
             disclaimerWindow = new DisclaimerWindow(dmpSettings);
             dmpModInterface = new DMPModInterface();
+            SafetyBubble.RegisterDefaultLocations();
 
             if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
                 modDisabled = true;

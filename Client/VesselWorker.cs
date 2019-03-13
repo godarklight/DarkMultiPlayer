@@ -940,7 +940,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if (isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody))
+            if (SafetyBubble.isInSafetyBubble(FlightGlobals.fetch.activeVessel.GetWorldPos3D(), FlightGlobals.fetch.activeVessel.mainBody, safetyBubbleDistance))
             {
                 //Don't send updates while in the safety bubble
                 return;
@@ -963,7 +963,7 @@ namespace DarkMultiPlayer
                 if (checkVessel.loaded && !checkVessel.packed && (checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString()) && (checkVessel.state != Vessel.State.DEAD))
                 {
                     //Don't update vessels in the safety bubble
-                    if (!isInSafetyBubble(checkVessel.GetWorldPos3D(), checkVessel.mainBody))
+                    if (!SafetyBubble.isInSafetyBubble(checkVessel.GetWorldPos3D(), checkVessel.mainBody, safetyBubbleDistance))
                     {
                         //Only attempt to update vessels that we have locks for, and ask for locks. Dont bother with controlled vessels
                         bool updateLockIsFree = !lockSystem.LockExists("update-" + checkVessel.id.ToString());
@@ -1215,20 +1215,7 @@ namespace DarkMultiPlayer
                 return false;
             }
         }
-        //Adapted from KMP. Called from PlayerStatusWorker.
-        public bool isInSafetyBubble(Vector3d worlPos, CelestialBody body)
-        {
-            //If not at Kerbin or past ceiling we're definitely clear
-            if (body.name != "Kerbin")
-            {
-                return false;
-            }
-            Vector3d landingPadPosition = body.GetWorldSurfacePosition(-0.0971978130377757, 285.44237039111, 60);
-            Vector3d runwayPosition = body.GetWorldSurfacePosition(-0.0486001121594686, 285.275552559723, 60);
-            double landingPadDistance = Vector3d.Distance(worlPos, landingPadPosition);
-            double runwayDistance = Vector3d.Distance(worlPos, runwayPosition);
-            return runwayDistance < safetyBubbleDistance || landingPadDistance < safetyBubbleDistance;
-        }
+
         //Adapted from KMP.
         private bool isProtoVesselInSafetyBubble(ProtoVessel protovessel)
         {
@@ -1254,7 +1241,7 @@ namespace DarkMultiPlayer
                 return false;
             }
             Vector3d protoVesselPosition = kerbinBody.GetWorldSurfacePosition(protovessel.latitude, protovessel.longitude, protovessel.altitude);
-            return isInSafetyBubble(protoVesselPosition, kerbinBody);
+            return SafetyBubble.isInSafetyBubble(protoVesselPosition, kerbinBody, safetyBubbleDistance);
         }
         //Called from main
         public void LoadKerbalsIntoGame()
