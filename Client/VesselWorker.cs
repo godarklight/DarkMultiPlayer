@@ -31,8 +31,8 @@ namespace DarkMultiPlayer
         private object updateQueueLock = new object();
         private Dictionary<Guid, Queue<VesselRemoveEntry>> vesselRemoveQueue = new Dictionary<Guid, Queue<VesselRemoveEntry>>();
         private Dictionary<Guid, Queue<VesselProtoUpdate>> vesselProtoQueue = new Dictionary<Guid, Queue<VesselProtoUpdate>>();
-        private Dictionary<Guid, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<Guid, Queue<VesselUpdate>>();
-        private Dictionary<Guid, Queue<VesselUpdate>> vesselUpdateMeshQueue = new Dictionary<Guid, Queue<VesselUpdate>>();
+        internal Dictionary<Guid, Queue<VesselUpdate>> vesselUpdateQueue = new Dictionary<Guid, Queue<VesselUpdate>>();
+        internal Dictionary<Guid, Queue<VesselUpdate>> vesselUpdateMeshQueue = new Dictionary<Guid, Queue<VesselUpdate>>();
         private Dictionary<string, Queue<KerbalEntry>> kerbalProtoQueue = new Dictionary<string, Queue<KerbalEntry>>();
         private Dictionary<Guid, VesselUpdate> previousUpdates = new Dictionary<Guid, VesselUpdate>();
         //Incoming revert support

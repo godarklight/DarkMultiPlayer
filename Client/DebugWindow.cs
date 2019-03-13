@@ -22,6 +22,7 @@ namespace DarkMultiPlayer
         private bool displayVesselRecorder;
         private bool displayVesselTimeDelay;
         private bool displayMeshStats;
+        private bool displayVesselCache;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
@@ -252,6 +253,26 @@ namespace DarkMultiPlayer
                         {
                             GUILayout.Label("No contact - using server relay", labelStyle);
                         }
+                    }
+                }
+            }
+            displayVesselCache = GUILayout.Toggle(displayVesselCache, "Display vessel cache", buttonStyle);
+            if (displayVesselCache)
+            {
+                GUILayout.Label("Normal:", labelStyle);
+                foreach (KeyValuePair<Guid, Queue<VesselUpdate>> kvp in vesselWorker.vesselUpdateQueue)
+                {
+                    if (kvp.Value.Count > 0)
+                    {
+                        GUILayout.Label(kvp.Key + ": " + kvp.Value.Count, labelStyle);
+                    }
+                }
+                GUILayout.Label("Mesh:", labelStyle);
+                foreach (KeyValuePair<Guid, Queue<VesselUpdate>> kvp in vesselWorker.vesselUpdateMeshQueue)
+                {
+                    if (kvp.Value.Count > 0)
+                    {
+                        GUILayout.Label(kvp.Key + ": " + kvp.Value.Count, labelStyle);
                     }
                 }
             }

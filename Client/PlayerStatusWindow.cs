@@ -250,7 +250,11 @@ namespace DarkMultiPlayer
                 GUILayout.Label("T+ " + SecondsToShortString((int)currentTime) + " - " + diffState);
                 GUILayout.FlexibleSpace();
                 //Draw the sync button if needed
+#if !DEBUG
                 if ((warpWorker.warpMode == WarpMode.SUBSPACE) && !currentEntry.isUs && !currentEntry.isWarping && (currentEntry.subspaceEntry != null) && (diffTime > 0))
+#else
+                if ((warpWorker.warpMode == WarpMode.SUBSPACE) && !currentEntry.isUs && !currentEntry.isWarping && (currentEntry.subspaceEntry != null))
+#endif
                 {
                     if (GUILayout.Button("Sync", buttonStyle))
                     {

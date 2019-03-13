@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 using DarkMultiPlayerCommon;
 using MessageStream2;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
@@ -74,12 +74,17 @@ namespace DarkMultiPlayer
         private const float SYNC_TIME_INTERVAL = 30f;
         private const float CLOCK_SET_INTERVAL = .1f;
         private const int SYNC_TIME_VALID = 4;
-        private const int SYNC_TIME_MAX = 10;
         private float lastSyncTime = 0f;
         private float lastClockSkew = 0f;
-        private List<long> clockOffset = new List<long>();
-        private List<long> networkLatency = new List<long>();
-        private List<float> requestedRatesList = new List<float>();
+        private bool clockOffsetFull = false;
+        private int clockOffsetPos = 0;
+        private long[] clockOffset = new long[10];
+        private bool networkLatencyFull = false;
+        private int networkLatencyPos = 0;
+        private long[] networkLatency = new long[10];
+        private bool requestedRatesListFull = false;
+        private int requestedRatesListPos = 0;
+        private float[] requestedRatesList = new float[50];
         private Dictionary<int, Subspace> subspaces = new Dictionary<int, Subspace>();
         //Services
         private DMPGame dmpGame;
@@ -137,11 +142,9 @@ namespace DarkMultiPlayer
         {
             if (HighLogic.LoadedScene != GameScenes.FLIGHT)
             {
-                if (requestedRatesList.Count > 0)
-                {
-                    requestedRatesList.Clear();
-                    requestedRate = 1f;
-                }
+                requestedRatesListPos = 0;
+                requestedRatesListFull = false;
+                requestedRate = 1f;
             }
 
             if (Time.timeSinceLevelLoad < 1f)
@@ -263,7 +266,11 @@ namespace DarkMultiPlayer
 
         private void SkewClock(double currentError)
         {
-            float timeWarpRate = (float)Math.Pow(2, -currentError);
+            float timeWarpRate = (float)Math.Pow(10, -currentError);
+            if (currentError > 0)
+            {
+                timeWarpRate = timeWarpRate * lockedSubspace.subspaceSpeed;
+            }
             if (timeWarpRate > MAX_CLOCK_RATE)
             {
                 timeWarpRate = MAX_CLOCK_RATE;
@@ -278,19 +285,25 @@ namespace DarkMultiPlayer
             {
                 tempRequestedRate = MAX_SUBSPACE_RATE;
             }
-            requestedRatesList.Add(tempRequestedRate);
-            //Delete entries if there are too many
-            while (requestedRatesList.Count > 50)
+            requestedRatesList[requestedRatesListPos] = tempRequestedRate;
+            requestedRatesListPos++;
+            if (requestedRatesListPos >= requestedRatesList.Length)
             {
-                requestedRatesList.RemoveAt(0);
+                requestedRatesListFull = true;
+                requestedRatesListPos = 0;
             }
             //Set the average requested rate
             float requestedRateTotal = 0f;
-            foreach (float requestedRateEntry in requestedRatesList)
+            int requestedEndPos = requestedRatesListPos;
+            if (requestedRatesListFull)
             {
-                requestedRateTotal += requestedRateEntry;
+                requestedEndPos = requestedRatesList.Length;
             }
-            requestedRate = requestedRateTotal / requestedRatesList.Count;
+            for (int i = 0; i < requestedEndPos; i++)
+            {
+                requestedRateTotal += requestedRatesList[i];
+            }
+            requestedRate = requestedRateTotal / requestedEndPos;
 
             //Set the physwarp rate
             Time.timeScale = timeWarpRate;
@@ -483,34 +496,48 @@ namespace DarkMultiPlayer
             long clientReceive = DateTime.UtcNow.Ticks;
             long clientLatency = (clientReceive - clientSend) - (serverSend - serverReceive);
             long clientOffset = ((serverReceive - clientSend) + (serverSend - clientReceive)) / 2;
-            clockOffset.Add(clientOffset);
-            networkLatency.Add(clientLatency);
+            clockOffset[clockOffsetPos] = clientOffset;
+            clockOffsetPos++;
+            networkLatency[networkLatencyPos] = clientLatency;
+            networkLatencyPos++;
             serverLag = serverSend - serverReceive;
-            if (clockOffset.Count > SYNC_TIME_MAX)
+            if (clockOffsetPos >= clockOffset.Length)
             {
-                clockOffset.RemoveAt(0);
+                clockOffsetPos = 0;
+                clockOffsetFull = true;
             }
-            if (networkLatency.Count > SYNC_TIME_MAX)
+            if (networkLatencyPos >= networkLatency.Length)
             {
-                networkLatency.RemoveAt(0);
+                networkLatencyPos = 0;
+                networkLatencyFull = true;
             }
             long clockOffsetTotal = 0;
-            //Calculate the average for the offset and latency.
-            foreach (long currentOffset in clockOffset)
+            int clockOffsetEndPos = clockOffsetPos;
+            if (clockOffsetFull)
             {
-                clockOffsetTotal += currentOffset;
+                clockOffsetEndPos = clockOffset.Length;
             }
-            clockOffsetAverage = clockOffsetTotal / clockOffset.Count;
+            for (int i = 0; i < clockOffsetEndPos; i++)
+            {
+                clockOffsetTotal += clockOffset[i];
+            }
+            clockOffsetAverage = clockOffsetTotal / clockOffsetEndPos;
+
 
             long networkLatencyTotal = 0;
-            foreach (long currentLatency in networkLatency)
+            int networkLatencyEndPos = clockOffsetPos;
+            if (networkLatencyFull)
             {
-                networkLatencyTotal += currentLatency;
+                networkLatencyEndPos = networkLatency.Length;
             }
-            networkLatencyAverage = networkLatencyTotal / networkLatency.Count;
+            for (int i = 0; i < networkLatencyEndPos; i++)
+            {
+                networkLatencyTotal += networkLatency[i];
+            }
+            networkLatencyAverage = networkLatencyTotal / networkLatencyEndPos;
 
             //Check if we are now synced
-            if ((clockOffset.Count > SYNC_TIME_VALID) && !synced)
+            if ((clockOffsetFull || clockOffsetPos > SYNC_TIME_VALID) && !synced)
             {
                 synced = true;
                 float clockOffsetAverageMs = clockOffsetAverage / 10000f;
