@@ -201,13 +201,20 @@ namespace DarkMultiPlayer
                     }
                 }
 
-                if (interpolatorEnabled && nextUpdate != null && (Math.Abs(nextUpdate.planetTime - Planetarium.GetUniversalTime())) < 5f)
+                if (interpolatorEnabled)
                 {
-                    double scaling = (Planetarium.GetUniversalTime() - interpolatorDelay - planetTime) / (nextUpdate.planetTime - planetTime);
-                    Vector3d nextPosition = updateBody.GetWorldSurfacePosition(nextUpdate.position[0], nextUpdate.position[1], nextUpdate.position[2] + altitudeFudge);
-                    Vector3d nextVelocity = updateBody.bodyTransform.rotation * new Vector3d(nextUpdate.velocity[0], nextUpdate.velocity[1], nextUpdate.velocity[2]);
-                    newUpdatePostion = Vector3d.Lerp(updatePostion, nextPosition, scaling);
-                    newUpdateVelocity = Vector3d.Lerp(updateVelocity, nextVelocity, scaling);
+                    if (nextUpdate != null && (Math.Abs(nextUpdate.planetTime - Planetarium.GetUniversalTime())) < 5f)
+                    {
+                        double scaling = (Planetarium.GetUniversalTime() - interpolatorDelay - planetTime) / (nextUpdate.planetTime - planetTime);
+                        Vector3d nextPosition = updateBody.GetWorldSurfacePosition(nextUpdate.position[0], nextUpdate.position[1], nextUpdate.position[2] + altitudeFudge);
+                        Vector3d nextVelocity = updateBody.bodyTransform.rotation * new Vector3d(nextUpdate.velocity[0], nextUpdate.velocity[1], nextUpdate.velocity[2]);
+                        newUpdatePostion = Vector3d.Lerp(updatePostion, nextPosition, scaling);
+                        newUpdateVelocity = Vector3d.Lerp(updateVelocity, nextVelocity, scaling);
+                    }
+                    else
+                    {
+                        StepExtrapolateWithRotation(previousUpdate, updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                    }
                 }
                 Vector3d vectorBetweenCoMandRoot = updateVessel.orbitDriver.driverTransform.rotation * updateVessel.localCoM;
                 Vector3d orbitalPos = newUpdatePostion + vectorBetweenCoMandRoot - updateBody.position;
@@ -240,7 +247,7 @@ namespace DarkMultiPlayer
                 }
             }
 
-                if (nextUpdate != null && interpolatorEnabled && isSurfaceUpdate)
+            if (nextUpdate != null && interpolatorEnabled && isSurfaceUpdate)
             {
                 double deltaUpdateT = nextUpdate.planetTime - planetTime;
                 double deltaRealT = Planetarium.GetUniversalTime() - interpolatorDelay - planetTime;
@@ -389,7 +396,7 @@ namespace DarkMultiPlayer
         }
 
         //Supports scaling past 1x, unlike Quaternion.Lerp
-        private Quaternion RotationLerp(Quaternion from, Quaternion to, float scaling)
+        public static Quaternion RotationLerp(Quaternion from, Quaternion to, float scaling)
         {
             Quaternion rotationDelta = to * Quaternion.Inverse(from);
             Vector3 rotAxis;
@@ -400,7 +407,7 @@ namespace DarkMultiPlayer
                 rotAngle -= 360;
             }
             rotAngle = (rotAngle * scaling) % 360;
-            return Quaternion.AngleAxis(rotAngle, rotAxis) * to;
+            return Quaternion.AngleAxis(rotAngle, rotAxis) * from;
         }
     }
 }

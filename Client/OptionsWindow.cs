@@ -171,9 +171,6 @@ namespace DarkMultiPlayer
         {
             switch (dmpSettings.interpolatorType)
             {
-                case InterpolatorType.DISABLED:
-                    interpolatorMode = "Interpolator: Disabled";
-                    break;
                 case InterpolatorType.EXTRAPOLATE_FULL:
                     interpolatorMode = "Extrapolate with rotational acceleration";
                     break;

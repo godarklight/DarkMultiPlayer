@@ -271,15 +271,24 @@ namespace DarkMultiPlayer
 
                 string interpolatorString = null;
                 int interpolatorInt = 0;
-                if (!settingsNode.TryGetValue("interpolation", ref interpolatorString) || !int.TryParse(interpolatorString, out interpolatorInt))
+                try
                 {
-                    DarkLog.Debug("[Settings]: Adding interpolation flag to settings file");
+                    //Make sure we haven't saved to the old int type
+                    if (settingsNode.TryGetValue("interpolation", ref interpolatorString) && !int.TryParse(interpolatorString, out interpolatorInt))
+                    {
+                        interpolatorType = (InterpolatorType)Enum.Parse(typeof(InterpolatorType), interpolatorString);
+                    }
+                    else
+                    {
+                        DarkLog.Debug("[Settings]: Adding interpolation flag to settings file");
+                        interpolatorType = InterpolatorType.INTERPOLATE1S;
+                        saveAfterLoad = true;
+                    }
+                }
+                catch
+                {
                     interpolatorType = InterpolatorType.INTERPOLATE1S;
                     saveAfterLoad = true;
-                }
-                else
-                {
-                    interpolatorType = (InterpolatorType)interpolatorInt;
                 }
 
                 if (!settingsNode.TryGetValue("posLoadedVessels", ref interframeEnabled))
@@ -380,7 +389,7 @@ namespace DarkMultiPlayer
             settingsNode.SetValue("disclaimer", disclaimerAccepted, true);
             settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
-            settingsNode.SetValue("interpolation", (int)interpolatorType, true);
+            settingsNode.SetValue("interpolation", interpolatorType.ToString(), true);
             settingsNode.SetValue("posLoadedVessels", interframeEnabled, true);
             settingsNode.SetValue("toolbar", (int)toolbarType, true);
 
@@ -429,7 +438,6 @@ namespace DarkMultiPlayer
 
     public enum InterpolatorType
     {
-        DISABLED,
         EXTRAPOLATE_FULL,
         EXTRAPOLATE_NO_ROT,
         INTERPOLATE1S,

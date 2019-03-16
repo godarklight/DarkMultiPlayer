@@ -8,16 +8,24 @@ namespace DarkMultiPlayer
         private PosistionStatistics posistionStatistics;
         private LockSystem lockSystem;
         private Settings dmpSettings;
+        private VesselRecorder vesselRecorder;
         private Dictionary<Guid, VesselUpdate> nextVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> currentVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> previousVesselUpdates = new Dictionary<Guid, VesselUpdate>();
 
-        public VesselInterFrameUpdater (LockSystem lockSystem, PosistionStatistics posistionStatistics, Settings dmpSettings)
+        public VesselInterFrameUpdater(LockSystem lockSystem, PosistionStatistics posistionStatistics, Settings dmpSettings)
         {
             this.lockSystem = lockSystem;
             this.posistionStatistics = posistionStatistics;
             this.dmpSettings = dmpSettings;
         }
+
+        /*
+        public void SetVesselRecoder(VesselRecorder vesselRecorder)
+        {
+            this.vesselRecorder = vesselRecorder;
+        }
+        */
 
         public void SetVesselUpdate(Guid vesselID, VesselUpdate vesselUpdate, VesselUpdate previousUpdate, VesselUpdate nextUpdate)
         {
@@ -52,10 +60,6 @@ namespace DarkMultiPlayer
                 {
                     return;
                 }
-                if (dmpSettings.interpolatorType == InterpolatorType.DISABLED)
-                {
-                    return;
-                }
                 VesselUpdate vu = currentVesselUpdates[vesselID];
                 VesselUpdate pu = null;
                 if (previousVesselUpdates.ContainsKey(vesselID))
@@ -74,6 +78,7 @@ namespace DarkMultiPlayer
                     vu.Apply(posistionStatistics, null, pu, nu, dmpSettings);
                 }
             }
+            //vesselRecorder.DisplayUpdateVesselOffset();
         }
     }
 }

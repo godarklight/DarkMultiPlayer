@@ -1519,7 +1519,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private VesselUpdate VeselUpdateFromBytes(byte[] messageData)
+        public VesselUpdate VeselUpdateFromBytes(byte[] messageData)
         {
             VesselUpdate update = new VesselUpdate(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
@@ -2047,14 +2047,17 @@ namespace DarkMultiPlayer
                 }
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
-                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO);
+                if (vessel.vesselID == FlightGlobals.fetch.activeVessel.id)
+                {
+                    vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO);
+                }
             }
             else
             {
                 DarkLog.Debug("Failed to create byte[] data for " + vessel.vesselID);
             }
         }
-        private ClientMessage GetVesselUpdateMessage(VesselUpdate update)
+        public ClientMessage GetVesselUpdateMessage(VesselUpdate update)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
@@ -2116,7 +2119,10 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = GetVesselUpdateMessage(update);
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE);
+            if (update.vesselID == FlightGlobals.fetch.activeVessel.id)
+            {
+                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE);
+            }
         }
         //Called from vesselWorker
         public void SendVesselUpdateMesh(VesselUpdate update)
@@ -2148,7 +2154,10 @@ namespace DarkMultiPlayer
                 newMessage.data = mw.GetMessageBytes();
             }
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE);
+            if (vesselID == FlightGlobals.fetch.activeVessel.id)
+            {
+                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE);
+            }
         }
         // Called from VesselWorker
         public void SendKerbalRemove(string kerbalName)

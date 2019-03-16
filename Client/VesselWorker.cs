@@ -1076,7 +1076,7 @@ namespace DarkMultiPlayer
 
             //Send updates for unpacked vessels that aren't being flown by other players
             bool notRecentlySentProtoUpdate = !serverVesselsProtoUpdate.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsProtoUpdate[checkVessel.id]) > VESSEL_PROTOVESSEL_UPDATE_INTERVAL);
-            bool notRecentlySentPositionUpdate = !serverVesselsPositionUpdate.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / (float)dynamicTickWorker.sendTickRate));
+            bool notRecentlySentPositionUpdate = !serverVesselsPositionUpdate.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdate[checkVessel.id]) > (1f / DynamicTickWorker.SEND_TICK_RATE));
             //20Hz mesh rate
             bool notRecentlySentPositionUpdateForMesh = !serverVesselsPositionUpdateMesh.ContainsKey(checkVessel.id) || ((Client.realtimeSinceStartup - serverVesselsPositionUpdateMesh[checkVessel.id]) > .05f);
 

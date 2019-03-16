@@ -343,7 +343,7 @@ namespace DarkMultiPlayer
                     connectionText += "Stored future proto updates: " + vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
 
                     //Dynamic tick text
-                    dynamicTickText = "Current tick rate: " + dynamicTickWorker.sendTickRate + "hz.\n";
+                    dynamicTickText = "Current tick rate: " + DynamicTickWorker.SEND_TICK_RATE + "hz.\n";
                     dynamicTickText += "Current max secondry vessels: " + dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
 
                     //Requested rates text

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using MessageStream2;
 using DarkMultiPlayerCommon;
@@ -8,21 +9,30 @@ namespace DarkMultiPlayer
     {
         public bool active;
         public bool playback;
+        private Guid playbackID;
         ScreenMessage screenMessage;
         private MemoryStream recording;
+        private MemoryStream recordingVector;
         private WarpWorker warpWorker;
+        private Queue<VesselUpdate> playbackQueue;
+        private VesselUpdate lastUpdate;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
+        private string recordVectorPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording-vector.bin");
         private Action<byte[]> HandleProtoUpdate, HandleVesselRemove;
         private Action<byte[], bool> HandleVesselUpdate;
         private VesselWorker vesselWorker;
+        private NetworkWorker networkWorker;
+        private Settings dmpSettings;
         private DMPGame dmpGame;
         private double firstTime;
         private double lastTime;
 
-        public VesselRecorder(DMPGame dmpGame, WarpWorker warpWorker, VesselWorker vesselWorker)
+        public VesselRecorder(DMPGame dmpGame, WarpWorker warpWorker, VesselWorker vesselWorker, NetworkWorker networkWorker, Settings dmpSettings)
         {
             this.warpWorker = warpWorker;
             this.vesselWorker = vesselWorker;
+            this.networkWorker = networkWorker;
+            this.dmpSettings = dmpSettings;
             this.dmpGame = dmpGame;
             this.dmpGame.updateEvent.Add(Update);
         }
@@ -55,6 +65,9 @@ namespace DarkMultiPlayer
         {
             active = true;
             recording = new MemoryStream();
+            recordingVector = new MemoryStream();
+            VesselUpdate update = VesselUpdate.CopyFromVessel(vesselWorker, FlightGlobals.fetch.activeVessel);
+            networkWorker.SendVesselUpdate(update);
         }
 
         public void StopRecord()
@@ -71,6 +84,18 @@ namespace DarkMultiPlayer
             }
             recording.Dispose();
             recording = null;
+
+            if (File.Exists(recordVectorPath))
+            {
+                File.Delete(recordVectorPath);
+            }
+            using (FileStream fs = new FileStream(recordVectorPath, FileMode.Create, FileAccess.Write))
+            {
+                byte[] recordingData = recordingVector.ToArray();
+                fs.Write(recordingData, 0, recordingData.Length);
+            }
+            recordingVector.Dispose();
+            recordingVector = null;
         }
 
         public void CancelRecord()
@@ -78,6 +103,8 @@ namespace DarkMultiPlayer
             active = false;
             recording.Dispose();
             recording = null;
+            recordingVector.Dispose();
+            recordingVector = null;
         }
 
         public void StartPlayback()
@@ -135,6 +162,25 @@ namespace DarkMultiPlayer
                 }
             }
 
+            playbackQueue = new Queue<VesselUpdate>();
+            using (FileStream fs = new FileStream(recordVectorPath, FileMode.Open))
+            {
+                while (fs.Position < fs.Length)
+                {
+                    byte[] headerBytes = new byte[4];
+                    fs.Read(headerBytes, 0, 4);
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        Array.Reverse(headerBytes);
+                    }
+                    int updateLength = BitConverter.ToInt32(headerBytes, 0);
+                    byte[] updateBytes = new byte[updateLength];
+                    fs.Read(updateBytes, 0, updateLength);
+                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes);
+                    playbackQueue.Enqueue(vu);
+                }
+            }
+
             ScreenMessages.PostScreenMessage("Loaded " + messagesLoaded + " saved updates.", 5f, ScreenMessageStyle.UPPER_CENTER);
             screenMessage = ScreenMessages.PostScreenMessage("Playback 0 / " + (int)(lastTime - firstTime) + " seconds.", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
             playback = true;
@@ -144,7 +190,7 @@ namespace DarkMultiPlayer
         {
             if (playback)
             {
-                if (Planetarium.GetUniversalTime() > lastTime)
+                if (Planetarium.GetUniversalTime() > (lastTime))
                 {
                     playback = false;
                     ScreenMessages.RemoveMessage(screenMessage);
@@ -157,7 +203,58 @@ namespace DarkMultiPlayer
                     screenMessage = ScreenMessages.PostScreenMessage("Playback time left: " + timeLeft + " / " + (int)(lastTime - firstTime) + " seconds", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                 }
             }
+
+            if (active)
+            {
+                VesselUpdate vu = VesselUpdate.CopyFromVessel(vesselWorker, FlightGlobals.fetch.activeVessel);
+                ClientMessage updateBytes = networkWorker.GetVesselUpdateMessage(vu);
+                byte[] lengthBytes = BitConverter.GetBytes(updateBytes.data.Length);
+                if (BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(lengthBytes);
+                }
+                recordingVector.Write(lengthBytes, 0, lengthBytes.Length);
+                recordingVector.Write(updateBytes.data, 0, updateBytes.data.Length);
+            }
         }
+
+        /*
+        public void DisplayUpdateVesselOffset()
+        {
+            double interpolatorDelay = 0;
+            if (dmpSettings.interpolatorType == InterpolatorType.INTERPOLATE1S)
+            {
+                interpolatorDelay = 1;
+            }
+            if (dmpSettings.interpolatorType == InterpolatorType.INTERPOLATE3S)
+            {
+                interpolatorDelay = 3;
+            }
+            while (playbackQueue.Count > 0 && Planetarium.GetUniversalTime() > (playbackQueue.Peek().planetTime + interpolatorDelay))
+            {
+                lastUpdate = playbackQueue.Dequeue();
+                playbackID = lastUpdate.vesselID;
+            }
+            if (playbackQueue.Count > 0)
+            {
+                VesselUpdate vu = playbackQueue.Peek();
+                if (lastUpdate != null && vu != null && lastUpdate.isSurfaceUpdate && vu.isSurfaceUpdate)
+                {
+                    Vessel av = FlightGlobals.fetch.vessels.Find(v => v.id == vu.vesselID);
+                    if (av != null)
+                    {
+                        double scaling = (Planetarium.GetUniversalTime() - interpolatorDelay - lastUpdate.planetTime) / (vu.planetTime - lastUpdate.planetTime);
+                        Vector3d orgPos = new Vector3d(lastUpdate.position[0], lastUpdate.position[1], lastUpdate.position[2]);
+                        Vector3d nextPos = new Vector3d(vu.position[0], vu.position[1], vu.position[2]);
+                        Vector3d updatePos = Vector3d.Lerp(orgPos, nextPos, scaling);
+                        Vector3d distanceInPos = av.mainBody.GetWorldSurfacePosition(av.latitude, av.longitude, av.altitude) - av.mainBody.GetWorldSurfacePosition(updatePos.x, updatePos.y, updatePos.z);
+                        double timeDiff = Planetarium.GetUniversalTime() - interpolatorDelay - lastUpdate.planetTime;
+                        DarkLog.Debug("Difference in position: " + Math.Round(distanceInPos.magnitude, 3) + ", scaling: " + Math.Round(scaling, 3));
+                    }
+                }
+            }
+        }
+        */
 
         public void Stop()
         {
