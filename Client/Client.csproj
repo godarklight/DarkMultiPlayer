@@ -50,6 +50,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine.UI">
       <HintPath>..\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
     </Reference>
     <Reference Include="UDPMeshLib">
       <HintPath>..\UDPMeshLib.dll</HintPath>
