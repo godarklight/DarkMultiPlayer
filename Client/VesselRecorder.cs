@@ -44,21 +44,23 @@ namespace DarkMultiPlayer
             this.HandleVesselRemove = HandleVesselRemove;
         }
 
-        public void RecordSend(byte[] data, ClientMessageType messageType)
+        public void RecordSend(byte[] data, ClientMessageType messageType, Guid vesselID)
         {
             if (!active)
             {
                 return;
             }
-            using (MessageWriter mw = new MessageWriter())
+            if (HighLogic.LoadedSceneIsFlight && FlightGlobals.fetch != null && FlightGlobals.fetch.activeVessel != null && FlightGlobals.fetch.activeVessel.id == vesselID)
             {
-                mw.Write<int>((int)messageType);
-                mw.Write<int>(data.Length);
-                byte[] headerData = mw.GetMessageBytes();
-                recording.Write(headerData, 0, headerData.Length);
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)messageType);
+                    mw.Write<int>(data.Length);
+                    byte[] headerData = mw.GetMessageBytes();
+                    recording.Write(headerData, 0, headerData.Length);
+                }
+                recording.Write(data, 0, data.Length);
             }
-            recording.Write(data, 0, data.Length);
-
         }
 
         public void StartRecord()

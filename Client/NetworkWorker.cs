@@ -905,8 +905,10 @@ namespace DarkMultiPlayer
 
         private void HandleMessage(ServerMessage message)
         {
+#if !DEBUG
             try
             {
+#endif
                 switch (message.type)
                 {
                     case ServerMessageType.HEARTBEAT:
@@ -1005,12 +1007,14 @@ namespace DarkMultiPlayer
                         DarkLog.Debug("Unhandled message type " + message.type);
                         break;
                 }
+#if !DEBUG
             }
             catch (Exception e)
             {
                 DarkLog.Debug("Error handling message type " + message.type + ", exception: " + e);
                 SendDisconnect("Error handling " + message.type + " message");
             }
+#endif
         }
 
         private void HandleHandshakeChallange(byte[] messageData)
@@ -2047,10 +2051,7 @@ namespace DarkMultiPlayer
                 }
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
-                if (vessel.vesselID == FlightGlobals.fetch.activeVessel.id)
-                {
-                    vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO);
-                }
+                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO, vessel.vesselID);
             }
             else
             {
@@ -2119,10 +2120,7 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = GetVesselUpdateMessage(update);
             QueueOutgoingMessage(newMessage, false);
-            if (update.vesselID == FlightGlobals.fetch.activeVessel.id)
-            {
-                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE);
-            }
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
         }
         //Called from vesselWorker
         public void SendVesselUpdateMesh(VesselUpdate update)
@@ -2154,11 +2152,9 @@ namespace DarkMultiPlayer
                 newMessage.data = mw.GetMessageBytes();
             }
             QueueOutgoingMessage(newMessage, false);
-            if (vesselID == FlightGlobals.fetch.activeVessel.id)
-            {
-                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE);
-            }
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE, vesselID);
         }
+
         // Called from VesselWorker
         public void SendKerbalRemove(string kerbalName)
         {
