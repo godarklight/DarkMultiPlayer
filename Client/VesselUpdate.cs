@@ -293,9 +293,9 @@ namespace DarkMultiPlayer
 
             //Updates Vessel.CoMD, which is used for GetWorldPos3D
             updateVessel.precalc.CalculatePhysicsStats();
-            updateVessel.latitude = updateBody.GetLatitude(updateVessel.GetWorldPos3D());
-            updateVessel.longitude = updateBody.GetLongitude(updateVessel.GetWorldPos3D());
-            updateVessel.altitude = updateBody.GetAltitude(updateVessel.GetWorldPos3D());
+            updateVessel.latitude = updateBody.GetLatitude(updateBody.position + updateVessel.orbitDriver.pos);
+            updateVessel.longitude = updateBody.GetLongitude(updateBody.position + updateVessel.orbitDriver.pos);
+            updateVessel.altitude = updateVessel.orbitDriver.orbit.altitude;
 
             double distanceError = Vector3d.Distance(oldPos, updateVessel.GetWorldPos3D());
             double velocityError = Vector3d.Distance(oldVelocity, updateVessel.orbitDriver.orbit.GetVel());
