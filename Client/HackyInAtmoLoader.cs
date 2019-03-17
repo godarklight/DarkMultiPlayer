@@ -62,6 +62,10 @@ namespace DarkMultiPlayer
 
         private void OnVesselWillDestroy(Vessel vessel)
         {
+            if (vesselWorker.VesselRecentlyKilled(vessel.id))
+            {
+                return;
+            }
             bool pilotedByAnotherPlayer = lockSystem.LockExists("control-" + vessel.id) && !lockSystem.LockIsOurs("control-" + vessel.id);
             bool updatedByAnotherPlayer = lockSystem.LockExists("update-" + vessel.id) && !lockSystem.LockIsOurs("update-" + vessel.id);
             bool updatedInTheFuture = vesselWorker.VesselUpdatedInFuture(vessel.id);
