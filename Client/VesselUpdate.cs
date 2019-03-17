@@ -213,7 +213,14 @@ namespace DarkMultiPlayer
                     }
                     else
                     {
-                        StepExtrapolateWithRotation(previousUpdate, updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                        if (previousUpdate == null)
+                        {
+                            StepExtrapolate(updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                        }
+                        else
+                        {
+                            StepExtrapolateWithRotation(previousUpdate, updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                        }
                     }
                 }
                 Vector3d vectorBetweenCoMandRoot = updateVessel.orbitDriver.driverTransform.rotation * updateVessel.localCoM;
