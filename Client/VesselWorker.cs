@@ -489,7 +489,7 @@ namespace DarkMultiPlayer
             foreach (KeyValuePair<Guid, Queue<VesselUpdate>> vesselQueue in vesselUpdateQueue)
             {
                 //If we are receiving messages from mesh vessels, do not apply normal updates, and clear them
-                if (serverVesselsPositionUpdateMeshReceive.ContainsKey(vesselQueue.Key) && (Time.realtimeSinceStartup - serverVesselsPositionUpdateMeshReceive[vesselQueue.Key] < 10f))
+                if (serverVesselsPositionUpdateMeshReceive.ContainsKey(vesselQueue.Key) && (Client.realtimeSinceStartup - serverVesselsPositionUpdateMeshReceive[vesselQueue.Key] < 10f))
                 {
                     vesselQueue.Value.Clear();
                     continue;
@@ -2434,7 +2434,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    serverVesselsPositionUpdateMeshReceive[update.vesselID] = Time.realtimeSinceStartup;
+                    serverVesselsPositionUpdateMeshReceive[update.vesselID] = Client.realtimeSinceStartup;
                     if (!vesselUpdateMeshQueue.ContainsKey(update.vesselID))
                     {
                         vesselUpdateMeshQueue.Add(update.vesselID, new Queue<VesselUpdate>());
