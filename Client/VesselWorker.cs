@@ -468,7 +468,7 @@ namespace DarkMultiPlayer
                         if (newVpu != null)
                         {
                             //Skip any protovessels that have been removed in the future
-                            if (!removeList.ContainsKey(vesselQueue.Key) || removeList[vesselQueue.Key] < vpu.planetTime)
+                            if (!removeList.ContainsKey(vesselQueue.Key) || removeList[vesselQueue.Key] < newVpu.planetTime)
                             {
                                 vpu = newVpu;
                             }
