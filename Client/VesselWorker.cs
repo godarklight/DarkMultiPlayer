@@ -2440,10 +2440,24 @@ namespace DarkMultiPlayer
                         vesselUpdateMeshQueue.Add(update.vesselID, new Queue<VesselUpdate>());
                     }
                     Queue<VesselUpdate> vuQueue = vesselUpdateMeshQueue[update.vesselID];
-                    vuQueue.Enqueue(update);
-                    if (vuQueue.Count == 0)
+                    VesselUpdate peekUpdate = null;
+                    if (vuQueue.Count > 0)
                     {
-                        vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
+                        peekUpdate = vuQueue.Peek();
+                    }
+                    //Clear the update queue if a revert is detected
+                    if (peekUpdate != null && peekUpdate.planetTime - update.planetTime > 10f)
+                    {
+                        vuQueue.Clear();
+                        peekUpdate = null;
+                    }
+                    if (peekUpdate == null || peekUpdate.planetTime < update.planetTime)
+                    {
+                        vuQueue.Enqueue(update);
+                        if (vuQueue.Count == 0)
+                        {
+                            vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
+                        }
                     }
                 }
             }
