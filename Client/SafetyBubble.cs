@@ -36,12 +36,14 @@ namespace DarkMultiPlayer
             }
         }
 
+        /*
         internal static void RegisterDefaultLocations()
         {
             //Stock:
             RegisterLocation(-0.0971978130377757, 285.44237039111, 60, "Kerbin"); //Launch Pad
             RegisterLocation(-0.0486001121594686, 285.275552559723, 60, "Kerbin"); //Runway
         }
+        */
 
         private class SafetyBubblePosition
         {

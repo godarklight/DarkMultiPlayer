@@ -14,26 +14,24 @@ namespace DarkMultiPlayer
         public static bool toolbarShowGUI = true;
         public static bool modDisabled = false;
         private bool dmpSaveChecked = false;
-
+        private int facilitiesAdded = 0;
+        private int stockSitesAdded = 0;
+        private int modSitesAdded = 0;
         //Disconnect message
         public static bool displayDisconnectMessage;
         public static ScreenMessage disconnectMessage;
         public static float lastDisconnectMessageCheck;
-
         //Chosen by a 2147483647 sided dice roll. Guaranteed to be random.
         public const int WINDOW_OFFSET = 1664952404;
         //Hack gravity fix.
         private Dictionary<CelestialBody, double> bodiesGees = new Dictionary<CelestialBody, double>();
         //Command line connect
         private static ServerEntry commandLineConnect;
-
         //Thread safe RealTimeSinceStartup
         private static float lastRealTimeSinceStartup;
         private static long lastClockTicks;
-
         //This singleton is only for other mod access to the following services.
         public static Client dmpClient;
-
         //Services
         public Settings dmpSettings;
         public ToolbarSupport toolbarSupport;
@@ -104,7 +102,7 @@ namespace DarkMultiPlayer
             connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
             disclaimerWindow = new DisclaimerWindow(dmpSettings);
             dmpModInterface = new DMPModInterface();
-            SafetyBubble.RegisterDefaultLocations();
+            //SafetyBubble.RegisterDefaultLocations();
 
             if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
                 modDisabled = true;
@@ -125,13 +123,13 @@ namespace DarkMultiPlayer
             universeSyncCache.ExpireCache();
 
             GameEvents.onHideUI.Add(() =>
-    {
-        showGUI = false;
-    });
+            {
+                showGUI = false;
+            });
             GameEvents.onShowUI.Add(() =>
-                {
-                    showGUI = true;
-                });
+            {
+                showGUI = true;
+            });
 
             HandleCommandLineArgs();
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
@@ -238,6 +236,60 @@ namespace DarkMultiPlayer
                         SetupBlankGameIfNeeded();
                     }
                 }
+
+                if (HighLogic.LoadedScene == GameScenes.SPACECENTER && PSystemSetup.Instance != null && Time.timeSinceLevelLoad > 1f)
+                {
+                    if (PSystemSetup.Instance.SpaceCenterFacilities.Length != facilitiesAdded)
+                    {
+                        facilitiesAdded = PSystemSetup.Instance.SpaceCenterFacilities.Length;
+                        foreach (PSystemSetup.SpaceCenterFacility spaceCenterFacility in PSystemSetup.Instance.SpaceCenterFacilities)
+                        {
+                            foreach (PSystemSetup.SpaceCenterFacility.SpawnPoint spawnPoint in spaceCenterFacility.spawnPoints)
+                            {
+                                if (spawnPoint.latitude != 0 && spawnPoint.longitude != 0 && spawnPoint.altitude != 0)
+                                {
+                                    DarkLog.Debug("Adding facility spawn point: " + spaceCenterFacility.name + ":" + spawnPoint.name);
+                                    SafetyBubble.RegisterLocation(spawnPoint.latitude, spawnPoint.longitude, spawnPoint.altitude, spaceCenterFacility.hostBody.name);
+                                    DarkLog.Debug("LLA: [" + spawnPoint.latitude + ", " + spawnPoint.longitude + ", " + spawnPoint.altitude + "]");
+                                }
+                            }
+                        }
+                    }
+                    if (PSystemSetup.Instance.LaunchSites.Count != modSitesAdded)
+                    {
+                        modSitesAdded = PSystemSetup.Instance.LaunchSites.Count;
+                        foreach (LaunchSite launchSite in PSystemSetup.Instance.LaunchSites)
+                        {
+                            foreach (LaunchSite.SpawnPoint spawnPoint in launchSite.spawnPoints)
+                            {
+                                if (spawnPoint.latitude != 0 && spawnPoint.longitude != 0 && spawnPoint.altitude != 0)
+                                {
+                                    DarkLog.Debug("Adding mod spawn point: " + launchSite.name + ":" + spawnPoint.name);
+                                    SafetyBubble.RegisterLocation(spawnPoint.latitude, spawnPoint.longitude, spawnPoint.altitude, launchSite.Body.name);
+                                    DarkLog.Debug("LLA: [" + spawnPoint.latitude + ", " + spawnPoint.longitude + ", " + spawnPoint.altitude + "]");
+                                }
+                            }
+                        }
+                    }
+                    if (PSystemSetup.Instance.StockLaunchSites.Length != stockSitesAdded)
+                    {
+                        stockSitesAdded = PSystemSetup.Instance.StockLaunchSites.Length;
+                        foreach (LaunchSite launchSite in PSystemSetup.Instance.StockLaunchSites)
+                        {
+                            foreach (LaunchSite.SpawnPoint spawnPoint in launchSite.spawnPoints)
+                            {
+                                if (spawnPoint.latitude != 0 && spawnPoint.longitude != 0 && spawnPoint.altitude != 0)
+                                {
+                                    DarkLog.Debug("Adding stock spawn point: " + launchSite.name + ":" + spawnPoint.name);
+                                    SafetyBubble.RegisterLocation(spawnPoint.latitude, spawnPoint.longitude, spawnPoint.altitude, launchSite.Body.name);
+                                    DarkLog.Debug("LLA: [" + spawnPoint.latitude + ", " + spawnPoint.longitude + ", " + spawnPoint.altitude + "]");
+                                }
+                            }
+                        }
+                    }
+                }
+
+
 
                 //Handle GUI events
 
