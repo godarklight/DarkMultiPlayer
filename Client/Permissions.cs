@@ -15,7 +15,7 @@ namespace DarkMultiPlayer
         private Groups groups;
         //Backing
         private Queue<byte[]> messageQueue = new Queue<byte[]>();
-        private Dictionary<Guid, VesselPermission> vesselPermissions = new Dictionary<Guid, VesselPermission>();
+        internal Dictionary<Guid, VesselPermission> vesselPermissions = new Dictionary<Guid, VesselPermission>();
 
         public Permissions(DMPGame dmpGame, NetworkWorker networkWorker, Settings dmpSettings, Groups groups)
         {

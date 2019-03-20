@@ -45,26 +45,28 @@ namespace DarkMultiPlayer
         private WarpWorker warpWorker;
         private ChatWorker chatWorker;
         private CraftLibraryWorker craftLibraryWorker;
-        private DebugWindow debugWindow;
         private ScreenshotWorker screenshotWorker;
         private TimeSyncer timeSyncer;
         private PlayerStatusWorker playerStatusWorker;
         private OptionsWindow optionsWindow;
         private PlayerColorWorker playerColorWorker;
+        private GroupsWindow groupsWindow;
+        private PermissionsWindow permissionsWindow;
 
-        public PlayerStatusWindow(DMPGame dmpGame, Settings dmpSettings, WarpWorker warpWorker, ChatWorker chatWorker, CraftLibraryWorker craftLibraryWorker, DebugWindow debugWindow, ScreenshotWorker screenshotWorker, TimeSyncer timeSyncer, PlayerStatusWorker playerStatusWorker, OptionsWindow optionsWindow, PlayerColorWorker playerColorWorker)
+        public PlayerStatusWindow(DMPGame dmpGame, Settings dmpSettings, WarpWorker warpWorker, ChatWorker chatWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, TimeSyncer timeSyncer, PlayerStatusWorker playerStatusWorker, OptionsWindow optionsWindow, PlayerColorWorker playerColorWorker, GroupsWindow groupsWindow, PermissionsWindow permissionsWindow)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.warpWorker = warpWorker;
             this.chatWorker = chatWorker;
             this.craftLibraryWorker = craftLibraryWorker;
-            this.debugWindow = debugWindow;
             this.screenshotWorker = screenshotWorker;
             this.timeSyncer = timeSyncer;
             this.playerStatusWorker = playerStatusWorker;
             this.optionsWindow = optionsWindow;
             this.playerColorWorker = playerColorWorker;
+            this.groupsWindow = groupsWindow;
+            this.permissionsWindow = permissionsWindow;
             dmpGame.updateEvent.Add(Update);
             dmpGame.drawEvent.Add(Draw);
         }
@@ -184,7 +186,8 @@ namespace DarkMultiPlayer
             }
             chatWorker.display = GUILayout.Toggle(chatWorker.display, "Chat", chatButtonStyle);
             craftLibraryWorker.display = GUILayout.Toggle(craftLibraryWorker.display, "Craft", buttonStyle);
-            debugWindow.display = GUILayout.Toggle(debugWindow.display, "Debug", buttonStyle);
+            groupsWindow.display = GUILayout.Toggle(groupsWindow.display, "Group", buttonStyle);
+            permissionsWindow.display = GUILayout.Toggle(permissionsWindow.display, "Permissions", buttonStyle);
             GUIStyle screenshotButtonStyle = buttonStyle;
             if (screenshotWorker.screenshotButtonHighlighted)
             {
@@ -626,7 +629,8 @@ namespace DarkMultiPlayer
                 chatButtonStyle = highlightStyle;
             }
             chatWorker.display = GUILayout.Toggle(chatWorker.display, "C", chatButtonStyle);
-            debugWindow.display = GUILayout.Toggle(debugWindow.display, "D", buttonStyle);
+            groupsWindow.display = GUILayout.Toggle(groupsWindow.display, "G", buttonStyle);
+            permissionsWindow.display = GUILayout.Toggle(permissionsWindow.display, "P", buttonStyle);
             GUIStyle screenshotButtonStyle = buttonStyle;
             if (screenshotWorker.screenshotButtonHighlighted)
             {

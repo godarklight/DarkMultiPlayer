@@ -1,4 +1,4 @@
-﻿using System;
+﻿ using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
 using MessageStream2;
@@ -60,7 +60,7 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             string playerName = mr.Read<string>();
                             string groupName = mr.Read<string>();
-                            if (Groups.fetch.PlayerIsAdmin(client.playerName, groupName))
+                            if (playerName == client.playerName || Groups.fetch.PlayerIsAdmin(client.playerName, groupName))
                             {
                                 Groups.fetch.RemovePlayerFromGroup(playerName, groupName);
                             }

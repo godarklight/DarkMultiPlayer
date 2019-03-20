@@ -109,6 +109,8 @@
     <Compile Include="SafetyBubble.cs" />
     <Compile Include="Groups.cs" />
     <Compile Include="Permissions.cs" />
+    <Compile Include="GroupsWindow.cs" />
+    <Compile Include="PermissionsWindow.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

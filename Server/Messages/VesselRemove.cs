@@ -14,6 +14,12 @@ namespace DarkMultiPlayerServer.Messages
                 //Don't care about the subspace on the server.
                 mr.Read<double>();
                 string vesselID = mr.Read<string>();
+                Permissions.fetch.SetVesselOwnerIfUnowned(new Guid(vesselID), client.playerName);
+                if (!Permissions.fetch.PlayerHasVesselPermission(client.playerName, new Guid(vesselID)))
+                {
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked from the server, tried to remove protected vessel");
+                    return;
+                }
                 bool isDockingUpdate = mr.Read<bool>();
                 if (!isDockingUpdate)
                 {

@@ -33,7 +33,7 @@ namespace DarkMultiPlayerServer.Messages
                             string group = mr.Read<string>();
                             if (Permissions.fetch.PlayerIsVesselOwner(client.playerName, guid))
                             {
-                                Permissions.fetch.SetVesselOwner(guid, group);
+                                Permissions.fetch.SetVesselGroup(guid, group);
                             }
                         }
                         break;

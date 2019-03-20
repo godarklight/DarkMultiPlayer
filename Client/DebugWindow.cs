@@ -7,7 +7,6 @@ namespace DarkMultiPlayer
 {
     public class DebugWindow
     {
-        public bool display = false;
         private bool safeDisplay = false;
         private bool initialized = false;
         private bool isWindowLocked = false;
@@ -53,8 +52,9 @@ namespace DarkMultiPlayer
         private WarpWorker warpWorker;
         private VesselRecorder vesselRecorder;
         private PosistionStatistics posistionStatistics;
+        private OptionsWindow optionsWindow;
 
-        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics)
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -65,6 +65,7 @@ namespace DarkMultiPlayer
             this.warpWorker = warpWorker;
             this.vesselRecorder = vesselRecorder;
             this.posistionStatistics = posistionStatistics;
+            this.optionsWindow = optionsWindow;
             dmpGame.updateEvent.Add(Update);
             dmpGame.drawEvent.Add(Draw);
         }
@@ -281,8 +282,8 @@ namespace DarkMultiPlayer
 
         private void Update()
         {
-            safeDisplay = display;
-            if (display)
+            safeDisplay = optionsWindow.showDebugWindow;
+            if (safeDisplay)
             {
                 if (((Client.realtimeSinceStartup - lastUpdateTime) > DISPLAY_UPDATE_INTERVAL) || displayFast)
                 {
@@ -409,7 +410,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            display = false;
+            optionsWindow.showDebugWindow = false;
             RemoveWindowLock();
             dmpGame.updateEvent.Remove(Update);
             dmpGame.drawEvent.Remove(Draw);

@@ -16,6 +16,12 @@ namespace DarkMultiPlayerServer.Messages
                 //Don't care about planet time
                 double planetTime = mr.Read<double>();
                 string vesselGuid = mr.Read<string>();
+                Permissions.fetch.SetVesselOwnerIfUnowned(new Guid(vesselGuid), client.playerName);
+                if (!Permissions.fetch.PlayerHasVesselPermission(client.playerName, new Guid(vesselGuid)))
+                {
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked from the server, tried to update protected vessel");
+                    return;
+                }
                 bool isDockingUpdate = mr.Read<bool>();
                 bool isFlyingUpdate = mr.Read<bool>();
                 byte[] possibleCompressedBytes = mr.Read<byte[]>();

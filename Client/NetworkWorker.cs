@@ -2204,6 +2204,10 @@ namespace DarkMultiPlayer
         //Called from vesselWorker
         public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
         {
+            if (!permissions.PlayerHasVesselPermission(dmpSettings.playerName, vesselID))
+            {
+                return;
+            }
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_REMOVE;

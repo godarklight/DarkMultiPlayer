@@ -170,22 +170,21 @@ namespace DarkMultiPlayerServer
                 {
                     File.Delete(playerPath);
                 }
-                if (!playerGroups.ContainsKey(playerName))
-                {
-                    return;
-                }
-                List<string> groups = playerGroups[playerName];
-                using (StreamWriter sw = new StreamWriter(playerPath))
-                {
-                    foreach (string group in groups)
+                if (playerGroups.ContainsKey(playerName))
+                {               
+                    List<string> groups = playerGroups[playerName];
+                    using (StreamWriter sw = new StreamWriter(playerPath))
                     {
-                        if (PlayerIsAdmin(playerName, group))
+                        foreach (string group in groups)
                         {
-                            sw.WriteLine("." + group);
-                        }
-                        else
-                        {
-                            sw.WriteLine(group);
+                            if (PlayerIsAdmin(playerName, group))
+                            {
+                                sw.WriteLine("." + group);
+                            }
+                            else
+                            {
+                                sw.WriteLine(group);
+                            }
                         }
                     }
                 }
@@ -199,6 +198,7 @@ namespace DarkMultiPlayerServer
             if (groupName == null || groupName == "")
             {
                 DarkLog.Normal("Cannot create groups with empty name");
+                return;
             }
             if (groupName.StartsWith(".", StringComparison.Ordinal))
             {
@@ -229,18 +229,17 @@ namespace DarkMultiPlayerServer
             RemovePlayerAdmin(playerName, groupName);
             lock (playerGroups)
             {
-                if (!playerGroups.ContainsKey(playerName))
+                if (playerGroups.ContainsKey(playerName))
                 {
-                    return;
-                }
-                List<string> groups = playerGroups[playerName];
-                if (groups.Contains(groupName))
-                {
-                    groups.Remove(groupName);
-                }
-                if (groups.Count == 0)
-                {
-                    playerGroups.Remove(playerName);
+                    List<string> groups = playerGroups[playerName];
+                    if (groups.Contains(groupName))
+                    {
+                        groups.Remove(groupName);
+                    }
+                    if (groups.Count == 0)
+                    {
+                        playerGroups.Remove(playerName);
+                    }
                 }
             }
             SavePlayer(playerName);
@@ -251,6 +250,7 @@ namespace DarkMultiPlayerServer
             if (groupName == null || groupName == "")
             {
                 DarkLog.Normal("Cannot create groups with empty name");
+                return;
             }
             if (groupName.StartsWith(".", StringComparison.Ordinal))
             {
@@ -276,17 +276,17 @@ namespace DarkMultiPlayerServer
         {
             lock (playerGroups)
             {
-                if (!groupAdmins.ContainsKey(groupName))
+                if (groupAdmins.ContainsKey(groupName))
                 {
-                    return;
-                }
-                if (groupAdmins[groupName].Contains(playerName))
-                {
-                    groupAdmins[groupName].Remove(playerName);
-                }
-                if (groupAdmins.Count == 0)
-                {
-                    groupAdmins.Remove(groupName);
+                    if (groupAdmins[groupName].Contains(playerName))
+                    {
+                        groupAdmins[groupName].Remove(playerName);
+                    }
+                    if (groupAdmins[groupName].Count == 0)
+                    {
+                        groupAdmins.Remove(groupName);
+                        RemoveGroup(groupName);
+                    }
                 }
             }
             SavePlayer(playerName);

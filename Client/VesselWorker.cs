@@ -97,8 +97,9 @@ namespace DarkMultiPlayer
         private PlayerStatusWorker playerStatusWorker;
         private PosistionStatistics posistionStatistics;
         private VesselInterFrameUpdater vesselPackedUpdater;
+        private Permissions permissions;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselInterFrameUpdater vesselPackedUpdater)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselInterFrameUpdater vesselPackedUpdater, Permissions permissions)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -111,6 +112,7 @@ namespace DarkMultiPlayer
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
             this.vesselPackedUpdater = vesselPackedUpdater;
+            this.permissions = permissions;
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
@@ -717,6 +719,11 @@ namespace DarkMultiPlayer
 
         private void UpdateOnScreenSpectateMessage()
         {
+            if (HighLogic.LoadedScene != GameScenes.FLIGHT && spectateMessage != null)
+            {
+                spectateMessage.duration = 0f;
+                spectateMessage = null;
+            }
             if ((Client.realtimeSinceStartup - lastSpectateMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
             {
                 lastSpectateMessageUpdate = Client.realtimeSinceStartup;
@@ -724,15 +731,21 @@ namespace DarkMultiPlayer
                 {
                     if (spectateMessage != null)
                     {
-                        spectateMessage.duration = 0f;
+                        return;
                     }
                     switch (spectateType)
                     {
                         case 1:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player.", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is controlled by another player.", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                             break;
                         case 2:
-                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future.", UPDATE_SCREEN_MESSAGE_INTERVAL * 2, ScreenMessageStyle.UPPER_CENTER);
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel has been changed in the future.", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
+                            break;
+                        case 3:
+                            //Do nothing, this is handled elsewhere
+                            break;
+                        case 4:
+                            spectateMessage = ScreenMessages.PostScreenMessage("This vessel is protected by " + permissions.vesselPermissions[FlightGlobals.fetch.activeVessel.id].owner + ".", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                             break;
                     }
                 }
@@ -914,16 +927,24 @@ namespace DarkMultiPlayer
                         lastBannedPartsMessageUpdate = Client.realtimeSinceStartup;
                         if (bannedPartsMessage != null)
                         {
-                            bannedPartsMessage.duration = 0;
+                            return;
                         }
                         if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_SYNC)
                         {
-                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                         }
                         if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_LAUNCH)
                         {
-                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, you will be unable to launch on this server:\n" + bannedPartsString, 2f, ScreenMessageStyle.UPPER_CENTER);
+                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, you will be unable to launch on this server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                         }
+                    }
+                }
+                else
+                {
+                    if (bannedPartsMessage != null)
+                    {
+                        bannedPartsMessage.duration = 0;
+                        bannedPartsMessage = null;
                     }
                 }
             }
@@ -946,7 +967,7 @@ namespace DarkMultiPlayer
                 return;
             }
 
-            if (lockSystem.LockIsOurs("control-" + FlightGlobals.fetch.activeVessel.id.ToString()))
+            if (permissions.PlayerHasVesselPermission(dmpSettings.playerName, FlightGlobals.fetch.activeVessel.id) && lockSystem.LockIsOurs("control-" + FlightGlobals.fetch.activeVessel.id.ToString()))
             {
                 SendVesselUpdateIfNeeded(FlightGlobals.fetch.activeVessel);
             }
@@ -959,6 +980,13 @@ namespace DarkMultiPlayer
                 {
                     continue;
                 }
+
+                //Don't update vessels we do not have permissions for
+                if (!permissions.PlayerHasVesselPermission(dmpSettings.playerName, checkVessel.id))
+                {
+                    continue;
+                }
+
                 //Only update the vessel if it's loaded and unpacked (not on rails). Skip our vessel.
                 if (checkVessel.loaded && !checkVessel.packed && (checkVessel.id.ToString() != FlightGlobals.fetch.activeVessel.id.ToString()) && (checkVessel.state != Vessel.State.DEAD))
                 {
@@ -1190,6 +1218,11 @@ namespace DarkMultiPlayer
                 {
                     if (FlightGlobals.fetch.activeVessel != null)
                     {
+                        if (!permissions.PlayerHasVesselPermission(dmpSettings.playerName, FlightGlobals.fetch.activeVessel.id))
+                        {
+                            spectateType = 4;
+                            return true;
+                        }
                         if (lockSystem.LockExists("control-" + FlightGlobals.fetch.activeVessel.id.ToString()) && !lockSystem.LockIsOurs("control-" + FlightGlobals.fetch.activeVessel.id.ToString()))
                         {
                             spectateType = 1;
@@ -1792,7 +1825,10 @@ namespace DarkMultiPlayer
             Vessel renamedVessel = eventData.host;
             string toName = eventData.to;
             DarkLog.Debug("Sending vessel [" + renamedVessel.name + "] renamed to [" + toName + "]");
-            SendVesselUpdateIfNeeded(renamedVessel);
+            if (permissions.PlayerHasVesselPermission(dmpSettings.playerName, renamedVessel.id))
+            {
+                SendVesselUpdateIfNeeded(renamedVessel);
+            }
         }
 
         public void OnVesselDestroyed(Vessel dyingVessel)
@@ -2019,6 +2055,16 @@ namespace DarkMultiPlayer
                         if (FlightGlobals.fetch.activeVessel != null)
                         {
                             DarkLog.Debug("Vessel docking, our vessel: " + FlightGlobals.fetch.activeVessel.id);
+                        }
+                        if (!permissions.PlayerHasVesselPermission(dmpSettings.playerName, partAction.from.vessel.id))
+                        {
+                            networkWorker.Disconnect("Docked to a protected vessel");
+                            return;
+                        }
+                        if (!permissions.PlayerHasVesselPermission(dmpSettings.playerName, partAction.to.vessel.id))
+                        {
+                            networkWorker.Disconnect("Docked to a protected vessel");
+                            return;
                         }
                         fromDockedVesselID = partAction.from.vessel.id;
                         toDockedVesselID = partAction.to.vessel.id;

@@ -14,8 +14,8 @@ namespace DarkMultiPlayer
         Settings dmpSettings;
         //Backing
         private Queue<byte[]> messageQueue = new Queue<byte[]>();
-        Dictionary<string, List<string>> playerGroups = new Dictionary<string, List<string>>();
-        Dictionary<string, List<string>> groupAdmins = new Dictionary<string, List<string>>();
+        internal Dictionary<string, List<string>> playerGroups = new Dictionary<string, List<string>>();
+        internal Dictionary<string, List<string>> groupAdmins = new Dictionary<string, List<string>>();
 
         public Groups(DMPGame dmpGame, NetworkWorker networkWorker, Settings dmpSettings)
         {

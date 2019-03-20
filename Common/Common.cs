@@ -803,7 +803,7 @@ namespace DarkMultiPlayerCommon
         public Guid guid;
         public string owner;
         public string group;
-        public VesselProtectionType protection;
+        public VesselProtectionType protection = VesselProtectionType.PUBLIC;
 
         public VesselPermission(Guid guid, string owner)
         {

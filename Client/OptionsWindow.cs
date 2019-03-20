@@ -14,6 +14,7 @@ namespace DarkMultiPlayer
     public class OptionsWindow
     {
         public bool display;
+        public bool showDebugWindow;
         private bool isWindowLocked;
         private bool safeDisplay;
         private bool initialized;
@@ -478,9 +479,14 @@ namespace DarkMultiPlayer
                     UpdateToolbarString();
                     toolbarSupport.DetectSettingsChange();
                 }
+
                 groupY += 22;
 
+                showDebugWindow = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), showDebugWindow, "Show debug window", buttonStyle);
+
+
 #if DEBUG
+                groupY += 22;
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Check missing parts", buttonStyle))
                 {
                     modWorker.CheckCommonStockParts();

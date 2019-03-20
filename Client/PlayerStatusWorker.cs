@@ -21,13 +21,15 @@ namespace DarkMultiPlayer
         private VesselWorker vesselWorker;
         private LockSystem lockSystem;
         private NetworkWorker networkWorker;
+        private Permissions permissions;
 
-        public PlayerStatusWorker(DMPGame dmpGame, Settings dmpSettings, VesselWorker vesselWorker, LockSystem lockSystem, NetworkWorker networkWorker)
+        public PlayerStatusWorker(DMPGame dmpGame, Settings dmpSettings, VesselWorker vesselWorker, LockSystem lockSystem, NetworkWorker networkWorker, Permissions permissions)
         {
             this.dmpGame = dmpGame;
             this.vesselWorker = vesselWorker;
             this.lockSystem = lockSystem;
             this.networkWorker = networkWorker;
+            this.permissions = permissions;
             myPlayerStatus = new PlayerStatus();
             myPlayerStatus.playerName = dmpSettings.playerName;
             myPlayerStatus.statusText = "Syncing";
@@ -132,7 +134,14 @@ namespace DarkMultiPlayer
                                 }
                                 else
                                 {
-                                    myPlayerStatus.statusText = "Spectating future updates";
+                                    if (permissions.PlayerHasVesselPermission(myPlayerStatus.playerName, FlightGlobals.ActiveVessel.id))
+                                    {
+                                        myPlayerStatus.statusText = "Spectating future updates";
+                                    }
+                                    else
+                                    {
+                                        myPlayerStatus.statusText = "Spectating protected vessel";
+                                    }
                                 }
                             }
                         }
