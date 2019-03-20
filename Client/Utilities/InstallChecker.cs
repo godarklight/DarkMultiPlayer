@@ -27,12 +27,12 @@ namespace DarkMultiPlayer.Utilities
 
         public static bool IsCorrectlyInstalled()
         {
-
-            if (File.Exists(correctPath))
-            {
-                return true;
-            }
+#if DEBUG
+            return true;
+#endif
+#if !DEBUG
             return (currentPath == correctPath);
+#endif
         }
 
         public void Start()
@@ -41,10 +41,19 @@ namespace DarkMultiPlayer.Utilities
 
             if (!IsCorrectlyInstalled())
             {
-                string message = string.Format("DarkMultiPlayer is not correctly installed.\n\nCurrent location: {0}\n\nCorrect location: {1}\n", currentPath, correctPath);
 
+                string displayCurrentPath = currentPath;
+                string displayCorrectPath = correctPath;
+                int indexOfGameDataCurrent = displayCurrentPath.IndexOf("gamedata", StringComparison.OrdinalIgnoreCase);
+                int indexOfGameDataCorrect = displayCorrectPath.IndexOf("gamedata", StringComparison.OrdinalIgnoreCase);
+                if (indexOfGameDataCorrect != -1 && indexOfGameDataCorrect == indexOfGameDataCurrent)
+                {
+                    displayCorrectPath = displayCorrectPath.Substring(indexOfGameDataCorrect);
+                    displayCurrentPath = displayCurrentPath.Substring(indexOfGameDataCurrent);
+                }
+                string message = string.Format("DarkMultiPlayer is not correctly installed.\n\nCurrent location: {0}\n\nCorrect location: {1}\n", displayCurrentPath, displayCorrectPath);
                 Debug.Log(String.Format("[InstallChecker] Mod '{0}' is not correctly installed.", Assembly.GetExecutingAssembly().GetName().Name));
-                Debug.Log(String.Format("[InstallChecker] DMP is Currently installed on '{0}', should be installed at '{1}'", currentPath, correctPath));
+                Debug.Log(String.Format("[InstallChecker] DMP is Currently installed at '{0}', should be installed at '{1}'", displayCurrentPath, displayCorrectPath));
                 PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "InstallChecker", "Incorrect Install Detected", message, "OK", true, HighLogic.UISkin);
             }
         }
