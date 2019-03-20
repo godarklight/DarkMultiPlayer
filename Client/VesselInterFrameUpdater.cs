@@ -8,7 +8,7 @@ namespace DarkMultiPlayer
         private PosistionStatistics posistionStatistics;
         private LockSystem lockSystem;
         private Settings dmpSettings;
-        private VesselRecorder vesselRecorder;
+        //private VesselRecorder vesselRecorder;
         private Dictionary<Guid, VesselUpdate> nextVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> currentVesselUpdates = new Dictionary<Guid, VesselUpdate>();
         private Dictionary<Guid, VesselUpdate> previousVesselUpdates = new Dictionary<Guid, VesselUpdate>();

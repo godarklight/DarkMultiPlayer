@@ -70,6 +70,8 @@ namespace DarkMultiPlayer
         Settings dmpSettings;
         ConnectionWindow connectionWindow;
         TimeSyncer timeSyncer;
+        Groups groups;
+        Permissions permissions;
         WarpWorker warpWorker;
         ChatWorker chatWorker;
         PlayerColorWorker playerColorWorker;
@@ -103,7 +105,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(Update);
         }
 
-        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder)
+        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions)
         {
             this.timeSyncer = timeSyncer;
             this.warpWorker = warpWorker;
@@ -126,6 +128,8 @@ namespace DarkMultiPlayer
             this.dmpModInterface = dmpModInterface;
             this.universeSyncCache = universeSyncCache;
             this.vesselRecorder = vesselRecorder;
+            this.groups = groups;
+            this.permissions = permissions;
             vesselRecorder.SetHandlers(HandleVesselProto, HandleVesselUpdate, HandleVesselRemove);
         }
 
@@ -163,9 +167,32 @@ namespace DarkMultiPlayer
             }
             if (state == ClientState.TIME_SYNCED)
             {
-                DarkLog.Debug("Requesting kerbals!");
-                connectionWindow.status = "Syncing kerbals";
+                DarkLog.Debug("Requesting Groups!");
+                connectionWindow.status = "Syncing groups";
+                state = ClientState.GROUPS_SYNCING;
+                SendGroupsRequest();
+            }
+            if (groups.synced && state == ClientState.GROUPS_SYNCING)
+            {
+                DarkLog.Debug("Groups Synced!");
+                state = ClientState.GROUPS_SYNCED;
+            }
+            if (state == ClientState.GROUPS_SYNCED)
+            {
+                DarkLog.Debug("Requesting permissions!");
+                connectionWindow.status = "Syncing permissions";
+                state = ClientState.PERMISSIONS_SYNCING;
+                SendPermissionsRequest();
+            }
+            if (permissions.synced && state == ClientState.PERMISSIONS_SYNCING)
+            {
+                DarkLog.Debug("Permissions Synced!");
+                state = ClientState.PERMISSIONS_SYNCED;
+            }
+            if (state == ClientState.PERMISSIONS_SYNCED)
+            {
                 state = ClientState.SYNCING_KERBALS;
+                DarkLog.Debug("Requesting kerbals!");
                 SendKerbalsRequest();
             }
             if (state == ClientState.VESSELS_SYNCED)
@@ -936,6 +963,12 @@ namespace DarkMultiPlayer
                         break;
                     case ServerMessageType.PLAYER_DISCONNECT:
                         HandlePlayerDisconnect(message.data);
+                        break;
+                    case ServerMessageType.GROUP:
+                        HandleGroupMessage(message.data);
+                        break;
+                    case ServerMessageType.PERMISSION:
+                        HandlePermissionMessage(message.data);
                         break;
                     case ServerMessageType.SCENARIO_DATA:
                         HandleScenarioModuleData(message.data);
@@ -1784,6 +1817,16 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void HandleGroupMessage(byte[] messageData)
+        {
+            groups.QueueMessage(messageData);
+        }
+
+        private void HandlePermissionMessage(byte[] messageData)
+        {
+            permissions.QueueMessage(messageData);
+        }
+
         private void HandleWarpControl(byte[] messageData)
         {
             warpWorker.QueueWarpMessage(messageData);
@@ -1911,6 +1954,30 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.SYNC_TIME_REQUEST;
             newMessage.data = messageBytes;
             QueueOutgoingMessage(newMessage, true);
+        }
+
+        private void SendGroupsRequest()
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)GroupMessageType.GROUP_REQUEST);
+                ClientMessage newMessage = new ClientMessage();
+                newMessage.type = ClientMessageType.GROUP;
+                newMessage.data = mw.GetMessageBytes();
+                QueueOutgoingMessage(newMessage, true);
+            }
+        }
+
+        private void SendPermissionsRequest()
+        {
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)PermissionMessageType.PERMISSION_REQUEST);
+                ClientMessage newMessage = new ClientMessage();
+                newMessage.type = ClientMessageType.PERMISSION;
+                newMessage.data = mw.GetMessageBytes();
+                QueueOutgoingMessage(newMessage, true);
+            }
         }
 
         private void SendKerbalsRequest()
@@ -2285,6 +2352,22 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.WARP_CONTROL;
+            newMessage.data = messageData;
+            QueueOutgoingMessage(newMessage, true);
+        }
+        //Called from groups
+        public void SendGroupMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.GROUP;
+            newMessage.data = messageData;
+            QueueOutgoingMessage(newMessage, true);
+        }
+        //Called from permissions
+        public void SendPermissionsMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PERMISSION;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
         }

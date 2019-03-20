@@ -92,6 +92,10 @@
     <Compile Include="AdminCommand.cs" />
     <Compile Include="KickCommand.cs" />
     <Compile Include="GlobalSuppressions.cs" />
+    <Compile Include="Permissions.cs" />
+    <Compile Include="Groups.cs" />
+    <Compile Include="Messages\GroupMessage.cs" />
+    <Compile Include="Messages\PermissionMessage.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

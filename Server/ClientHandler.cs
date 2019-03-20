@@ -596,6 +596,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.PLAYER_COLOR:
                     Messages.PlayerColor.HandlePlayerColor(client, message.data);
                     break;
+                case ClientMessageType.GROUP:
+                    Messages.GroupMessage.HandleMessage(client, message.data);
+                    break;
                 case ClientMessageType.SCENARIO_DATA:
                     Messages.ScenarioData.HandleScenarioModuleData(client, message.data);
                     break;
@@ -619,6 +622,9 @@ namespace DarkMultiPlayerServer
                     break;
                 case ClientMessageType.VESSEL_REMOVE:
                     Messages.VesselRemove.HandleVesselRemoval(client, message.data);
+                    break;
+                case ClientMessageType.PERMISSION:
+                    Messages.PermissionMessage.HandleMessage(client, message.data);
                     break;
                 case ClientMessageType.CRAFT_LIBRARY:
                     Messages.CraftLibrary.HandleCraftLibrary(client, message.data);

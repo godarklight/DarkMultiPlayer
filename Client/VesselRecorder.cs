@@ -9,13 +9,13 @@ namespace DarkMultiPlayer
     {
         public bool active;
         public bool playback;
-        private Guid playbackID;
+        //private Guid playbackID;
         ScreenMessage screenMessage;
         private MemoryStream recording;
         private MemoryStream recordingVector;
         private WarpWorker warpWorker;
         private Queue<VesselUpdate> playbackQueue;
-        private VesselUpdate lastUpdate;
+        //private VesselUpdate lastUpdate;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
         private string recordVectorPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording-vector.bin");
         private Action<byte[]> HandleProtoUpdate, HandleVesselRemove;

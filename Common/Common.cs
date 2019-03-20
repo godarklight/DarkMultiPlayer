@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 49;
+        public const int PROTOCOL_VERSION = 50;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -570,6 +570,7 @@ namespace DarkMultiPlayerCommon
         CHAT_MESSAGE,
         PLAYER_STATUS,
         PLAYER_COLOR,
+        GROUP,
         SCENARIO_DATA,
         KERBALS_REQUEST,
         KERBAL_PROTO,
@@ -578,6 +579,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_PROTO,
         VESSEL_UPDATE,
         VESSEL_REMOVE,
+        PERMISSION,
         CRAFT_LIBRARY,
         SCREENSHOT_LIBRARY,
         FLAG_SYNC,
@@ -588,7 +590,7 @@ namespace DarkMultiPlayerCommon
         LOCK_SYSTEM,
         MOD_DATA,
         SPLIT_MESSAGE,
-        CONNECTION_END
+        CONNECTION_END,
     }
 
     public enum MeshMessageType
@@ -608,6 +610,7 @@ namespace DarkMultiPlayerCommon
         PLAYER_COLOR,
         PLAYER_JOIN,
         PLAYER_DISCONNECT,
+        GROUP,
         SCENARIO_DATA,
         KERBAL_REPLY,
         KERBAL_COMPLETE,
@@ -617,6 +620,7 @@ namespace DarkMultiPlayerCommon
         VESSEL_UPDATE,
         VESSEL_COMPLETE,
         VESSEL_REMOVE,
+        PERMISSION,
         CRAFT_LIBRARY,
         SCREENSHOT_LIBRARY,
         FLAG_SYNC,
@@ -648,6 +652,10 @@ namespace DarkMultiPlayerCommon
         AUTHENTICATED,
         TIME_SYNCING,
         TIME_SYNCED,
+        GROUPS_SYNCING,
+        GROUPS_SYNCED,
+        PERMISSIONS_SYNCING,
+        PERMISSIONS_SYNCED,
         SYNCING_KERBALS,
         KERBALS_SYNCED,
         SYNCING_VESSELS,
@@ -757,6 +765,51 @@ namespace DarkMultiPlayerCommon
     {
         LIST,
         SET,
+    }
+
+    public enum GroupMessageType
+    {
+        GROUP_RESET,
+        GROUP_INFO,
+        ADMIN_INFO,
+        GROUP_REQUEST,
+        GROUPS_SYNCED,
+        ADD_PLAYER,
+        REMOVE_PLAYER,
+        ADD_ADMIN,
+        REMOVE_ADMIN,
+        REMOVE_GROUP,
+    }
+
+    public enum PermissionMessageType
+    {
+        PERMISSION_INFO,
+        PERMISSION_REQUEST,
+        PERMISSION_SYNCED,
+        SET_OWNER,
+        SET_PERMISSION_LEVEL,
+        SET_GROUP,
+    }
+
+    public enum VesselProtectionType
+    {
+        PUBLIC,
+        GROUP,
+        PRIVATE,
+    }
+
+    public class VesselPermission
+    {
+        public Guid guid;
+        public string owner;
+        public string group;
+        public VesselProtectionType protection;
+
+        public VesselPermission(Guid guid, string owner)
+        {
+            this.guid = guid;
+            this.owner = owner;
+        }
     }
 
     public class ClientMessage

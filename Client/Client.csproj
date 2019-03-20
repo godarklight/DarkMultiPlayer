@@ -107,6 +107,8 @@
     <Compile Include="VesselInterFrameUpdater.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="SafetyBubble.cs" />
+    <Compile Include="Groups.cs" />
+    <Compile Include="Permissions.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
