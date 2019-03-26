@@ -38,10 +38,12 @@ namespace DarkMultiPlayerServer
 
     public class SettingsStore
     {
-        [Description("The address the server listens on.\n# WARNING: You do not need to change this unless you are running 2 servers on the same port.\n# Changing this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\n# Change this setting to :: to listen on IPv4 and IPv6.")]
+        [Description("The address the server listens on.\nWARNING: You do not need to change this unless you are running 2 servers on the same port.\nChanging this setting from 0.0.0.0 will only give you trouble if you aren't running multiple servers.\nChange this setting to :: to listen on IPv4 and IPv6.")]
         public string address = "0.0.0.0";
         [Description("The port the server listens on.")]
         public int port = 6702;
+        [Description("Specify the modpack type.\nNONE: DMPClients cannot download modpacks from this server\nCKAN: DMPServer will send the clients Config/DarkMultiPlayer.ckan upon connecting, informing them of changes\nGAMEDATA: DMPServer will send the clients Config/GameData\nNote: They still need to run DMPModpackUpdater in order to actually install the modpack as GameData cannot be modified while KSP is running")]
+        public ModpackMode modpackMode = ModpackMode.NONE;
         [Description("Specify the warp type.")]
         public WarpMode warpMode = WarpMode.SUBSPACE;
         [Description("Specify the game type.")]
@@ -50,9 +52,9 @@ namespace DarkMultiPlayerServer
         public GameDifficulty gameDifficulty = GameDifficulty.NORMAL;
         [Description("Enable white-listing.")]
         public bool whitelisted = false;
-        [Description("Enable mod control.\n# WARNING: Only consider turning off mod control for private servers.\n# The game will constantly complain about missing parts if there are missing mods.")]
+        [Description("Enable mod control.\nWARNING: Only consider turning off mod control for private servers.\nThe game will constantly complain about missing parts if there are missing mods.")]
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
-        [Description("If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous time they were in.\n# NOTE: This may cause time-paradoxes.")]
+        [Description("If true, sends the player to the latest subspace upon connecting. If false, sends the player to the previous time they were in.\nNOTE: This may cause time-paradoxes.")]
         public bool sendPlayerToLatestSubspace = true;
         [Description("Use UTC instead of system time in the log.")]
         public bool useUTCTimeInLog = false;
@@ -70,7 +72,7 @@ namespace DarkMultiPlayerServer
         public string serverName = "DMP Server";
         [Description("Maximum amount of players that can join the server.")]
         public int maxPlayers = 20;
-        [Description("Specify a custom screenshot directory.\n#This directory must exist in order to be used. Leave blank to store it in Universe.")]
+        [Description("Specify a custom screenshot directory.\nThis directory must exist in order to be used. Leave blank to store it in Universe.")]
         public string screenshotDirectory = string.Empty;
         [Description("Specify in minutes how often /nukeksc automatically runs. 0 = Disabled")]
         public int autoNuke = 0;

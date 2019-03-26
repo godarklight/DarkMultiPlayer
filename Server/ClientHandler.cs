@@ -39,6 +39,7 @@ namespace DarkMultiPlayerServer
                     {
                         Messages.Heartbeat.CheckHeartBeat(client);
                     }
+                    ModpackSystem.fetch.SendFilesToClients();
                     //Check timers
                     NukeKSC.CheckTimer();
                     Dekessler.CheckTimer();
@@ -659,6 +660,9 @@ namespace DarkMultiPlayerServer
                 case ClientMessageType.CONNECTION_END:
                     Messages.ConnectionEnd.HandleConnectionEnd(client, message.data);
                     break;
+                case ClientMessageType.MODPACK_DATA:
+                    Messages.Modpack.HandleModpackMessage(client, message.data);
+                    break;
                 default:
                     DarkLog.Debug("Unhandled message type " + message.type);
                     Messages.ConnectionEnd.SendConnectionEnd(client, "Unhandled message type " + message.type);
@@ -880,6 +884,7 @@ namespace DarkMultiPlayerServer
     public class ClientObject
     {
         public bool authenticated;
+        public bool modsSyncing;
         public byte[] challange;
         public string playerName = "Unknown";
         public string clientVersion;

@@ -337,11 +337,8 @@ namespace DarkMultiPlayer
                 List<string> autoAllowed = new List<string>();
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer-common.dll");
-                //Leave the old one there if the user forgets to delete it.
-                autoAllowed.Add("darkmultiplayer/plugins/messagewriter.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter2.dll");
-                //Compression
-                autoAllowed.Add("darkmultiplayer/plugins/icsharpcode.sharpziplib.dll");
+                autoAllowed.Add("darkmultiplayer/plugins/udpmeshlib.dll");
                 foreach (KeyValuePair<string, string> dllResource in dllList)
                 {
                     //Allow DMP files
@@ -408,7 +405,7 @@ namespace DarkMultiPlayer
             return new List<string>(allowedParts);
         }
 
-        public void GenerateModControlFile(bool whitelistMode)
+        public void GenerateModControlFile(bool whitelistMode, bool displayMessage)
         {
             string gameDataDir = Client.dmpClient.gameDataDir;
             string[] topLevelFiles = Directory.GetFiles(gameDataDir);
@@ -429,15 +426,11 @@ namespace DarkMultiPlayer
             foreach (string modDirectory in modDirectories)
             {
                 string lowerDirectoryName = modDirectory.Substring(modDirectory.ToLower().IndexOf("gamedata", StringComparison.Ordinal) + 9).ToLower();
-                if (lowerDirectoryName.StartsWith("squad", StringComparison.Ordinal))
+                if (lowerDirectoryName == "squad")
                 {
                     continue;
                 }
-                if (lowerDirectoryName.StartsWith("nasamission", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-                if (lowerDirectoryName.StartsWith("darkmultiplayer", StringComparison.Ordinal))
+                if (lowerDirectoryName == "darkmultiplayer")
                 {
                     continue;
                 }
@@ -507,7 +500,10 @@ namespace DarkMultiPlayer
             {
                 sw.Write(modFileData);
             }
-            ScreenMessages.PostScreenMessage("mod-control.txt file generated in your KSP folder\nMove it to DMPServer/Config/", 5f, ScreenMessageStyle.UPPER_CENTER);
+            if (displayMessage)
+            {
+                ScreenMessages.PostScreenMessage("mod-control.txt file generated in your KSP folder\nMove it to DMPServer/Config/", 5f, ScreenMessageStyle.UPPER_CENTER);
+            }
         }
 
         public void CheckCommonStockParts()

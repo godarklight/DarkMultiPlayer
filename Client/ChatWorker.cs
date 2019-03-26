@@ -390,8 +390,6 @@ namespace DarkMultiPlayer
             }
         }
 
-
-
         public void HandleChatInput(string input)
         {
             if (!input.StartsWith("/", StringComparison.Ordinal) || input.StartsWith("//", StringComparison.Ordinal))

@@ -1,0 +1,626 @@
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using DarkMultiPlayerCommon;
+using MessageStream2;
+
+namespace DarkMultiPlayer
+{
+    public class ModpackWorker
+    {
+        public static bool secondModSync = false;
+        public bool synced = false;
+        public string syncString = "Syncing mods";
+        private int filesDownloaded = 0;
+        private bool askToRestart = false;
+        private ModpackMode modpackMode = ModpackMode.NONE;
+        private Queue<byte[]> messageQueue = new Queue<byte[]>();
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private ModWorker modWorker;
+        private NetworkWorker networkWorker;
+        private ChatWorker chatWorker;
+        private AdminSystem adminSystem;
+        /// <summary>
+        /// KSP's gamedata path
+        /// </summary>
+        private readonly string gameDataPath;
+        /// <summary>
+        /// DarkMultiPlayers object store path
+        /// </summary>
+        private readonly string cacheDataPath;
+        /// <summary>
+        /// The servers CKAN index for DMPModpackUpdater
+        /// </summary>
+        private readonly string ckanDataPath;
+        /// <summary>
+        /// The servers GameData index for DMPModpackUpdater
+        /// </summary>
+        private readonly string gameDataServerCachePath;
+        /// <summary>
+        /// Our GameData cache, so we don't have to hash every single object every boot when connecting GAMEDATA mode servers.
+        /// </summary>
+        private readonly string gameDataClientCachePath;
+        /// <summary>
+        /// The servers GameData index
+        /// </summary>
+        private Dictionary<string, string> serverPathCache  = new Dictionary<string, string>();
+        /// <summary>
+        /// The clients GameData index
+        /// </summary>
+        private Dictionary<string, string> clientPathCache = new Dictionary<string, string>();
+        /// <summary>
+        /// The clients files to hash
+        /// </summary>
+        private string[] modFilesToHash;
+        private int modFilesToHashPos;
+        private List<string> ignoreList = Common.GetExclusionList();
+        private List<string> containsIgnoreList = Common.GetContainsExclusionList();
+        private List<string> requestList = new List<string>();
+        private bool uploadAfterHashing = false;
+        private string[] modFilesToUpload;
+        private int modFilesToUploadPos;
+        private bool registeredChatCommand = false;
+        private ScreenMessage screenMessage;
+        private long nextScreenMessageUpdate;
+
+        public ModpackWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, NetworkWorker networkWorker, ChatWorker chatWorker, AdminSystem adminSystem)
+        {
+            gameDataPath = Path.Combine(KSPUtil.ApplicationRootPath, "GameData");
+            cacheDataPath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-ModCache");
+            Directory.CreateDirectory(cacheDataPath);
+            ckanDataPath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer.ckan");
+            gameDataServerCachePath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-Server-GameData.txt");
+            gameDataClientCachePath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-Client-GameData.txt");
+            this.dmpGame = dmpGame;
+            this.dmpSettings = dmpSettings;
+            this.modWorker = modWorker;
+            this.networkWorker = networkWorker;
+            this.chatWorker = chatWorker;
+            this.adminSystem = adminSystem;
+            dmpGame.updateEvent.Add(Update);
+            GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+        }
+
+        private void OnGameSceneLoadRequested(GameScenes gameScene)
+        {
+            if (screenMessage != null)
+            {
+                screenMessage.duration = 0f;
+                screenMessage = null;
+            }
+        }
+
+        public void Stop(GameScenes gameScene)
+        {
+            dmpGame.updateEvent.Remove(Update);
+            GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
+        }
+
+        private void Update()
+        {
+            //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
+            if (modFilesToHash == null)
+            {
+                lock (messageQueue)
+                {
+                    while (messageQueue.Count > 0)
+                    {
+                        RealHandleMessage(messageQueue.Dequeue());
+                        //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
+                        if (modFilesToHash != null)
+                        {
+                            syncString = "Hashing 0/" + modFilesToHash.Length + " files";
+                            break;
+                        }
+                    }
+                    if (networkWorker.state == ClientState.RUNNING)
+                    {
+                        while (modFilesToUpload != null && networkWorker.GetStatistics("QueuedOutBytes") < 1000000)
+                        {
+                            RealSendToServer();
+                            if (modFilesToUpload != null)
+                            {
+                                syncString = "Uploading " + modFilesToUploadPos + "/" + modFilesToUpload.Length + " files";
+                                DarkLog.Debug(syncString);
+                                if (screenMessage != null && DateTime.UtcNow.Ticks > nextScreenMessageUpdate)
+                                {
+                                    nextScreenMessageUpdate = DateTime.UtcNow.Ticks + (TimeSpan.TicksPerMillisecond * 100);
+                                    screenMessage.duration = 0f;
+                                    screenMessage = ScreenMessages.PostScreenMessage(syncString);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            else
+            {
+                long stopTime = DateTime.UtcNow.Ticks + (TimeSpan.TicksPerMillisecond * 100);
+                while (stopTime > DateTime.UtcNow.Ticks && modFilesToHash != null)
+                {
+                    UpdateCacheReal();
+                }
+                if (modFilesToHash == null)
+                {
+                    modFilesToHashPos = 0;
+                    using (StreamWriter sw = new StreamWriter(gameDataClientCachePath))
+                    {
+                        foreach (KeyValuePair<string, string> kvp in clientPathCache)
+                        {
+                            sw.WriteLine("{0}={1}", kvp.Key, kvp.Value);
+                        }
+                    }
+                    syncString = "Hashed " + clientPathCache.Count + " files";
+                    DarkLog.Debug("Hashed " + clientPathCache.Count + " files");
+                    if (screenMessage != null && DateTime.UtcNow.Ticks > nextScreenMessageUpdate)
+                    {
+                        nextScreenMessageUpdate = DateTime.UtcNow.Ticks + (TimeSpan.TicksPerMillisecond * 100);
+                        screenMessage.duration = 0f;
+                        screenMessage = ScreenMessages.PostScreenMessage(syncString);
+                    }
+                    if (uploadAfterHashing)
+                    {
+                        uploadAfterHashing = false;
+                        using (MessageWriter mw = new MessageWriter())
+                        {
+                            List<string> uploadfiles = new List<string>(clientPathCache.Keys);
+                            List<string> uploadsha = new List<string>(clientPathCache.Values);
+                            mw.Write<int>((int)ModpackDataMessageType.MOD_LIST);
+                            mw.Write<string[]>(uploadfiles.ToArray());
+                            mw.Write<string[]>(uploadsha.ToArray());
+                            networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                        }
+                    }
+                }
+                else
+                {
+                    syncString = "Hashing " + modFilesToHashPos + "/" + modFilesToHash.Length + " files";
+                    if (screenMessage != null && DateTime.UtcNow.Ticks > nextScreenMessageUpdate)
+                    {
+                        nextScreenMessageUpdate = DateTime.UtcNow.Ticks + (TimeSpan.TicksPerMillisecond * 100);
+                        screenMessage.duration = 0f;
+                        screenMessage = ScreenMessages.PostScreenMessage(syncString);
+                    }
+                    DarkLog.Debug("Hashing " + modFilesToHashPos + "/" + modFilesToHash.Length + " files");
+                }
+            }
+        }
+
+        private void RealSendToServer()
+        {
+            if (modFilesToUpload == null)
+            {
+                DarkLog.Debug("Calling RealSendToServer while null?");
+                return;
+            }
+            if (modFilesToUpload != null && modFilesToUploadPos >= modFilesToUpload.Length)
+            {
+                modFilesToUpload = null;
+                modFilesToUploadPos = 0;
+                if (screenMessage != null)
+                {
+                    screenMessage.duration = 0f;
+                    screenMessage = null;
+                    ScreenMessages.PostScreenMessage("Upload done!", 5f, ScreenMessageStyle.UPPER_CENTER);
+                }
+                using (MessageWriter mw = new MessageWriter())
+                {
+                    mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
+                    mw.Write<bool>(true);
+                    modWorker.GenerateModControlFile(true, false);
+                    byte[] tempModControl = File.ReadAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "mod-control.txt"));
+                    mw.Write<byte[]>(tempModControl);
+                    networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                }
+                return;
+            }
+            string shaToUpload = modFilesToUpload[modFilesToUploadPos];
+            DarkLog.Debug("Uploading object: " + shaToUpload);
+            modFilesToUploadPos++;
+            using (MessageWriter mw = new MessageWriter())
+            {
+                string fileToUploadPath = Path.Combine(cacheDataPath, shaToUpload + ".bin");
+                mw.Write<int>((int)ModpackDataMessageType.RESPONSE_OBJECT);
+                mw.Write<string>(shaToUpload);
+                if (File.Exists(fileToUploadPath))
+                {
+                    byte[] fileBytes = File.ReadAllBytes(fileToUploadPath);
+                    mw.Write<bool>(true);
+                    mw.Write<byte[]>(fileBytes);
+                }
+                else
+                {
+                    mw.Write<bool>(false);
+                }
+                networkWorker.SendModpackMessage(mw.GetMessageBytes());
+            }
+        }
+
+        private void UploadToServer(string chatCommand)
+        {
+            if (adminSystem.IsAdmin(dmpSettings.playerName) && !uploadAfterHashing)
+            {
+                uploadAfterHashing = true;
+                screenMessage = ScreenMessages.PostScreenMessage("Uploading GameData", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
+                UpdateCache();
+            }
+            else
+            {
+                screenMessage = ScreenMessages.PostScreenMessage("You are not an admin, unable to upload", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
+            }
+        }
+
+        private void UploadCKANToServer(string chatCommand)
+        {
+            if (adminSystem.IsAdmin(dmpSettings.playerName))
+            {
+                Console.WriteLine();
+                string tempCkanPath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-new.ckan");
+                if (File.Exists(tempCkanPath))
+                {
+                    ScreenMessages.PostScreenMessage("Uploaded KSP/DarkMultiPlayer-new.ckan", 5f, ScreenMessageStyle.UPPER_CENTER);
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ModpackDataMessageType.CKAN);
+                        byte[] tempCkanBytes = File.ReadAllBytes(tempCkanPath);
+                        mw.Write<byte[]>(tempCkanBytes);
+                    }
+                }
+                else
+                {
+                    ScreenMessages.PostScreenMessage("KSP/DarkMultiPlayer-new.ckan does not exist", 5f, ScreenMessageStyle.UPPER_CENTER);
+                }
+            }
+            else
+            {
+                screenMessage = ScreenMessages.PostScreenMessage("You are not an admin, unable to upload", float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
+            }
+        }
+
+        private void LoadAuto()
+        {
+            clientPathCache.Clear();
+            if (File.Exists(gameDataClientCachePath))
+            {
+                using (StreamReader sr = new StreamReader(gameDataClientCachePath))
+                {
+                    string currentLine = null;
+                    while ((currentLine = sr.ReadLine()) != null)
+                    {
+                        int splitPos = currentLine.LastIndexOf('=');
+                        string path = currentLine.Substring(0, splitPos);
+                        string sha256sum = currentLine.Substring(splitPos + 1);
+                        clientPathCache.Add(path, sha256sum);
+                    }
+                }
+            }
+            int realFiles = 0;
+            string[] modFiles = Directory.GetFiles(gameDataPath, "*", SearchOption.AllDirectories);
+            foreach (string filePath in modFiles)
+            {
+                if (!filePath.ToLower().StartsWith(gameDataPath.ToLower(), StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
+                bool skipFile = false;
+                foreach (string ignoreString in ignoreList)
+                {
+                    if (trimmedPath.ToLower().StartsWith(ignoreString))
+                    {
+                        skipFile = true;
+                    }
+                }
+                foreach (string ignoreString in containsIgnoreList)
+                {
+                    if (trimmedPath.ToLower().Contains(ignoreString))
+                    {
+                        skipFile = true;
+                    }
+                }
+                if (skipFile)
+                {
+                    continue;
+                }
+                realFiles++;
+            }
+            if (realFiles != clientPathCache.Count)
+            {
+                UpdateCache();
+            }
+        }
+
+        private void UpdateCache()
+        {
+            if (File.Exists(gameDataClientCachePath))
+            {
+                File.Delete(gameDataClientCachePath);
+            }
+            clientPathCache.Clear();
+            List<string> filesToHashTemp = new List<string>();
+            string[] modFilesToHashTemp = Directory.GetFiles(gameDataPath, "*", SearchOption.AllDirectories);
+            foreach (string filePath in modFilesToHashTemp)
+            {
+                if (!filePath.ToLower().StartsWith(gameDataPath.ToLower(), StringComparison.Ordinal))
+                {
+                    continue;
+                }
+                string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
+                bool skipFile = false;
+                foreach (string ignoreString in ignoreList)
+                {
+                    if (trimmedPath.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
+                    {
+                        skipFile = true;
+                    }
+                }
+                foreach (string ignoreString in containsIgnoreList)
+                {
+                    if (trimmedPath.ToLower().Contains(ignoreString))
+                    {
+                        skipFile = true;
+                    }
+                }
+                if (skipFile)
+                {
+                    continue;
+                }
+                filesToHashTemp.Add(filePath);
+            }
+            modFilesToHash = filesToHashTemp.ToArray();
+            modFilesToHashPos = 0;
+            if (modFilesToHash.Length == 0)
+            {
+                modFilesToHash = null;
+            }
+        }
+
+        private void UpdateCacheReal()
+        {
+            if (modFilesToHash == null)
+            {
+                DarkLog.Debug("Calling UpdateCacheReal while null?");
+                return;
+            }
+            if (modFilesToHash != null && modFilesToHashPos >= modFilesToHash.Length)
+            {
+                modFilesToHash = null;
+                CompareGameDatas();
+                return;
+            }
+            string filePath = modFilesToHash[modFilesToHashPos];
+            modFilesToHashPos++;
+            if (!filePath.ToLower().StartsWith(gameDataPath.ToLower(), StringComparison.Ordinal))
+            {
+                return;
+            }
+            string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
+            foreach (string ignoreString in ignoreList)
+            {
+                if (trimmedPath.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
+                {
+                    return;
+                }
+            }
+            foreach (string ignoreString in containsIgnoreList)
+            {
+                if (trimmedPath.ToLower().Contains(ignoreString))
+                {
+                    return;
+                }
+            }
+            byte[] fileBytes = File.ReadAllBytes(filePath);
+            string sha256sum = Common.CalculateSHA256Hash(fileBytes);
+            string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
+            if (!File.Exists(thisCachePath))
+            {
+                File.Copy(filePath, thisCachePath);
+            }
+            clientPathCache.Add(trimmedPath, sha256sum);
+        }
+
+        public void HandleModpackMessage(byte[] messageData)
+        {
+            lock (messageQueue)
+            {
+                messageQueue.Enqueue(messageData);
+            }
+        }
+
+        private void RealHandleMessage(byte[] messageData)
+        {
+            using (MessageReader mr = new MessageReader(messageData))
+            {
+                ModpackDataMessageType type = (ModpackDataMessageType)mr.Read<int>();
+                switch (type)
+                {
+                    case ModpackDataMessageType.CKAN:
+                        {
+                            modpackMode = ModpackMode.CKAN;
+                            byte[] receiveData = mr.Read<byte[]>();
+                            byte[] oldData = null;
+                            if (File.Exists(ckanDataPath))
+                            {
+                                oldData = File.ReadAllBytes(ckanDataPath);
+                            }
+                            if (!BytesMatch(oldData, receiveData))
+                            {
+                                DarkLog.Debug("Ckan file changed");
+                                askToRestart = true;
+                                File.Delete(ckanDataPath);
+                                File.WriteAllBytes(ckanDataPath, receiveData);                                
+                            }
+                            if (!registeredChatCommand)
+                            {
+                                registeredChatCommand = true;
+                                chatWorker.RegisterChatCommand("upload", UploadCKANToServer, "Upload DarkMultiPlayer.ckan to the server");
+                            }
+                        }
+                        break;
+                    case ModpackDataMessageType.MOD_LIST:
+                        {
+                            modpackMode = ModpackMode.GAMEDATA;
+                            string[] files = mr.Read<string[]>();
+                            string[] sha = mr.Read<string[]>();
+                            if (File.Exists(gameDataServerCachePath))
+                            {
+                                File.Delete(gameDataServerCachePath);
+                            }
+                            using (StreamWriter sw = new StreamWriter(gameDataServerCachePath))
+                            {
+                                for (int i = 0; i < files.Length; i++)
+                                {
+                                    sw.WriteLine("{0}={1}", files[i], sha[i]);
+                                    serverPathCache.Add(files[i], sha[i]);
+                                }
+                            }
+                            LoadAuto();
+                            if (modFilesToHash == null)
+                            {
+                                CompareGameDatas();
+                            }
+                            if (!registeredChatCommand)
+                            {
+                                registeredChatCommand = true;
+                                chatWorker.RegisterChatCommand("upload", UploadToServer, "Upload GameData to the server");
+                            }
+                        }
+                        break;
+                    case ModpackDataMessageType.REQUEST_OBJECT:
+                        {
+                            modFilesToUpload = mr.Read<string[]>();
+                            modFilesToUploadPos = 0;
+                            DarkLog.Debug("Server requested " + modFilesToUpload.Length + " files");
+                        }
+                        break;
+                    case ModpackDataMessageType.RESPONSE_OBJECT:
+                        {
+                            string sha256sum = mr.Read<string>();
+                            filesDownloaded++;
+                            if (mr.Read<bool>())
+                            {
+                                syncString = "Syncing mods " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)";
+                                byte[] fileBytes = mr.Read<byte[]>();
+                                string filePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
+                                if (!File.Exists(filePath))
+                                {
+                                    File.WriteAllBytes(filePath, fileBytes);
+                                }
+                            }
+                            if (filesDownloaded == requestList.Count)
+                            {
+                                networkWorker.Disconnect("Syncing mods " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)");
+                                ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                            }
+                        }
+                        break;
+                    case ModpackDataMessageType.MOD_DONE:
+                        {
+                            DarkLog.Debug("Mod done");
+                            if (!askToRestart || secondModSync)
+                            {
+                                synced = true;
+                            }
+                            else
+                            {
+                                if (modpackMode == ModpackMode.CKAN)
+                                {
+                                    ScreenMessages.PostScreenMessage("Please install CKAN update at KSP/DarkMultiPlayer.ckan or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                                    networkWorker.Disconnect("Synced DarkMultiPlayer.ckan");
+                                }
+                                if (modpackMode == ModpackMode.GAMEDATA && requestList.Count == 0)
+                                {
+                                    ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                                    syncString = "Synced mods (" + serverPathCache.Count + " cached)";
+                                    networkWorker.Disconnect("Synced mods (" + serverPathCache.Count + " cached)");
+                                }
+                            }
+                            secondModSync = true;
+                        }
+                        break;
+                }
+            }
+        }
+
+        private bool BytesMatch(byte[] lhs, byte[] rhs)
+        {
+            if (lhs == null && rhs == null)
+            {
+                return true;
+            }
+            if (lhs == null || rhs == null)
+            {
+                return false;
+            }
+            if (lhs.Length != rhs.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < lhs.Length; i++)
+            {
+                if (lhs[i] != rhs[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private void CompareGameDatas()
+        {
+            foreach (KeyValuePair<string, string> kvp in serverPathCache)
+            {
+                string thisCachePath = Path.Combine(cacheDataPath, kvp.Value + ".bin");
+                bool skipFile = false;
+                foreach (string ignoreString in ignoreList)
+                {
+                    if (kvp.Key.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
+                    {
+                        skipFile = true;
+                    }
+                }
+                foreach (string ignoreString in containsIgnoreList)
+                {
+                    if (kvp.Key.ToLower().Contains(ignoreString))
+                    {
+                        skipFile = true;
+                    }
+                }
+                if (skipFile)
+                {
+                    continue;
+                }
+                if (!clientPathCache.ContainsKey(kvp.Key))
+                {
+                    askToRestart = true;
+                    DarkLog.Debug("Missing file: " + kvp.Key);
+                    if (!File.Exists(thisCachePath) && !requestList.Contains(kvp.Value))
+                    {
+                        requestList.Add(kvp.Value);
+                    }
+                }
+                if (clientPathCache.ContainsKey(kvp.Key) && clientPathCache[kvp.Key] != kvp.Value && !requestList.Contains(kvp.Value))
+                {
+                    askToRestart = true;
+                    DarkLog.Debug("Hash mismatch: " + kvp.Key);
+                    if (!File.Exists(thisCachePath))
+                    {
+                        requestList.Add(kvp.Value);
+                    }
+                }
+            }
+            using (MessageWriter mw = new MessageWriter())
+            {
+                mw.Write<int>((int)ModpackDataMessageType.REQUEST_OBJECT);
+                mw.Write<string[]>(requestList.ToArray());
+                networkWorker.SendModpackMessage(mw.GetMessageBytes());
+            }
+        }
+
+        public void Stop()
+        {
+            dmpGame.updateEvent.Remove(Update);
+        }
+    }
+}

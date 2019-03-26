@@ -152,6 +152,7 @@ namespace DarkMultiPlayerServer
             CommandHandler.RegisterCommand("pm", PMCommand.HandleCommand, "Sends a message to a player");
             CommandHandler.RegisterCommand("admin", AdminCommand.HandleCommand, "Sets a player as admin/removes admin from the player");
             CommandHandler.RegisterCommand("whitelist", WhitelistCommand.HandleCommand, "Change the server whitelist");
+
             //Register the ctrl+c event
             Console.CancelKeyPress += new ConsoleCancelEventHandler(CatchExit);
             serverStarting = true;
@@ -215,6 +216,14 @@ namespace DarkMultiPlayerServer
                     //Generate the config file by accessing the object.
                     DarkLog.Debug("Loading gameplay settings...");
                     GameplaySettings.Load();
+                }
+
+                if (Settings.settingsStore.modpackMode == ModpackMode.GAMEDATA)
+                {
+                    DarkLog.Normal("Loading modpack data");
+                    ModpackSystem.fetch.LoadAuto();
+                    CommandHandler.RegisterCommand("reloadmods", ModpackSystem.fetch.HandleReloadCommand, "Reload Game");
+                    DarkLog.Normal("Loaded data!");
                 }
 
                 //Load universe
@@ -404,12 +413,12 @@ namespace DarkMultiPlayerServer
             StopMeshServer();
         }
         //Restart
-        private static void Restart(string commandArgs)
+        public static void Restart(string reason)
         {
-            if (commandArgs != "")
+            if (reason != "")
             {
-                DarkLog.Normal("Restarting - " + commandArgs);
-                Messages.ConnectionEnd.SendConnectionEndToAll("Server is restarting - " + commandArgs);
+                DarkLog.Normal("Restarting - " + reason);
+                Messages.ConnectionEnd.SendConnectionEndToAll("Server is restarting - " + reason);
             }
             else
             {

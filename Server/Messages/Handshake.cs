@@ -253,6 +253,15 @@ namespace DarkMultiPlayerServer.Messages
                 newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);
+            if (response == 0 && Settings.settingsStore.modpackMode == ModpackMode.GAMEDATA)
+            {
+                Modpack.SendModList(client);
+            }
+            if (response == 0 && Settings.settingsStore.modpackMode == ModpackMode.CKAN)
+            {
+                Modpack.SendCkan(client);
+            }
+            Modpack.SendModDone(client);
         }
     }
 }

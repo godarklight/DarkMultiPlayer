@@ -17,7 +17,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 50;
+        public const int PROTOCOL_VERSION = 51;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -73,6 +73,24 @@ namespace DarkMultiPlayerCommon
                 messageData.CopyTo(returnBytes, 8);
             }
             return returnBytes;
+        }
+
+        public static List<string> GetExclusionList()
+        {
+            List<string> retVal = new List<string>();
+            retVal.Add("darkmultiplayer/");
+            retVal.Add("squad/");
+            retVal.Add("squadexpansion/");
+            return retVal;
+        }
+
+        public static List<string> GetContainsExclusionList()
+        {
+            List<string> retVal = new List<string>();
+            retVal.Add(".log");
+            retVal.Add("modulemanager.configcache");
+            retVal.Add("modulemanager.configsha");
+            return retVal;
         }
 
         public static string ConvertConfigStringToGUIDString(string configNodeString)
@@ -591,6 +609,7 @@ namespace DarkMultiPlayerCommon
         MOD_DATA,
         SPLIT_MESSAGE,
         CONNECTION_END,
+        MODPACK_DATA,
     }
 
     public enum MeshMessageType
@@ -633,7 +652,8 @@ namespace DarkMultiPlayerCommon
         LOCK_SYSTEM,
         MOD_DATA,
         SPLIT_MESSAGE,
-        CONNECTION_END
+        CONNECTION_END,
+        MODPACK_DATA,
     }
 
     public enum ConnectionStatus
@@ -650,6 +670,8 @@ namespace DarkMultiPlayerCommon
         CONNECTED,
         HANDSHAKING,
         AUTHENTICATED,
+        MODPACK_SYNCING,
+        MODPACK_SYNCED,
         TIME_SYNCING,
         TIME_SYNCED,
         GROUPS_SYNCING,
@@ -682,6 +704,13 @@ namespace DarkMultiPlayerCommon
         SANDBOX,
         SCIENCE,
         CAREER
+    }
+
+    public enum ModpackMode
+    {
+        NONE,
+        GAMEDATA,
+        CKAN
     }
 
     public enum ModControlMode
@@ -789,6 +818,15 @@ namespace DarkMultiPlayerCommon
         SET_OWNER,
         SET_PERMISSION_LEVEL,
         SET_GROUP,
+    }
+
+    public enum ModpackDataMessageType
+    {
+        MOD_LIST,
+        CKAN,
+        REQUEST_OBJECT,
+        RESPONSE_OBJECT,
+        MOD_DONE,
     }
 
     public enum VesselProtectionType

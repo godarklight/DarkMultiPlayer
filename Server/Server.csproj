@@ -96,6 +96,8 @@
     <Compile Include="Groups.cs" />
     <Compile Include="Messages\GroupMessage.cs" />
     <Compile Include="Messages\PermissionMessage.cs" />
+    <Compile Include="Messages\Modpack.cs" />
+    <Compile Include="ModpackSystem.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

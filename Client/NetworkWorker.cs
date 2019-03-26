@@ -65,6 +65,7 @@ namespace DarkMultiPlayer
         private Dictionary<string, Guid> meshPlayerGuids = new Dictionary<string, Guid>();
         private string serverMotd;
         private bool displayMotd;
+        private bool disconnectAfterDownloadingMods = false;
         //Services
         DMPGame dmpGame;
         Settings dmpSettings;
@@ -94,6 +95,7 @@ namespace DarkMultiPlayer
         ConfigNodeSerializer configNodeSerializer;
         UniverseSyncCache universeSyncCache;
         VesselRecorder vesselRecorder;
+        ModpackWorker modpackWorker;
 
         public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
@@ -105,7 +107,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(Update);
         }
 
-        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions)
+        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions, ModpackWorker modpackWorker)
         {
             this.timeSyncer = timeSyncer;
             this.warpWorker = warpWorker;
@@ -130,6 +132,7 @@ namespace DarkMultiPlayer
             this.vesselRecorder = vesselRecorder;
             this.groups = groups;
             this.permissions = permissions;
+            this.modpackWorker = modpackWorker;
             vesselRecorder.SetHandlers(HandleVesselProto, HandleVesselUpdate, HandleVesselRemove);
         }
 
@@ -153,6 +156,26 @@ namespace DarkMultiPlayer
             }
 
             if (state == ClientState.AUTHENTICATED)
+            {
+                state = ClientState.MODPACK_SYNCING;
+                connectionWindow.status = "Syncing modpack";
+            }
+            if (state == ClientState.MODPACK_SYNCING)
+            {
+                connectionWindow.status = modpackWorker.syncString;
+                if (modpackWorker.synced)
+                {
+                    if (!disconnectAfterDownloadingMods)
+                    {
+                        state = ClientState.MODPACK_SYNCED;
+                    }
+                    else
+                    {
+                        Disconnect("Failed mod validation");
+                    }
+                }
+            }
+            if (state == ClientState.MODPACK_SYNCED)
             {
                 SendPlayerStatus(playerStatusWorker.myPlayerStatus);
                 DarkLog.Debug("Sending time sync!");
@@ -1036,7 +1059,10 @@ namespace DarkMultiPlayer
                     case ServerMessageType.CONNECTION_END:
                         HandleConnectionEnd(message.data);
                         break;
-                    default:
+                    case ServerMessageType.MODPACK_DATA:
+                        HandleModpackData(message.data);
+                        break;
+                default:
                         DarkLog.Debug("Unhandled message type " + message.type);
                         break;
                 }
@@ -1126,7 +1152,8 @@ namespace DarkMultiPlayer
                         else
                         {
                             DarkLog.Debug("Failed to pass mod validation");
-                            SendDisconnect("Failed mod validation");
+                            state = ClientState.AUTHENTICATED;
+                            disconnectAfterDownloadingMods = true;
                         }
                     }
                     break;
@@ -1873,6 +1900,11 @@ namespace DarkMultiPlayer
             Disconnect("Server closed connection: " + reason);
         }
 
+        private void HandleModpackData(byte[] data)
+        {
+            modpackWorker.HandleModpackMessage(data);
+        }
+
         #endregion
 
         #region Message Sending
@@ -2382,6 +2414,14 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.LOCK_SYSTEM;
             newMessage.data = messageData;
             QueueOutgoingMessage(newMessage, true);
+        }
+        //Called from warpWorker
+        public void SendModpackMessage(byte[] messageData)
+        {
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.MODPACK_DATA;
+            newMessage.data = messageData;
+            QueueOutgoingMessage(newMessage, false);
         }
 
         /// <summary>

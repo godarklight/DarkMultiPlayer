@@ -27,7 +27,7 @@ namespace DarkMultiPlayer
         private GUIStyle windowStyle;
         private GUIStyle buttonStyle;
         //const
-        private const float WINDOW_HEIGHT = 320;
+        private const float WINDOW_HEIGHT = 350;
         private const float WINDOW_WIDTH = 300;
         private const int descWidth = 75;
         private const int sepWidth = 5;
@@ -401,12 +401,12 @@ namespace DarkMultiPlayer
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Generate:", descriptorStyle);
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Whitelist", buttonStyle))
-                    modWorker.GenerateModControlFile(true);
+                    modWorker.GenerateModControlFile(true, true);
 
                 groupY += 22;
 
                 if (GUI.Button(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 20, 20), "Blacklist", buttonStyle))
-                    modWorker.GenerateModControlFile(false);
+                    modWorker.GenerateModControlFile(false, true);
 
                 GUI.EndGroup();
                 windowY += 47;
@@ -414,7 +414,7 @@ namespace DarkMultiPlayer
                 GUI.Box(new Rect(2, windowY, windowRect.width - 4, 20), "Other", sectionHeaderStyle);
                 windowY += 22;
 
-                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 178));
+                GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 200));
                 groupY = 0;
 
                 bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.compressionEnabled, "Compress Network Traffic");
@@ -492,7 +492,7 @@ namespace DarkMultiPlayer
                     modWorker.CheckCommonStockParts();
                 }
 #endif
-
+                groupY += 22;
                 GUI.EndGroup();
             }
         }
