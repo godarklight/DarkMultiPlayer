@@ -268,12 +268,12 @@ namespace DarkMultiPlayerServer
                         objectData.Add(sha256sum, trimmedPath);
                     }
                 }
-            }
-            using (StreamWriter sw = new StreamWriter(modpackServerCacheObjects))
-            {
-                foreach (KeyValuePair<string, string> kvp in modpackData)
+                using (StreamWriter sw = new StreamWriter(modpackServerCacheObjects))
                 {
-                    sw.WriteLine("{0}={1}", kvp.Key, kvp.Value);
+                    foreach (KeyValuePair<string, string> kvp in modpackData)
+                    {
+                        sw.WriteLine("{0}={1}", kvp.Key, kvp.Value);
+                    }
                 }
             }
         }
@@ -281,37 +281,40 @@ namespace DarkMultiPlayerServer
         public void HandleModDone()
         {
             Server.Restart("Updating mod pack");
-            string[] modFiles = Directory.GetFiles(modpackPath, "*", SearchOption.AllDirectories);
-            foreach (string filePath in modFiles)
+            if (Settings.settingsStore.modpackMode == ModpackMode.GAMEDATA)
             {
-                if (!filePath.ToLower().StartsWith(modpackPath.ToLower(), StringComparison.Ordinal))
+                string[] modFiles = Directory.GetFiles(modpackPath, "*", SearchOption.AllDirectories);
+                foreach (string filePath in modFiles)
                 {
-                    continue;
-                }
-                string trimmedPath = filePath.Substring(modpackPath.Length + 1).Replace('\\', '/');
-                bool skipFile = false;
-                foreach (string excludePath in excludeList)
-                {
-                    if (trimmedPath.ToLower().StartsWith(excludePath, StringComparison.Ordinal))
+                    if (!filePath.ToLower().StartsWith(modpackPath.ToLower(), StringComparison.Ordinal))
                     {
-                        skipFile = true;
+                        continue;
                     }
-                }
-                foreach (string excludePath in containsExcludeList)
-                {
-                    if (trimmedPath.ToLower().Contains(excludePath))
+                    string trimmedPath = filePath.Substring(modpackPath.Length + 1).Replace('\\', '/');
+                    bool skipFile = false;
+                    foreach (string excludePath in excludeList)
                     {
-                        skipFile = true;
+                        if (trimmedPath.ToLower().StartsWith(excludePath, StringComparison.Ordinal))
+                        {
+                            skipFile = true;
+                        }
                     }
-                }
-                if (skipFile)
-                {
-                    continue;
-                }
-                if (!clientData.ContainsKey(trimmedPath))
-                {
-                    DarkLog.Normal("Deleting old GameData file: " + trimmedPath);
-                    File.Delete(filePath);
+                    foreach (string excludePath in containsExcludeList)
+                    {
+                        if (trimmedPath.ToLower().Contains(excludePath))
+                        {
+                            skipFile = true;
+                        }
+                    }
+                    if (skipFile)
+                    {
+                        continue;
+                    }
+                    if (!clientData.ContainsKey(trimmedPath))
+                    {
+                        DarkLog.Normal("Deleting old GameData file: " + trimmedPath);
+                        File.Delete(filePath);
+                    }
                 }
             }
             Load();

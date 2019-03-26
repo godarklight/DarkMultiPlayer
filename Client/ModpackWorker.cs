@@ -208,7 +208,7 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
                     mw.Write<bool>(true);
-                    modWorker.GenerateModControlFile(true, false);
+                    modWorker.GenerateModControlFile(false, false);
                     byte[] tempModControl = File.ReadAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "mod-control.txt"));
                     mw.Write<byte[]>(tempModControl);
                     networkWorker.SendModpackMessage(mw.GetMessageBytes());
@@ -265,6 +265,16 @@ namespace DarkMultiPlayer
                         mw.Write<int>((int)ModpackDataMessageType.CKAN);
                         byte[] tempCkanBytes = File.ReadAllBytes(tempCkanPath);
                         mw.Write<byte[]>(tempCkanBytes);
+                        networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                    }
+                    using (MessageWriter mw = new MessageWriter())
+                    {
+                        mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
+                        mw.Write<bool>(true);
+                        modWorker.GenerateModControlFile(false, false);
+                        byte[] tempModControl = File.ReadAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "mod-control.txt"));
+                        mw.Write<byte[]>(tempModControl);
+                        networkWorker.SendModpackMessage(mw.GetMessageBytes());
                     }
                 }
                 else

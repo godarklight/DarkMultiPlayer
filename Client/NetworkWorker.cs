@@ -177,6 +177,7 @@ namespace DarkMultiPlayer
             }
             if (state == ClientState.MODPACK_SYNCED)
             {
+                ModpackWorker.secondModSync = false;
                 SendPlayerStatus(playerStatusWorker.myPlayerStatus);
                 DarkLog.Debug("Sending time sync!");
                 state = ClientState.TIME_SYNCING;
