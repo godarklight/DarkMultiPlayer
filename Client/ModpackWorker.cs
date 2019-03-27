@@ -56,6 +56,7 @@ namespace DarkMultiPlayer
         private int modFilesToHashPos;
         private List<string> ignoreList = Common.GetExclusionList();
         private List<string> containsIgnoreList = Common.GetContainsExclusionList();
+        private List<string> noWarnList = Common.GetContainsNoWarningList();
         private List<string> requestList = new List<string>();
         private bool uploadAfterHashing = false;
         private string[] modFilesToUpload;
@@ -591,6 +592,13 @@ namespace DarkMultiPlayer
                     }
                 }
                 foreach (string ignoreString in containsIgnoreList)
+                {
+                    if (kvp.Key.ToLower().Contains(ignoreString))
+                    {
+                        skipFile = true;
+                    }
+                }
+                foreach (string ignoreString in noWarnList)
                 {
                     if (kvp.Key.ToLower().Contains(ignoreString))
                     {

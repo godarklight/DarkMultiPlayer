@@ -75,6 +75,10 @@ namespace DarkMultiPlayerCommon
             return returnBytes;
         }
 
+        /// <summary>
+        /// Files that will not sync to the server or download from the server
+        /// </summary>
+        /// <returns>The exclusion list.</returns>
         public static List<string> GetExclusionList()
         {
             List<string> retVal = new List<string>();
@@ -84,14 +88,28 @@ namespace DarkMultiPlayerCommon
             return retVal;
         }
 
+        /// <summary>
+        /// Files that will not sync to the server or download from the server
+        /// </summary>
+        /// <returns>The contains exclusion list.</returns>
         public static List<string> GetContainsExclusionList()
         {
             List<string> retVal = new List<string>();
-            retVal.Add(".log");
             retVal.Add("modulemanager.configcache");
             retVal.Add("modulemanager.configsha");
             retVal.Add("modulemanager.physics");
             retVal.Add("modulemanager.techtree");
+            return retVal;
+        }
+
+        /// <summary>
+        /// Files that will not cause the "Run DMPModpackUpdater" notice.
+        /// </summary>
+        /// <returns>The contains exclusion list.</returns>
+        public static List<string> GetContainsNoWarningList()
+        {
+            List<string> retVal = new List<string>();
+            retVal.Add(".log");
             retVal.Add("toolbar-settings.dat");
             retVal.Add("scatterer/config/config.cfg");
             retVal.Add("toolbarcontrol.cfg");
