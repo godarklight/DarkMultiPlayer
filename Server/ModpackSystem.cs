@@ -15,8 +15,11 @@ namespace DarkMultiPlayerServer
         private static ModpackSystem instance;
         //From client for uploading, Path - SHA256Sum
         private Dictionary<string, string> clientData = new Dictionary<string, string>();
+        private int clientReceived = 0;
         //Path - SHA256Sum
         private Dictionary<string, string> modpackData = new Dictionary<string, string>();
+        private int hashCount = 0;
+        private long nextHashTime = 0;
         //SHA256Sum - Path
         private Dictionary<string, string> objectData = new Dictionary<string, string>();
         //Send limited files at once, we can't queue gigabytes up on the network interface in one server frame.
@@ -168,6 +171,7 @@ namespace DarkMultiPlayerServer
                 DarkLog.Normal("Files and SHA list does not match, not using modpack");
                 return;
             }
+            clientReceived = 0;
             clientData.Clear();
             List<string> tempRequestObjects = new List<string>();
             for (int i = 0; i < files.Length; i++)
@@ -207,7 +211,10 @@ namespace DarkMultiPlayerServer
                     int splitPos = currentLine.LastIndexOf('=');
                     string path = currentLine.Substring(0, splitPos);
                     string sha256sum = currentLine.Substring(splitPos + 1);
-                    modpackData.Add(path, sha256sum);
+                    if (!modpackData.ContainsKey(path))
+                    {
+                        modpackData.Add(path, sha256sum);
+                    }
                     if (!objectData.ContainsKey(sha256sum))
                     {
                         objectData.Add(sha256sum, path);
@@ -225,11 +232,13 @@ namespace DarkMultiPlayerServer
                 {
                     File.Delete(modpackServerCacheObjects);
                 }
+                hashCount = 0;
                 modpackData.Clear();
                 objectData.Clear();
                 string[] modFiles = Directory.GetFiles(modpackPath, "*", SearchOption.AllDirectories);
                 foreach (string filePath in modFiles)
                 {
+                    hashCount++;
                     if (!filePath.ToLower().StartsWith(modpackPath.ToLower(), StringComparison.Ordinal))
                     {
                         DarkLog.Error("Not adding file that is in GameData, symlinks are not supported.");
@@ -257,9 +266,14 @@ namespace DarkMultiPlayerServer
                         continue;
                     }
                     string sha256sum = Common.CalculateSHA256Hash(filePath);
-                    DarkLog.Debug("Adding: " + trimmedPath + " to " + sha256sum);
+
                     if (!modpackData.ContainsKey(trimmedPath))
                     {
+                        if (DateTime.UtcNow.Ticks > nextHashTime)
+                        {
+                            nextHashTime = DateTime.UtcNow.Ticks + TimeSpan.TicksPerSecond;
+                            DarkLog.Debug("Hashing: " + hashCount + "/" + modFiles.Length);
+                        }
                         modpackData.Add(trimmedPath, sha256sum);
                     }
                     //Need to check because we may have a duplicate file in GameData
@@ -268,6 +282,7 @@ namespace DarkMultiPlayerServer
                         objectData.Add(sha256sum, trimmedPath);
                     }
                 }
+                DarkLog.Debug("Hashed " + modFiles.Length + " files");
                 using (StreamWriter sw = new StreamWriter(modpackServerCacheObjects))
                 {
                     foreach (KeyValuePair<string, string> kvp in modpackData)
@@ -280,7 +295,12 @@ namespace DarkMultiPlayerServer
 
         public void HandleModDone()
         {
-            Server.Restart("Updating mod pack");
+            modpackData.Clear();
+            objectData.Clear(); 
+            if (File.Exists(modpackServerCacheObjects))
+            {
+                File.Delete(modpackServerCacheObjects);
+            }
             if (Settings.settingsStore.modpackMode == ModpackMode.GAMEDATA)
             {
                 string[] modFiles = Directory.GetFiles(modpackPath, "*", SearchOption.AllDirectories);
@@ -317,7 +337,7 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-            Load();
+            Server.Restart("Updating mod pack");
             DarkLog.Normal("Finished receiving mods, synced " + modpackData.Count + "/" + clientData.Count + "!");
         }
 
@@ -363,6 +383,7 @@ namespace DarkMultiPlayerServer
                     tryWrite = Path.Combine(modpackPath, kvp.Key);
                     if (kvp.Value == sha256sum)
                     {
+                        clientReceived++;
                         new FileInfo(tryWrite).Directory.Create();
                         if (File.Exists(tryWrite))
                         {
