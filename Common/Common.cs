@@ -95,6 +95,7 @@ namespace DarkMultiPlayerCommon
         public static List<string> GetContainsExclusionList()
         {
             List<string> retVal = new List<string>();
+            retVal.Add(".log");
             retVal.Add("modulemanager.configcache");
             retVal.Add("modulemanager.configsha");
             retVal.Add("modulemanager.physics");
@@ -109,13 +110,9 @@ namespace DarkMultiPlayerCommon
         public static List<string> GetContainsNoWarningList()
         {
             List<string> retVal = new List<string>();
-            retVal.Add(".log");
-            retVal.Add("toolbar-settings.dat");
-            retVal.Add("scatterer/config/config.cfg");
+            retVal.Add("settings");
+            retVal.Add("config");
             retVal.Add("toolbarcontrol.cfg");
-            retVal.Add("kerbalengineer/settings");
-            retVal.Add("config.xml");
-            retVal.Add("settings.cfg");
             return retVal;
         }
 

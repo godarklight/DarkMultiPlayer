@@ -421,14 +421,22 @@ namespace DarkMultiPlayer
                     return;
                 }
             }
-            byte[] fileBytes = File.ReadAllBytes(filePath);
-            string sha256sum = Common.CalculateSHA256Hash(fileBytes);
-            string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
-            if (!File.Exists(thisCachePath))
+            try
             {
-                File.Copy(filePath, thisCachePath);
+
+                byte[] fileBytes = File.ReadAllBytes(filePath);
+                string sha256sum = Common.CalculateSHA256Hash(fileBytes);
+                string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
+                if (!File.Exists(thisCachePath))
+                {
+                    File.Copy(filePath, thisCachePath);
+                }
+                clientPathCache.Add(trimmedPath, sha256sum);
             }
-            clientPathCache.Add(trimmedPath, sha256sum);
+            catch (Exception e)
+            {
+                DarkLog.Debug("Error reading: " + trimmedPath + ", Exception: " + e);
+            }
         }
 
         public void HandleModpackMessage(byte[] messageData)
