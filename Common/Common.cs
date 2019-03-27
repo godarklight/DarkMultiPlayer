@@ -1,8 +1,8 @@
 using System;
-using System.Text;
-using System.Security.Cryptography;
-using System.IO;
 using System.Collections.Generic;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace DarkMultiPlayerCommon
 {
@@ -90,6 +90,14 @@ namespace DarkMultiPlayerCommon
             retVal.Add(".log");
             retVal.Add("modulemanager.configcache");
             retVal.Add("modulemanager.configsha");
+            retVal.Add("modulemanager.physics");
+            retVal.Add("modulemanager.techtree");
+            retVal.Add("toolbar-settings.dat");
+            retVal.Add("scatterer/config/config.cfg");
+            retVal.Add("toolbarcontrol.cfg");
+            retVal.Add("kerbalengineer/settings");
+            retVal.Add("config.xml");
+            retVal.Add("settings.cfg");
             return retVal;
         }
 

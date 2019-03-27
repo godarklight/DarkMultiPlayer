@@ -33,7 +33,7 @@ namespace DarkMultiPlayerServer
                 if (instance == null)
                 {
                     excludeList = Common.GetExclusionList();
-                    containsExcludeList = Common.GetExclusionList();
+                    containsExcludeList = Common.GetContainsExclusionList();
                     if (Settings.settingsStore.modpackMode == DarkMultiPlayerCommon.ModpackMode.GAMEDATA)
                     {
                         modpackPath = Path.Combine(Server.configDirectory, "GameData");

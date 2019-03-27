@@ -10,7 +10,7 @@ namespace DarkMultiPlayer
     {
         public static bool secondModSync = false;
         public bool synced = false;
-        public string syncString = "Syncing mods";
+        public string syncString = "Syncing files";
         private int filesDownloaded = 0;
         private bool askToRestart = false;
         private ModpackMode modpackMode = ModpackMode.NONE;
@@ -510,7 +510,7 @@ namespace DarkMultiPlayer
                             filesDownloaded++;
                             if (mr.Read<bool>())
                             {
-                                syncString = "Syncing mods " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)";
+                                syncString = "Syncing files " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)";
                                 byte[] fileBytes = mr.Read<byte[]>();
                                 string filePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
                                 if (!File.Exists(filePath))
@@ -520,7 +520,7 @@ namespace DarkMultiPlayer
                             }
                             if (filesDownloaded == requestList.Count)
                             {
-                                networkWorker.Disconnect("Syncing mods " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)");
+                                networkWorker.Disconnect("Syncing files " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)");
                                 ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
                             }
                         }
@@ -542,8 +542,8 @@ namespace DarkMultiPlayer
                                 if (modpackMode == ModpackMode.GAMEDATA && requestList.Count == 0)
                                 {
                                     ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
-                                    syncString = "Synced mods (" + serverPathCache.Count + " cached)";
-                                    networkWorker.Disconnect("Synced mods (" + serverPathCache.Count + " cached)");
+                                    syncString = "Synced files (" + serverPathCache.Count + " cached)";
+                                    networkWorker.Disconnect(syncString);
                                 }
                             }
                             secondModSync = true;
