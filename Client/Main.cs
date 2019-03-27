@@ -591,10 +591,22 @@ namespace DarkMultiPlayer
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (showGUI)
             {
-                connectionWindow.Draw();
-                modWindow.Draw();
-                optionsWindow.Draw();
-                universeConverterWindow.Draw();
+                if (connectionWindow != null)
+                {
+                    connectionWindow.Draw();
+                }
+                if (modWindow != null)
+                {
+                    modWindow.Draw();
+                }
+                if (optionsWindow != null)
+                {
+                    optionsWindow.Draw();
+                }
+                if (universeConverterWindow != null)
+                {
+                    universeConverterWindow.Draw();
+                }
                 if (dmpGame != null)
                 {
                     foreach (Action drawAction in dmpGame.drawEvent)
