@@ -53,7 +53,8 @@ namespace DarkMultiPlayer
             {
                 Directory.CreateDirectory(darkMultiPlayerSavesDirectory);
             }
-            dataLocation = Path.Combine(Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location), "Data");
+            dataLocation = Path.Combine(Path.Combine(Path.Combine(Path.Combine(Client.dmpClient.kspRootPath, "GameData"), "DarkMultiPlayer"), "Plugins"), "Data");
+            DarkLog.Debug("DarkMultiPlayer Settings path: " + dataLocation);
             oldSettingsFile = Path.Combine(dataLocation, OLD_SETTINGS_FILE);
             settingsFile = Path.Combine(dataLocation, SETTINGS_FILE);
             backupOldSettingsFile = Path.Combine(darkMultiPlayerSavesDirectory, OLD_SETTINGS_FILE);
