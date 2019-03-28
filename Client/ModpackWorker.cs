@@ -9,10 +9,10 @@ namespace DarkMultiPlayer
     public class ModpackWorker
     {
         public static bool secondModSync = false;
+        public bool missingWarnFile = false;
         public bool synced = false;
         public string syncString = "Syncing files";
         private int filesDownloaded = 0;
-        private bool askToRestart = false;
         private ModpackMode modpackMode = ModpackMode.NONE;
         private Queue<byte[]> messageQueue = new Queue<byte[]>();
         private DMPGame dmpGame;
@@ -54,6 +54,10 @@ namespace DarkMultiPlayer
         /// </summary>
         private string[] modFilesToHash;
         private int modFilesToHashPos;
+        /// <summary>
+        /// The clients GameData index
+        /// </summary>
+        private HashSet<string> noWarnSha = new HashSet<string>();
         private List<string> ignoreList = Common.GetExclusionList();
         private List<string> containsIgnoreList = Common.GetContainsExclusionList();
         private List<string> noWarnList = Common.GetContainsNoWarningList();
@@ -318,7 +322,7 @@ namespace DarkMultiPlayer
                 bool skipFile = false;
                 foreach (string ignoreString in ignoreList)
                 {
-                    if (trimmedPath.ToLower().StartsWith(ignoreString))
+                    if (trimmedPath.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
                     {
                         skipFile = true;
                     }
@@ -401,29 +405,10 @@ namespace DarkMultiPlayer
                 return;
             }
             string filePath = modFilesToHash[modFilesToHashPos];
-            modFilesToHashPos++;
-            if (!filePath.ToLower().StartsWith(gameDataPath.ToLower(), StringComparison.Ordinal))
-            {
-                return;
-            }
             string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
-            foreach (string ignoreString in ignoreList)
-            {
-                if (trimmedPath.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
-                {
-                    return;
-                }
-            }
-            foreach (string ignoreString in containsIgnoreList)
-            {
-                if (trimmedPath.ToLower().Contains(ignoreString))
-                {
-                    return;
-                }
-            }
+            modFilesToHashPos++;
             try
             {
-
                 byte[] fileBytes = File.ReadAllBytes(filePath);
                 string sha256sum = Common.CalculateSHA256Hash(fileBytes);
                 string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
@@ -466,7 +451,6 @@ namespace DarkMultiPlayer
                             if (!BytesMatch(oldData, receiveData))
                             {
                                 DarkLog.Debug("Ckan file changed");
-                                askToRestart = true;
                                 File.Delete(ckanDataPath);
                                 File.WriteAllBytes(ckanDataPath, receiveData);                                
                             }
@@ -479,6 +463,10 @@ namespace DarkMultiPlayer
                         break;
                     case ModpackDataMessageType.MOD_LIST:
                         {
+                            modFilesToHash = null;
+                            modFilesToHashPos = 0;
+                            serverPathCache.Clear();
+                            noWarnSha.Clear();
                             modpackMode = ModpackMode.GAMEDATA;
                             string[] files = mr.Read<string[]>();
                             string[] sha = mr.Read<string[]>();
@@ -490,6 +478,25 @@ namespace DarkMultiPlayer
                             {
                                 for (int i = 0; i < files.Length; i++)
                                 {
+                                    bool skipFile = false;
+                                    foreach (string ignoreString in ignoreList)
+                                    {
+                                        if (files[i].ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
+                                        {
+                                            skipFile = true;
+                                        }
+                                    }
+                                    foreach (string ignoreString in containsIgnoreList)
+                                    {
+                                        if (files[i].ToLower().Contains(ignoreString))
+                                        {
+                                            skipFile = true;
+                                        }
+                                    }
+                                    if (skipFile)
+                                    {
+                                        continue;
+                                    }
                                     sw.WriteLine("{0}={1}", files[i], sha[i]);
                                     serverPathCache.Add(files[i], sha[i]);
                                 }
@@ -519,7 +526,7 @@ namespace DarkMultiPlayer
                             filesDownloaded++;
                             if (mr.Read<bool>())
                             {
-                                syncString = "Syncing files " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)";
+                                syncString = "Syncing files " + filesDownloaded + "/" + requestList.Count + " (" + (serverPathCache.Count - requestList.Count) + " cached)";
                                 byte[] fileBytes = mr.Read<byte[]>();
                                 string filePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
                                 if (!File.Exists(filePath))
@@ -527,17 +534,28 @@ namespace DarkMultiPlayer
                                     File.WriteAllBytes(filePath, fileBytes);
                                 }
                             }
+                            else
+                            {
+                                ScreenMessages.PostScreenMessage("DMP Server has an out of date hash list. Tell the admin to run /reloadmods", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                                networkWorker.Disconnect("Syncing files error");
+                            }
                             if (filesDownloaded == requestList.Count)
                             {
-                                networkWorker.Disconnect("Syncing files " + filesDownloaded + "/" + requestList.Count + "(" + (serverPathCache.Count - requestList.Count) + " cached)");
-                                ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                                if (missingWarnFile)
+                                {
+                                    networkWorker.Disconnect("Syncing files " + filesDownloaded + "/" + requestList.Count + " (" + (serverPathCache.Count - requestList.Count) + " cached)");
+                                    ScreenMessages.PostScreenMessage("Please run DMPModpackUpdater or reconnect to ignore", float.PositiveInfinity, ScreenMessageStyle.UPPER_CENTER);
+                                }
+                                else
+                                {
+                                    synced = true;
+                                }
                             }
                         }
                         break;
                     case ModpackDataMessageType.MOD_DONE:
                         {
-                            DarkLog.Debug("Mod done");
-                            if (!askToRestart || secondModSync)
+                            if (requestList.Count == 0 || secondModSync)
                             {
                                 synced = true;
                             }
@@ -591,48 +609,51 @@ namespace DarkMultiPlayer
             foreach (KeyValuePair<string, string> kvp in serverPathCache)
             {
                 string thisCachePath = Path.Combine(cacheDataPath, kvp.Value + ".bin");
-                bool skipFile = false;
-                foreach (string ignoreString in ignoreList)
+                bool thisInNoWarn = false;
+                foreach (string noWarnString in noWarnList)
                 {
-                    if (kvp.Key.ToLower().StartsWith(ignoreString, StringComparison.Ordinal))
+                    if (!noWarnSha.Contains(kvp.Value) && kvp.Key.ToLower().Contains(noWarnString))
                     {
-                        skipFile = true;
+                        thisInNoWarn = true;
+                        noWarnSha.Add(kvp.Value);
                     }
-                }
-                foreach (string ignoreString in containsIgnoreList)
-                {
-                    if (kvp.Key.ToLower().Contains(ignoreString))
-                    {
-                        skipFile = true;
-                    }
-                }
-                foreach (string ignoreString in noWarnList)
-                {
-                    if (kvp.Key.ToLower().Contains(ignoreString))
-                    {
-                        skipFile = true;
-                    }
-                }
-                if (skipFile)
-                {
-                    continue;
                 }
                 if (!clientPathCache.ContainsKey(kvp.Key))
                 {
-                    askToRestart = true;
-                    DarkLog.Debug("Missing file: " + kvp.Key);
-                    if (!File.Exists(thisCachePath) && !requestList.Contains(kvp.Value))
+                    if (!thisInNoWarn)
                     {
-                        requestList.Add(kvp.Value);
+                        missingWarnFile = true;
                     }
-                }
-                if (clientPathCache.ContainsKey(kvp.Key) && clientPathCache[kvp.Key] != kvp.Value && !requestList.Contains(kvp.Value))
-                {
-                    askToRestart = true;
-                    DarkLog.Debug("Hash mismatch: " + kvp.Key);
                     if (!File.Exists(thisCachePath))
                     {
-                        requestList.Add(kvp.Value);
+                        if (!requestList.Contains(kvp.Value))
+                        {
+                            DarkLog.Debug("Requesting: " + kvp.Key + ", sha: " + kvp.Value);
+                            requestList.Add(kvp.Value);
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Missing: " + kvp.Key + " (in cache)");
+                    }
+                }
+                if (clientPathCache.ContainsKey(kvp.Key) && clientPathCache[kvp.Key] != kvp.Value)
+                {
+                    if (!thisInNoWarn)
+                    {
+                        missingWarnFile = true;
+                    }
+                    if (!File.Exists(thisCachePath))
+                    {
+                        if (!requestList.Contains(kvp.Value))
+                        {
+                            DarkLog.Debug("Requesting: " + kvp.Key + ", sha: " + kvp.Value);
+                            requestList.Add(kvp.Value);
+                        }
+                    }
+                    else
+                    {
+                        DarkLog.Debug("Missing: " + kvp.Key + " (in cache)");
                     }
                 }
             }
