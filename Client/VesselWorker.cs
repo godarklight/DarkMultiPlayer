@@ -1719,7 +1719,7 @@ namespace DarkMultiPlayer
                         {
                             //Noise. Ugh.
                             //DarkLog.Debug("Registering remote server asteroid");
-                            asteroidWorker.RegisterServerAsteroid(possibleAsteroid.vesselID.ToString());
+                            asteroidWorker.RegisterServerAsteroid(possibleAsteroid.vesselID);
                         }
                     }
                 }
