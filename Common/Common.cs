@@ -588,7 +588,6 @@ namespace DarkMultiPlayerCommon
             sb.AppendLine("#To add a mod part, add the name from the part's .cfg file. The name is the name from the PART{} section, where underscores are replaced with periods.");
             sb.AppendLine("#[partname]");
             sb.AppendLine("#Example: mumech.MJ2.Pod (NOTE: In the part.cfg this MechJeb2 pod is named mumech_MJ2_Pod. The _ have been replaced with .)");
-            sb.AppendLine("#You can use this application to generate partlists from a KSP installation if you want to add mod parts: http://forum.kerbalspaceprogram.com/threads/57284 ");
             foreach (string partName in partsList)
             {
                 sb.AppendLine(partName);

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
@@ -44,7 +45,7 @@ namespace DarkMultiPlayer
         /// <summary>
         /// The servers GameData index
         /// </summary>
-        private Dictionary<string, string> serverPathCache  = new Dictionary<string, string>();
+        private Dictionary<string, string> serverPathCache = new Dictionary<string, string>();
         /// <summary>
         /// The clients GameData index
         /// </summary>
@@ -54,9 +55,6 @@ namespace DarkMultiPlayer
         /// </summary>
         private string[] modFilesToHash;
         private int modFilesToHashPos;
-        /// <summary>
-        /// The clients GameData index
-        /// </summary>
         private HashSet<string> noWarnSha = new HashSet<string>();
         private List<string> ignoreList = Common.GetExclusionList();
         private List<string> containsIgnoreList = Common.GetContainsExclusionList();
@@ -68,6 +66,8 @@ namespace DarkMultiPlayer
         private bool registeredChatCommand = false;
         private ScreenMessage screenMessage;
         private long nextScreenMessageUpdate;
+        private int numHashingThreads = 2;
+        private Thread[] hashingThreads;
 
         public ModpackWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, NetworkWorker networkWorker, ChatWorker chatWorker, AdminSystem adminSystem)
         {
@@ -85,6 +85,14 @@ namespace DarkMultiPlayer
             this.adminSystem = adminSystem;
             dmpGame.updateEvent.Add(Update);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
+            try
+            {
+                numHashingThreads = Environment.ProcessorCount;
+            }
+            catch
+            {
+                Console.WriteLine("Environment.ProcessorCount does not work");
+            }
         }
 
         private void OnGameSceneLoadRequested(GameScenes gameScene)
@@ -105,7 +113,7 @@ namespace DarkMultiPlayer
         private void Update()
         {
             //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
-            if (modFilesToHash == null)
+            if (hashingThreads == null)
             {
                 lock (messageQueue)
                 {
@@ -113,7 +121,7 @@ namespace DarkMultiPlayer
                     {
                         RealHandleMessage(messageQueue.Dequeue());
                         //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
-                        if (modFilesToHash != null)
+                        if (hashingThreads != null)
                         {
                             syncString = "Hashing 0/" + modFilesToHash.Length + " files";
                             break;
@@ -142,13 +150,9 @@ namespace DarkMultiPlayer
             else
             {
                 long stopTime = DateTime.UtcNow.Ticks + (TimeSpan.TicksPerMillisecond * 100);
-                while (stopTime > DateTime.UtcNow.Ticks && modFilesToHash != null)
+                CheckHashingThreads();
+                if (hashingThreads == null)
                 {
-                    UpdateCacheReal();
-                }
-                if (modFilesToHash == null)
-                {
-                    modFilesToHashPos = 0;
                     using (StreamWriter sw = new StreamWriter(gameDataClientCachePath))
                     {
                         foreach (KeyValuePair<string, string> kvp in clientPathCache)
@@ -188,6 +192,32 @@ namespace DarkMultiPlayer
                         screenMessage = ScreenMessages.PostScreenMessage(syncString);
                     }
                     DarkLog.Debug("Hashing " + modFilesToHashPos + "/" + modFilesToHash.Length + " files");
+                }
+            }
+        }
+
+        private void CheckHashingThreads()
+        {
+            if (hashingThreads == null)
+            {
+                return;
+            }
+            bool isHashing = false;
+            foreach (Thread t in hashingThreads)
+            {
+                if (t.IsAlive)
+                {
+                    isHashing = true;
+                }
+            }
+            if (!isHashing)
+            {
+                modFilesToHash = null;
+                modFilesToHashPos = 0;
+                hashingThreads = null;
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                {
+                    CompareGameDatas();
                 }
             }
         }
@@ -387,40 +417,83 @@ namespace DarkMultiPlayer
             modFilesToHashPos = 0;
             if (modFilesToHash.Length == 0)
             {
+                DarkLog.Debug("Not starting hashing thread, nothing to hash.");
                 modFilesToHash = null;
+                if (HighLogic.LoadedScene == GameScenes.MAINMENU)
+                {
+                    CompareGameDatas();
+                }
+            }
+            else
+            {
+                //Don't multithread if we only have a few files
+                if (modFilesToHash.Length < 50)
+                {
+                    hashingThreads = new Thread[1];
+                    int[] threadStartObject = new int[] { 0, modFilesToHash.Length - 1 };
+                    hashingThreads[0] = new Thread(new ParameterizedThreadStart(HashingThreadMain));
+                    hashingThreads[0].Start(threadStartObject);
+                    DarkLog.Debug("Started hashing thread from " + threadStartObject[0] + " to " + threadStartObject[1]);
+                }
+                else
+                {
+                    int lastEnd = 0;
+                    int numSplit = modFilesToHash.Length / numHashingThreads;
+                    hashingThreads = new Thread[numHashingThreads];
+                    for (int i = 0; i < (numHashingThreads - 1); i++)
+                    {
+
+                        //First threads
+                        int[] threadStartObject = new int[2];
+                        threadStartObject[0] = lastEnd;
+                        lastEnd = lastEnd + numSplit;
+                        threadStartObject[1] = lastEnd;
+                        lastEnd++;
+                        hashingThreads[i] = new Thread(new ParameterizedThreadStart(HashingThreadMain));
+                        hashingThreads[i].Start(threadStartObject);
+                        DarkLog.Debug("Started hashing thread from " + threadStartObject[0] + " to " + threadStartObject[1]);
+
+
+                    }
+                    int[] threadStartObjectLast = new int[] { lastEnd, modFilesToHash.Length - 1 };
+                    hashingThreads[numHashingThreads - 1] = new Thread(new ParameterizedThreadStart(HashingThreadMain));
+                    hashingThreads[numHashingThreads - 1].Start(threadStartObjectLast);
+                    DarkLog.Debug("Started hashing thread from " + threadStartObjectLast[0] + " to " + threadStartObjectLast[1]);
+                }
             }
         }
 
-        private void UpdateCacheReal()
+        private void HashingThreadMain(object startEndArray)
         {
-            if (modFilesToHash == null)
+            int[] startEnd = (int[])startEndArray;
+            Dictionary<string, string> threadHashing = new Dictionary<string, string>();
+            for (int i = startEnd[0]; i <= startEnd[1]; i++)
             {
-                DarkLog.Debug("Calling UpdateCacheReal while null?");
-                return;
-            }
-            if (modFilesToHash != null && modFilesToHashPos >= modFilesToHash.Length)
-            {
-                modFilesToHash = null;
-                CompareGameDatas();
-                return;
-            }
-            string filePath = modFilesToHash[modFilesToHashPos];
-            string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
-            modFilesToHashPos++;
-            try
-            {
-                byte[] fileBytes = File.ReadAllBytes(filePath);
-                string sha256sum = Common.CalculateSHA256Hash(fileBytes);
-                string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
-                if (!File.Exists(thisCachePath))
+                string filePath = modFilesToHash[i];
+                string trimmedPath = filePath.Substring(gameDataPath.Length + 1).Replace('\\', '/');
+                Interlocked.Increment(ref modFilesToHashPos);
+                try
                 {
-                    File.Copy(filePath, thisCachePath);
+                    byte[] fileBytes = File.ReadAllBytes(filePath);
+                    string sha256sum = Common.CalculateSHA256Hash(fileBytes);
+                    string thisCachePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
+                    if (!File.Exists(thisCachePath))
+                    {
+                        File.Copy(filePath, thisCachePath);
+                    }
+                    threadHashing.Add(trimmedPath, sha256sum);
                 }
-                clientPathCache.Add(trimmedPath, sha256sum);
+                catch (Exception e)
+                {
+                    DarkLog.Debug("Error reading: " + trimmedPath + ", Exception: " + e);
+                }
             }
-            catch (Exception e)
+            lock (clientPathCache)
             {
-                DarkLog.Debug("Error reading: " + trimmedPath + ", Exception: " + e);
+                foreach (KeyValuePair<string, string> kvp in threadHashing)
+                {
+                    clientPathCache.Add(kvp.Key, kvp.Value);
+                }
             }
         }
 
@@ -452,7 +525,7 @@ namespace DarkMultiPlayer
                             {
                                 DarkLog.Debug("Ckan file changed");
                                 File.Delete(ckanDataPath);
-                                File.WriteAllBytes(ckanDataPath, receiveData);                                
+                                File.WriteAllBytes(ckanDataPath, receiveData);
                             }
                             if (!registeredChatCommand)
                             {
@@ -502,10 +575,6 @@ namespace DarkMultiPlayer
                                 }
                             }
                             LoadAuto();
-                            if (modFilesToHash == null)
-                            {
-                                CompareGameDatas();
-                            }
                             if (!registeredChatCommand)
                             {
                                 registeredChatCommand = true;
