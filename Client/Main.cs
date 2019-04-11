@@ -225,11 +225,6 @@ namespace DarkMultiPlayer
             {
                 if (HighLogic.LoadedScene == GameScenes.MAINMENU)
                 {
-                    if (!modWorker.dllListBuilt)
-                    {
-                        modWorker.dllListBuilt = true;
-                        modWorker.BuildDllFileList();
-                    }
                     if (!dmpSaveChecked)
                     {
                         dmpSaveChecked = true;

@@ -9,9 +9,6 @@ namespace DarkMultiPlayer
     public class ModWorker
     {
         public ModControlMode modControl = ModControlMode.ENABLED_STOP_INVALID_PART_SYNC;
-        public bool dllListBuilt;
-        //Dll files, built at startup
-        private Dictionary<string, string> dllList;
         //Accessed from ModWindow
         private List<string> allowedParts;
         private string lastModFileData = "";
@@ -42,28 +39,6 @@ namespace DarkMultiPlayer
             return true;
         }
 
-        public void BuildDllFileList()
-        {
-            dllList = new Dictionary<string, string>();
-            string[] checkList = Directory.GetFiles(Client.dmpClient.gameDataDir, "*", SearchOption.AllDirectories);
-
-            foreach (string checkFile in checkList)
-            {
-                //Only check DLL's
-                if (checkFile.ToLower().EndsWith(".dll", StringComparison.CurrentCulture))
-                {
-                    //We want the relative path to check against, example: DarkMultiPlayer/Plugins/DarkMultiPlayer.dll
-                    //Strip off everything from GameData
-                    //Replace windows backslashes with mac/linux forward slashes.
-                    //Make it lowercase so we don't worry about case sensitivity.
-                    string relativeFilePath = checkFile.ToLowerInvariant().Substring(checkFile.ToLowerInvariant().IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace('\\', '/');
-                    string fileHash = Common.CalculateSHA256Hash(checkFile);
-                    dllList.Add(relativeFilePath, fileHash);
-                    DarkLog.Debug("Hashed file: " + relativeFilePath + ", hash: " + fileHash);
-                }
-            }
-        }
-
         public bool ParseModFile(string modFileData)
         {
             if (modControl == ModControlMode.DISABLED)
@@ -71,9 +46,9 @@ namespace DarkMultiPlayer
                 return true;
             }
             bool modCheckOk = true;
+
             //Save mod file so we can recheck it.
             lastModFileData = modFileData;
-            //Err...
             string tempModFilePath = Path.Combine(Client.dmpClient.dmpDataDir, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(tempModFilePath))
             {
@@ -238,98 +213,54 @@ namespace DarkMultiPlayer
             //Check Required
             foreach (KeyValuePair<string, string> requiredEntry in parseRequired)
             {
-                if (!requiredEntry.Key.EndsWith("dll", StringComparison.Ordinal))
+                //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
+                if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
                 {
-                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
-                    if (!currentGameDataFilesLower.Contains(requiredEntry.Key))
-                    {
-                        modCheckOk = false;
-                        DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
-                        sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
-                        continue;
-                    }
-                    //If the entry has a SHA sum, we need to check it.
-                    if (requiredEntry.Value != "")
-                    {
-
-                        string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(requiredEntry.Key)];
-                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
-                        if (!CheckFile(fullFileName, requiredEntry.Value))
-                        {
-                            modCheckOk = false;
-                            DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
-                            sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
-                            continue;
-                        }
-                    }
+                    modCheckOk = false;
+                    DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
+                    sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
+                    continue;
                 }
-                else
+                //If the entry has a SHA sum, we need to check it.
+                if (requiredEntry.Value != "")
                 {
-                    //DLL entries are cached from startup.
-                    if (!dllList.ContainsKey(requiredEntry.Key))
+
+                    string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(requiredEntry.Key)];
+                    string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
+                    if (!CheckFile(fullFileName, requiredEntry.Value))
                     {
                         modCheckOk = false;
-                        DarkLog.Debug("Required file " + requiredEntry.Key + " is missing!");
-                        sb.AppendLine("Required file " + requiredEntry.Key + " is missing!");
+                        DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
+                        sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
                         continue;
-                    }
-                    if (requiredEntry.Value != "")
-                    {
-                        if (dllList[requiredEntry.Key] != requiredEntry.Value)
-                        {
-                            modCheckOk = false;
-                            DarkLog.Debug("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
-                            sb.AppendLine("Required file " + requiredEntry.Key + " does not match hash " + requiredEntry.Value + "!");
-                            continue;
-                        }
                     }
                 }
             }
+
             //Check Optional
             foreach (KeyValuePair<string, string> optionalEntry in parseOptional)
             {
-                if (!optionalEntry.Key.EndsWith("dll", StringComparison.Ordinal))
+                //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
+                if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
                 {
-                    //Protect against windows-style entries in mod-control.txt. Also use case insensitive matching.
-                    if (!currentGameDataFilesLower.Contains(optionalEntry.Key))
-                    {
-                        //File is optional, nothing to check if it doesn't exist.
-                        continue;
-                    }
-                    //If the entry has a SHA sum, we need to check it.
-                    if (optionalEntry.Value != "")
-                    {
+                    //File is optional, nothing to check if it doesn't exist.
+                    continue;
+                }
+                //If the entry has a SHA sum, we need to check it.
+                if (optionalEntry.Value != "")
+                {
 
-                        string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(optionalEntry.Key)];
-                        string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
-                        if (!CheckFile(fullFileName, optionalEntry.Value))
-                        {
-                            modCheckOk = false;
-                            DarkLog.Debug("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
-                            sb.AppendLine("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
-                            continue;
-                        }
-                    }
-                }
-                else
-                {
-                    //DLL entries are cached from startup.
-                    if (!dllList.ContainsKey(optionalEntry.Key))
+                    string normalCaseFileName = currentGameDataFilesNormal[currentGameDataFilesLower.IndexOf(optionalEntry.Key)];
+                    string fullFileName = Path.Combine(Client.dmpClient.gameDataDir, normalCaseFileName);
+                    if (!CheckFile(fullFileName, optionalEntry.Value))
                     {
-                        //File is optional, nothing to check if it doesn't exist.
+                        modCheckOk = false;
+                        DarkLog.Debug("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
+                        sb.AppendLine("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
                         continue;
                     }
-                    if (optionalEntry.Value != "")
-                    {
-                        if (dllList[optionalEntry.Key] != optionalEntry.Value)
-                        {
-                            modCheckOk = false;
-                            DarkLog.Debug("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
-                            sb.AppendLine("Optional file " + optionalEntry.Key + " does not match hash " + optionalEntry.Value + "!");
-                            continue;
-                        }
-                    }
                 }
+
             }
             if (isWhiteList)
             {
@@ -339,44 +270,57 @@ namespace DarkMultiPlayer
                 autoAllowed.Add("darkmultiplayer/plugins/darkmultiplayer-common.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/messagewriter2.dll");
                 autoAllowed.Add("darkmultiplayer/plugins/udpmeshlib.dll");
-                foreach (KeyValuePair<string, string> dllResource in dllList)
+                foreach (string fileName in Directory.GetFiles(Client.dmpClient.gameDataDir))
                 {
+                    string fileNameLower = fileName.ToLower();
+                    //Ignore non DLL files
+                    if (!fileNameLower.EndsWith(".dll", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
                     //Allow DMP files
-                    if (autoAllowed.Contains(dllResource.Key))
+                    if (autoAllowed.Contains(fileNameLower))
                     {
                         continue;
                     }
                     //Ignore squad plugins
-                    if (dllResource.Key.StartsWith("squad/plugins", StringComparison.Ordinal))
+                    if (fileNameLower.StartsWith("squad/plugins", StringComparison.Ordinal))
                     {
                         continue;
                     }
                     //Check required (Required implies whitelist)
-                    if (parseRequired.ContainsKey(dllResource.Key))
+                    if (parseRequired.ContainsKey(fileNameLower))
                     {
                         continue;
                     }
                     //Check optional (Optional implies whitelist)
-                    if (parseOptional.ContainsKey(dllResource.Key))
+                    if (parseOptional.ContainsKey(fileNameLower))
                     {
                         continue;
                     }
                     //Check whitelist
-                    if (parseWhiteBlackList.Contains(dllResource.Key))
+                    if (parseWhiteBlackList.Contains(fileNameLower))
                     {
                         continue;
                     }
                     modCheckOk = false;
-                    DarkLog.Debug("Non-whitelisted resource " + dllResource.Key + " exists on client!");
-                    sb.AppendLine("Non-whitelisted resource " + dllResource.Key + " exists on client!");
+                    DarkLog.Debug("Non-whitelisted resource " + fileNameLower + " exists on client!");
+                    sb.AppendLine("Non-whitelisted resource " + fileNameLower + " exists on client!");
                 }
             }
             else
             {
+                HashSet<string> dllFileList = new HashSet<string>();
+                foreach (string fileName in Directory.GetFiles(Client.dmpClient.gameDataDir))
+                {
+                    string fileNameLower = fileName.ToLower();
+                    dllFileList.Add(fileNameLower);
+                }
+
                 //Check Resource blacklist
                 foreach (string blacklistEntry in parseWhiteBlackList)
                 {
-                    if (dllList.ContainsKey(blacklistEntry.ToLowerInvariant()))
+                    if (dllFileList.Contains(blacklistEntry.ToLower()))
                     {
                         modCheckOk = false;
                         DarkLog.Debug("Banned resource " + blacklistEntry + " exists on client!");
@@ -384,6 +328,28 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+
+            //Ignores old missing stock parts
+            List<string> installedPartsList = Common.GetStockParts();
+            foreach (AvailablePart part in PartLoader.LoadedPartsList)
+            {
+                if (!installedPartsList.Contains(part.name))
+                {
+                    installedPartsList.Add(part.name);
+                }
+            }
+
+            foreach (string partName in parsePartsList)
+            {
+                DarkLog.Debug("Checking " + partName);
+                if (!installedPartsList.Contains(partName))
+                {
+                    modCheckOk = false;
+                    DarkLog.Debug("Required part " + partName + " is missing!");
+                    sb.AppendLine("Required part " + partName + " is missing!");
+                }
+            }
+
             if (!modCheckOk)
             {
                 failText = sb.ToString();
@@ -408,92 +374,31 @@ namespace DarkMultiPlayer
         public void GenerateModControlFile(bool whitelistMode, bool displayMessage)
         {
             string gameDataDir = Client.dmpClient.gameDataDir;
-            string[] topLevelFiles = Directory.GetFiles(gameDataDir);
-            string[] modDirectories = Directory.GetDirectories(gameDataDir);
+            string[] allFiles = Directory.GetFiles(gameDataDir, "*", SearchOption.AllDirectories);
 
             List<string> requiredFiles = new List<string>();
             List<string> optionalFiles = new List<string>();
             List<string> partsList = Common.GetStockParts();
-            //If whitelisting, add top level dll's to required (It's usually things like modulemanager)
-            foreach (string dllFile in topLevelFiles)
+
+            if (whitelistMode)
             {
-                if (Path.GetExtension(dllFile).ToLower() == ".dll")
+                foreach (string fileName in allFiles)
                 {
-                    requiredFiles.Add(Path.GetFileName(dllFile));
+                    if (fileName.ToLower().EndsWith(".dll", StringComparison.Ordinal))
+                    {
+                        optionalFiles.Add(Path.GetFileName(fileName.ToLower()));
+                    }
                 }
             }
 
-            foreach (string modDirectory in modDirectories)
+            foreach (AvailablePart part in PartLoader.LoadedPartsList)
             {
-                string lowerDirectoryName = modDirectory.Substring(modDirectory.ToLower().IndexOf("gamedata", StringComparison.Ordinal) + 9).ToLower();
-                if (lowerDirectoryName == "squad")
+                if (!partsList.Contains(part.name))
                 {
-                    continue;
-                }
-                if (lowerDirectoryName == "darkmultiplayer")
-                {
-                    continue;
-                }
-                bool modIsRequired = false;
-                string[] partFiles = Directory.GetFiles(Path.Combine(gameDataDir, modDirectory), "*", SearchOption.AllDirectories);
-                List<string> modDllFiles = new List<string>();
-                List<string> modPartCfgFiles = new List<string>();
-                foreach (string partFile in partFiles)
-                {
-                    bool fileIsPartFile = false;
-                    string relativeFileName = partFile.Substring(partFile.ToLower().IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace(@"\", "/");
-                    if (Path.GetExtension(partFile).ToLower() == ".cfg")
-                    {
-                        ConfigNode cn = ConfigNode.Load(partFile);
-                        if (cn == null)
-                        {
-                            continue;
-                        }
-                        foreach (ConfigNode partNode in cn.GetNodes("PART"))
-                        {
-                            string partName = partNode.GetValue("name");
-                            if (partName != null)
-                            {
-                                DarkLog.Debug("Part detected in " + relativeFileName + " , name: " + partName);
-                                partName = partName.Replace('_', '.');
-                                modIsRequired = true;
-                                fileIsPartFile = true;
-                                partsList.Add(partName);
-                            }
-                        }
-
-                    }
-                    if (fileIsPartFile)
-                    {
-                        modPartCfgFiles.Add(relativeFileName);
-                    }
-                    if (Path.GetExtension(partFile).ToLower() == ".dll")
-                    {
-                        modDllFiles.Add(relativeFileName);
-                    }
-                }
-
-                if (modIsRequired)
-                {
-                    if (modDllFiles.Count > 0)
-                    {
-                        //If the mod as a plugin, just require that. It's clear enough.
-                        requiredFiles.AddRange(modDllFiles);
-                    }
-                    else
-                    {
-                        //If the mod does *not* have a plugin (Scoop-o-matic is an example), add the part files to required instead.
-                        requiredFiles.AddRange(modPartCfgFiles);
-                    }
-                }
-                else
-                {
-                    if (whitelistMode)
-                    {
-                        optionalFiles.AddRange(modDllFiles);
-                    }
+                    partsList.Add(part.name);
                 }
             }
+
             string modFileData = Common.GenerateModFileStringData(requiredFiles.ToArray(), optionalFiles.ToArray(), whitelistMode, new string[0], partsList.ToArray());
             string saveModFile = Path.Combine(Client.dmpClient.kspRootPath, "mod-control.txt");
             using (StreamWriter sw = new StreamWriter(saveModFile, false))

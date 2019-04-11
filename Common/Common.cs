@@ -17,11 +17,11 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 51;
+        public const int PROTOCOL_VERSION = 52;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.6";
+        public const string MODCONTROL_VERSION = "1.7";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -504,7 +504,13 @@ namespace DarkMultiPlayerCommon
                 "liquidEngine2-2.v2",
                 "Size3To2Adapter.v2",
                 "stackBiCoupler.v2",
-                "stackTriCoupler.v2"
+                "stackTriCoupler.v2",
+                // 1.7 parts
+                "rocketNoseConeSize3",
+                "smallRadialEngine.v2",
+                "radialEngineMini.v2",
+                "microEngine.v2",
+                "RCSBlock.v2"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION

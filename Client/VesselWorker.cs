@@ -1580,7 +1580,7 @@ namespace DarkMultiPlayer
                 {
                     DarkLog.Debug("ProtoVessel update for target vessel!");
                 }
-                wasActive = (FlightGlobals.fetch.activeVessel != null) ? (FlightGlobals.fetch.activeVessel.id == currentProto.vesselID) : false;
+                wasActive = (FlightGlobals.fetch.activeVessel != null) && (FlightGlobals.fetch.activeVessel.id == currentProto.vesselID);
             }
 
             for (int vesselID = FlightGlobals.fetch.vessels.Count - 1; vesselID >= 0; vesselID--)
@@ -2019,22 +2019,22 @@ namespace DarkMultiPlayer
 
         public bool VesselRecentlyLoaded(Guid vesselID)
         {
-            return lastLoadVessel.ContainsKey(vesselID) ? ((Client.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f) : false;
+            return lastLoadVessel.ContainsKey(vesselID) && ((Client.realtimeSinceStartup - lastLoadVessel[vesselID]) < 10f);
         }
 
         public bool VesselRecentlyKilled(Guid vesselID)
         {
-            return lastKillVesselDestroy.ContainsKey(vesselID) ? ((Client.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f) : false;
+            return lastKillVesselDestroy.ContainsKey(vesselID) && ((Client.realtimeSinceStartup - lastKillVesselDestroy[vesselID]) < 10f);
         }
 
         public bool VesselUpdatedInFuture(Guid vesselID)
         {
-            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] + 3f) > Planetarium.GetUniversalTime()) : false;
+            return latestVesselUpdate.ContainsKey(vesselID) && ((latestVesselUpdate[vesselID] + 3f) > Planetarium.GetUniversalTime());
         }
 
         public bool LenientVesselUpdatedInFuture(Guid vesselID)
         {
-            return latestVesselUpdate.ContainsKey(vesselID) ? ((latestVesselUpdate[vesselID] - 3f) > Planetarium.GetUniversalTime()) : false;
+            return latestVesselUpdate.ContainsKey(vesselID) && ((latestVesselUpdate[vesselID] - 3f) > Planetarium.GetUniversalTime());
         }
 
         public void OnVesselDock(GameEvents.FromToAction<Part, Part> partAction)
