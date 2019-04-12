@@ -374,6 +374,10 @@ namespace DarkMultiPlayer
             {
                 UpdateCache();
             }
+            else
+            {
+                CompareGameDatas();
+            }
         }
 
         private void UpdateCache()
@@ -523,6 +527,7 @@ namespace DarkMultiPlayer
                             }
                             if (!BytesMatch(oldData, receiveData))
                             {
+                                missingWarnFile = true;
                                 DarkLog.Debug("Ckan file changed");
                                 File.Delete(ckanDataPath);
                                 File.WriteAllBytes(ckanDataPath, receiveData);
@@ -624,7 +629,7 @@ namespace DarkMultiPlayer
                         break;
                     case ModpackDataMessageType.MOD_DONE:
                         {
-                            if (requestList.Count == 0 || secondModSync)
+                            if ((!missingWarnFile && requestList.Count == 0) || secondModSync)
                             {
                                 synced = true;
                             }
