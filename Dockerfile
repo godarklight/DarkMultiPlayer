@@ -6,7 +6,8 @@ COPY ./Server /build/Server
 
 # Copy required libraries
 COPY ./SettingsParser.dll /build/
-COPY ./MessageWriter2 /build/
+COPY ./MessageWriter2.dll /build/
+COPY ./UDPMeshLib.dll /build/
 
 # Compile the Server project
 RUN msbuild /build/Server/Server.csproj /p:Configuration=Release
