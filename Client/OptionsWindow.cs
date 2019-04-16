@@ -433,14 +433,6 @@ namespace DarkMultiPlayer
                 }
                 groupY += 22;
 
-                bool toggleInterframeUpdater = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.interframeEnabled, "Position Loaded Vessels");
-                if (toggleInterframeUpdater != dmpSettings.interframeEnabled)
-                {
-                    dmpSettings.interframeEnabled = toggleInterframeUpdater;
-                    dmpSettings.SaveSettings();
-                }
-                groupY += 22;
-
                 if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), interpolatorMode, buttonStyle))
                 {
                     int newSetting = (int)dmpSettings.interpolatorType + 1;

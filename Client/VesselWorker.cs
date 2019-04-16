@@ -86,7 +86,6 @@ namespace DarkMultiPlayer
         private ModWorker modWorker;
         private LockSystem lockSystem;
         private NetworkWorker networkWorker;
-        private HackyInAtmoLoader hackyInAtmoLoader;
         private TimeSyncer timeSyncer;
         private DynamicTickWorker dynamicTickWorker;
         private ConfigNodeSerializer configNodeSerializer;
@@ -96,10 +95,9 @@ namespace DarkMultiPlayer
         private PartKiller partKiller;
         private PlayerStatusWorker playerStatusWorker;
         private PosistionStatistics posistionStatistics;
-        private VesselInterFrameUpdater vesselPackedUpdater;
         private Permissions permissions;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, VesselInterFrameUpdater vesselPackedUpdater, Permissions permissions)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -111,14 +109,12 @@ namespace DarkMultiPlayer
             this.kerbalReassigner = kerbalReassigner;
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
-            this.vesselPackedUpdater = vesselPackedUpdater;
             this.permissions = permissions;
             dmpGame.fixedUpdateEvent.Add(FixedUpdate);
         }
 
-        public void SetDependencies(HackyInAtmoLoader hackyInAtmoLoader, TimeSyncer timeSyncer, AsteroidWorker asteroidWorker, ChatWorker chatWorker, PlayerStatusWorker playerStatusWorker)
+        public void SetDependencies(TimeSyncer timeSyncer, AsteroidWorker asteroidWorker, ChatWorker chatWorker, PlayerStatusWorker playerStatusWorker)
         {
-            this.hackyInAtmoLoader = hackyInAtmoLoader;
             this.timeSyncer = timeSyncer;
             this.asteroidWorker = asteroidWorker;
             this.chatWorker = chatWorker;
@@ -228,9 +224,6 @@ namespace DarkMultiPlayer
                 {
                     ProcessNewVesselMessages();
                 }
-
-                //Apply updates to packed vessel
-                vesselPackedUpdater.Update();
 
                 //Update the screen spectate message.
                 UpdateOnScreenSpectateMessage();
@@ -528,7 +521,6 @@ namespace DarkMultiPlayer
                         nextUpdate = vesselQueue.Value.Peek();
                     }
                     vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, nextUpdate, dmpSettings);
-                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate, nextUpdate);
                     previousUpdates[vu.vesselID] = vu;
                 }
             }
@@ -567,7 +559,6 @@ namespace DarkMultiPlayer
                         nextUpdate = vesselQueue.Value.Peek();
                     }
                     vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, nextUpdate, dmpSettings);
-                    vesselPackedUpdater.SetVesselUpdate(vu.vesselID, vu, previousUpdate, nextUpdate);
                     previousUpdates[vu.vesselID] = vu;
                 }
             }
@@ -1493,7 +1484,6 @@ namespace DarkMultiPlayer
             }
 
             //Skip flying vessel that are too far away
-            bool usingHackyAtmoLoad = false;
             if (currentProto.situation == Vessel.Situations.FLYING)
             {
                 DarkLog.Debug("Got a flying update for " + currentProto.vesselID + ", name: " + currentProto.vesselName);
@@ -1526,15 +1516,8 @@ namespace DarkMultiPlayer
                 }
                 if (willGetKilledInAtmo)
                 {
-                    if (!ignoreFlyingKill && (FlightGlobals.fetch.vessels.Find(v => v.id == currentProto.vesselID) != null) && vesselPartCount.ContainsKey(currentProto.vesselID) ? currentProto.protoPartSnapshots.Count == vesselPartCount[currentProto.vesselID] : false)
-                    {
-                        DarkLog.Debug("Skipping flying vessel load - Vessel has the same part count");
-                        return;
-                    }
-                    DarkLog.Debug("Enabling FLYING vessel load!");
-                    //If the vessel is landed it won't be killed by the atmosphere
-                    currentProto.landed = true;
-                    usingHackyAtmoLoad = true;
+                    DarkLog.Debug("Skipping flying vessel load - Vessel will get killed in the atmosphere");
+                    return;
                 }
             }
 
@@ -1618,10 +1601,6 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Protovessel " + currentProto.vesselID + " failed to create a vessel!");
                 return;
-            }
-            if (usingHackyAtmoLoad)
-            {
-                hackyInAtmoLoader.AddHackyInAtmoLoad(currentProto.vesselRef);
             }
             if (wasActive)
             {
@@ -2115,7 +2094,6 @@ namespace DarkMultiPlayer
 
                 //Forget the dying vessel
                 partKiller.ForgetVessel(killVessel);
-                hackyInAtmoLoader.ForgetVessel(killVessel);
 
                 //Try to unload the vessel first.
                 if (killVessel.loaded)
@@ -2456,11 +2434,6 @@ namespace DarkMultiPlayer
                             }
                         }
                     }
-                    //We might have gotten the update late, so set the next update if we've ran out.
-                    if (vuQueue.Count == 0)
-                    {
-                        vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
-                    }
                     vuQueue.Enqueue(update);
                     //Mark the last update time
                     if (latestVesselUpdate.ContainsKey(update.vesselID) ? latestVesselUpdate[update.vesselID] < update.planetTime : true)
@@ -2500,10 +2473,6 @@ namespace DarkMultiPlayer
                     if (peekUpdate == null || peekUpdate.planetTime < update.planetTime)
                     {
                         vuQueue.Enqueue(update);
-                        if (vuQueue.Count == 0)
-                        {
-                            vesselPackedUpdater.SetNextUpdate(update.vesselID, update);
-                        }
                     }
                 }
             }

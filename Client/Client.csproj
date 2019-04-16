@@ -97,14 +97,12 @@
     <Compile Include="ToolbarWrapper.cs" />
     <Compile Include="ToolbarSupport.cs" />
     <Compile Include="3DDebug.cs" />
-    <Compile Include="HackyInAtmoLoader.cs" />
     <Compile Include="PartKiller.cs" />
     <Compile Include="KerbalReassigner.cs" />
     <Compile Include="DMPGame.cs" />
     <Compile Include="VesselRecorder.cs" />
     <Compile Include="PosistionStatistics.cs" />
     <Compile Include="VesselCtrlUpdate.cs" />
-    <Compile Include="VesselInterFrameUpdater.cs" />
     <Compile Include="GlobalSuppressions.cs" />
     <Compile Include="SafetyBubble.cs" />
     <Compile Include="Groups.cs" />

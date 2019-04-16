@@ -22,7 +22,6 @@ namespace DarkMultiPlayer
         public string selectedFlag;
         public bool compressionEnabled;
         public bool revertEnabled;
-        public bool interframeEnabled;
         public DMPToolbarType toolbarType;
         public InterpolatorType interpolatorType;
         private const string DEFAULT_PLAYER_NAME = "Player";
@@ -292,13 +291,6 @@ namespace DarkMultiPlayer
                     saveAfterLoad = true;
                 }
 
-                if (!settingsNode.TryGetValue("posLoadedVessels", ref interframeEnabled))
-                {
-                    DarkLog.Debug("[Settings]: Adding interframe flag to settings file");
-                    interframeEnabled = true;
-                    saveAfterLoad = true;
-                }
-
                 int toolbarType;
                 if (!int.TryParse(settingsNode.GetValue("toolbar"), out toolbarType))
                 {
@@ -391,7 +383,6 @@ namespace DarkMultiPlayer
             settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
             settingsNode.SetValue("interpolation", interpolatorType.ToString(), true);
-            settingsNode.SetValue("posLoadedVessels", interframeEnabled, true);
             settingsNode.SetValue("toolbar", (int)toolbarType, true);
 
             ConfigNode serversNode = settingsNode.AddNode("SERVERS");

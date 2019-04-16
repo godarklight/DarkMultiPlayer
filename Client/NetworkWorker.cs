@@ -81,7 +81,6 @@ namespace DarkMultiPlayer
         KerbalReassigner kerbalReassigner;
         AsteroidWorker asteroidWorker;
         VesselWorker vesselWorker;
-        HackyInAtmoLoader hackyInAtmoLoader;
         PlayerStatusWorker playerStatusWorker;
         ScenarioWorker scenarioWorker;
         DynamicTickWorker dynamicTickWorker;
@@ -107,7 +106,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(Update);
         }
 
-        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, HackyInAtmoLoader hackyInAtmoLoader, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions, ModpackWorker modpackWorker)
+        public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions, ModpackWorker modpackWorker)
         {
             this.timeSyncer = timeSyncer;
             this.warpWorker = warpWorker;
@@ -118,7 +117,6 @@ namespace DarkMultiPlayer
             this.kerbalReassigner = kerbalReassigner;
             this.asteroidWorker = asteroidWorker;
             this.vesselWorker = vesselWorker;
-            this.hackyInAtmoLoader = hackyInAtmoLoader;
             this.playerStatusWorker = playerStatusWorker;
             this.scenarioWorker = scenarioWorker;
             this.dynamicTickWorker = dynamicTickWorker;
@@ -254,7 +252,6 @@ namespace DarkMultiPlayer
                 dmpGame.running = true;
                 asteroidWorker.workerEnabled = true;
                 vesselWorker.workerEnabled = true;
-                hackyInAtmoLoader.workerEnabled = true;
                 playerStatusWorker.workerEnabled = true;
                 scenarioWorker.workerEnabled = true;
                 dynamicTickWorker.workerEnabled = true;
