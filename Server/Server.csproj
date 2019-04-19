@@ -9,6 +9,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>DarkMultiPlayerServer</RootNamespace>
     <AssemblyName>DMPServer</AssemblyName>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
