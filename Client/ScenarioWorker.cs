@@ -28,6 +28,7 @@ namespace DarkMultiPlayer
         private VesselWorker vesselWorker;
         private ConfigNodeSerializer configNodeSerializer;
         private NetworkWorker networkWorker;
+        
 
         public ScenarioWorker(DMPGame dmpGame, VesselWorker vesselWorker, ConfigNodeSerializer configNodeSerializer, NetworkWorker networkWorker)
         {
