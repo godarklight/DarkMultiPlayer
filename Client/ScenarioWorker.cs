@@ -463,7 +463,7 @@ namespace DarkMultiPlayer
         private bool DidScenarioChange(ScenarioEntry scenarioEntry)
         {
             string previousScenarioHash = null;
-            string currentScenarioHash = Common.CalculateSHA256Hash(ConfigNodeSerializer.fetch.Serialize(scenarioEntry.scenarioNode));
+            string currentScenarioHash = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(scenarioEntry.scenarioNode));
             if (checkData.TryGetValue(scenarioEntry.scenarioName, out previousScenarioHash))
             {
                 return previousScenarioHash != currentScenarioHash;

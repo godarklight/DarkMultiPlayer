@@ -10,8 +10,7 @@ namespace DarkMultiPlayer
     {
         private delegate void WriteNodeDelegate(ConfigNode configNode, StreamWriter writer);
 
-        public static ConfigNodeSerializer fetch;
-
+        
         private delegate List<string[]> PreFormatConfigDelegate(string[] cfgData);
 
         private delegate ConfigNode RecurseFormatDelegate(List<string[]> cfg);
