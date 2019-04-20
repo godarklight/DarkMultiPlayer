@@ -11,7 +11,6 @@ namespace DarkMultiPlayer
     public class ScenarioWorker
     {
         public bool workerEnabled = false;
-        private static ScenarioWorker singleton;
         private Dictionary<string, string> checkData = new Dictionary<string, string>();
         private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
         private bool blockScenarioDataSends = false;
