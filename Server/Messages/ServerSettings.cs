@@ -11,7 +11,8 @@ namespace DarkMultiPlayerServer.Messages
         {
             int numberOfKerbals = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Kerbals")).Length;
             int numberOfVessels = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")).Length;
-            int numberOfScenarioModules = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)).Length;
+            string clientPath = ScenarioData.GetScenarioPath(client);
+            int numberOfScenarioModules = Directory.GetFiles(clientPath).Length;
             ServerMessage newMessage = new ServerMessage();
             newMessage.type = ServerMessageType.SERVER_SETTINGS;
             using (MessageWriter mw = new MessageWriter())
