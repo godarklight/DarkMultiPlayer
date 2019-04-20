@@ -127,6 +127,14 @@ namespace DarkMultiPlayer
                         lastScenarioSendTime = Client.realtimeSinceStartup;
                         SendScenarioModules(false);
                     }
+                    lock (scenarioQueue)
+                    {
+                        while (scenarioQueue.Count > 0)
+                        {
+                            ScenarioEntry se = scenarioQueue.Dequeue();
+                            LoadScenarioData(se);
+                        }
+                    }
                 }
             }
             else
@@ -255,25 +263,28 @@ namespace DarkMultiPlayer
 
         public void LoadScenarioDataIntoGame()
         {
-            while (scenarioQueue.Count > 0)
+            lock (scenarioQueue)
             {
-                ScenarioEntry scenarioEntry = scenarioQueue.Dequeue();
-                if (scenarioEntry.scenarioName == "ProgressTracking")
+                while (scenarioQueue.Count > 0)
                 {
-                    CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
-                }
-                CheckForBlankSceneSoTheGameDoesntBugOut(scenarioEntry);
-                ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
-                if (psm != null)
-                {
-                    if (IsScenarioModuleAllowed(psm.moduleName))
+                    ScenarioEntry scenarioEntry = scenarioQueue.Dequeue();
+                    if (scenarioEntry.scenarioName == "ProgressTracking")
                     {
-                        DarkLog.Debug("Loading " + psm.moduleName + " scenario data");
-                        HighLogic.CurrentGame.scenarios.Add(psm);
+                        CreateMissingKerbalsInProgressTrackingSoTheGameDoesntBugOut(scenarioEntry.scenarioNode);
                     }
-                    else
+                    CheckForBlankSceneSoTheGameDoesntBugOut(scenarioEntry);
+                    ProtoScenarioModule psm = new ProtoScenarioModule(scenarioEntry.scenarioNode);
+                    if (psm != null)
                     {
-                        DarkLog.Debug("Skipping " + psm.moduleName + " scenario data in " + dmpGame.gameMode + " mode");
+                        if (IsScenarioModuleAllowed(psm.moduleName))
+                        {
+                            DarkLog.Debug("Loading " + psm.moduleName + " scenario data");
+                            HighLogic.CurrentGame.scenarios.Add(psm);
+                        }
+                        else
+                        {
+                            DarkLog.Debug("Skipping " + psm.moduleName + " scenario data in " + dmpGame.gameMode + " mode");
+                        }
                     }
                 }
             }
@@ -398,6 +409,7 @@ namespace DarkMultiPlayer
             if (entry.scenarioNode == null)
             {
                 DarkLog.Debug(entry.scenarioName + " scenario data failed to create a ConfigNode!");
+                ScreenMessages.PostScreenMessage("Scenario " + entry.scenarioName + " failed to load, blocking scenario uploads.", 10f, ScreenMessageStyle.UPPER_CENTER);
                 blockScenarioDataSends = true;
                 return;
             }
@@ -453,10 +465,13 @@ namespace DarkMultiPlayer
 
         public void QueueScenarioData(string scenarioName, ConfigNode scenarioData)
         {
-            ScenarioEntry entry = new ScenarioEntry();
-            entry.scenarioName = scenarioName;
-            entry.scenarioNode = scenarioData;
-            scenarioQueue.Enqueue(entry);
+            lock (scenarioQueue)
+            {
+                ScenarioEntry entry = new ScenarioEntry();
+                entry.scenarioName = scenarioName;
+                entry.scenarioNode = scenarioData;
+                scenarioQueue.Enqueue(entry);
+            }
         }
 
         private bool DidScenarioChange(ScenarioEntry scenarioEntry)
