@@ -42,12 +42,26 @@ namespace DarkMultiPlayer
         {
             registered = true;
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
+            GameEvents.OnFundsChanged.Add(OnFundsChanged);
+            GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
         }
 
         private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
+            GameEvents.OnFundsChanged.Remove(OnFundsChanged);
+            GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
+        }
+
+        private void OnTechnologyResearched(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> data)
+        {
+            SendScenarioModules(false);
+        }
+
+        private void OnFundsChanged(double newValue, TransactionReasons reason)
+        {
+            SendScenarioModules(false);
         }
 
         private void OnContractAccepted(Contract contract)
@@ -124,7 +138,6 @@ namespace DarkMultiPlayer
                 {
                     if ((Client.realtimeSinceStartup - lastScenarioSendTime) > SEND_SCENARIO_DATA_INTERVAL)
                     {
-                        lastScenarioSendTime = Client.realtimeSinceStartup;
                         SendScenarioModules(false);
                     }
                     lock (scenarioQueue)
@@ -212,6 +225,7 @@ namespace DarkMultiPlayer
 
         public void SendScenarioModules(bool highPriority)
         {
+            lastScenarioSendTime = Client.realtimeSinceStartup;
             List<string> scenarioName = new List<string>();
             List<byte[]> scenarioData = new List<byte[]>();
 
