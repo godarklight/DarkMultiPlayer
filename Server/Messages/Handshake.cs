@@ -102,6 +102,10 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     reserveKick = true;
                 }
+                if (playerName == "Shared")
+                {
+                    reserveKick = true;
+                }
                 if (playerName == Settings.settingsStore.consoleIdentifier)
                 {
                     reserveKick = true;
@@ -200,16 +204,8 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     devClientVersion = client.clientVersion;
                 }
-                DarkLog.Normal("Client " + playerName + " handshook successfully, version: " + devClientVersion);
 
-                if (!Directory.Exists(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName)))
-                {
-                    Directory.CreateDirectory(Path.Combine(Server.universeDirectory, "Scenarios", client.playerName));
-                    foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", "Initial")))
-                    {
-                        File.Copy(file, Path.Combine(Server.universeDirectory, "Scenarios", playerName, Path.GetFileName(file)));
-                    }
-                }
+                DarkLog.Normal("Client " + playerName + " handshook successfully, version: " + devClientVersion);
                 SendHandshakeReply(client, handshakeReponse, "success");
                 Server.playerCount = ClientHandler.GetActiveClientCount();
                 Server.players = ClientHandler.GetActivePlayerNames();
@@ -221,8 +217,6 @@ namespace DarkMultiPlayerServer.Messages
                 DarkLog.Normal("Client " + playerName + " failed to handshake: " + reason);
                 SendHandshakeReply(client, handshakeReponse, reason);
             }
-
-
         }
 
         private static void SendHandshakeReply(ClientObject client, HandshakeReply enumResponse, string reason)
