@@ -44,14 +44,35 @@ namespace DarkMultiPlayer
             GameEvents.Contract.onAccepted.Add(OnContractAccepted);
             GameEvents.OnFundsChanged.Add(OnFundsChanged);
             GameEvents.OnTechnologyResearched.Add(OnTechnologyResearched);
+            GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
+            GameEvents.OnScienceChanged.Add(OnScienceChanged);
+            GameEvents.OnReputationChanged.Add(OnReputationChanged);
         }
 
-        private void UnregisterGameHooks()
+                private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
             GameEvents.OnFundsChanged.Remove(OnFundsChanged);
             GameEvents.OnTechnologyResearched.Remove(OnTechnologyResearched);
+            GameEvents.OnScienceRecieved.Remove(OnScienceRecieved);
+            GameEvents.OnScienceChanged.Remove(OnScienceChanged);
+            GameEvents.OnReputationChanged.Remove(OnReputationChanged);
+        }
+
+        private void OnReputationChanged(float data0, TransactionReasons data1)
+        {
+            SendScenarioModules(false);
+        }
+
+        private void OnScienceChanged(float data0, TransactionReasons data1)
+        {
+            SendScenarioModules(false);
+        }
+
+        private void OnScienceRecieved(float data0, ScienceSubject data1, ProtoVessel data2, bool data3)
+        {
+            SendScenarioModules(false);
         }
 
         private void OnTechnologyResearched(GameEvents.HostTargetAction<RDTech, RDTech.OperationResult> data)
