@@ -1,10 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
-using UnityEngine;
-using DarkMultiPlayerCommon;
-using System.Reflection;
 using Contracts;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -27,7 +24,14 @@ namespace DarkMultiPlayer
         private VesselWorker vesselWorker;
         private ConfigNodeSerializer configNodeSerializer;
         private NetworkWorker networkWorker;
-        
+        /// <summary>
+        /// Methods to call before DMP loads a network scenario module. Returning true will count the message as handled and will prevent DMP from loading it.
+        /// </summary>
+        private Dictionary<string, Func<ConfigNode, bool>> beforeCallback = new Dictionary<string, Func<ConfigNode, bool>>();
+        /// <summary>
+        /// Methods to call after DMP loads a network scenario module
+        /// </summary>
+        private Dictionary<string, Action<ConfigNode>> afterCallback = new Dictionary<string, Action<ConfigNode>>();
 
         public ScenarioWorker(DMPGame dmpGame, VesselWorker vesselWorker, ConfigNodeSerializer configNodeSerializer, NetworkWorker networkWorker)
         {
@@ -36,6 +40,16 @@ namespace DarkMultiPlayer
             this.configNodeSerializer = configNodeSerializer;
             this.networkWorker = networkWorker;
             dmpGame.updateEvent.Add(Update);
+        }
+
+        public void RegisterBeforeCallback(string moduleName, Func<ConfigNode, bool> callback)
+        {
+            beforeCallback[moduleName] = callback;
+        }
+
+        public void RegisterAfterCallback(string moduleName, Action<ConfigNode> callback)
+        {
+            afterCallback[moduleName] = callback;
         }
 
         private void RegisterGameHooks()
@@ -47,9 +61,12 @@ namespace DarkMultiPlayer
             GameEvents.OnScienceRecieved.Add(OnScienceRecieved);
             GameEvents.OnScienceChanged.Add(OnScienceChanged);
             GameEvents.OnReputationChanged.Add(OnReputationChanged);
+            RegisterAfterCallback("Funding", FundingCallback);
+            RegisterAfterCallback("ResearchAndDevelopment", ResearchAndDevelopmentCallback);
+            RegisterAfterCallback("Reputation", ReputationCallback);
         }
 
-                private void UnregisterGameHooks()
+        private void UnregisterGameHooks()
         {
             registered = false;
             GameEvents.Contract.onAccepted.Remove(OnContractAccepted);
@@ -60,6 +77,7 @@ namespace DarkMultiPlayer
             GameEvents.OnReputationChanged.Remove(OnReputationChanged);
         }
 
+        //Events so we can quickly send our changed modules
         private void OnReputationChanged(float data0, TransactionReasons data1)
         {
             SendScenarioModules(false);
@@ -85,6 +103,23 @@ namespace DarkMultiPlayer
             SendScenarioModules(false);
         }
 
+        //Callbacks for UI
+        private void FundingCallback(ConfigNode configNode)
+        {
+            GameEvents.OnFundsChanged.Fire(Funding.Instance.Funds, TransactionReasons.None);
+        }
+
+        private void ResearchAndDevelopmentCallback(ConfigNode configNode)
+        {
+            GameEvents.OnScienceChanged.Fire(ResearchAndDevelopment.Instance.Science, TransactionReasons.None);
+        }
+
+        private void ReputationCallback(ConfigNode configNode)
+        {
+            GameEvents.OnReputationChanged.Fire(Reputation.CurrentRep, TransactionReasons.None);
+        }
+
+        //Kerbal fixups
         private void OnContractAccepted(Contract contract)
         {
             DarkLog.Debug("Contract accepted, state: " + contract.ContractState);
@@ -315,6 +350,7 @@ namespace DarkMultiPlayer
                         {
                             DarkLog.Debug("Loading " + psm.moduleName + " scenario data");
                             HighLogic.CurrentGame.scenarios.Add(psm);
+                            checkData[scenarioEntry.scenarioName] = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(scenarioEntry.scenarioNode));
                         }
                         else
                         {
@@ -453,6 +489,7 @@ namespace DarkMultiPlayer
             if (DidScenarioChange(entry))
             {
                 bool loaded = false;
+                checkData[entry.scenarioName] = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(entry.scenarioNode));
                 foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
                 {
                     if (psm.moduleName == entry.scenarioName)
@@ -465,7 +502,19 @@ namespace DarkMultiPlayer
                                 DarkLog.Debug("Fixing null scenario module!");
                                 psm.moduleRef = new ScenarioModule();
                             }
-                            psm.moduleRef.Load(entry.scenarioNode);
+                            bool skipLoad = false;
+                            if (beforeCallback.ContainsKey(psm.moduleName))
+                            {
+                                skipLoad = beforeCallback[psm.moduleName](entry.scenarioNode);
+                            }
+                            if (!skipLoad)
+                            {
+                                psm.moduleRef.Load(entry.scenarioNode);
+                            }
+                            if (afterCallback.ContainsKey(psm.moduleName))
+                            {
+                                afterCallback[psm.moduleName](entry.scenarioNode);
+                            }
                         }
                         catch (Exception e)
                         {
