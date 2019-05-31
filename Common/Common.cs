@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.7";
+        public const string MODCONTROL_VERSION = "1.7.1";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -510,7 +510,10 @@ namespace DarkMultiPlayerCommon
                 "smallRadialEngine.v2",
                 "radialEngineMini.v2",
                 "microEngine.v2",
-                "RCSBlock.v2"
+                "RCSBlock.v2",
+                // 1.7.1 parts
+                "kerbalEVAFuture",
+                "kerbalEVAfemaleFuture"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
