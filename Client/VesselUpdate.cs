@@ -369,7 +369,7 @@ namespace DarkMultiPlayer
             for (int i = 0; i < steps; i++)
             {
                 stepVel = stepVel + acc * actualStepDiff;
-                stepPos = stepPos + stepVel * actualStepDiff;
+                stepPos = stepPos + 0.5 * stepVel * actualStepDiff;
             }
             newPostion = stepPos;
             newVelocity = stepVel;
@@ -396,7 +396,7 @@ namespace DarkMultiPlayer
                 Quaternion rotAcc = RotationLerp(Quaternion.identity, rotDelta, (float)scaling);
                 Vector3d stepAcc = rotAcc * acc;
                 stepVel = stepVel + stepAcc * actualStepDiff;
-                stepPos = stepPos + stepVel * actualStepDiff;
+                stepPos = stepPos + 0.5 * stepVel * actualStepDiff;
             }
             newPostion = stepPos;
             newVelocity = stepVel;
