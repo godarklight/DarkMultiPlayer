@@ -192,7 +192,7 @@ namespace DarkMultiPlayer
                     {
                         if (dmpSettings.interpolatorType == InterpolatorType.EXTRAPOLATE_NO_ROT || previousUpdate == null)
                         {
-                            StepExtrapolate(updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                            Extrapolate(updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
                         }
                         if (dmpSettings.interpolatorType == InterpolatorType.EXTRAPOLATE_FULL && previousUpdate != null)
                         {
@@ -215,7 +215,7 @@ namespace DarkMultiPlayer
                     {
                         if (previousUpdate == null)
                         {
-                            StepExtrapolate(updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
+                            Extrapolate(updatePostion, updateVelocity, updateAcceleration, planetariumDifference, out newUpdatePostion, out newUpdateVelocity);
                         }
                         else
                         {
@@ -355,24 +355,12 @@ namespace DarkMultiPlayer
 
         }
 
-        private void StepExtrapolate(Vector3d pos, Vector3d vel, Vector3d acc, double timeDiff, out Vector3d newPostion, out Vector3d newVelocity)
+        private static void Extrapolate(Vector3d pos, Vector3d vel, Vector3d acc, double timeDiff, out Vector3d newPostion, out Vector3d newVelocity)
         {
-            Vector3d stepPos = pos;
-            Vector3d stepVel = vel;
-
-            int steps = (int)(Math.Abs(timeDiff) / STEP_DISTANCE);
-            if (steps == 0)
-            {
-                steps = 1;
-            }
-            double actualStepDiff = timeDiff / steps;
-            for (int i = 0; i < steps; i++)
-            {
-                stepVel = stepVel + acc * actualStepDiff;
-                stepPos = stepPos + 0.5 * stepVel * actualStepDiff;
-            }
-            newPostion = stepPos;
-            newVelocity = stepVel;
+            vel = vel + acc * timeDiff;
+            pos = pos + 0.5 * vel * timeDiff;
+            newPostion = pos;
+            newVelocity = vel;
         }
 
         private void StepExtrapolateWithRotation(VesselUpdate previous, Vector3d pos, Vector3d vel, Vector3d acc, double timeDiff, out Vector3d newPostion, out Vector3d newVelocity)
