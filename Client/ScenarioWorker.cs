@@ -8,6 +8,7 @@ namespace DarkMultiPlayer
     public class ScenarioWorker
     {
         public bool workerEnabled = false;
+        private List<string> warnedModules = new List<string>();
         private Dictionary<string, string> checkData = new Dictionary<string, string>();
         private Queue<ScenarioEntry> scenarioQueue = new Queue<ScenarioEntry>();
         private bool blockScenarioDataSends = false;
@@ -292,29 +293,45 @@ namespace DarkMultiPlayer
                 {
                     continue;
                 }
-                ConfigNode scenarioNode = new ConfigNode();
-                sm.Save(scenarioNode);
+                try
+                {
+                    ConfigNode scenarioNode = new ConfigNode();
+                    sm.Save(scenarioNode);
 
-                byte[] scenarioBytes = configNodeSerializer.Serialize(scenarioNode);
-                string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
-                if (scenarioBytes.Length == 0)
-                {
-                    DarkLog.Debug("Error writing scenario data for " + scenarioType);
-                    continue;
+                    byte[] scenarioBytes = configNodeSerializer.Serialize(scenarioNode);
+                    string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
+                    if (scenarioBytes.Length == 0)
+                    {
+                        DarkLog.Debug("Error writing scenario data for " + scenarioType);
+                        continue;
+                    }
+                    if (checkData.ContainsKey(scenarioType) ? (checkData[scenarioType] == scenarioHash) : false)
+                    {
+                        //Data is the same since last time - Skip it.
+                        continue;
+                    }
+                    else
+                    {
+                        checkData[scenarioType] = scenarioHash;
+                    }
+                    if (scenarioBytes != null)
+                    {
+                        scenarioName.Add(scenarioType);
+                        scenarioData.Add(scenarioBytes);
+                    }
                 }
-                if (checkData.ContainsKey(scenarioType) ? (checkData[scenarioType] == scenarioHash) : false)
+                catch (Exception e)
                 {
-                    //Data is the same since last time - Skip it.
-                    continue;
-                }
-                else
-                {
-                    checkData[scenarioType] = scenarioHash;
-                }
-                if (scenarioBytes != null)
-                {
-                    scenarioName.Add(scenarioType);
-                    scenarioData.Add(scenarioBytes);
+                    string fullName = sm.GetType().FullName;
+                    DarkLog.Debug("Unable to save module data from " + fullName + ", skipping upload of this module. Exception: " + e);
+                    if (!warnedModules.Contains(fullName))
+                    {
+                        warnedModules.Add(fullName);
+                        if (!fullName.Contains("Expansions.Serenity.DeployedScience"))
+                        {
+                            ScreenMessages.PostScreenMessage("DMP was unable to save " + fullName + ", this module data will be lost.", 30f, ScreenMessageStyle.UPPER_CENTER);
+                        }
+                    }
                 }
             }
 
