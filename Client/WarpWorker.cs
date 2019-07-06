@@ -45,6 +45,7 @@ namespace DarkMultiPlayer
         private TimeSyncer timeSyncer;
         private NetworkWorker networkWorker;
         private PlayerStatusWorker playerStatusWorker;
+        private NamedAction updateAction;
 
         public WarpWorker(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, PlayerStatusWorker playerStatusWorker)
         {
@@ -53,7 +54,8 @@ namespace DarkMultiPlayer
             this.timeSyncer = timeSyncer;
             this.networkWorker = networkWorker;
             this.playerStatusWorker = playerStatusWorker;
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         //MCW Succeed/Fail counts.
@@ -1046,7 +1048,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 

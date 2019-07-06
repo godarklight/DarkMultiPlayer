@@ -96,6 +96,7 @@ namespace DarkMultiPlayer
         private PlayerStatusWorker playerStatusWorker;
         private PosistionStatistics posistionStatistics;
         private Permissions permissions;
+        private NamedAction fixedUpdateAction;
 
         public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions)
         {
@@ -110,7 +111,8 @@ namespace DarkMultiPlayer
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
             this.permissions = permissions;
-            dmpGame.fixedUpdateEvent.Add(FixedUpdate);
+            fixedUpdateAction = new NamedAction(FixedUpdate);
+            dmpGame.fixedUpdateEvent.Add(fixedUpdateAction);
         }
 
         public void SetDependencies(TimeSyncer timeSyncer, AsteroidWorker asteroidWorker, ChatWorker chatWorker, PlayerStatusWorker playerStatusWorker)
@@ -2505,7 +2507,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
+            dmpGame.fixedUpdateEvent.Remove(fixedUpdateAction);
             if (registered)
             {
                 registered = false;

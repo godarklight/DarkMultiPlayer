@@ -16,6 +16,7 @@ namespace DarkMultiPlayer
         //Backing
         private Queue<byte[]> messageQueue = new Queue<byte[]>();
         internal Dictionary<Guid, VesselPermission> vesselPermissions = new Dictionary<Guid, VesselPermission>();
+        private NamedAction updateAction;
 
         public Permissions(DMPGame dmpGame, NetworkWorker networkWorker, Settings dmpSettings, Groups groups)
         {
@@ -23,7 +24,8 @@ namespace DarkMultiPlayer
             this.networkWorker = networkWorker;
             this.dmpSettings = dmpSettings;
             this.groups = groups;
-            dmpGame.updateEvent.Add(ProcessMessages);
+            updateAction = new NamedAction(ProcessMessages);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         private void ProcessMessages()
@@ -39,7 +41,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.updateEvent.Remove(ProcessMessages);
+            dmpGame.updateEvent.Remove(updateAction);
         }
 
         public void QueueMessage(byte[] data)

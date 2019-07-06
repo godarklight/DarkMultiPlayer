@@ -27,6 +27,7 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 300;
         private const float WINDOW_WIDTH = 400;
+        private NamedAction drawAction;
 
         public PermissionsWindow(DMPGame dmpGame, Settings dmpSettings, Groups groups, Permissions permissions, LockSystem lockSystem)
         {
@@ -35,7 +36,8 @@ namespace DarkMultiPlayer
             this.groups = groups;
             this.permissions = permissions;
             this.lockSystem = lockSystem;
-            dmpGame.drawEvent.Add(Draw);
+            drawAction = new NamedAction(Draw);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         public void SetDependencies(PlayerStatusWorker playerStatusWorker)
@@ -45,7 +47,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.drawEvent.Remove(drawAction);
         }
 
         private void InitGUI()

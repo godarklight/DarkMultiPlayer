@@ -22,6 +22,7 @@ namespace DarkMultiPlayer
         private LockSystem lockSystem;
         private NetworkWorker networkWorker;
         private Permissions permissions;
+        private NamedAction updateAction;
 
         public PlayerStatusWorker(DMPGame dmpGame, Settings dmpSettings, VesselWorker vesselWorker, LockSystem lockSystem, NetworkWorker networkWorker, Permissions permissions)
         {
@@ -33,7 +34,8 @@ namespace DarkMultiPlayer
             myPlayerStatus = new PlayerStatus();
             myPlayerStatus.playerName = dmpSettings.playerName;
             myPlayerStatus.statusText = "Syncing";
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         private void Update()
@@ -269,7 +271,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
                     workerEnabled = false;
-                    dmpGame.updateEvent.Remove(Update);
+                    dmpGame.updateEvent.Remove(updateAction);
         }
     }
 }

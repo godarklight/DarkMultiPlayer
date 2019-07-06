@@ -215,7 +215,9 @@ namespace DarkMultiPlayer
             long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             lastClockTicks = DateTime.UtcNow.Ticks;
             lastRealTimeSinceStartup = Time.realtimeSinceStartup;
+            UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DarkLog.Update");
             DarkLog.Update();
+            UnityEngine.Profiling.Profiler.EndSample();
 
             if (modDisabled)
             {
@@ -348,22 +350,34 @@ namespace DarkMultiPlayer
                         dmpGame = null;
                     }
                 }
-
+                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ConnectionWindow.Update");
                 connectionWindow.Update();
+                UnityEngine.Profiling.Profiler.EndSample();
+                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ModWindow.Update");
                 modWindow.Update();
+                UnityEngine.Profiling.Profiler.EndSample();
+                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.OptionsWindow.Update");
                 optionsWindow.Update();
+                UnityEngine.Profiling.Profiler.EndSample();
+                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.UniverseConverterWindow.Update");
                 universeConverterWindow.Update();
+                UnityEngine.Profiling.Profiler.EndSample();
+                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DmpModInterface.Update");
                 dmpModInterface.Update();
+                UnityEngine.Profiling.Profiler.EndSample();
 
                 if (dmpGame != null)
                 {
-                    foreach (Action updateAction in dmpGame.updateEvent)
+                    foreach (NamedAction updateAction in dmpGame.updateEvent)
                     {
 #if !DEBUG
                         try
                         {
 #endif
-                            updateAction();
+                            UnityEngine.Profiling.Profiler.BeginSample(updateAction.name);
+                            updateAction.action();
+                            UnityEngine.Profiling.Profiler.EndSample();
+                            
 #if !DEBUG
                         }
                         catch (Exception e)
@@ -530,18 +544,21 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-
+            UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DmpModInterface.FixedUpdate");
             dmpModInterface.FixedUpdate();
+            UnityEngine.Profiling.Profiler.EndSample();
 
             if (dmpGame != null)
             {
-                foreach (Action fixedUpdateAction in dmpGame.fixedUpdateEvent)
+                foreach (NamedAction fixedUpdateAction in dmpGame.fixedUpdateEvent)
                 {
 #if !DEBUG
                     try
                     {
 #endif
-                        fixedUpdateAction();
+                        UnityEngine.Profiling.Profiler.BeginSample(fixedUpdateAction.name);
+                        fixedUpdateAction.action();
+                        UnityEngine.Profiling.Profiler.EndSample();
 #if !DEBUG
                     }
                     catch (Exception e)
@@ -588,31 +605,43 @@ namespace DarkMultiPlayer
             {
                 if (connectionWindow != null)
                 {
+                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ConnectionWindow.Draw");
                     connectionWindow.Draw();
+                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (modWindow != null)
                 {
+                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ModWindow.Draw");
                     modWindow.Draw();
+                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (optionsWindow != null)
                 {
+                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.OptionsWindow.Draw");
                     optionsWindow.Draw();
+                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (universeConverterWindow != null)
                 {
+                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.UniverseConverterWindow.Draw");
                     universeConverterWindow.Draw();
+                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (dmpGame != null)
                 {
-                    foreach (Action drawAction in dmpGame.drawEvent)
+                    foreach (NamedAction drawAction in dmpGame.drawEvent)
                     {
 #if !DEBUG
                         try
                         {
 #endif
                             // Don't hide the connectionWindow if we disabled DMP GUI
-                            if (toolbarShowGUI || (!toolbarShowGUI && drawAction.Target.ToString() == "DarkMultiPlayer.connectionWindow"))
-                                drawAction();
+                            if (toolbarShowGUI || (!toolbarShowGUI && drawAction.name == "DarkMultiPlayer.ConnectionWindow.Draw"))
+                            {
+                                UnityEngine.Profiling.Profiler.BeginSample(drawAction.name);
+                                drawAction.action();
+                                UnityEngine.Profiling.Profiler.EndSample();
+                            }
 #if !DEBUG
                         }
                         catch (Exception e)

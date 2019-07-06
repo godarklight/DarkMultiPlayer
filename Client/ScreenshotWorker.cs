@@ -59,6 +59,8 @@ namespace DarkMultiPlayer
         private ChatWorker chatWorker;
         private NetworkWorker networkWorker;
         private PlayerStatusWorker playerStatusWorker;
+        private NamedAction updateAction;
+        private NamedAction drawAction;
 
         public ScreenshotWorker(DMPGame dmpGame, Settings dmpSettings, ChatWorker chatWorker, NetworkWorker networkWorker, PlayerStatusWorker playerStatusWorker)
         {
@@ -67,8 +69,10 @@ namespace DarkMultiPlayer
             this.chatWorker = chatWorker;
             this.networkWorker = networkWorker;
             this.playerStatusWorker = playerStatusWorker;
-            dmpGame.updateEvent.Add(Update);
-            dmpGame.drawEvent.Add(Draw);
+            updateAction = new NamedAction(Update);
+            drawAction = new NamedAction(Draw);
+            dmpGame.updateEvent.Add(updateAction);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         private void InitGUI()
@@ -436,8 +440,8 @@ namespace DarkMultiPlayer
         {
             workerEnabled = false;
             RemoveWindowLock();
-            dmpGame.updateEvent.Remove(Update);
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.updateEvent.Remove(updateAction);
+            dmpGame.drawEvent.Remove(drawAction);
 
         }
     }

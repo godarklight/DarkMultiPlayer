@@ -95,6 +95,7 @@ namespace DarkMultiPlayer
         UniverseSyncCache universeSyncCache;
         VesselRecorder vesselRecorder;
         ModpackWorker modpackWorker;
+        private NamedAction updateAction;
 
         public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
@@ -103,7 +104,8 @@ namespace DarkMultiPlayer
             this.connectionWindow = connectionWindow;
             this.modWorker = modWorker;
             this.configNodeSerializer = configNodeSerializer;
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         public void SetDependencies(TimeSyncer timeSyncer, WarpWorker warpWorker, ChatWorker chatWorker, PlayerColorWorker playerColorWorker, FlagSyncer flagSyncer, PartKiller partKiller, KerbalReassigner kerbalReassigner, AsteroidWorker asteroidWorker, VesselWorker vesselWorker, PlayerStatusWorker playerStatusWorker, ScenarioWorker scenarioWorker, DynamicTickWorker dynamicTickWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, ToolbarSupport toolbarSupport, AdminSystem adminSystem, LockSystem lockSystem, DMPModInterface dmpModInterface, UniverseSyncCache universeSyncCache, VesselRecorder vesselRecorder, Groups groups, Permissions permissions, ModpackWorker modpackWorker)

@@ -67,6 +67,8 @@ namespace DarkMultiPlayer
         private NetworkWorker networkWorker;
         private AdminSystem adminSystem;
         private PlayerStatusWorker playerStatusWorker;
+        private NamedAction updateAction;
+        private NamedAction drawAction;
 
         public ChatWorker(DMPGame dmpGame, Settings dmpSettings, NetworkWorker networkWorker, AdminSystem adminSystem, PlayerStatusWorker playerStatusWorker)
         {
@@ -84,8 +86,10 @@ namespace DarkMultiPlayer
             RegisterChatCommand("motd", ServerMOTD, "Gets the current Message of the Day");
             RegisterChatCommand("resize", ResizeChat, "Resized the chat window");
             RegisterChatCommand("version", DisplayVersion, "Displays the current version of DMP");
-            dmpGame.updateEvent.Add(Update);
-            dmpGame.drawEvent.Add(Draw);
+            updateAction = new NamedAction(Update);
+            drawAction = new NamedAction(Draw);
+            dmpGame.updateEvent.Add(updateAction);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         private void PrintToSelectedChannel(string text)
@@ -1029,8 +1033,8 @@ namespace DarkMultiPlayer
         {
             workerEnabled = false;
             RemoveWindowLock();
-            dmpGame.updateEvent.Remove(Update);
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.updateEvent.Remove(updateAction);
+            dmpGame.drawEvent.Remove(drawAction);
             if (chatLocked)
             {
                 chatLocked = false;

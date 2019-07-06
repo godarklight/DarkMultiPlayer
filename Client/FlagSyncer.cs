@@ -21,6 +21,7 @@ namespace DarkMultiPlayer
         private DMPGame dmpGame;
         private Settings dmpSettings;
         private NetworkWorker networkWorker;
+        private NamedAction updateAction;
 
         public FlagSyncer(DMPGame dmpGame, Settings dmpSettings, NetworkWorker networkWorker)
         {
@@ -28,7 +29,8 @@ namespace DarkMultiPlayer
             this.dmpSettings = dmpSettings;
             this.networkWorker = networkWorker;
             flagPath = Path.Combine(Path.Combine(Client.dmpClient.gameDataDir, "DarkMultiPlayer"), "Flags");
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         public void SendFlagList()
@@ -214,7 +216,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 

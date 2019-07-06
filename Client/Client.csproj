@@ -17,7 +17,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;</DefineConstants>
+    <DefineConstants>DEBUG;ENABLE_PROFILER;DEVELOPMENT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <ConsolePause>false</ConsolePause>
@@ -60,6 +60,7 @@
     <Compile Include="Main.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="ConfigNodeSerializer.cs" />
+    <Compile Include="NamedAction.cs" />
     <Compile Include="Utilities\CompatibilityChecker.cs" />
     <Compile Include="VesselWorker.cs" />
     <Compile Include="TimeSyncer.cs" />
@@ -117,4 +118,8 @@
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>$(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer.dll
+$(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer-Common.dll</PostBuildEvent>
+  </PropertyGroup>
 </Project>

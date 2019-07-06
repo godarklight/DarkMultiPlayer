@@ -68,6 +68,7 @@ namespace DarkMultiPlayer
         private long nextScreenMessageUpdate;
         private int numHashingThreads = 2;
         private Thread[] hashingThreads;
+        private NamedAction updateAction;
 
         public ModpackWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, NetworkWorker networkWorker, ChatWorker chatWorker, AdminSystem adminSystem)
         {
@@ -83,7 +84,8 @@ namespace DarkMultiPlayer
             this.networkWorker = networkWorker;
             this.chatWorker = chatWorker;
             this.adminSystem = adminSystem;
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
             GameEvents.onGameSceneLoadRequested.Add(OnGameSceneLoadRequested);
             try
             {
@@ -106,7 +108,7 @@ namespace DarkMultiPlayer
 
         public void Stop(GameScenes gameScene)
         {
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
             GameEvents.onGameSceneLoadRequested.Remove(OnGameSceneLoadRequested);
         }
 
@@ -741,7 +743,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 }

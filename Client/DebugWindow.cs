@@ -53,6 +53,8 @@ namespace DarkMultiPlayer
         private VesselRecorder vesselRecorder;
         private PosistionStatistics posistionStatistics;
         private OptionsWindow optionsWindow;
+        private NamedAction updateAction;
+        private NamedAction drawAction;
 
         public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow)
         {
@@ -66,8 +68,10 @@ namespace DarkMultiPlayer
             this.vesselRecorder = vesselRecorder;
             this.posistionStatistics = posistionStatistics;
             this.optionsWindow = optionsWindow;
-            dmpGame.updateEvent.Add(Update);
-            dmpGame.drawEvent.Add(Draw);
+            updateAction = new NamedAction(Update);
+            drawAction = new NamedAction(Draw);
+            dmpGame.updateEvent.Add(updateAction);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         private void InitGUI()
@@ -412,8 +416,8 @@ namespace DarkMultiPlayer
         {
             optionsWindow.showDebugWindow = false;
             RemoveWindowLock();
-            dmpGame.updateEvent.Remove(Update);
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.updateEvent.Remove(updateAction);
+            dmpGame.drawEvent.Remove(drawAction);
         }
     }
 }

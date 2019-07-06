@@ -67,6 +67,8 @@ namespace DarkMultiPlayer
         private DMPGame dmpGame;
         private Settings dmpSettings;
         private NetworkWorker networkWorker;
+        private NamedAction updateAction;
+        private NamedAction drawAction;
 
         public CraftLibraryWorker(DMPGame dmpGame, Settings dmpSettings, NetworkWorker networkWorker)
         {
@@ -78,8 +80,10 @@ namespace DarkMultiPlayer
             sphPath = Path.Combine(Path.Combine(savePath, "Ships"), "SPH");
             subassemblyPath = Path.Combine(savePath, "Subassemblies");
             BuildUploadList();
-            dmpGame.updateEvent.Add(Update);
-            dmpGame.drawEvent.Add(Draw);
+            updateAction = new NamedAction(Update);
+            drawAction = new NamedAction(Draw);
+            dmpGame.updateEvent.Add(updateAction);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         private void Update()
@@ -581,8 +585,8 @@ namespace DarkMultiPlayer
         {
             workerEnabled = false;
             RemoveWindowLock();
-            dmpGame.updateEvent.Remove(Update);
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.updateEvent.Remove(updateAction);
+            dmpGame.drawEvent.Remove(drawAction);
         }
     }
 }

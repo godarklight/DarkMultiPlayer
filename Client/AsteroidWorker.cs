@@ -23,6 +23,7 @@ namespace DarkMultiPlayer
         private LockSystem lockSystem;
         private NetworkWorker networkWorker;
         private VesselWorker vesselWorker;
+        private NamedAction updateAction;
 
         public AsteroidWorker(DMPGame dmpGame, LockSystem lockSystem, NetworkWorker networkWorker, VesselWorker vesselWorker)
         {
@@ -30,7 +31,8 @@ namespace DarkMultiPlayer
             this.lockSystem = lockSystem;
             this.networkWorker = networkWorker;
             this.vesselWorker = vesselWorker;
-            this.dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            this.dmpGame.updateEvent.Add(updateAction);
             GameEvents.onVesselCreate.Add(OnVesselCreate);
         }
 
@@ -279,7 +281,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
             GameEvents.onVesselCreate.Remove(OnVesselCreate);
         }
     }

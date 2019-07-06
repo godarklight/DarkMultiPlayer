@@ -18,13 +18,15 @@ namespace DarkMultiPlayer
         //Services
         private DMPGame dmpGame;
         private NetworkWorker networkWorker;
+        private NamedAction updateAction;
 
         public DynamicTickWorker(DMPGame dmpGame, NetworkWorker networkWorker)
         {
             this.dmpGame = dmpGame;
             this.networkWorker = networkWorker;
             maxSecondryVesselsPerTick = MASTER_MAX_SECONDARY_VESSELS;
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         //Restricted access variables
@@ -58,7 +60,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 }

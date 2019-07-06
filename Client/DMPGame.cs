@@ -14,9 +14,9 @@ namespace DarkMultiPlayer
         // Server setting
         public GameDifficulty serverDifficulty;
         public GameParameters serverParameters;
-        public List<Action> updateEvent = new List<Action>();
-        public List<Action> fixedUpdateEvent = new List<Action>();
-        public List<Action> drawEvent = new List<Action>();
+        public List<NamedAction> updateEvent = new List<NamedAction>();
+        public List<NamedAction> fixedUpdateEvent = new List<NamedAction>();
+        public List<NamedAction> drawEvent = new List<NamedAction>();
         private List<Action> stopEvent = new List<Action>();
         public readonly Settings dmpSettings;
         public readonly ModpackWorker modpackWorker;

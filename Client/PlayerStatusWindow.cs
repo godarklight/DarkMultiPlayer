@@ -52,6 +52,8 @@ namespace DarkMultiPlayer
         private PlayerColorWorker playerColorWorker;
         private GroupsWindow groupsWindow;
         private PermissionsWindow permissionsWindow;
+        private NamedAction updateAction;
+        private NamedAction drawAction;
 
         public PlayerStatusWindow(DMPGame dmpGame, Settings dmpSettings, WarpWorker warpWorker, ChatWorker chatWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, TimeSyncer timeSyncer, PlayerStatusWorker playerStatusWorker, OptionsWindow optionsWindow, PlayerColorWorker playerColorWorker, GroupsWindow groupsWindow, PermissionsWindow permissionsWindow)
         {
@@ -67,8 +69,10 @@ namespace DarkMultiPlayer
             this.playerColorWorker = playerColorWorker;
             this.groupsWindow = groupsWindow;
             this.permissionsWindow = permissionsWindow;
-            dmpGame.updateEvent.Add(Update);
-            dmpGame.drawEvent.Add(Draw);
+            updateAction = new NamedAction(Update);
+            drawAction = new NamedAction(Draw);
+            this.dmpGame.updateEvent.Add(updateAction);
+            this.dmpGame.drawEvent.Add(drawAction);
         }
 
         private void InitGUI()
@@ -682,8 +686,8 @@ namespace DarkMultiPlayer
         {
             display = false;
             RemoveWindowLock();
-            dmpGame.updateEvent.Remove(Update);
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.updateEvent.Remove(updateAction);
+            dmpGame.drawEvent.Remove(drawAction);
 
         }
     }

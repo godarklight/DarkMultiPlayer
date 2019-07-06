@@ -91,13 +91,16 @@ namespace DarkMultiPlayer
         private NetworkWorker networkWorker;
         private VesselWorker vesselWorker;
         public bool isSubspace;
+        private NamedAction fixedUpdateAction;
+
 
         public TimeSyncer(DMPGame dmpGame, NetworkWorker networkWorker, VesselWorker vesselWorker)
         {
             this.dmpGame = dmpGame;
             this.networkWorker = networkWorker;
             this.vesselWorker = vesselWorker;
-            dmpGame.fixedUpdateEvent.Add(FixedUpdate);
+            fixedUpdateAction = new NamedAction(FixedUpdate);
+            dmpGame.fixedUpdateEvent.Add(fixedUpdateAction);
             currentSubspace = -1;
             requestedRate = 1f;
         }
@@ -556,7 +559,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.fixedUpdateEvent.Remove(FixedUpdate);
+            dmpGame.fixedUpdateEvent.Remove(fixedUpdateAction);
             Time.timeScale = 1f;
         }
     }

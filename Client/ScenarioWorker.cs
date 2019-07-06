@@ -33,6 +33,7 @@ namespace DarkMultiPlayer
         /// Methods to call after DMP loads a network scenario module
         /// </summary>
         private Dictionary<string, Action<ConfigNode>> afterCallback = new Dictionary<string, Action<ConfigNode>>();
+        private NamedAction updateAction;
 
         public ScenarioWorker(DMPGame dmpGame, VesselWorker vesselWorker, ConfigNodeSerializer configNodeSerializer, NetworkWorker networkWorker)
         {
@@ -40,7 +41,8 @@ namespace DarkMultiPlayer
             this.vesselWorker = vesselWorker;
             this.configNodeSerializer = configNodeSerializer;
             this.networkWorker = networkWorker;
-            dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         public void RegisterBeforeCallback(string moduleName, Func<ConfigNode, bool> callback)
@@ -589,7 +591,7 @@ namespace DarkMultiPlayer
         public void Stop()
         {
             workerEnabled = false;
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 

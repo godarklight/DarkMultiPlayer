@@ -27,13 +27,15 @@ namespace DarkMultiPlayer
         //const
         private const float WINDOW_HEIGHT = 400;
         private const float WINDOW_WIDTH = 300;
+        private NamedAction drawAction;
 
         public GroupsWindow(DMPGame dmpGame, Settings dmpSettings, Groups groups)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.groups = groups;
-            dmpGame.drawEvent.Add(Draw);
+            drawAction = new NamedAction(Draw);
+            dmpGame.drawEvent.Add(drawAction);
         }
 
         public void SetDependencies(PlayerStatusWorker playerStatusWorker)
@@ -43,7 +45,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.drawEvent.Remove(Draw);
+            dmpGame.drawEvent.Remove(drawAction);
         }
 
         private void InitGUI()

@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         private DMPGame dmpGame;
         private double firstTime;
         private double lastTime;
+        private NamedAction updateAction;
 
         public VesselRecorder(DMPGame dmpGame, WarpWorker warpWorker, VesselWorker vesselWorker, NetworkWorker networkWorker, Settings dmpSettings)
         {
@@ -34,7 +35,8 @@ namespace DarkMultiPlayer
             this.networkWorker = networkWorker;
             this.dmpSettings = dmpSettings;
             this.dmpGame = dmpGame;
-            this.dmpGame.updateEvent.Add(Update);
+            updateAction = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateAction);
         }
 
         public void SetHandlers(Action<byte[]> HandleProtoUpdate, Action<byte[], bool> HandleVesselUpdate, Action<byte[]> HandleVesselRemove)
@@ -260,7 +262,7 @@ namespace DarkMultiPlayer
 
         public void Stop()
         {
-            dmpGame.updateEvent.Remove(Update);
+            dmpGame.updateEvent.Remove(updateAction);
         }
     }
 }
