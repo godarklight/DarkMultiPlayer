@@ -351,15 +351,20 @@ namespace DarkMultiPlayer
 
         private string SecondsToLongString(int time)
         {
+            // Use Kerbin days (6h days, 426d years)
+            int day_unit = 24;
+            if (GameSettings.KERBIN_TIME)
+                day_unit = 6;
+
             //Every month is feburary ok?
-            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
-            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
-            int months = time / (60 * 60 * 24 * 7 * 4);
-            time -= months * (60 * 60 * 24 * 7 * 4);
-            int weeks = time / (60 * 60 * 24 * 7);
-            time -= weeks * (60 * 60 * 24 * 7);
-            int days = time / (60 * 60 * 24);
-            time -= days * (60 * 60 * 24);
+            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
+            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
+            int months = time / (60 * 60 * day_unit * 7 * 4);
+            time -= months * (60 * 60 * day_unit * 7 * 4);
+            int weeks = time / (60 * 60 * day_unit * 7);
+            time -= weeks * (60 * 60 * day_unit * 7);
+            int days = time / (60 * 60 * day_unit);
+            time -= days * (60 * 60 * day_unit);
             int hours = time / (60 * 60);
             time -= hours * (60 * 60);
             int minutes = time / 60;
@@ -469,14 +474,19 @@ namespace DarkMultiPlayer
 
         private string SecondsToShortString(int time)
         {
-            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
-            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
-            int months = time / (60 * 60 * 24 * 7 * 4);
-            time -= months * (60 * 60 * 24 * 7 * 4);
-            int weeks = time / (60 * 60 * 24 * 7);
-            time -= weeks * (60 * 60 * 24 * 7);
-            int days = time / (60 * 60 * 24);
-            time -= days * (60 * 60 * 24);
+            // Use Kerbin days (6h days, 426d years)
+            int day_unit = 24;
+            if (GameSettings.KERBIN_TIME)
+                day_unit = 6;
+
+            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
+            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
+            int months = time / (60 * 60 * day_unit * 7 * 4);
+            time -= months * (60 * 60 * day_unit * 7 * 4);
+            int weeks = time / (60 * 60 * day_unit * 7);
+            time -= weeks * (60 * 60 * day_unit * 7);
+            int days = time / (60 * 60 * day_unit);
+            time -= days * (60 * 60 * day_unit);
             int hours = time / (60 * 60);
             time -= hours * (60 * 60);
             int minutes = time / 60;
@@ -533,14 +543,19 @@ namespace DarkMultiPlayer
 
         private string SecondsToVeryShortString(int time)
         {
-            int years = time / (60 * 60 * 24 * 7 * 4 * 12);
-            time -= years * (60 * 60 * 24 * 7 * 4 * 12);
-            int months = time / (60 * 60 * 24 * 7 * 4);
-            time -= months * (60 * 60 * 24 * 7 * 4);
-            int weeks = time / (60 * 60 * 24 * 7);
-            time -= weeks * (60 * 60 * 24 * 7);
-            int days = time / (60 * 60 * 24);
-            time -= days * (60 * 60 * 24);
+            // Use Kerbin days (6h days, 426d years)
+            int day_unit = 24;
+            if (GameSettings.KERBIN_TIME)
+                day_unit = 6;
+
+            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
+            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
+            int months = time / (60 * 60 * day_unit * 7 * 4);
+            time -= months * (60 * 60 * day_unit * 7 * 4);
+            int weeks = time / (60 * 60 * day_unit * 7);
+            time -= weeks * (60 * 60 * day_unit * 7);
+            int days = time / (60 * 60 * day_unit);
+            time -= days * (60 * 60 * day_unit);
             int hours = time / (60 * 60);
             time -= hours * (60 * 60);
             int minutes = time / 60;
