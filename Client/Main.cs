@@ -78,6 +78,13 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
+            {
+                modDisabled = true;
+                enabled = false;
+                return;
+            }
+
             TimingManager.FixedUpdateAdd(TimingManager.TimingStage.BetterLateThanNever, TimingManagerFixedUpdate);
             dmpDir = Path.Combine(Path.Combine(Path.Combine(KSPUtil.ApplicationRootPath, "GameData"), "DarkMultiPlayer"), "Plugins");
             dmpDataDir = Path.Combine(dmpDir, "Data");
@@ -104,8 +111,6 @@ namespace DarkMultiPlayer
             dmpModInterface = new DMPModInterface();
             //SafetyBubble.RegisterDefaultLocations();
 
-            if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
-                modDisabled = true;
 
             if (dmpSettings.disclaimerAccepted != 1)
             {
