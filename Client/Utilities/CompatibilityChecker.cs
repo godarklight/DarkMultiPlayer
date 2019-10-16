@@ -49,7 +49,7 @@ namespace DarkMultiPlayer.Utilities
         public static bool IsCompatible()
         {
             const int compatibleMajor = 1;
-            const int compatibleMinor = 7;
+            const int compatibleMinor = 8;
             //const int compatibleRevision = 2;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor);
 
@@ -64,7 +64,7 @@ namespace DarkMultiPlayer.Utilities
             |    BEGIN IMPLEMENTATION-SPECIFIC EDITS HERE.    |
             \*-----------------------------------------------*/
 
-			return Application.unityVersion == "2017.1.3p1";
+			return Application.unityVersion == "2019.2.2f1";
 
             /*-----------------------------------------------*\
             | IMPLEMENTERS SHOULD NOT EDIT BEYOND THIS POINT! |
