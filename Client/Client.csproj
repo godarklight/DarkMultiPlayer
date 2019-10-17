@@ -41,10 +41,6 @@
       <HintPath>..\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine">
-      <HintPath>..\UnityEngine.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
     <Reference Include="UnityEngine.UI">
@@ -53,6 +49,34 @@
     </Reference>
     <Reference Include="UDPMeshLib">
       <HintPath>..\UDPMeshLib.dll</HintPath>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>..\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
