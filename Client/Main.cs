@@ -13,6 +13,7 @@ namespace DarkMultiPlayer
         private bool showGUI = true;
         public static bool toolbarShowGUI = true;
         public static bool modDisabled = false;
+        public static bool warnDuplicateInstall = false;
         private bool dmpSaveChecked = false;
         private int facilitiesAdded = 0;
         private int stockSitesAdded = 0;
@@ -78,6 +79,13 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            //Prevent loads if multiple copies of DMP are installed. KSP will instantate us twice.
+            if (dmpClient != null)
+            {
+                warnDuplicateInstall = true;
+                return;
+            }
+
             if (!CompatibilityChecker.IsCompatible() || !InstallChecker.IsCorrectlyInstalled())
             {
                 modDisabled = true;
@@ -223,7 +231,12 @@ namespace DarkMultiPlayer
             UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DarkLog.Update");
             DarkLog.Update();
             UnityEngine.Profiling.Profiler.EndSample();
-
+            if (warnDuplicateInstall && HighLogic.LoadedScene == GameScenes.MAINMENU)
+            {
+                warnDuplicateInstall = false;
+                string message = "Please remove the duplicate install of DarkMultiPlayer.";
+                PopupDialog.SpawnPopupDialog(new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), "InstallChecker", "Incorrect Install Detected", message, "OK", true, HighLogic.UISkin);
+            }
             if (modDisabled)
             {
                 return;
@@ -379,10 +392,10 @@ namespace DarkMultiPlayer
                         try
                         {
 #endif
-                            UnityEngine.Profiling.Profiler.BeginSample(updateAction.name);
-                            updateAction.action();
-                            UnityEngine.Profiling.Profiler.EndSample();
-                            
+                        UnityEngine.Profiling.Profiler.BeginSample(updateAction.name);
+                        updateAction.action();
+                        UnityEngine.Profiling.Profiler.EndSample();
+
 #if !DEBUG
                         }
                         catch (Exception e)
@@ -561,9 +574,9 @@ namespace DarkMultiPlayer
                     try
                     {
 #endif
-                        UnityEngine.Profiling.Profiler.BeginSample(fixedUpdateAction.name);
-                        fixedUpdateAction.action();
-                        UnityEngine.Profiling.Profiler.EndSample();
+                    UnityEngine.Profiling.Profiler.BeginSample(fixedUpdateAction.name);
+                    fixedUpdateAction.action();
+                    UnityEngine.Profiling.Profiler.EndSample();
 #if !DEBUG
                     }
                     catch (Exception e)
@@ -640,13 +653,13 @@ namespace DarkMultiPlayer
                         try
                         {
 #endif
-                            // Don't hide the connectionWindow if we disabled DMP GUI
-                            if (toolbarShowGUI || (!toolbarShowGUI && drawAction.name == "DarkMultiPlayer.ConnectionWindow.Draw"))
-                            {
-                                UnityEngine.Profiling.Profiler.BeginSample(drawAction.name);
-                                drawAction.action();
-                                UnityEngine.Profiling.Profiler.EndSample();
-                            }
+                        // Don't hide the connectionWindow if we disabled DMP GUI
+                        if (toolbarShowGUI || (!toolbarShowGUI && drawAction.name == "DarkMultiPlayer.ConnectionWindow.Draw"))
+                        {
+                            UnityEngine.Profiling.Profiler.BeginSample(drawAction.name);
+                            drawAction.action();
+                            UnityEngine.Profiling.Profiler.EndSample();
+                        }
 #if !DEBUG
                         }
                         catch (Exception e)
