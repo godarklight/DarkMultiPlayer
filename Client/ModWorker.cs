@@ -273,39 +273,49 @@ namespace DarkMultiPlayer
                 foreach (string fileName in Directory.GetFiles(Client.dmpClient.gameDataDir))
                 {
                     string fileNameLower = fileName.ToLower();
+                    if (!fileNameLower.Contains("gamedata"))
+                    {
+                        //This case is hit when directories are symlinked, for developing DarkMultiPlayer.
+                        continue;
+                    }
+                    string croppedFileName = fileNameLower.Substring(fileNameLower.IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace('\\', '/');
                     //Ignore non DLL files
-                    if (!fileNameLower.EndsWith(".dll", StringComparison.Ordinal))
+                    if (!croppedFileName.EndsWith(".dll", StringComparison.Ordinal))
+                    {
+                        continue;
+                    }
+                    if (croppedFileName.StartsWith("ModuleManager", StringComparison.Ordinal))
                     {
                         continue;
                     }
                     //Allow DMP files
-                    if (autoAllowed.Contains(fileNameLower))
+                    if (autoAllowed.Contains(croppedFileName))
                     {
                         continue;
                     }
                     //Ignore squad plugins
-                    if (fileNameLower.StartsWith("squad/plugins", StringComparison.Ordinal))
+                    if (croppedFileName.StartsWith("squad/plugins", StringComparison.Ordinal))
                     {
                         continue;
                     }
                     //Check required (Required implies whitelist)
-                    if (parseRequired.ContainsKey(fileNameLower))
+                    if (parseRequired.ContainsKey(croppedFileName))
                     {
                         continue;
                     }
                     //Check optional (Optional implies whitelist)
-                    if (parseOptional.ContainsKey(fileNameLower))
+                    if (parseOptional.ContainsKey(croppedFileName))
                     {
                         continue;
                     }
                     //Check whitelist
-                    if (parseWhiteBlackList.Contains(fileNameLower))
+                    if (parseWhiteBlackList.Contains(croppedFileName))
                     {
                         continue;
                     }
                     modCheckOk = false;
-                    DarkLog.Debug("Non-whitelisted resource " + fileNameLower + " exists on client!");
-                    sb.AppendLine("Non-whitelisted resource " + fileNameLower + " exists on client!");
+                    DarkLog.Debug("Non-whitelisted resource " + croppedFileName + " exists on client!");
+                    sb.AppendLine("Non-whitelisted resource " + croppedFileName + " exists on client!");
                 }
             }
             else
@@ -384,9 +394,11 @@ namespace DarkMultiPlayer
             {
                 foreach (string fileName in allFiles)
                 {
-                    if (fileName.ToLower().EndsWith(".dll", StringComparison.Ordinal))
+                    string fileNameLower = fileName.ToLower();
+                    string croppedFileName = fileNameLower.Substring(fileNameLower.IndexOf("gamedata", StringComparison.Ordinal) + 9).Replace('\\', '/');
+                    if (croppedFileName.EndsWith(".dll", StringComparison.Ordinal))
                     {
-                        optionalFiles.Add(Path.GetFileName(fileName.ToLower()));
+                        optionalFiles.Add(croppedFileName);
                     }
                 }
             }
