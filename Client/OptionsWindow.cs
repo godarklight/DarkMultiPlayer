@@ -298,13 +298,13 @@ namespace DarkMultiPlayer
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Current:", descriptorStyle);
                 GUI.Label(
                     new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 102, 20),
-                    Mathf.Round(universeSyncCache.currentCacheSize / 1024).ToString() + " KB");
+                    Mathf.Round(universeSyncCache.currentCacheSize / 1024 / 1024).ToString() + " MB");
 
                 groupY += 20;
 
                 GUI.Label(new Rect(0, groupY, descWidth, 20), "Maximum:", descriptorStyle);
-                string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), (dmpSettings.cacheSize / 1024).ToString(), textFieldStyle);
-                GUI.Label(new Rect(descWidth + sepWidth + 80, groupY, 100, 20), "kilobytes (KB)");
+                string newSizeStr = GUI.TextField(new Rect(descWidth + sepWidth, groupY, windowRect.width - (descWidth + sepWidth) - 152, 20), dmpSettings.cacheSize.ToString(), textFieldStyle);
+                GUI.Label(new Rect(descWidth + sepWidth + 80, groupY, 100, 20), "MegaBytes (MB)");
                 int newSize;
                 if (string.IsNullOrEmpty(newSizeStr)) newSize = 1;
                 else
@@ -319,7 +319,7 @@ namespace DarkMultiPlayer
 
                 if (newSize != dmpSettings.cacheSize)
                 {
-                    dmpSettings.cacheSize = newSize * 1024;
+                    dmpSettings.cacheSize = newSize;
                     dmpSettings.SaveSettings();
                 }
                 groupY += 22;
