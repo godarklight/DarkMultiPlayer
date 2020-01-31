@@ -128,6 +128,10 @@ namespace DarkMultiPlayer
                         deleteObject = testFile.Key;
                     }
                 }
+                if (deleteObject == null)
+                {
+                    return;
+                }
                 DarkLog.Debug("Deleting cached object " + deleteObject + ", reason: Cache full!");
                 string deleteFile = Path.Combine(cacheDirectory, deleteObject + ".txt");
                 File.Delete(deleteFile);
