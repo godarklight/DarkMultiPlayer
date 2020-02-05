@@ -34,6 +34,8 @@
   <ItemGroup>
     <Compile Include="Common.cs" />
     <Compile Include="Compression.cs" />
+    <Compile Include="ByteRecycler.cs" />
+    <Compile Include="Recycler.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

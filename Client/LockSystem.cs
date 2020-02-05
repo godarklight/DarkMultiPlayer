@@ -14,6 +14,9 @@ namespace DarkMultiPlayer
         private List<ReleaseEvent> lockReleaseEvents = new List<ReleaseEvent>();
         private Dictionary<string, double> lastAcquireTime = new Dictionary<string, double>();
         private object lockObject = new object();
+        //String caches
+        private Dictionary<Guid, string> controlStringCache = new Dictionary<Guid, string>();
+        private Dictionary<Guid, string> updateStringCache = new Dictionary<Guid, string>();
 
         //Services
         private Settings dmpSettings;
@@ -223,6 +226,50 @@ namespace DarkMultiPlayer
             }
         }
 
+        //String cached, we used to allocate a heap of memory here.
+        public bool ControlLockIsOurs(Guid vesselID)
+        {
+            lock (lockObject)
+            {
+                string lockName;
+                if (!controlStringCache.ContainsKey(vesselID))
+                {
+                    controlStringCache.Add(vesselID, "control-" + vesselID);
+                }
+                lockName = controlStringCache[vesselID];
+                if (serverLocks.ContainsKey(lockName))
+                {
+                    if (serverLocks[lockName] == dmpSettings.playerName)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        //String cached, we used to allocate a heap of memory here.
+        public bool UpdateLockIsOurs(Guid vesselID)
+        {
+            lock (lockObject)
+            {
+                string lockName;
+                if (!updateStringCache.ContainsKey(vesselID))
+                {
+                    updateStringCache.Add(vesselID, "update-" + vesselID);
+                }
+                lockName = updateStringCache[vesselID];
+                if (serverLocks.ContainsKey(lockName))
+                {
+                    if (serverLocks[lockName] == dmpSettings.playerName)
+                    {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
         public bool LockIsOurs(string lockName)
         {
             lock (lockObject)
@@ -238,11 +285,57 @@ namespace DarkMultiPlayer
             }
         }
 
+        public bool ControlLockExists(Guid vesselID)
+        {
+            lock (lockObject)
+            {
+                string lockName;
+                if (!controlStringCache.ContainsKey(vesselID))
+                {
+                    controlStringCache.Add(vesselID, "control-" + vesselID);
+                }
+                lockName = controlStringCache[vesselID];
+                return serverLocks.ContainsKey(lockName);
+            }
+        }
+
+        public bool UpdateLockExists(Guid vesselID)
+        {
+            lock (lockObject)
+            {
+                string lockName;
+                if (!updateStringCache.ContainsKey(vesselID))
+                {
+                    updateStringCache.Add(vesselID, "update-" + vesselID);
+                }
+                lockName = updateStringCache[vesselID];
+                return serverLocks.ContainsKey(lockName);
+            }
+        }
+
         public bool LockExists(string lockName)
         {
             lock (lockObject)
             {
                 return serverLocks.ContainsKey(lockName);
+            }
+        }
+
+        public string ControlLockOwner(Guid vesselID)
+        {
+            lock (lockObject)
+            {
+                string lockName;
+                if (!controlStringCache.ContainsKey(vesselID))
+                {
+                    controlStringCache.Add(vesselID, "control-" + vesselID);
+                }
+                lockName = controlStringCache[vesselID];
+                if (serverLocks.ContainsKey(lockName))
+                {
+                    return serverLocks[lockName];
+                }
+                return "";
             }
         }
 

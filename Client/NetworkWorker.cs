@@ -67,35 +67,39 @@ namespace DarkMultiPlayer
         private bool displayMotd;
         private bool disconnectAfterDownloadingMods = false;
         //Services
-        DMPGame dmpGame;
-        Settings dmpSettings;
-        ConnectionWindow connectionWindow;
-        TimeSyncer timeSyncer;
-        Groups groups;
-        Permissions permissions;
-        WarpWorker warpWorker;
-        ChatWorker chatWorker;
-        PlayerColorWorker playerColorWorker;
-        FlagSyncer flagSyncer;
-        PartKiller partKiller;
-        KerbalReassigner kerbalReassigner;
-        AsteroidWorker asteroidWorker;
-        VesselWorker vesselWorker;
-        PlayerStatusWorker playerStatusWorker;
-        ScenarioWorker scenarioWorker;
-        DynamicTickWorker dynamicTickWorker;
-        CraftLibraryWorker craftLibraryWorker;
-        ScreenshotWorker screenshotWorker;
-        ToolbarSupport toolbarSupport;
-        AdminSystem adminSystem;
-        LockSystem lockSystem;
-        DMPModInterface dmpModInterface;
-        ModWorker modWorker;
-        ConfigNodeSerializer configNodeSerializer;
-        UniverseSyncCache universeSyncCache;
-        VesselRecorder vesselRecorder;
-        ModpackWorker modpackWorker;
+        private DMPGame dmpGame;
+        private Settings dmpSettings;
+        private ConnectionWindow connectionWindow;
+        private TimeSyncer timeSyncer;
+        private Groups groups;
+        private Permissions permissions;
+        private WarpWorker warpWorker;
+        private ChatWorker chatWorker;
+        private PlayerColorWorker playerColorWorker;
+        private FlagSyncer flagSyncer;
+        private PartKiller partKiller;
+        private KerbalReassigner kerbalReassigner;
+        private AsteroidWorker asteroidWorker;
+        private VesselWorker vesselWorker;
+        private PlayerStatusWorker playerStatusWorker;
+        private ScenarioWorker scenarioWorker;
+        private DynamicTickWorker dynamicTickWorker;
+        private CraftLibraryWorker craftLibraryWorker;
+        private ScreenshotWorker screenshotWorker;
+        private ToolbarSupport toolbarSupport;
+        private AdminSystem adminSystem;
+        private LockSystem lockSystem;
+        private DMPModInterface dmpModInterface;
+        private ModWorker modWorker;
+        private ConfigNodeSerializer configNodeSerializer;
+        private UniverseSyncCache universeSyncCache;
+        private VesselRecorder vesselRecorder;
+        private ModpackWorker modpackWorker;
         private NamedAction updateAction;
+        //16kB, 512kB, 6MB.
+        private const int SMALL_MESSAGE_SIZE = 16 * 1024;
+        private const int MEDIUM_MESSAGE_SIZE = 512 * 1024;
+        private const int LARGE_MESSAGE_SIZE = 6 * 1024 * 1024;
 
         public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
@@ -1585,7 +1589,8 @@ namespace DarkMultiPlayer
 
         public VesselUpdate VeselUpdateFromBytes(byte[] messageData)
         {
-            VesselUpdate update = new VesselUpdate(vesselWorker);
+            VesselUpdate update = new VesselUpdate();
+            update.SetVesselWorker(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
             {
                 update.planetTime = mr.Read<double>();
@@ -2222,10 +2227,10 @@ namespace DarkMultiPlayer
             vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
         }
         //Called from vesselWorker
-        public void SendVesselUpdateMesh(VesselUpdate update)
+        public void SendVesselUpdateMesh(VesselUpdate update, List<string> clientsInSubspace)
         {
             ClientMessage newMessage = GetVesselUpdateMessage(update);
-            foreach (string playerName in warpWorker.GetClientsInSubspace(timeSyncer.currentSubspace))
+            foreach (string playerName in clientsInSubspace)
             {
                 if (meshPlayerGuids.ContainsKey(playerName) && playerName != dmpSettings.playerName)
                 {

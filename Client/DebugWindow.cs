@@ -17,7 +17,6 @@ namespace DarkMultiPlayer
         private bool displayConnectionQueue;
         private bool displayDynamicTickStats;
         private bool displayRequestedRates;
-        private bool displayProfilerStatistics;
         private bool displayVesselRecorder;
         private bool displayVesselTimeDelay;
         private bool displayMeshStats;
@@ -27,7 +26,6 @@ namespace DarkMultiPlayer
         private string connectionText = "";
         private string dynamicTickText = "";
         private string requestedRateText = "";
-        private string profilerText = "";
         private string vesselworkerTimeDelay = "0";
         private float lastUpdateTime;
         //GUI Layout
@@ -53,10 +51,11 @@ namespace DarkMultiPlayer
         private VesselRecorder vesselRecorder;
         private PosistionStatistics posistionStatistics;
         private OptionsWindow optionsWindow;
+        private Profiler profiler;
         private NamedAction updateAction;
         private NamedAction drawAction;
 
-        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow)
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow, Profiler profiler)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -68,6 +67,7 @@ namespace DarkMultiPlayer
             this.vesselRecorder = vesselRecorder;
             this.posistionStatistics = posistionStatistics;
             this.optionsWindow = optionsWindow;
+            this.profiler = profiler;
             updateAction = new NamedAction(Update);
             drawAction = new NamedAction(Draw);
             dmpGame.updateEvent.Add(updateAction);
@@ -140,26 +140,7 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(requestedRateText, labelStyle);
             }
-            displayProfilerStatistics = GUILayout.Toggle(displayProfilerStatistics, "Display Profiler Statistics", buttonStyle);
-            if (displayProfilerStatistics)
-            {
-                if (System.Diagnostics.Stopwatch.IsHighResolution)
-                {
-                    if (GUILayout.Button("Reset Profiler history", buttonStyle))
-                    {
-                        Profiler.updateData = new ProfilerData();
-                        Profiler.fixedUpdateData = new ProfilerData();
-                        Profiler.guiData = new ProfilerData();
-                    }
-                    GUILayout.Label("Timer resolution: " + System.Diagnostics.Stopwatch.Frequency + " hz", labelStyle);
-                    GUILayout.Label(profilerText, labelStyle);
-                }
-                else
-                {
-                    GUILayout.Label("Timer resolution: " + System.Diagnostics.Stopwatch.Frequency + " hz", labelStyle);
-                    GUILayout.Label("Profiling statistics unavailable without a high resolution timer");
-                }
-            }
+            profiler.samplingEnabled = GUILayout.Toggle(profiler.samplingEnabled, "Record Profiler Samples", buttonStyle);
             displayVesselRecorder = GUILayout.Toggle(displayVesselRecorder, "Display Vessel Recorder", buttonStyle);
             if (displayVesselRecorder)
             {
@@ -293,74 +274,84 @@ namespace DarkMultiPlayer
                 {
                     lastUpdateTime = Client.realtimeSinceStartup;
                     //Vector text
-                    if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null)
+                    if (displayVectors)
                     {
-                        Vessel ourVessel = FlightGlobals.fetch.activeVessel;
-                        vectorText = "Forward vector: " + ourVessel.GetFwdVector() + "\n";
-                        vectorText += "Up vector: " + (Vector3)ourVessel.upAxis + "\n";
-                        vectorText += "Srf Rotation: " + ourVessel.srfRelRotation + "\n";
-                        vectorText += "Vessel Rotation: " + ourVessel.transform.rotation + "\n";
-                        vectorText += "Vessel Local Rotation: " + ourVessel.transform.localRotation + "\n";
-                        vectorText += "mainBody Rotation: " + (Quaternion)ourVessel.mainBody.rotation + "\n";
-                        vectorText += "mainBody Transform Rotation: " + (Quaternion)ourVessel.mainBody.bodyTransform.rotation + "\n";
-                        vectorText += "Surface Velocity: " + ourVessel.GetSrfVelocity() + ", |v|: " + ourVessel.GetSrfVelocity().magnitude + "\n";
-                        vectorText += "Orbital Velocity: " + ourVessel.GetObtVelocity() + ", |v|: " + ourVessel.GetObtVelocity().magnitude + "\n";
-                        if (ourVessel.orbitDriver != null && ourVessel.orbitDriver.orbit != null)
+                        if (HighLogic.LoadedScene == GameScenes.FLIGHT && FlightGlobals.ready && FlightGlobals.fetch.activeVessel != null)
                         {
-                            vectorText += "Frame Velocity: " + (Vector3)ourVessel.orbitDriver.orbit.GetFrameVel() + ", |v|: " + ourVessel.orbitDriver.orbit.GetFrameVel().magnitude + "\n";
+                            Vessel ourVessel = FlightGlobals.fetch.activeVessel;
+                            vectorText = "Forward vector: " + ourVessel.GetFwdVector() + "\n";
+                            vectorText += "Up vector: " + (Vector3)ourVessel.upAxis + "\n";
+                            vectorText += "Srf Rotation: " + ourVessel.srfRelRotation + "\n";
+                            vectorText += "Vessel Rotation: " + ourVessel.transform.rotation + "\n";
+                            vectorText += "Vessel Local Rotation: " + ourVessel.transform.localRotation + "\n";
+                            vectorText += "mainBody Rotation: " + (Quaternion)ourVessel.mainBody.rotation + "\n";
+                            vectorText += "mainBody Transform Rotation: " + (Quaternion)ourVessel.mainBody.bodyTransform.rotation + "\n";
+                            vectorText += "Surface Velocity: " + ourVessel.GetSrfVelocity() + ", |v|: " + ourVessel.GetSrfVelocity().magnitude + "\n";
+                            vectorText += "Orbital Velocity: " + ourVessel.GetObtVelocity() + ", |v|: " + ourVessel.GetObtVelocity().magnitude + "\n";
+                            if (ourVessel.orbitDriver != null && ourVessel.orbitDriver.orbit != null)
+                            {
+                                vectorText += "Frame Velocity: " + (Vector3)ourVessel.orbitDriver.orbit.GetFrameVel() + ", |v|: " + ourVessel.orbitDriver.orbit.GetFrameVel().magnitude + "\n";
+                            }
+                            vectorText += "CoM offset vector: " + ourVessel.CoM.ToString() + "\n";
+                            vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
+                            vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
                         }
-                        vectorText += "CoM offset vector: " + ourVessel.CoM.ToString() + "\n";
-                        vectorText += "Angular Velocity: " + ourVessel.angularVelocity + ", |v|: " + ourVessel.angularVelocity.magnitude + "\n";
-                        vectorText += "World Pos: " + (Vector3)ourVessel.GetWorldPos3D() + ", |pos|: " + ourVessel.GetWorldPos3D().magnitude + "\n";
-                    }
-                    else
-                    {
-                        vectorText = "You have to be in flight";
+                        else
+                        {
+                            vectorText = "You have to be in flight";
+                        }
                     }
 
                     //NTP text
-                    ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
-                    ntpText += "Current subspace: " + timeSyncer.currentSubspace + ".\n";
-                    if (timeSyncer.locked)
+                    if (displayNTP)
                     {
-                        ntpText += "Current subspace rate: " + Math.Round(timeSyncer.lockedSubspace.subspaceSpeed, 3) + "x.\n";
+                        ntpText = "Warp rate: " + Math.Round(Time.timeScale, 3) + "x.\n";
+                        ntpText += "Current subspace: " + timeSyncer.currentSubspace + ".\n";
+                        if (timeSyncer.locked)
+                        {
+                            ntpText += "Current subspace rate: " + Math.Round(timeSyncer.lockedSubspace.subspaceSpeed, 3) + "x.\n";
+                        }
+                        else
+                        {
+                            ntpText += "Current subspace rate: " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
+                        }
+                        ntpText += "Current Error: " + Math.Round((timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
+                        ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
+                        ntpText += "Network latency: " + Math.Round((timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
+                        ntpText += "Server clock difference: " + Math.Round((timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
+                        ntpText += "Server lag: " + Math.Round((timeSyncer.serverLag / 10000f), 3) + " ms\n";
                     }
-                    else
-                    {
-                        ntpText += "Current subspace rate: " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
-                    }
-                    ntpText += "Current Error: " + Math.Round((timeSyncer.GetCurrentError() * 1000), 0) + " ms.\n";
-                    ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
-                    ntpText += "Network latency: " + Math.Round((timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server clock difference: " + Math.Round((timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
-                    ntpText += "Server lag: " + Math.Round((timeSyncer.serverLag / 10000f), 3) + " ms\n";
-
                     //Connection queue text
-                    connectionText = "Last send time: " + networkWorker.GetStatistics("LastSendTime") + "ms.\n";
-                    connectionText += "Last receive time: " + networkWorker.GetStatistics("LastReceiveTime") + "ms.\n";
-                    connectionText += "Queued outgoing messages (High): " + networkWorker.GetStatistics("HighPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Split): " + networkWorker.GetStatistics("SplitPriorityQueueLength") + ".\n";
-                    connectionText += "Queued outgoing messages (Low): " + networkWorker.GetStatistics("LowPriorityQueueLength") + ".\n";
-                    connectionText += "Queued out bytes: " + networkWorker.GetStatistics("QueuedOutBytes") + ".\n";
-                    connectionText += "Sent bytes: " + networkWorker.GetStatistics("SentBytes") + ".\n";
-                    connectionText += "Received bytes: " + networkWorker.GetStatistics("ReceivedBytes") + ".\n";
-                    connectionText += "Stored future updates: " + vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
-                    connectionText += "Stored future proto updates: " + vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
+                    if (displayConnectionQueue)
+                    {
+                        connectionText = "Last send time: " + networkWorker.GetStatistics("LastSendTime") + "ms.\n";
+                        connectionText += "Last receive time: " + networkWorker.GetStatistics("LastReceiveTime") + "ms.\n";
+                        connectionText += "Queued outgoing messages (High): " + networkWorker.GetStatistics("HighPriorityQueueLength") + ".\n";
+                        connectionText += "Queued outgoing messages (Split): " + networkWorker.GetStatistics("SplitPriorityQueueLength") + ".\n";
+                        connectionText += "Queued outgoing messages (Low): " + networkWorker.GetStatistics("LowPriorityQueueLength") + ".\n";
+                        connectionText += "Queued out bytes: " + networkWorker.GetStatistics("QueuedOutBytes") + ".\n";
+                        connectionText += "Sent bytes: " + networkWorker.GetStatistics("SentBytes") + ".\n";
+                        connectionText += "Received bytes: " + networkWorker.GetStatistics("ReceivedBytes") + ".\n";
+                        connectionText += "Stored future updates: " + vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
+                        connectionText += "Stored future proto updates: " + vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
+                    }
 
                     //Dynamic tick text
-                    dynamicTickText = "Current tick rate: " + DynamicTickWorker.SEND_TICK_RATE + "hz.\n";
-                    dynamicTickText += "Current max secondry vessels: " + dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
-
-                    //Requested rates text
-                    requestedRateText = dmpSettings.playerName + ": " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
-                    foreach (KeyValuePair<string, float> playerEntry in warpWorker.clientSkewList)
+                    if (displayDynamicTickStats)
                     {
-                        requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
+                        dynamicTickText = "Current tick rate: " + DynamicTickWorker.SEND_TICK_RATE + "hz.\n";
+                        dynamicTickText += "Current max secondry vessels: " + dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
                     }
 
-                    profilerText = "Update: \n" + Profiler.updateData;
-                    profilerText += "Fixed Update: \n" + Profiler.fixedUpdateData;
-                    profilerText += "GUI: \n" + Profiler.guiData;
+                    //Requested rates text
+                    if (displayRequestedRates)
+                    {
+                        requestedRateText = dmpSettings.playerName + ": " + Math.Round(timeSyncer.requestedRate, 3) + "x.\n";
+                        foreach (KeyValuePair<string, float> playerEntry in warpWorker.clientSkewList)
+                        {
+                            requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
+                        }
+                    }
                 }
             }
         }

@@ -6,119 +6,110 @@ namespace DarkMultiPlayer
 {
     public class VesselUpdate
     {
+        public bool updateOK = true;
         public Guid vesselID;
         public double planetTime;
         public string bodyName;
-        public float[] rotation;
-        public float[] angularVelocity;
-        public FlightCtrlState flightState;
-        public bool[] actiongroupControls;
+        public float[] rotation = new float[4];
+        public float[] angularVelocity = new float[3];
+        public FlightCtrlState flightState = new FlightCtrlState();
+        public bool[] actiongroupControls = new bool[5];
         public bool isSurfaceUpdate;
         //Orbital parameters
-        public double[] orbit;
+        public double[] orbit = new double[7];
         //Surface parameters
         //Position = lat,long,alt,ground height.
-        public double[] position;
-        public double[] velocity;
-        public double[] acceleration;
-        public float[] terrainNormal;
+        public double[] position = new double[4];
+        public double[] velocity = new double[3];
+        public double[] acceleration = new double[3];
+        public float[] terrainNormal = new float[3];
         //SAS
         public bool sasEnabled;
         public int autopilotMode;
-        public float[] lockedRotation;
+        public float[] lockedRotation= new float[4];
         //Private
         private const double STEP_DISTANCE = 0.05;
         private VesselWorker vesselWorker;
 
-        public VesselUpdate(VesselWorker vesselWorker)
+        public void SetVesselWorker(VesselWorker vesselWorker)
         {
             this.vesselWorker = vesselWorker;
         }
 
-        public static VesselUpdate CopyFromVessel(VesselWorker vesselWorker, Vessel updateVessel)
+        public void CopyFromVessel(Vessel updateVessel)
         {
-            VesselUpdate returnUpdate = new VesselUpdate(vesselWorker);
+            updateOK = true;
+            SetVesselWorker(vesselWorker);
             try
             {
-                returnUpdate.vesselID = updateVessel.id;
-                returnUpdate.planetTime = Planetarium.GetUniversalTime();
-                returnUpdate.bodyName = updateVessel.mainBody.bodyName;
+                vesselID = updateVessel.id;
+                planetTime = Planetarium.GetUniversalTime();
+                bodyName = updateVessel.mainBody.bodyName;
 
-                returnUpdate.rotation = new float[4];
-                returnUpdate.rotation[0] = updateVessel.srfRelRotation.x;
-                returnUpdate.rotation[1] = updateVessel.srfRelRotation.y;
-                returnUpdate.rotation[2] = updateVessel.srfRelRotation.z;
-                returnUpdate.rotation[3] = updateVessel.srfRelRotation.w;
+                rotation[0] = updateVessel.srfRelRotation.x;
+                rotation[1] = updateVessel.srfRelRotation.y;
+                rotation[2] = updateVessel.srfRelRotation.z;
+                rotation[3] = updateVessel.srfRelRotation.w;
 
-                returnUpdate.angularVelocity = new float[3];
-                returnUpdate.angularVelocity[0] = updateVessel.angularVelocity.x;
-                returnUpdate.angularVelocity[1] = updateVessel.angularVelocity.y;
-                returnUpdate.angularVelocity[2] = updateVessel.angularVelocity.z;
+                angularVelocity[0] = updateVessel.angularVelocity.x;
+                angularVelocity[1] = updateVessel.angularVelocity.y;
+                angularVelocity[2] = updateVessel.angularVelocity.z;
                 //Flight state
-                returnUpdate.flightState = new FlightCtrlState();
-                returnUpdate.flightState.CopyFrom(updateVessel.ctrlState);
-                returnUpdate.actiongroupControls = new bool[5];
-                returnUpdate.actiongroupControls[0] = updateVessel.ActionGroups[KSPActionGroup.Gear];
-                returnUpdate.actiongroupControls[1] = updateVessel.ActionGroups[KSPActionGroup.Light];
-                returnUpdate.actiongroupControls[2] = updateVessel.ActionGroups[KSPActionGroup.Brakes];
-                returnUpdate.actiongroupControls[3] = updateVessel.ActionGroups[KSPActionGroup.SAS];
-                returnUpdate.actiongroupControls[4] = updateVessel.ActionGroups[KSPActionGroup.RCS];
+                flightState.CopyFrom(updateVessel.ctrlState);
+                actiongroupControls[0] = updateVessel.ActionGroups[KSPActionGroup.Gear];
+                actiongroupControls[1] = updateVessel.ActionGroups[KSPActionGroup.Light];
+                actiongroupControls[2] = updateVessel.ActionGroups[KSPActionGroup.Brakes];
+                actiongroupControls[3] = updateVessel.ActionGroups[KSPActionGroup.SAS];
+                actiongroupControls[4] = updateVessel.ActionGroups[KSPActionGroup.RCS];
 
                 if (updateVessel.altitude < 10000)
                 {
                     //Use surface position under 10k
-                    returnUpdate.isSurfaceUpdate = true;
-                    returnUpdate.position = new double[4];
-                    returnUpdate.position[0] = updateVessel.latitude;
-                    returnUpdate.position[1] = updateVessel.longitude;
-                    returnUpdate.position[2] = updateVessel.altitude;
+                    isSurfaceUpdate = true;
+                    position[0] = updateVessel.latitude;
+                    position[1] = updateVessel.longitude;
+                    position[2] = updateVessel.altitude;
                     VesselUtil.DMPRaycastPair groundRaycast = VesselUtil.RaycastGround(updateVessel.latitude, updateVessel.longitude, updateVessel.mainBody);
-                    returnUpdate.position[3] = groundRaycast.altitude;
-                    returnUpdate.terrainNormal = new float[3];
-                    returnUpdate.terrainNormal[0] = groundRaycast.terrainNormal.x;
-                    returnUpdate.terrainNormal[1] = groundRaycast.terrainNormal.y;
-                    returnUpdate.terrainNormal[2] = groundRaycast.terrainNormal.z;
-                    returnUpdate.velocity = new double[3];
+                    position[3] = groundRaycast.altitude;
+                    terrainNormal[0] = groundRaycast.terrainNormal.x;
+                    terrainNormal[1] = groundRaycast.terrainNormal.y;
+                    terrainNormal[2] = groundRaycast.terrainNormal.z;
                     Vector3d srfVel = Quaternion.Inverse(updateVessel.mainBody.bodyTransform.rotation) * updateVessel.srf_velocity;
-                    returnUpdate.velocity[0] = srfVel.x;
-                    returnUpdate.velocity[1] = srfVel.y;
-                    returnUpdate.velocity[2] = srfVel.z;
-                    returnUpdate.acceleration = new double[3];
+                    velocity[0] = srfVel.x;
+                    velocity[1] = srfVel.y;
+                    velocity[2] = srfVel.z;
                     Vector3d srfAcceleration = Quaternion.Inverse(updateVessel.mainBody.bodyTransform.rotation) * updateVessel.acceleration;
-                    returnUpdate.acceleration[0] = srfAcceleration.x;
-                    returnUpdate.acceleration[1] = srfAcceleration.y;
-                    returnUpdate.acceleration[2] = srfAcceleration.z;
+                    acceleration[0] = srfAcceleration.x;
+                    acceleration[1] = srfAcceleration.y;
+                    acceleration[2] = srfAcceleration.z;
                 }
                 else
                 {
                     //Use orbital positioning over 10k
-                    returnUpdate.isSurfaceUpdate = false;
-                    returnUpdate.orbit = new double[7];
-                    returnUpdate.orbit[0] = updateVessel.orbit.inclination;
-                    returnUpdate.orbit[1] = updateVessel.orbit.eccentricity;
-                    returnUpdate.orbit[2] = updateVessel.orbit.semiMajorAxis;
-                    returnUpdate.orbit[3] = updateVessel.orbit.LAN;
-                    returnUpdate.orbit[4] = updateVessel.orbit.argumentOfPeriapsis;
-                    returnUpdate.orbit[5] = updateVessel.orbit.meanAnomalyAtEpoch;
-                    returnUpdate.orbit[6] = updateVessel.orbit.epoch;
+                    isSurfaceUpdate = false;
+                    orbit[0] = updateVessel.orbit.inclination;
+                    orbit[1] = updateVessel.orbit.eccentricity;
+                    orbit[2] = updateVessel.orbit.semiMajorAxis;
+                    orbit[3] = updateVessel.orbit.LAN;
+                    orbit[4] = updateVessel.orbit.argumentOfPeriapsis;
+                    orbit[5] = updateVessel.orbit.meanAnomalyAtEpoch;
+                    orbit[6] = updateVessel.orbit.epoch;
                 }
-                returnUpdate.sasEnabled = updateVessel.Autopilot.Enabled;
-                if (returnUpdate.sasEnabled)
+                sasEnabled = updateVessel.Autopilot.Enabled;
+                if (sasEnabled)
                 {
-                    returnUpdate.autopilotMode = (int)updateVessel.Autopilot.Mode;
-                    returnUpdate.lockedRotation = new float[4];
-                    returnUpdate.lockedRotation[0] = updateVessel.Autopilot.SAS.lockedRotation.x;
-                    returnUpdate.lockedRotation[1] = updateVessel.Autopilot.SAS.lockedRotation.y;
-                    returnUpdate.lockedRotation[2] = updateVessel.Autopilot.SAS.lockedRotation.z;
-                    returnUpdate.lockedRotation[3] = updateVessel.Autopilot.SAS.lockedRotation.w;
+                    autopilotMode = (int)updateVessel.Autopilot.Mode;
+                    lockedRotation[0] = updateVessel.Autopilot.SAS.lockedRotation.x;
+                    lockedRotation[1] = updateVessel.Autopilot.SAS.lockedRotation.y;
+                    lockedRotation[2] = updateVessel.Autopilot.SAS.lockedRotation.z;
+                    lockedRotation[3] = updateVessel.Autopilot.SAS.lockedRotation.w;
                 }
             }
             catch (Exception e)
             {
                 DarkLog.Debug("Failed to get vessel update, exception: " + e);
-                returnUpdate = null;
+                updateOK = false;
             }
-            return returnUpdate;
         }
 
         public void Apply(PosistionStatistics posistionStatistics, Dictionary<Guid, VesselCtrlUpdate> ctrlUpdate, VesselUpdate previousUpdate, VesselUpdate nextUpdate, Settings dmpSettings)

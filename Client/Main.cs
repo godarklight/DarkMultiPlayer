@@ -45,6 +45,14 @@ namespace DarkMultiPlayer
         public UniverseConverterWindow universeConverterWindow;
         public DisclaimerWindow disclaimerWindow;
         public DMPModInterface dmpModInterface;
+        //Profiler state
+        public Profiler profiler;
+        private long kspGUITime;
+        private long kspGUIMemory;
+        private long kspUpdateTime;
+        private long kspUpdateMemory;
+        private long kspFixedUpdateTime;
+        private long kspFixedUpdateMemory;
         public DMPGame dmpGame;
         public string dmpDir;
         public string dmpDataDir;
@@ -105,6 +113,14 @@ namespace DarkMultiPlayer
             lastRealTimeSinceStartup = 0f;
 
             dmpClient = this;
+            profiler = new Profiler();
+            kspGUITime = profiler.GetCurrentTime;
+            kspGUIMemory = profiler.GetCurrentMemory;
+            kspUpdateTime = kspGUITime;
+            kspUpdateMemory = kspGUIMemory;
+            kspFixedUpdateTime = kspGUITime;
+            kspFixedUpdateMemory = kspGUIMemory;
+
             dmpSettings = new Settings();
             toolbarSupport = new ToolbarSupport(dmpSettings);
             universeSyncCache = new UniverseSyncCache(dmpSettings);
@@ -126,7 +142,6 @@ namespace DarkMultiPlayer
                 disclaimerWindow.SpawnDialog();
             }
 
-            Profiler.DMPReferenceTime.Start();
             DontDestroyOnLoad(this);
 
             // Prevents symlink warning for development.
@@ -217,20 +232,15 @@ namespace DarkMultiPlayer
                 commandLineConnect.port = port;
                 DarkLog.Debug("Connecting via command line to: " + address + ", port: " + port);
             }
-            else
-            {
-                DarkLog.Debug("Command line address is invalid: " + address + ", port: " + port);
-            }
         }
 
         public void Update()
         {
-            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
+            profiler.Report("KSP.Update", kspUpdateTime, kspUpdateMemory);
+            long profilerStartTime = profiler.GetCurrentTime;
+            long profilerStartMemory = profiler.GetCurrentMemory;
             lastClockTicks = DateTime.UtcNow.Ticks;
             lastRealTimeSinceStartup = Time.realtimeSinceStartup;
-            UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DarkLog.Update");
-            DarkLog.Update();
-            UnityEngine.Profiling.Profiler.EndSample();
             if (warnDuplicateInstall && HighLogic.LoadedScene == GameScenes.MAINMENU)
             {
                 warnDuplicateInstall = false;
@@ -341,12 +351,12 @@ namespace DarkMultiPlayer
                 if (!connectionWindow.connectEventHandled)
                 {
                     connectionWindow.connectEventHandled = true;
-                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow);
+                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow, profiler);
                     dmpGame.networkWorker.ConnectToServer(dmpSettings.servers[connectionWindow.selected].address, dmpSettings.servers[connectionWindow.selected].port);
                 }
                 if (commandLineConnect != null && HighLogic.LoadedScene == GameScenes.MAINMENU && Time.timeSinceLevelLoad > 1f)
                 {
-                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow);
+                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow, profiler);
                     dmpGame.networkWorker.ConnectToServer(commandLineConnect.address, commandLineConnect.port);
                     commandLineConnect = null;
                 }
@@ -368,21 +378,15 @@ namespace DarkMultiPlayer
                         dmpGame = null;
                     }
                 }
-                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ConnectionWindow.Update");
+                long profilerWindowStartTime = profiler.GetCurrentTime;
+                long profilerWindowStartMemory = profiler.GetCurrentMemory;
                 connectionWindow.Update();
-                UnityEngine.Profiling.Profiler.EndSample();
-                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ModWindow.Update");
                 modWindow.Update();
-                UnityEngine.Profiling.Profiler.EndSample();
-                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.OptionsWindow.Update");
                 optionsWindow.Update();
-                UnityEngine.Profiling.Profiler.EndSample();
-                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.UniverseConverterWindow.Update");
                 universeConverterWindow.Update();
-                UnityEngine.Profiling.Profiler.EndSample();
-                UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DmpModInterface.Update");
                 dmpModInterface.Update();
-                UnityEngine.Profiling.Profiler.EndSample();
+                profiler.Update();
+                profiler.Report("DMP.WindowUpdate", profilerWindowStartTime, profilerWindowStartMemory);
 
                 if (dmpGame != null)
                 {
@@ -392,10 +396,10 @@ namespace DarkMultiPlayer
                         try
                         {
 #endif
-                        UnityEngine.Profiling.Profiler.BeginSample(updateAction.name);
+                        long profilerUpdateStartTime = profiler.GetCurrentTime;
+                        long profilerUpdateStartMemory = profiler.GetCurrentMemory;
                         updateAction.action();
-                        UnityEngine.Profiling.Profiler.EndSample();
-
+                        profiler.Report(updateAction.name, profilerUpdateStartTime, profilerUpdateStartMemory);
 #if !DEBUG
                         }
                         catch (Exception e)
@@ -542,7 +546,9 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Threw in Update, state NO_NETWORKWORKER, exception: " + e);
                 }
             }
-            Profiler.updateData.ReportTime(startClock);
+            profiler.Report("Update", profilerStartTime, profilerStartMemory);
+            kspUpdateTime = profiler.GetCurrentTime;
+            kspUpdateMemory = profiler.GetCurrentMemory;
         }
 
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
@@ -557,14 +563,14 @@ namespace DarkMultiPlayer
 
         public void TimingManagerFixedUpdate()
         {
-            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (modDisabled)
             {
                 return;
             }
-            UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.DmpModInterface.FixedUpdate");
+            profiler.Report("KSP.FixedUpdate", kspFixedUpdateTime, kspFixedUpdateMemory);
+            long profilerStartTime = profiler.GetCurrentTime;
+            long profilerStartMemory = profiler.GetCurrentMemory;
             dmpModInterface.FixedUpdate();
-            UnityEngine.Profiling.Profiler.EndSample();
 
             if (dmpGame != null)
             {
@@ -574,9 +580,10 @@ namespace DarkMultiPlayer
                     try
                     {
 #endif
-                    UnityEngine.Profiling.Profiler.BeginSample(fixedUpdateAction.name);
+                    long profilerFixedUpdateStartTime = profiler.GetCurrentTime;
+                    long profilerFixedUpdateStartMemory = profiler.GetCurrentMemory;
                     fixedUpdateAction.action();
-                    UnityEngine.Profiling.Profiler.EndSample();
+                    profiler.Report(fixedUpdateAction.name, profilerFixedUpdateStartTime, profilerFixedUpdateStartMemory);
 #if !DEBUG
                     }
                     catch (Exception e)
@@ -601,11 +608,16 @@ namespace DarkMultiPlayer
                 }
 
             }
-            Profiler.fixedUpdateData.ReportTime(startClock);
+            profiler.Report("FixedUpdate", profilerStartTime, profilerStartMemory);
+            kspFixedUpdateTime = profiler.GetCurrentTime;
+            kspFixedUpdateMemory = profiler.GetCurrentMemory;
         }
 
         public void OnGUI()
         {
+            profiler.Report("KSP.OnGUI", kspGUITime, kspGUIMemory);
+            long profilerStartTime = profiler.GetCurrentTime;
+            long profilerStartMemory = profiler.GetCurrentMemory;
             //Window ID's - Doesn't include "random" offset.
             //Connection window: 6702
             //Status window: 6703
@@ -618,32 +630,23 @@ namespace DarkMultiPlayer
             //Options window: 6711
             //Converter window: 6712
             //Disclaimer window: 6713
-            long startClock = Profiler.DMPReferenceTime.ElapsedTicks;
             if (showGUI)
             {
                 if (connectionWindow != null)
                 {
-                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ConnectionWindow.Draw");
                     connectionWindow.Draw();
-                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (modWindow != null)
                 {
-                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.ModWindow.Draw");
                     modWindow.Draw();
-                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (optionsWindow != null)
                 {
-                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.OptionsWindow.Draw");
                     optionsWindow.Draw();
-                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (universeConverterWindow != null)
                 {
-                    UnityEngine.Profiling.Profiler.BeginSample("DarkMultiPlayer.UniverseConverterWindow.Draw");
                     universeConverterWindow.Draw();
-                    UnityEngine.Profiling.Profiler.EndSample();
                 }
                 if (dmpGame != null)
                 {
@@ -656,9 +659,7 @@ namespace DarkMultiPlayer
                         // Don't hide the connectionWindow if we disabled DMP GUI
                         if (toolbarShowGUI || (!toolbarShowGUI && drawAction.name == "DarkMultiPlayer.ConnectionWindow.Draw"))
                         {
-                            UnityEngine.Profiling.Profiler.BeginSample(drawAction.name);
                             drawAction.action();
-                            UnityEngine.Profiling.Profiler.EndSample();
                         }
 #if !DEBUG
                         }
@@ -670,7 +671,9 @@ namespace DarkMultiPlayer
                     }
                 }
             }
-            Profiler.guiData.ReportTime(startClock);
+            profiler.Report("Draw", profilerStartTime, profilerStartMemory);
+            kspGUITime = profiler.GetCurrentTime;
+            kspGUIMemory = profiler.GetCurrentMemory;
         }
 
         private void StartGame()

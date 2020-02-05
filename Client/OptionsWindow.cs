@@ -483,6 +483,7 @@ namespace DarkMultiPlayer
                 {
                     modWorker.CheckCommonStockParts();
                 }
+
 #endif
                 groupY += 22;
                 GUI.EndGroup();
