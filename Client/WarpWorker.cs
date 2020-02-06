@@ -34,7 +34,7 @@ namespace DarkMultiPlayer
         private double lastWarpSet;
         private double lastReportRate;
         private int newSetSubspace = -1;
-        private Queue<byte[]> newWarpMessages = new Queue<byte[]>();
+        private Queue<ByteArray> newWarpMessages = new Queue<ByteArray>();
         private ScreenMessage warpMessage;
         private const float SCREEN_MESSAGE_UPDATE_INTERVAL = 0.2f;
         private const float WARP_SET_THROTTLE = 1f;
@@ -222,7 +222,9 @@ namespace DarkMultiPlayer
             {
                 while (newWarpMessages.Count > 0)
                 {
-                    HandleWarpMessage(newWarpMessages.Dequeue());
+                    ByteArray queueByteArray = newWarpMessages.Dequeue();
+                    HandleWarpMessage(queueByteArray.data);
+                    ByteRecycler.ReleaseObject(queueByteArray);
                 }
             }
         }
@@ -761,7 +763,9 @@ namespace DarkMultiPlayer
         {
             lock (newWarpMessages)
             {
-                newWarpMessages.Enqueue(messageData);
+                ByteArray queueByteArray = ByteRecycler.GetObject(messageData.Length);
+                Array.Copy(messageData, 0, queueByteArray.data, 0, messageData.Length);
+                newWarpMessages.Enqueue(queueByteArray);
             }
         }
 

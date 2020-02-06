@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 using DarkMultiPlayer.Utilities;
+using MessageStream2;
 
 namespace DarkMultiPlayer
 {
@@ -58,6 +59,10 @@ namespace DarkMultiPlayer
         public string dmpDataDir;
         public string gameDataDir;
         public string kspRootPath;
+        //16kB, 512kB, 6MB.
+        public const int SMALL_MESSAGE_SIZE = 16 * 1024;
+        public const int MEDIUM_MESSAGE_SIZE = 512 * 1024;
+        public const int LARGE_MESSAGE_SIZE = 6 * 1024 * 1024;
 
         public Client fetch
         {
@@ -87,6 +92,13 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            //Set pool sizes for ByteRecycler
+            ByteRecycler.AddPoolSize(SMALL_MESSAGE_SIZE);
+            ByteRecycler.AddPoolSize(MEDIUM_MESSAGE_SIZE);
+            ByteRecycler.AddPoolSize(LARGE_MESSAGE_SIZE);
+            MessageWriter.RegisterType<ByteArray>(WriteByteArrayToStream);
+            MessageReader.RegisterType<ByteArray>(ReadByteArrayFromStream);
+
             //Prevent loads if multiple copies of DMP are installed. KSP will instantate us twice.
             if (dmpClient != null)
             {
@@ -163,6 +175,33 @@ namespace DarkMultiPlayer
             DarkLog.Debug("DarkMultiPlayer " + Common.PROGRAM_VERSION + ", protocol " + Common.PROTOCOL_VERSION + " Initialized!");
         }
 
+        internal static byte[] ReverseIfLittleEndian(byte[] input)
+        {
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(input);
+            }
+            return input;
+        }
+
+        public void WriteByteArrayToStream(object inputData, Stream outputStream)
+        {
+            ByteArray data = (ByteArray)inputData;
+            outputStream.Write(ReverseIfLittleEndian(BitConverter.GetBytes(data.Length)), 0, 4);
+            outputStream.Write(data.data, 0, data.Length);
+        }
+
+        byte[] intReverser = new byte[4];
+        public object ReadByteArrayFromStream(Stream inputStream)
+        {
+            inputStream.Read(intReverser, 0, 4);
+            ReverseIfLittleEndian(intReverser);
+            int length = BitConverter.ToInt32(intReverser, 0);
+            ByteArray returnBytes = ByteRecycler.GetObject(length);
+            inputStream.Read(returnBytes.data, 0, length);
+            return returnBytes;
+        }
+
         private void HandleCommandLineArgs()
         {
             bool nextLineIsAddress = false;
@@ -236,6 +275,7 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            DarkLog.Update();
             profiler.Report("KSP.Update", kspUpdateTime, kspUpdateMemory);
             long profilerStartTime = profiler.GetCurrentTime;
             long profilerStartMemory = profiler.GetCurrentMemory;
@@ -549,6 +589,7 @@ namespace DarkMultiPlayer
             profiler.Report("Update", profilerStartTime, profilerStartMemory);
             kspUpdateTime = profiler.GetCurrentTime;
             kspUpdateMemory = profiler.GetCurrentMemory;
+            DarkLog.Update();
         }
 
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
@@ -563,6 +604,7 @@ namespace DarkMultiPlayer
 
         public void TimingManagerFixedUpdate()
         {
+            DarkLog.Update();
             if (modDisabled)
             {
                 return;
@@ -611,6 +653,7 @@ namespace DarkMultiPlayer
             profiler.Report("FixedUpdate", profilerStartTime, profilerStartMemory);
             kspFixedUpdateTime = profiler.GetCurrentTime;
             kspFixedUpdateMemory = profiler.GetCurrentMemory;
+            DarkLog.Update();
         }
 
         public void OnGUI()

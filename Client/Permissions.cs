@@ -14,7 +14,7 @@ namespace DarkMultiPlayer
         private Settings dmpSettings;
         private Groups groups;
         //Backing
-        private Queue<byte[]> messageQueue = new Queue<byte[]>();
+        private Queue<ByteArray> messageQueue = new Queue<ByteArray>();
         internal Dictionary<Guid, VesselPermission> vesselPermissions = new Dictionary<Guid, VesselPermission>();
         private NamedAction updateAction;
 
@@ -34,7 +34,9 @@ namespace DarkMultiPlayer
             {
                 while (messageQueue.Count > 0)
                 {
-                    HandleMessage(messageQueue.Dequeue());
+                    ByteArray queueByteArray = messageQueue.Dequeue();
+                    HandleMessage(queueByteArray.data);
+                    ByteRecycler.ReleaseObject(queueByteArray);
                 }
             }
         }
@@ -48,7 +50,9 @@ namespace DarkMultiPlayer
         {
             lock (messageQueue)
             {
-                messageQueue.Enqueue(data);
+                ByteArray queueByteArray = ByteRecycler.GetObject(data.Length);
+                Array.Copy(data, 0, queueByteArray.data, 0, data.Length);
+                messageQueue.Enqueue(queueByteArray);
             }
         }
 

@@ -130,9 +130,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandlePlayerColorMessage(byte[] messageData)
+        public void HandlePlayerColorMessage(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
                 switch (messageType)

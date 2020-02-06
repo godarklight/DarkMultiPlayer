@@ -1,9 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Reflection;
-using UnityEngine;
 using DarkMultiPlayerCommon;
+using UnityEngine;
 
 namespace DarkMultiPlayer
 {
@@ -1197,7 +1196,7 @@ namespace DarkMultiPlayer
                 dmpNode.AddValue("contractOwner", dmpSettings.playerPublicKey);
                 kerbalNode.AddNode("DarkMultiPlayer", dmpNode);
             }
-            byte[] kerbalBytes = configNodeSerializer.Serialize(kerbalNode);
+            ByteArray kerbalBytes = configNodeSerializer.Serialize(kerbalNode);
             if (kerbalBytes == null || kerbalBytes.Length == 0)
             {
                 DarkLog.Debug("VesselWorker: Error sending kerbal - bytes are null or 0");
@@ -1221,6 +1220,7 @@ namespace DarkMultiPlayer
                 serverKerbals[pcm.name] = kerbalHash;
                 networkWorker.SendKerbalProtoMessage(pcm.name, kerbalBytes);
             }
+            ByteRecycler.ReleaseObject(kerbalBytes);
         }
 
         public void SendKerbalRemove(string kerbalName)
@@ -1396,11 +1396,12 @@ namespace DarkMultiPlayer
                 HighLogic.CurrentGame.CrewRoster.AddCrewMember(protoCrew);
                 ConfigNode kerbalNode = new ConfigNode();
                 protoCrew.Save(kerbalNode);
-                byte[] kerbalBytes = configNodeSerializer.Serialize(kerbalNode);
+                ByteArray kerbalBytes = configNodeSerializer.Serialize(kerbalNode);
                 if (kerbalBytes != null && kerbalBytes.Length != 0)
                 {
                     serverKerbals[protoCrew.name] = Common.CalculateSHA256Hash(kerbalBytes);
                 }
+                ByteRecycler.ReleaseObject(kerbalBytes);
             }
             else
             {

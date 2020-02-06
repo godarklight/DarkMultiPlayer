@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UDPMeshLib;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -21,12 +22,14 @@ namespace DarkMultiPlayer
         private bool displayVesselTimeDelay;
         private bool displayMeshStats;
         private bool displayVesselCache;
+        private bool displayRecycler;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
         private string dynamicTickText = "";
         private string requestedRateText = "";
         private string vesselworkerTimeDelay = "0";
+        private string recyclerText = "";
         private float lastUpdateTime;
         //GUI Layout
         private Rect windowRect;
@@ -37,7 +40,7 @@ namespace DarkMultiPlayer
         private GUIStyle buttonStyle;
         private GUIStyle labelStyle;
         //const
-        private const float WINDOW_HEIGHT = 400;
+        private const float WINDOW_HEIGHT = 450;
         private const float WINDOW_WIDTH = 350;
         private const float DISPLAY_UPDATE_INTERVAL = .2f;
         //Services
@@ -262,6 +265,11 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            displayRecycler = GUILayout.Toggle(displayRecycler, "Display recycler", buttonStyle);
+            if (displayRecycler)
+            {
+                GUILayout.Label(recyclerText, labelStyle);
+            }
             GUILayout.EndVertical();
         }
 
@@ -351,6 +359,14 @@ namespace DarkMultiPlayer
                         {
                             requestedRateText += playerEntry.Key + ": " + Math.Round(playerEntry.Value, 3) + "x.\n";
                         }
+                    }
+
+                    //Requested rates text
+                    if (displayRecycler)
+                    {
+                        recyclerText = "16kB: " + ByteRecycler.GetPoolCount(Client.SMALL_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.SMALL_MESSAGE_SIZE) + "\n";
+                        recyclerText += "512kB: " + ByteRecycler.GetPoolCount(Client.MEDIUM_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.MEDIUM_MESSAGE_SIZE) + "\n";
+                        recyclerText += "6MB: " + ByteRecycler.GetPoolCount(Client.LARGE_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.LARGE_MESSAGE_SIZE) + "\n";
                     }
                 }
             }

@@ -6,6 +6,7 @@ namespace DarkMultiPlayerCommon
 {
     public class Compression
     {
+        private static byte[] CompressionBuffer = new byte[Common.MAX_MESSAGE_SIZE];
         public const int COMPRESSION_THRESHOLD = 4096;
         public static bool compressionEnabled = false;
 
@@ -38,7 +39,18 @@ namespace DarkMultiPlayerCommon
             return AddCompressionHeader(Compress(inputBytes), true);
         }
 
-
+        public static ByteArray CompressIfNeeded(ByteArray inputBytes)
+        {
+            if (inputBytes == null)
+            {
+                throw new Exception("Input bytes are null");
+            }
+            if (inputBytes.Length < COMPRESSION_THRESHOLD || !compressionEnabled)
+            {
+                return AddCompressionHeader(inputBytes, false);
+            }
+            return AddCompressionHeader(Compress(inputBytes), true);
+        }
 
         public static byte[] DecompressIfNeeded(byte[] inputBytes)
         {
@@ -89,6 +101,23 @@ namespace DarkMultiPlayerCommon
         }
 
         /// <summary>
+        /// Appends the decompressed header.
+        /// </summary>
+        /// <returns>The message with the prepended header</returns>
+        /// <param name="inputBytes">Input bytes.</param>
+        public static ByteArray AddCompressionHeader(ByteArray inputBytes, bool value)
+        {
+            if (inputBytes == null)
+            {
+                throw new Exception("Input bytes are null");
+            }
+            ByteArray returnBytes = ByteRecycler.GetObject(inputBytes.Length + 1);
+            BitConverter.GetBytes(value).CopyTo(returnBytes.data, 0);
+            Array.Copy(inputBytes.data, 0, returnBytes.data, 1, inputBytes.Length);
+            return returnBytes;
+        }
+
+        /// <summary>
         /// Removes the decompressed header.
         /// </summary>
         /// <returns>The message without the prepended header</returns>
@@ -107,36 +136,64 @@ namespace DarkMultiPlayerCommon
         public static byte[] Compress(byte[] inputBytes)
         {
             byte[] returnBytes = null;
-            using (MemoryStream ms = new MemoryStream())
+            lock (CompressionBuffer)
             {
-                using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress))
+                using (MemoryStream ms = new MemoryStream(CompressionBuffer))
                 {
-                    gs.Write(inputBytes, 0, inputBytes.Length);
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress))
+                    {
+                        gs.Write(inputBytes, 0, inputBytes.Length);
+                    }
+                    returnBytes = ms.ToArray();
                 }
-                returnBytes = ms.ToArray();
             }
             return returnBytes;
         }
 
-        public static byte[] Decompress(byte[] inputBytes)
+        public static ByteArray Compress(ByteArray inputBytes)
         {
-            byte[] returnBytes = null;
-            using (MemoryStream outputStream = new MemoryStream())
+
+            int compressSize = 0;
+            lock (CompressionBuffer)
             {
-                using (MemoryStream ms = new MemoryStream(inputBytes))
+                using (MemoryStream ms = new MemoryStream(CompressionBuffer))
                 {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress))
                     {
-                        //Stream.CopyTo is a .NET 4 feature?
-                        byte[] buffer = new byte[4096];
-                        int numRead;
-                        while ((numRead = gs.Read(buffer, 0, buffer.Length)) != 0)
-                        {
-                            outputStream.Write(buffer, 0, numRead);
-                        }
+                        gs.Write(inputBytes.data, 0, inputBytes.Length);
+                        compressSize = (int)ms.Position;
                     }
                 }
-                returnBytes = outputStream.ToArray();
+            }
+            ByteArray returnBytes = ByteRecycler.GetObject(compressSize);
+            Array.Copy(CompressionBuffer, 0, returnBytes.data, 0, compressSize);
+            return returnBytes;
+
+        }
+
+        public static byte[] Decompress(byte[] inputBytes)
+        {
+
+            byte[] returnBytes = null;
+            lock (CompressionBuffer)
+            {
+                using (MemoryStream outputStream = new MemoryStream(CompressionBuffer))
+                {
+                    using (MemoryStream ms = new MemoryStream(inputBytes))
+                    {
+                        using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
+                        {
+                            //Stream.CopyTo is a .NET 4 feature?
+                            byte[] buffer = new byte[4096];
+                            int numRead;
+                            while ((numRead = gs.Read(buffer, 0, buffer.Length)) != 0)
+                            {
+                                outputStream.Write(buffer, 0, numRead);
+                            }
+                        }
+                    }
+                    returnBytes = outputStream.ToArray();
+                }
             }
             return returnBytes;
         }

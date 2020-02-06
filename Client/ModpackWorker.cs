@@ -15,7 +15,7 @@ namespace DarkMultiPlayer
         public string syncString = "Syncing files";
         private int filesDownloaded = 0;
         private ModpackMode modpackMode = ModpackMode.NONE;
-        private Queue<byte[]> messageQueue = new Queue<byte[]>();
+        private Queue<ByteArray> messageQueue = new Queue<ByteArray>();
         private DMPGame dmpGame;
         private Settings dmpSettings;
         private ModWorker modWorker;
@@ -121,7 +121,9 @@ namespace DarkMultiPlayer
                 {
                     while (messageQueue.Count > 0)
                     {
-                        RealHandleMessage(messageQueue.Dequeue());
+                        ByteArray queueByteArray = messageQueue.Dequeue();
+                        RealHandleMessage(queueByteArray.data);
+                        ByteRecycler.ReleaseObject(queueByteArray);
                         //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
                         if (hashingThreads != null)
                         {
@@ -507,7 +509,9 @@ namespace DarkMultiPlayer
         {
             lock (messageQueue)
             {
-                messageQueue.Enqueue(messageData);
+                ByteArray queueByteArray = ByteRecycler.GetObject(messageData.Length);
+                Array.Copy(messageData, 0, queueByteArray.data, 0, messageData.Length);
+                messageQueue.Enqueue(queueByteArray);
             }
         }
 

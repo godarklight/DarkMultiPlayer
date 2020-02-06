@@ -4,21 +4,31 @@ namespace DarkMultiPlayerCommon
 {
     public static class ByteRecycler
     {
-        private static Dictionary<int, List<InUseContainer<ByteArray>>> currentObjects = new Dictionary<int, List<InUseContainer<ByteArray>>>();
-        private static Dictionary<object, InUseContainer<ByteArray>> reverseMapping = new Dictionary<object, InUseContainer<ByteArray>>();
+        private static Dictionary<int, List<InUseContainer>> currentObjects = new Dictionary<int, List<InUseContainer>>();
+        private static Dictionary<object, InUseContainer> reverseMapping = new Dictionary<object, InUseContainer>();
+        private static List<int> poolSizes = new List<int>();
         private static object lockObject = new object();
 
-        public static ByteArray GetObject(int pool_size)
+        public static ByteArray GetObject(int size)
         {
-            InUseContainer<ByteArray> freeObject = null;
+            int pool_size = 0;
+            foreach (int poolSize in poolSizes)
+            {
+                if (poolSize > size)
+                {
+                    pool_size = poolSize;
+                    break;
+                }
+            }
+            if (pool_size == 0)
+            {
+                throw new InvalidOperationException("Pool size not big enough for current request");
+            }
+            InUseContainer freeObject = null;
             lock (lockObject)
             {
-                if (!currentObjects.ContainsKey(pool_size))
-                {
-                    currentObjects.Add(pool_size, new List<InUseContainer<ByteArray>>());
-                }
-                List<InUseContainer<ByteArray>> currentObjectsOfSize = currentObjects[pool_size];
-                foreach (InUseContainer<ByteArray> currentObject in currentObjectsOfSize)
+                List<InUseContainer> currentObjectsOfSize = currentObjects[pool_size];
+                foreach (InUseContainer currentObject in currentObjectsOfSize)
                 {
                     if (currentObject.free)
                     {
@@ -28,11 +38,12 @@ namespace DarkMultiPlayerCommon
                 }
                 if (freeObject == null)
                 {
-                    freeObject = new InUseContainer<ByteArray>();
+                    freeObject = new InUseContainer();
                     freeObject.obj = new ByteArray(pool_size);
                     currentObjectsOfSize.Add(freeObject);
                     reverseMapping.Add(freeObject.obj, freeObject);
                 }
+                freeObject.obj.size = size;
                 freeObject.free = false;
             }
             return freeObject.obj;
@@ -44,27 +55,55 @@ namespace DarkMultiPlayerCommon
             {
                 if (reverseMapping.ContainsKey(releaseObject))
                 {
-                    InUseContainer<ByteArray> container = reverseMapping[releaseObject];
+                    InUseContainer container = reverseMapping[releaseObject];
                     container.free = true;
+                }
+                else
+                {
+                    throw new InvalidOperationException("Release object is not mapped.");
                 }
             }
         }
 
-        public class ByteArray
+        public static void AddPoolSize(int pool_size)
         {
-            public int size;
-            public byte[] data;
-
-            public ByteArray(int size)
+            if (!poolSizes.Contains(pool_size))
             {
-                data = new byte[size];
-                size = 0;
+                poolSizes.Add(pool_size);
+                currentObjects.Add(pool_size, new List<InUseContainer>());
+                poolSizes.Sort();
             }
         }
 
-        private class InUseContainer<T>
+        public static int GetPoolCount(int size)
         {
-            public T obj;
+            if (!currentObjects.ContainsKey(size))
+            {
+                return 0;
+            }
+            return currentObjects[size].Count;
+        }
+
+        public static int GetPoolFreeCount(int size)
+        {
+            if (!currentObjects.ContainsKey(size))
+            {
+                return 0;
+            }
+            int free = 0;
+            foreach (InUseContainer iuc in currentObjects[size])
+            {
+                if (iuc.free)
+                {
+                    free++;
+                }
+            }
+            return free;
+        }
+
+        private class InUseContainer
+        {
+            public ByteArray obj;
             public bool free;
         }
     }

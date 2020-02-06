@@ -26,6 +26,7 @@ namespace DarkMultiPlayer
         private Queue<ClientMessage> sendMessageQueueHigh = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueSplit = new Queue<ClientMessage>();
         private Queue<ClientMessage> sendMessageQueueLow = new Queue<ClientMessage>();
+        private byte[] messageWriterBuffer = new byte[Common.MAX_MESSAGE_SIZE];
         private ClientMessageType lastSplitMessageType = ClientMessageType.HEARTBEAT;
         //Receive buffer
         private long lastReceiveTime = 0;
@@ -96,10 +97,6 @@ namespace DarkMultiPlayer
         private VesselRecorder vesselRecorder;
         private ModpackWorker modpackWorker;
         private NamedAction updateAction;
-        //16kB, 512kB, 6MB.
-        private const int SMALL_MESSAGE_SIZE = 16 * 1024;
-        private const int MEDIUM_MESSAGE_SIZE = 512 * 1024;
-        private const int LARGE_MESSAGE_SIZE = 6 * 1024 * 1024;
 
         public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
         {
@@ -688,13 +685,13 @@ namespace DarkMultiPlayer
             //Allocate byte for header
             isReceivingMessage = false;
             receiveMessage = new ServerMessage();
-            receiveMessage.data = new byte[8];
+            receiveMessage.data = ByteRecycler.GetObject(8);
             receiveMessageBytesLeft = receiveMessage.data.Length;
             try
             {
                 while (true)
                 {
-                    int bytesRead = clientConnection.GetStream().Read(receiveMessage.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft);
+                    int bytesRead = clientConnection.GetStream().Read(receiveMessage.data.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft);
                     bytesReceived += bytesRead;
                     receiveMessageBytesLeft -= bytesRead;
                     if (bytesRead > 0)
@@ -712,7 +709,7 @@ namespace DarkMultiPlayer
                         if (!isReceivingMessage)
                         {
                             //We have the header
-                            using (MessageReader mr = new MessageReader(receiveMessage.data))
+                            using (MessageReader mr = new MessageReader(receiveMessage.data.data))
                             {
                                 int messageType = mr.Read<int>();
                                 int messageLength = mr.Read<int>();
@@ -732,9 +729,10 @@ namespace DarkMultiPlayer
                                     return;
                                 }
                                 receiveMessage.type = (ServerMessageType)messageType;
+                                ByteRecycler.ReleaseObject(receiveMessage.data);
+                                receiveMessage.data = null;
                                 if (messageLength == 0)
                                 {
-                                    receiveMessage.data = null;
                                     switch (receiveMessage.type)
                                     {
                                         case ServerMessageType.HEARTBEAT:
@@ -744,7 +742,7 @@ namespace DarkMultiPlayer
                                             break;
                                     }
                                     receiveMessage.type = 0;
-                                    receiveMessage.data = new byte[8];
+                                    receiveMessage.data = ByteRecycler.GetObject(8);
                                     receiveMessageBytesLeft = receiveMessage.data.Length;
                                 }
                                 else
@@ -752,7 +750,7 @@ namespace DarkMultiPlayer
                                     if (messageLength < Common.MAX_MESSAGE_SIZE)
                                     {
                                         isReceivingMessage = true;
-                                        receiveMessage.data = new byte[messageLength];
+                                        receiveMessage.data = ByteRecycler.GetObject(messageLength);
                                         receiveMessageBytesLeft = receiveMessage.data.Length;
                                     }
                                     else
@@ -771,7 +769,8 @@ namespace DarkMultiPlayer
                             isReceivingMessage = false;
                             HandleMessage(receiveMessage);
                             receiveMessage.type = 0;
-                            receiveMessage.data = new byte[8];
+                            ByteRecycler.ReleaseObject(receiveMessage.data);
+                            receiveMessage.data = ByteRecycler.GetObject(8);
                             receiveMessageBytesLeft = receiveMessage.data.Length;
                         }
                     }
@@ -851,6 +850,11 @@ namespace DarkMultiPlayer
             if (sendMessage != null)
             {
                 SendNetworkMessage(sendMessage);
+                //Now that we have sent the message, we can release it's memory
+                if (sendMessage.data != null)
+                {
+                    ByteRecycler.ReleaseObject(sendMessage.data);
+                }
                 return true;
             }
             return false;
@@ -872,15 +876,16 @@ namespace DarkMultiPlayer
                 ClientMessage newSplitMessage = new ClientMessage();
                 newSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
                 int splitBytesLeft = message.data.Length;
-                using (MessageWriter mw = new MessageWriter())
+                newSplitMessage.data = ByteRecycler.GetObject(12 + Common.SPLIT_MESSAGE_LENGTH);
+                using (MessageWriter mw = new MessageWriter(newSplitMessage.data.data))
                 {
                     mw.Write<int>((int)message.type);
                     mw.Write<int>(message.data.Length);
-                    byte[] firstSplit = new byte[Common.SPLIT_MESSAGE_LENGTH];
-                    Array.Copy(message.data, 0, firstSplit, 0, Common.SPLIT_MESSAGE_LENGTH);
-                    mw.Write<byte[]>(firstSplit);
+                    ByteArray firstSplit = ByteRecycler.GetObject(Common.SPLIT_MESSAGE_LENGTH);
+                    Array.Copy(message.data.data, 0, firstSplit.data, 0, Common.SPLIT_MESSAGE_LENGTH);
+                    mw.Write<ByteArray>(firstSplit);
+                    ByteRecycler.ReleaseObject(firstSplit);
                     splitBytesLeft -= Common.SPLIT_MESSAGE_LENGTH;
-                    newSplitMessage.data = mw.GetMessageBytes();
                     //SPLIT_MESSAGE adds a 12 byte header.
                     bytesQueuedOut += 12;
                     sendMessageQueueSplit.Enqueue(newSplitMessage);
@@ -890,20 +895,21 @@ namespace DarkMultiPlayer
                 {
                     ClientMessage currentSplitMessage = new ClientMessage();
                     currentSplitMessage.type = ClientMessageType.SPLIT_MESSAGE;
-                    currentSplitMessage.data = new byte[Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH)];
-                    Array.Copy(message.data, message.data.Length - splitBytesLeft, currentSplitMessage.data, 0, currentSplitMessage.data.Length);
+                    currentSplitMessage.data = ByteRecycler.GetObject(Math.Min(splitBytesLeft, Common.SPLIT_MESSAGE_LENGTH));
+                    Array.Copy(message.data.data, message.data.Length - splitBytesLeft, currentSplitMessage.data.data, 0, currentSplitMessage.data.Length);
                     splitBytesLeft -= currentSplitMessage.data.Length;
                     //Add the SPLIT_MESSAGE header to the out queue count.
                     bytesQueuedOut += 8;
                     sendMessageQueueSplit.Enqueue(currentSplitMessage);
                 }
+                ByteRecycler.ReleaseObject(message.data);
                 message = sendMessageQueueSplit.Dequeue();
             }
         }
 
         private void SendNetworkMessage(ClientMessage message)
         {
-            byte[] messageBytes = Common.PrependNetworkFrame((int)message.type, message.data);
+            ByteArray messageBytes = Common.PrependNetworkFrame((int)message.type, message.data);
 
             lock (messageQueueLock)
             {
@@ -913,7 +919,7 @@ namespace DarkMultiPlayer
             //Disconnect after EndWrite completes
             if (message.type == ClientMessageType.CONNECTION_END)
             {
-                using (MessageReader mr = new MessageReader(message.data))
+                using (MessageReader mr = new MessageReader(message.data.data))
                 {
                     terminateOnNextMessageSend = true;
                     connectionEndReason = mr.Read<string>();
@@ -922,7 +928,7 @@ namespace DarkMultiPlayer
             lastSendTime = Common.GetCurrentUnixTime();
             try
             {
-                clientConnection.GetStream().Write(messageBytes, 0, messageBytes.Length);
+                clientConnection.GetStream().Write(messageBytes.data, 0, messageBytes.Length);
                 if (terminateOnNextMessageSend)
                 {
                     Disconnect("Connection ended: " + connectionEndReason);
@@ -937,6 +943,8 @@ namespace DarkMultiPlayer
                     HandleDisconnectException(e);
                 }
             }
+            //Release the send buffer we got with PrependNetworkFrame.
+            ByteRecycler.ReleaseObject(messageBytes);
         }
 
         private void HandleDisconnectException(Exception e)
@@ -968,103 +976,103 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HEARTBEAT:
                         break;
                     case ServerMessageType.HANDSHAKE_CHALLANGE:
-                        HandleHandshakeChallange(message.data);
+                        HandleHandshakeChallange(message.data.data);
                         break;
                     case ServerMessageType.HANDSHAKE_REPLY:
-                        HandleHandshakeReply(message.data);
+                        HandleHandshakeReply(message.data.data);
                         break;
                     case ServerMessageType.CHAT_MESSAGE:
-                        HandleChatMessage(message.data);
+                        HandleChatMessage(message.data.data);
                         break;
                     case ServerMessageType.SERVER_SETTINGS:
-                        HandleServerSettings(message.data);
+                        HandleServerSettings(message.data.data);
                         break;
                     case ServerMessageType.PLAYER_STATUS:
-                        HandlePlayerStatus(message.data);
+                        HandlePlayerStatus(message.data.data);
                         break;
                     case ServerMessageType.PLAYER_COLOR:
                         playerColorWorker.HandlePlayerColorMessage(message.data);
                         break;
                     case ServerMessageType.PLAYER_JOIN:
-                        HandlePlayerJoin(message.data);
+                        HandlePlayerJoin(message.data.data);
                         break;
                     case ServerMessageType.PLAYER_DISCONNECT:
-                        HandlePlayerDisconnect(message.data);
+                        HandlePlayerDisconnect(message.data.data);
                         break;
                     case ServerMessageType.GROUP:
-                        HandleGroupMessage(message.data);
+                        HandleGroupMessage(message.data.data);
                         break;
                     case ServerMessageType.PERMISSION:
-                        HandlePermissionMessage(message.data);
+                        HandlePermissionMessage(message.data.data);
                         break;
                     case ServerMessageType.SCENARIO_DATA:
-                        HandleScenarioModuleData(message.data);
+                        HandleScenarioModuleData(message.data.data);
                         break;
                     case ServerMessageType.KERBAL_REPLY:
-                        HandleKerbalReply(message.data);
+                        HandleKerbalReply(message.data.data);
                         break;
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
                     case ServerMessageType.KERBAL_REMOVE:
-                        HandleKerbalRemove(message.data);
+                        HandleKerbalRemove(message.data.data);
                         break;
                     case ServerMessageType.VESSEL_LIST:
-                        HandleVesselList(message.data);
+                        HandleVesselList(message.data.data);
                         break;
                     case ServerMessageType.VESSEL_PROTO:
-                        HandleVesselProto(message.data);
+                        HandleVesselProto(message.data.data);
                         break;
                     case ServerMessageType.VESSEL_UPDATE:
-                        HandleVesselUpdate(message.data, false);
+                        HandleVesselUpdate(message.data.data, false);
                         break;
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
                         break;
                     case ServerMessageType.VESSEL_REMOVE:
-                        HandleVesselRemove(message.data);
+                        HandleVesselRemove(message.data.data);
                         break;
                     case ServerMessageType.CRAFT_LIBRARY:
-                        HandleCraftLibrary(message.data);
+                        HandleCraftLibrary(message.data.data);
                         break;
                     case ServerMessageType.SCREENSHOT_LIBRARY:
-                        HandleScreenshotLibrary(message.data);
+                        HandleScreenshotLibrary(message.data.data);
                         break;
                     case ServerMessageType.FLAG_SYNC:
-                        flagSyncer.HandleMessage(message.data);
+                        flagSyncer.HandleMessage(message.data.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
-                        warpWorker.HandleSetSubspace(message.data);
+                        warpWorker.HandleSetSubspace(message.data.data);
                         break;
                     case ServerMessageType.SYNC_TIME_REPLY:
-                        HandleSyncTimeReply(message.data);
+                        HandleSyncTimeReply(message.data.data);
                         break;
                     case ServerMessageType.PING_REPLY:
-                        HandlePingReply(message.data);
+                        HandlePingReply(message.data.data);
                         break;
                     case ServerMessageType.MOTD_REPLY:
-                        HandleMotdReply(message.data);
+                        HandleMotdReply(message.data.data);
                         break;
                     case ServerMessageType.WARP_CONTROL:
-                        HandleWarpControl(message.data);
+                        HandleWarpControl(message.data.data);
                         break;
                     case ServerMessageType.ADMIN_SYSTEM:
-                        adminSystem.HandleAdminMessage(message.data);
+                        adminSystem.HandleAdminMessage(message.data.data);
                         break;
                     case ServerMessageType.LOCK_SYSTEM:
-                        lockSystem.HandleLockMessage(message.data);
+                        lockSystem.HandleLockMessage(message.data.data);
                         break;
                     case ServerMessageType.MOD_DATA:
-                        dmpModInterface.HandleModData(message.data);
+                        dmpModInterface.HandleModData(message.data.data);
                         break;
                     case ServerMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(message.data);
                         break;
                     case ServerMessageType.CONNECTION_END:
-                        HandleConnectionEnd(message.data);
+                        HandleConnectionEnd(message.data.data);
                         break;
                     case ServerMessageType.MODPACK_DATA:
-                        HandleModpackData(message.data);
+                        HandleModpackData(message.data.data);
                         break;
                 default:
                         DarkLog.Debug("Unhandled message type " + message.type);
@@ -1587,12 +1595,20 @@ namespace DarkMultiPlayer
             }
         }
 
-        public VesselUpdate VeselUpdateFromBytes(byte[] messageData)
+        public VesselUpdate VeselUpdateFromBytes(byte[] messageData, bool fromMesh)
         {
             VesselUpdate update = new VesselUpdate();
             update.SetVesselWorker(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
             {
+                if (fromMesh)
+                {
+                    for (int i = 0; i < 24; i++)
+                    {
+                        //Don't care, we are stripping the header.
+                        mr.Read<byte>();
+                    }
+                }
                 update.planetTime = mr.Read<double>();
                 update.vesselID = new Guid(mr.Read<string>());
                 update.bodyName = mr.Read<string>();
@@ -1645,14 +1661,7 @@ namespace DarkMultiPlayer
 
         private void HandleVesselUpdate(byte[] messageData, bool fromMesh)
         {
-            //Strip mesh header
-            if (fromMesh)
-            {
-                byte[] tempData = new byte[messageData.Length - 24];
-                Array.Copy(messageData, 24, tempData, 0, tempData.Length);
-                messageData = tempData;
-            }
-            VesselUpdate update = VeselUpdateFromBytes(messageData);
+            VesselUpdate update = VeselUpdateFromBytes(messageData, fromMesh);
             vesselWorker.QueueVesselUpdate(update, fromMesh);
         }
 
@@ -1864,32 +1873,34 @@ namespace DarkMultiPlayer
             warpWorker.QueueWarpMessage(messageData);
         }
 
-        private void HandleSplitMessage(byte[] messageData)
+        private void HandleSplitMessage(ByteArray messageData)
         {
             if (!isReceivingSplitMessage)
             {
                 //New split message
-                using (MessageReader mr = new MessageReader(messageData))
+                using (MessageReader mr = new MessageReader(messageData.data))
                 {
                     receiveSplitMessage = new ServerMessage();
                     receiveSplitMessage.type = (ServerMessageType)mr.Read<int>();
-                    receiveSplitMessage.data = new byte[mr.Read<int>()];
+                    receiveSplitMessage.data = ByteRecycler.GetObject(mr.Read<int>());
                     receiveSplitMessageBytesLeft = receiveSplitMessage.data.Length;
-                    byte[] firstSplitData = mr.Read<byte[]>();
-                    firstSplitData.CopyTo(receiveSplitMessage.data, 0);
+                    ByteArray firstSplitData = mr.Read<ByteArray>();
+                    Array.Copy(firstSplitData.data, 0, receiveSplitMessage.data.data, 0, firstSplitData.Length);
                     receiveSplitMessageBytesLeft -= firstSplitData.Length;
+                    ByteRecycler.ReleaseObject(firstSplitData);
                 }
                 isReceivingSplitMessage = true;
             }
             else
             {
                 //Continued split message
-                messageData.CopyTo(receiveSplitMessage.data, receiveSplitMessage.data.Length - receiveSplitMessageBytesLeft);
+                Array.Copy(messageData.data, 0, receiveSplitMessage.data.data, receiveSplitMessage.data.Length - receiveSplitMessageBytesLeft, messageData.Length);
                 receiveSplitMessageBytesLeft -= messageData.Length;
             }
             if (receiveSplitMessageBytesLeft == 0)
             {
                 HandleMessage(receiveSplitMessage);
+                ByteRecycler.ReleaseObject(receiveSplitMessage.data);
                 receiveSplitMessage = null;
                 isReceivingSplitMessage = false;
             }
@@ -1930,8 +1941,10 @@ namespace DarkMultiPlayer
 
         private void SendHandshakeResponse(byte[] signature)
         {
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.HANDSHAKE_RESPONSE;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<int>(Common.PROTOCOL_VERSION);
                 mw.Write<string>(dmpSettings.playerName);
@@ -1939,11 +1952,10 @@ namespace DarkMultiPlayer
                 mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 mw.Write<bool>(dmpSettings.compressionEnabled);
-                messageBytes = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.HANDSHAKE_RESPONSE;
-            newMessage.data = messageBytes;
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from ChatWindow
@@ -1951,23 +1963,25 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CHAT_MESSAGE;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from PlayerStatusWorker
         public void SendPlayerStatus(PlayerStatus playerStatus)
         {
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PLAYER_STATUS;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<string>(playerStatus.playerName);
                 mw.Write<string>(playerStatus.vesselText);
                 mw.Write<string>(playerStatus.statusText);
-                messageBytes = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
-            ClientMessage newMessage = new ClientMessage();
-            newMessage.type = ClientMessageType.PLAYER_STATUS;
-            newMessage.data = messageBytes;
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from PlayerColorWorker
@@ -1975,46 +1989,54 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PLAYER_COLOR;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from timeSyncer
         public void SendTimeSync()
         {
-            byte[] messageBytes;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<long>(DateTime.UtcNow.Ticks);
-                messageBytes = mw.GetMessageBytes();
-            }
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SYNC_TIME_REQUEST;
-            newMessage.data = messageBytes;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
+            {
+                mw.Write<long>(DateTime.UtcNow.Ticks);
+                newMessageLength = (int)mw.GetMessageLength();
+            }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendGroupsRequest()
         {
-            using (MessageWriter mw = new MessageWriter())
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.GROUP;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<int>((int)GroupMessageType.GROUP_REQUEST);
-                ClientMessage newMessage = new ClientMessage();
-                newMessage.type = ClientMessageType.GROUP;
-                newMessage.data = mw.GetMessageBytes();
-                QueueOutgoingMessage(newMessage, true);
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
+            QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendPermissionsRequest()
         {
-            using (MessageWriter mw = new MessageWriter())
+            ClientMessage newMessage = new ClientMessage();
+            newMessage.type = ClientMessageType.PERMISSION;
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<int>((int)PermissionMessageType.PERMISSION_REQUEST);
-                ClientMessage newMessage = new ClientMessage();
-                newMessage.type = ClientMessageType.PERMISSION;
-                newMessage.data = mw.GetMessageBytes();
-                QueueOutgoingMessage(newMessage, true);
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
+            QueueOutgoingMessage(newMessage, true);
         }
 
         private void SendKerbalsRequest()
@@ -2028,11 +2050,14 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSELS_REQUEST;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<string[]>(requestList);
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, true);
         }
 
@@ -2128,13 +2153,13 @@ namespace DarkMultiPlayer
 
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_PROTO;
-            byte[] vesselBytes = configNodeSerializer.Serialize(vesselNode);
+            ByteArray vesselBytes = configNodeSerializer.Serialize(vesselNode);
             bool dataOK = false;
             if (vesselBytes != null)
             {
                 for (int i = 0; i < vesselBytes.Length; i++)
                 {
-                    if (vesselBytes[i] != 0)
+                    if (vesselBytes.data[i] != 0)
                     {
                         dataOK = true;
                         break;
@@ -2143,30 +2168,36 @@ namespace DarkMultiPlayer
             }
             if (vesselBytes != null && vesselBytes.Length > 0 && dataOK)
             {
-                universeSyncCache.QueueToCache(vesselBytes);
-                using (MessageWriter mw = new MessageWriter())
+                universeSyncCache.QueueToCache(vesselBytes.data);
+                int newMessageLength = 0;
+                using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<bool>(isDockingUpdate);
                     mw.Write<bool>(isFlyingUpdate);
-                    mw.Write<byte[]>(Compression.CompressIfNeeded(vesselBytes));
-                    newMessage.data = mw.GetMessageBytes();
+                    mw.Write<ByteArray>(Compression.CompressIfNeeded(vesselBytes));
+                    newMessageLength = (int)mw.GetMessageLength();
                 }
+                newMessage.data = ByteRecycler.GetObject(newMessageLength);
+                Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
-                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO, vessel.vesselID);
+                vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_PROTO, vessel.vesselID);
+                ByteRecycler.ReleaseObject(vesselBytes);
             }
             else
             {
                 DarkLog.Debug("Failed to create byte[] data for " + vessel.vesselID);
             }
         }
+
         public ClientMessage GetVesselUpdateMessage(VesselUpdate update)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_UPDATE;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<double>(update.planetTime);
                 mw.Write<string>(update.vesselID.ToString());
@@ -2215,8 +2246,10 @@ namespace DarkMultiPlayer
                     mw.Write<int>(update.autopilotMode);
                     mw.Write<float[]>(update.lockedRotation);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             return newMessage;
         }
         //Called from vesselWorker
@@ -2224,7 +2257,7 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = GetVesselUpdateMessage(update);
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
+            vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
         }
         //Called from vesselWorker
         public void SendVesselUpdateMesh(VesselUpdate update, List<string> clientsInSubspace)
@@ -2234,7 +2267,7 @@ namespace DarkMultiPlayer
             {
                 if (meshPlayerGuids.ContainsKey(playerName) && playerName != dmpSettings.playerName)
                 {
-                    meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data);
+                    meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data.data, newMessage.data.Length);
                 }
             }
         }
@@ -2248,7 +2281,8 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Removing " + vesselID + " from the server");
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.VESSEL_REMOVE;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(vesselID.ToString());
@@ -2257,10 +2291,12 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<string>(dmpSettings.playerName);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE, vesselID);
+            vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_REMOVE, vesselID);
         }
 
         // Called from VesselWorker
@@ -2269,12 +2305,15 @@ namespace DarkMultiPlayer
             DarkLog.Debug("Removing kerbal " + kerbalName + " from the server");
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.KERBAL_REMOVE;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<double>(Planetarium.GetUniversalTime());
                 mw.Write<string>(kerbalName);
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called fro craftLibraryWorker
@@ -2282,7 +2321,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.CRAFT_LIBRARY;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from ScreenshotWorker
@@ -2290,52 +2330,61 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCREENSHOT_LIBRARY;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from ScenarioWorker
-        public void SendScenarioModuleData(string[] scenarioNames, byte[][] scenarioData)
+        public void SendScenarioModuleData(string[] scenarioNames, ByteArray[] scenarioData)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCENARIO_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<string[]>(scenarioNames);
-                foreach (byte[] scenarioBytes in scenarioData)
+                foreach (ByteArray scenarioBytes in scenarioData)
                 {
-                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioBytes));
+                    mw.Write<ByteArray>(Compression.CompressIfNeeded(scenarioBytes));
+                    ByteRecycler.ReleaseObject(scenarioBytes);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules");
             QueueOutgoingMessage(newMessage, false);
         }
         // Same method as above, only that in this, the message is queued as high priority
-        public void SendScenarioModuleDataHighPriority(string[] scenarioNames, byte[][] scenarioData)
+        public void SendScenarioModuleDataHighPriority(string[] scenarioNames, ByteArray[] scenarioData)
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.SCENARIO_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<string[]>(scenarioNames);
-                foreach (byte[] scenarioBytes in scenarioData)
+                foreach (ByteArray scenarioBytes in scenarioData)
                 {
-                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioBytes));
+                    mw.Write<ByteArray>(Compression.CompressIfNeeded(scenarioBytes));
+                    ByteRecycler.ReleaseObject(scenarioBytes);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             DarkLog.Debug("Sending " + scenarioNames.Length + " scenario modules (high priority)");
             QueueOutgoingMessage(newMessage, true);
         }
 
-        public void SendKerbalProtoMessage(string kerbalName, byte[] kerbalBytes)
+        public void SendKerbalProtoMessage(string kerbalName, ByteArray kerbalBytes)
         {
             bool dataOK = false;
             if (kerbalBytes != null)
             {
                 for (int i = 0; i < kerbalBytes.Length; i++)
                 {
-                    if (kerbalBytes[i] != 0)
+                    if (kerbalBytes.data[i] != 0)
                     {
                         dataOK = true;
                         break;
@@ -2346,13 +2395,16 @@ namespace DarkMultiPlayer
             {
                 ClientMessage newMessage = new ClientMessage();
                 newMessage.type = ClientMessageType.KERBAL_PROTO;
-                using (MessageWriter mw = new MessageWriter())
+                int newMessageLength = 0;
+                using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
                 {
                     mw.Write<double>(Planetarium.GetUniversalTime());
                     mw.Write<string>(kerbalName);
-                    mw.Write<byte[]>(kerbalBytes);
-                    newMessage.data = mw.GetMessageBytes();
+                    mw.Write<ByteArray>(kerbalBytes);
+                    newMessageLength = (int)mw.GetMessageLength();
                 }
+                newMessage.data = ByteRecycler.GetObject(newMessageLength);
+                Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
                 DarkLog.Debug("Sending kerbal " + kerbalName + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
             }
@@ -2366,11 +2418,14 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PING_REQUEST;
-            using (MessageWriter mw = new MessageWriter())
+            int newMessageLength = 0;
+            using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
             {
                 mw.Write<long>(DateTime.UtcNow.Ticks);
-                newMessage.data = mw.GetMessageBytes();
+                newMessageLength = (int)mw.GetMessageLength();
             }
+            newMessage.data = ByteRecycler.GetObject(newMessageLength);
+            Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from networkWorker
@@ -2385,7 +2440,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.FLAG_SYNC;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from warpWorker
@@ -2393,7 +2449,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.WARP_CONTROL;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from groups
@@ -2401,7 +2458,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.GROUP;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from permissions
@@ -2409,7 +2467,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.PERMISSION;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from lockSystem
@@ -2417,7 +2476,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.LOCK_SYSTEM;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from warpWorker
@@ -2425,7 +2485,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MODPACK_DATA;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, false);
         }
 
@@ -2436,7 +2497,8 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = new ClientMessage();
             newMessage.type = ClientMessageType.MOD_DATA;
-            newMessage.data = messageData;
+            newMessage.data = ByteRecycler.GetObject(messageData.Length);
+            messageData.CopyTo(newMessage.data.data, 0);
             QueueOutgoingMessage(newMessage, highPriority);
         }
         //Called from main
@@ -2444,18 +2506,19 @@ namespace DarkMultiPlayer
         {
             if (state != ClientState.DISCONNECTING && state >= ClientState.CONNECTED)
             {
+                ClientMessage newMessage = new ClientMessage();
+                newMessage.type = ClientMessageType.CONNECTION_END;
                 DarkLog.Debug("Sending disconnect message, reason: " + disconnectReason);
                 connectionWindow.status = "Disconnected: " + disconnectReason;
                 state = ClientState.DISCONNECTING;
-                byte[] messageBytes;
-                using (MessageWriter mw = new MessageWriter())
+                int newMessageLength = 0;
+                using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
                 {
                     mw.Write<string>(disconnectReason);
-                    messageBytes = mw.GetMessageBytes();
+                    newMessageLength = (int)mw.GetMessageLength();
                 }
-                ClientMessage newMessage = new ClientMessage();
-                newMessage.type = ClientMessageType.CONNECTION_END;
-                newMessage.data = messageBytes;
+                newMessage.data = ByteRecycler.GetObject(newMessageLength);
+                Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
                 QueueOutgoingMessage(newMessage, true);
             }
         }

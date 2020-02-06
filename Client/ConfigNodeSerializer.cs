@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -18,6 +19,7 @@ namespace DarkMultiPlayer
         private WriteNodeDelegate WriteNodeThunk;
         private PreFormatConfigDelegate PreFormatConfigThunk;
         private RecurseFormatDelegate RecurseFormatThunk;
+        private byte[] configNodeBuffer = new byte[Common.MAX_MESSAGE_SIZE];
 
         public ConfigNodeSerializer()
         {
@@ -40,24 +42,29 @@ namespace DarkMultiPlayer
             RecurseFormatThunk = (RecurseFormatDelegate)Delegate.CreateDelegate(typeof(RecurseFormatDelegate), null, recurseFormatMethodInfo);
         }
 
-        public byte[] Serialize(ConfigNode node)
+        public ByteArray Serialize(ConfigNode node)
         {
             if (node == null)
             {
                 throw new ArgumentNullException(nameof(node));
             }
 
+            ByteArray retVal;
+            int retValSize = 0;
+
             //Call the insides of what ConfigNode would have called if we said Save(filename)
-            using (MemoryStream stream = new MemoryStream())
+            using (MemoryStream stream = new MemoryStream(configNodeBuffer))
             {
                 using (StreamWriter writer = new StreamWriter(stream))
                 {
                     //we late bind to the instance by passing the instance as the first argument
                     WriteNodeThunk(node, writer);
-                    byte[] data = stream.ToArray();
-                    return data;
+                    retValSize = (int)stream.Position;
                 }
             }
+            retVal = ByteRecycler.GetObject(retValSize);
+            Array.Copy(configNodeBuffer, 0, retVal.data, 0, retValSize);
+            return retVal;
         }
 
         public ConfigNode Deserialize(byte[] data)

@@ -30,12 +30,22 @@ namespace DarkMultiPlayerCommon
             return CalculateSHA256Hash(File.ReadAllBytes(fileName));
         }
 
+        public static string CalculateSHA256Hash(ByteArray fileData)
+        {
+            return CalculateSHA256Hash(fileData.data, fileData.Length);
+        }
+
         public static string CalculateSHA256Hash(byte[] fileData)
+        {
+            return CalculateSHA256Hash(fileData, fileData.Length);
+        }
+
+        public static string CalculateSHA256Hash(byte[] fileData, int length)
         {
             StringBuilder sb = new StringBuilder();
             using (SHA256Managed sha = new SHA256Managed())
             {
-                byte[] fileHashData = sha.ComputeHash(fileData);
+                byte[] fileHashData = sha.ComputeHash(fileData, 0, length);
                 //Byte[] to string conversion adapted from MSDN...
                 for (int i = 0; i < fileHashData.Length; i++)
                 {
@@ -43,6 +53,41 @@ namespace DarkMultiPlayerCommon
                 }
             }
             return sb.ToString();
+        }
+
+        public static ByteArray PrependNetworkFrame(int messageType, ByteArray messageData)
+        {
+            ByteArray returnBytes;
+            //Get type bytes
+            byte[] typeBytes = BitConverter.GetBytes(messageType);
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(typeBytes);
+            }
+            if (messageData == null || messageData.Length == 0)
+            {
+                returnBytes = ByteRecycler.GetObject(8);
+                for (int i = 4; i < 8; i++)
+                {
+                    returnBytes.data[i] = 0;
+                }
+                typeBytes.CopyTo(returnBytes.data, 0);
+            }
+            else
+            {
+                //Get length bytes if we have a payload
+                byte[] lengthBytes = BitConverter.GetBytes(messageData.Length);
+                if (BitConverter.IsLittleEndian)
+                {
+                    Array.Reverse(lengthBytes);
+                }
+
+                returnBytes = ByteRecycler.GetObject(8 + messageData.Length);
+                typeBytes.CopyTo(returnBytes.data, 0);
+                lengthBytes.CopyTo(returnBytes.data, 4);
+                Array.Copy(messageData.data, 0, returnBytes.data, 8, messageData.Length);
+            }
+            return returnBytes;
         }
 
         public static byte[] PrependNetworkFrame(int messageType, byte[] messageData)
@@ -67,6 +112,7 @@ namespace DarkMultiPlayerCommon
                 {
                     Array.Reverse(lengthBytes);
                 }
+
                 returnBytes = new byte[8 + messageData.Length];
                 typeBytes.CopyTo(returnBytes, 0);
                 lengthBytes.CopyTo(returnBytes, 4);

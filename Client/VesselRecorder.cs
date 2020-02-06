@@ -182,7 +182,7 @@ namespace DarkMultiPlayer
                     int updateLength = BitConverter.ToInt32(headerBytes, 0);
                     byte[] updateBytes = new byte[updateLength];
                     fs.Read(updateBytes, 0, updateLength);
-                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes);
+                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes, false);
                     playbackQueue.Enqueue(vu);
                 }
             }
@@ -222,7 +222,7 @@ namespace DarkMultiPlayer
                     Array.Reverse(lengthBytes);
                 }
                 recordingVector.Write(lengthBytes, 0, lengthBytes.Length);
-                recordingVector.Write(updateBytes.data, 0, updateBytes.data.Length);
+                recordingVector.Write(updateBytes.data.data, 0, updateBytes.data.Length);
             }
         }
 

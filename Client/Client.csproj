@@ -134,6 +134,7 @@
     <Compile Include="GroupsWindow.cs" />
     <Compile Include="PermissionsWindow.cs" />
     <Compile Include="ModpackWorker.cs" />
+    <Compile Include="RecycledMessageTypes.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">

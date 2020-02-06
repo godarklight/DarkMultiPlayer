@@ -286,7 +286,7 @@ namespace DarkMultiPlayer
         {
             lastScenarioSendTime = Client.realtimeSinceStartup;
             List<string> scenarioName = new List<string>();
-            List<byte[]> scenarioData = new List<byte[]>();
+            List<ByteArray> scenarioData = new List<ByteArray>();
 
             foreach (ScenarioModule sm in ScenarioRunner.GetLoadedModules())
             {
@@ -300,7 +300,7 @@ namespace DarkMultiPlayer
                     ConfigNode scenarioNode = new ConfigNode();
                     sm.Save(scenarioNode);
 
-                    byte[] scenarioBytes = configNodeSerializer.Serialize(scenarioNode);
+                    ByteArray scenarioBytes = configNodeSerializer.Serialize(scenarioNode);
                     string scenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
                     if (scenarioBytes.Length == 0)
                     {
@@ -369,7 +369,9 @@ namespace DarkMultiPlayer
                         {
                             DarkLog.Debug("Loading " + psm.moduleName + " scenario data");
                             HighLogic.CurrentGame.scenarios.Add(psm);
-                            checkData[scenarioEntry.scenarioName] = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(scenarioEntry.scenarioNode));
+                            ByteArray scenarioHashBytes = configNodeSerializer.Serialize(scenarioEntry.scenarioNode);
+                            checkData[scenarioEntry.scenarioName] = Common.CalculateSHA256Hash(scenarioHashBytes);
+                            ByteRecycler.ReleaseObject(scenarioHashBytes);
                         }
                         else
                         {
@@ -508,7 +510,9 @@ namespace DarkMultiPlayer
             if (DidScenarioChange(entry))
             {
                 bool loaded = false;
-                checkData[entry.scenarioName] = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(entry.scenarioNode));
+                ByteArray scenarioBytes = configNodeSerializer.Serialize(entry.scenarioNode);
+                checkData[entry.scenarioName] = Common.CalculateSHA256Hash(scenarioBytes);
+                ByteRecycler.ReleaseObject(scenarioBytes);
                 foreach (ProtoScenarioModule psm in HighLogic.CurrentGame.scenarios)
                 {
                     if (psm.moduleName == entry.scenarioName)
@@ -580,7 +584,9 @@ namespace DarkMultiPlayer
         private bool DidScenarioChange(ScenarioEntry scenarioEntry)
         {
             string previousScenarioHash = null;
-            string currentScenarioHash = Common.CalculateSHA256Hash(configNodeSerializer.Serialize(scenarioEntry.scenarioNode));
+            ByteArray scenarioBytes = configNodeSerializer.Serialize(scenarioEntry.scenarioNode);
+            string currentScenarioHash = Common.CalculateSHA256Hash(scenarioBytes);
+            ByteRecycler.ReleaseObject(scenarioBytes);
             if (checkData.TryGetValue(scenarioEntry.scenarioName, out previousScenarioHash))
             {
                 return previousScenarioHash != currentScenarioHash;
