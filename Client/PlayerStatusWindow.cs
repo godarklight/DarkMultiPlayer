@@ -222,10 +222,10 @@ namespace DarkMultiPlayer
             for (int i = 0; i < subspaceDisplay.Item2; i++)
             {
                 SubspaceDisplayEntry currentEntry = subspaceDisplay.Item1[i];
+                int diffTime = 0;
                 if (updateSubspace || currentEntry.relativeTimeDisplay == null)
                 {
                     int currentTime = 0;
-                    int diffTime = 0;
                     if (!currentEntry.isUnknown)
                     {
                         if (!currentEntry.isUs)
