@@ -17,7 +17,7 @@ namespace DarkMultiPlayer
         }
 
         private AutoResetEvent incomingEvent = new AutoResetEvent(false);
-        private Queue<byte[]> incomingQueue = new Queue<byte[]>();
+        private Queue<ByteArray> incomingQueue = new Queue<ByteArray>();
         private Dictionary<string, long> fileLengths = new Dictionary<string, long>();
         private Dictionary<string, DateTime> fileCreationTimes = new Dictionary<string, DateTime>();
         //Services
@@ -47,12 +47,13 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    byte[] incomingBytes;
+                    ByteArray incomingBytes;
                     lock (incomingQueue)
                     {
                         incomingBytes = incomingQueue.Dequeue();
                     }
                     SaveToCache(incomingBytes);
+                    ByteRecycler.ReleaseObject(incomingBytes);
                 }
             }
         }
@@ -151,11 +152,13 @@ namespace DarkMultiPlayer
         /// Queues to cache. This method is non-blocking, using SaveToCache for a blocking method.
         /// </summary>
         /// <param name="fileData">File data.</param>
-        public void QueueToCache(byte[] fileData)
+        public void QueueToCache(ByteArray fileData)
         {
             lock (incomingQueue)
             {
-                incomingQueue.Enqueue(fileData);
+                ByteArray incomingBytes = ByteRecycler.GetObject(fileData.Length);
+                Array.Copy(fileData.data, 0, incomingBytes.data, 0, fileData.Length);
+                incomingQueue.Enqueue(incomingBytes);
             }
             incomingEvent.Set();
         }
@@ -164,7 +167,7 @@ namespace DarkMultiPlayer
         /// Saves to cache. This method is blocking, use QueueToCache for a non-blocking method.
         /// </summary>
         /// <param name="fileData">File data.</param>
-        public void SaveToCache(byte[] fileData)
+        public void SaveToCache(ByteArray fileData)
         {
             if (fileData == null || fileData.Length == 0)
             {
@@ -176,7 +179,10 @@ namespace DarkMultiPlayer
             string incomingFile = Path.Combine(Path.Combine(cacheDirectory, "Incoming"), objectName + ".txt");
             if (!File.Exists(objectFile))
             {
-                File.WriteAllBytes(incomingFile, fileData);
+                using (FileStream fs = new FileStream(incomingFile, FileMode.OpenOrCreate))
+                {
+                    fs.Write(fileData.data, 0, fileData.Length);
+                }
                 File.Move(incomingFile, objectFile);
                 currentCacheSize += fileData.Length;
                 fileLengths[objectName] = fileData.Length;

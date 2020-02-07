@@ -112,6 +112,51 @@ namespace DarkMultiPlayer
             }
         }
 
+        public void CopyFromUpdate(VesselUpdate source)
+        {
+            updateOK = source.updateOK;
+            SetVesselWorker(source.vesselWorker);
+            vesselID = source.vesselID;
+            planetTime = source.planetTime;
+            bodyName = source.bodyName;
+            rotation[0] = source.rotation[0];
+            rotation[1] = source.rotation[1];
+            rotation[2] = source.rotation[2];
+            rotation[3] = source.rotation[3];
+            angularVelocity[0] = source.angularVelocity[0];
+            angularVelocity[1] = source.angularVelocity[1];
+            angularVelocity[2] = source.angularVelocity[2];
+            flightState.CopyFrom(source.flightState);
+            actiongroupControls[0] = source.actiongroupControls[0];
+            actiongroupControls[1] = source.actiongroupControls[1];
+            actiongroupControls[2] = source.actiongroupControls[2];
+            actiongroupControls[3] = source.actiongroupControls[3];
+            actiongroupControls[4] = source.actiongroupControls[4];
+            isSurfaceUpdate = source.isSurfaceUpdate;
+            terrainNormal[0] = source.terrainNormal[0];
+            terrainNormal[1] = source.terrainNormal[1];
+            terrainNormal[2] = source.terrainNormal[2];
+            velocity[0] = source.velocity[0];
+            velocity[1] = source.velocity[1];
+            velocity[2] = source.velocity[2];
+            acceleration[0] = source.acceleration[0];
+            acceleration[1] = source.acceleration[1];
+            acceleration[2] = source.acceleration[2];
+            orbit[0] = source.orbit[0];
+            orbit[1] = source.orbit[1];
+            orbit[2] = source.orbit[2];
+            orbit[3] = source.orbit[3];
+            orbit[4] = source.orbit[4];
+            orbit[5] = source.orbit[5];
+            orbit[6] = source.orbit[6];
+            sasEnabled = source.sasEnabled;
+            autopilotMode = source.autopilotMode;
+            lockedRotation[0] = source.lockedRotation[0];
+            lockedRotation[1] = source.lockedRotation[1];
+            lockedRotation[2] = source.lockedRotation[2];
+            lockedRotation[3] = source.lockedRotation[3];
+        }
+
         public void Apply(PosistionStatistics posistionStatistics, Dictionary<Guid, VesselCtrlUpdate> ctrlUpdate, VesselUpdate previousUpdate, VesselUpdate nextUpdate, Settings dmpSettings)
         {
             if (HighLogic.LoadedScene == GameScenes.LOADING)

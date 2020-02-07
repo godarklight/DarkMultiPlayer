@@ -49,6 +49,7 @@ namespace DarkMultiPlayer
         public readonly AsteroidWorker asteroidWorker;
         public readonly VesselRecorder vesselRecorder;
         public readonly PosistionStatistics posistionStatistics;
+        public readonly Profiler profiler;
         private DMPModInterface dmpModInterface;
 
         public DMPGame(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, ConnectionWindow connectionWindow, DMPModInterface dmpModInterface, ToolbarSupport toolbarSupport, OptionsWindow optionsWindow, Profiler profiler)
@@ -58,9 +59,10 @@ namespace DarkMultiPlayer
             this.modWorker = modWorker;
             this.connectionWindow = connectionWindow;
             this.dmpModInterface = dmpModInterface;
+            this.profiler = profiler;
             this.configNodeSerializer = new ConfigNodeSerializer();
             this.posistionStatistics = new PosistionStatistics();
-            this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer);
+            this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer, profiler);
             this.adminSystem = new AdminSystem(dmpSettings);
             this.flagSyncer = new FlagSyncer(this, dmpSettings, networkWorker);
             this.lockSystem = new LockSystem(dmpSettings, networkWorker);

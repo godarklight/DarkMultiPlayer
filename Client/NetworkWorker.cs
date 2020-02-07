@@ -97,14 +97,16 @@ namespace DarkMultiPlayer
         private VesselRecorder vesselRecorder;
         private ModpackWorker modpackWorker;
         private NamedAction updateAction;
+        private Profiler profiler;
 
-        public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer)
+        public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer, Profiler profiler)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.connectionWindow = connectionWindow;
             this.modWorker = modWorker;
             this.configNodeSerializer = configNodeSerializer;
+            this.profiler = profiler;
             updateAction = new NamedAction(Update);
             dmpGame.updateEvent.Add(updateAction);
         }
@@ -287,10 +289,13 @@ namespace DarkMultiPlayer
             {
                 while (true)
                 {
+                    long startTime = profiler.GetCurrentTime;
+                    long startMemory = profiler.GetCurrentMemory;
                     CheckDisconnection();
                     SendHeartBeat();
                     SendMeshSetPlayer();
                     bool sentMessage = SendOutgoingMessages();
+                    profiler.Report("NetworkWorker.SendThread", startTime, startMemory);
                     if (!sentMessage)
                     {
                         sendEvent.WaitOne(100);
@@ -638,13 +643,13 @@ namespace DarkMultiPlayer
 
         #region Network writers/readers
 
-        private void HandleMeshSetPlayer(byte[] inputData, Guid clientGuid, IPEndPoint endPoint)
+        private void HandleMeshSetPlayer(byte[] inputData, int inputDataLength, Guid clientGuid, IPEndPoint endPoint)
         {
-            string fromPlayer = System.Text.Encoding.UTF8.GetString(inputData, 24, inputData.Length - 24);
+            string fromPlayer = System.Text.Encoding.UTF8.GetString(inputData, 24, inputDataLength - 24);
             meshPlayerGuids[fromPlayer] = clientGuid;
         }
 
-        private void HandleMeshVesselUpdate(byte[] inputData, Guid clientGuid, IPEndPoint endPoint)
+        private void HandleMeshVesselUpdate(byte[] inputData, int inputDataLength, Guid clientGuid, IPEndPoint endPoint)
         {
             HandleVesselUpdate(inputData, true);
         }
@@ -692,6 +697,8 @@ namespace DarkMultiPlayer
                 while (true)
                 {
                     int bytesRead = clientConnection.GetStream().Read(receiveMessage.data.data, receiveMessage.data.Length - receiveMessageBytesLeft, receiveMessageBytesLeft);
+                    long startTime = profiler.GetCurrentTime;
+                    long startMemory = profiler.GetCurrentMemory;
                     bytesReceived += bytesRead;
                     receiveMessageBytesLeft -= bytesRead;
                     if (bytesRead > 0)
@@ -778,6 +785,7 @@ namespace DarkMultiPlayer
                     {
                         return;
                     }
+                    profiler.Report("NetworkWorker.ReceiveThread", startTime, startMemory);
                 }
             }
             catch (Exception e)
@@ -1392,8 +1400,16 @@ namespace DarkMultiPlayer
                 string[] scenarioName = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
-                    byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
+                    ByteArray compressedData = mr.Read<ByteArray>();
+                    if (compressedData.Length == 1)
+                    {
+                        DarkLog.Debug("Scenario data is empty for " + scenarioName[i]);
+                        ByteRecycler.ReleaseObject(compressedData);
+                    }
+                    ByteArray scenarioData = Compression.DecompressIfNeeded(compressedData);
                     ConfigNode scenarioNode = configNodeSerializer.Deserialize(scenarioData);
+                    ByteRecycler.ReleaseObject(scenarioData);
+                    ByteRecycler.ReleaseObject(compressedData);
                     if (scenarioNode != null)
                     {
                         scenarioWorker.QueueScenarioData(scenarioName[i], scenarioNode);
@@ -1545,12 +1561,20 @@ namespace DarkMultiPlayer
                 mr.Read<bool>();
                 //Flying - don't care.
                 mr.Read<bool>();
-                byte[] vesselData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
+                ByteArray compressedData = mr.Read<ByteArray>();
+                if (compressedData.Length == 1)
+                {
+                    ByteRecycler.ReleaseObject(compressedData);
+                    Console.WriteLine(vesselID + " is an empty vessel file, skipping");
+                    return;
+                }
+                ByteArray vesselData = Compression.DecompressIfNeeded(compressedData);
+                ByteRecycler.ReleaseObject(compressedData);
                 bool dataOK = false;
                 for (int i = 0; i < vesselData.Length; i++)
                 {
                     //Apparently we have to defend against all NULL files now?
-                    if (vesselData[i] != 0)
+                    if (vesselData.data[i] != 0)
                     {
                         dataOK = true;
                         break;
@@ -1580,6 +1604,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Failed to load vessel" + vesselID + "!");
                     chatWorker.PMMessageServer("WARNING: Vessel " + vesselID + " is DAMAGED!. Skipping load.");
                 }
+                ByteRecycler.ReleaseObject(vesselData);
             }
             if (state == ClientState.SYNCING_VESSELS)
             {
@@ -1597,7 +1622,7 @@ namespace DarkMultiPlayer
 
         public VesselUpdate VeselUpdateFromBytes(byte[] messageData, bool fromMesh)
         {
-            VesselUpdate update = new VesselUpdate();
+            VesselUpdate update = Recycler<VesselUpdate>.GetObject();
             update.SetVesselWorker(vesselWorker);
             using (MessageReader mr = new MessageReader(messageData))
             {
@@ -2155,7 +2180,7 @@ namespace DarkMultiPlayer
             newMessage.type = ClientMessageType.VESSEL_PROTO;
             ByteArray vesselBytes = configNodeSerializer.Serialize(vesselNode);
             bool dataOK = false;
-            if (vesselBytes != null)
+            if (vesselBytes.Length > 0)
             {
                 for (int i = 0; i < vesselBytes.Length; i++)
                 {
@@ -2166,9 +2191,13 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            if (vesselBytes.Length == 0)
+            {
+                DarkLog.Debug("Error generating protovessel from this confignode: " + vesselNode);
+            }
             if (vesselBytes != null && vesselBytes.Length > 0 && dataOK)
             {
-                universeSyncCache.QueueToCache(vesselBytes.data);
+                universeSyncCache.QueueToCache(vesselBytes);
                 int newMessageLength = 0;
                 using (MessageWriter mw = new MessageWriter(messageWriterBuffer))
                 {
@@ -2176,7 +2205,9 @@ namespace DarkMultiPlayer
                     mw.Write<string>(vessel.vesselID.ToString());
                     mw.Write<bool>(isDockingUpdate);
                     mw.Write<bool>(isFlyingUpdate);
-                    mw.Write<ByteArray>(Compression.CompressIfNeeded(vesselBytes));
+                    ByteArray compressBytes = Compression.CompressIfNeeded(vesselBytes);
+                    mw.Write<ByteArray>(compressBytes);
+                    ByteRecycler.ReleaseObject(compressBytes);
                     newMessageLength = (int)mw.GetMessageLength();
                 }
                 newMessage.data = ByteRecycler.GetObject(newMessageLength);
@@ -2270,6 +2301,7 @@ namespace DarkMultiPlayer
                     meshClient.SendMessageToClient(meshPlayerGuids[playerName], (int)MeshMessageType.VESSEL_UPDATE, newMessage.data.data, newMessage.data.Length);
                 }
             }
+            ByteRecycler.ReleaseObject(newMessage.data);
         }
         //Called from vesselWorker
         public void SendVesselRemove(Guid vesselID, bool isDockingUpdate)
@@ -2345,7 +2377,9 @@ namespace DarkMultiPlayer
                 mw.Write<string[]>(scenarioNames);
                 foreach (ByteArray scenarioBytes in scenarioData)
                 {
-                    mw.Write<ByteArray>(Compression.CompressIfNeeded(scenarioBytes));
+                    ByteArray compressBytes = Compression.CompressIfNeeded(scenarioBytes);
+                    mw.Write<ByteArray>(compressBytes);
+                    ByteRecycler.ReleaseObject(compressBytes);
                     ByteRecycler.ReleaseObject(scenarioBytes);
                 }
                 newMessageLength = (int)mw.GetMessageLength();
@@ -2366,7 +2400,9 @@ namespace DarkMultiPlayer
                 mw.Write<string[]>(scenarioNames);
                 foreach (ByteArray scenarioBytes in scenarioData)
                 {
-                    mw.Write<ByteArray>(Compression.CompressIfNeeded(scenarioBytes));
+                    ByteArray compressBytes = Compression.CompressIfNeeded(scenarioBytes);
+                    mw.Write<ByteArray>(compressBytes);
+                    ByteRecycler.ReleaseObject(compressBytes);
                     ByteRecycler.ReleaseObject(scenarioBytes);
                 }
                 newMessageLength = (int)mw.GetMessageLength();

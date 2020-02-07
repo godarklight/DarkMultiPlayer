@@ -2,15 +2,16 @@
 using System.Collections.Generic;
 namespace DarkMultiPlayerCommon
 {
-    public class Recycler<T> where T : new()
+    public static class Recycler<T> where T : new()
     {
-        private List<InUseContainer<T>> currentObjects = new List<InUseContainer<T>>();
-        private Dictionary<object, InUseContainer<T>> reverseMapping = new Dictionary<object, InUseContainer<T>>();
+        private static List<InUseContainer<T>> currentObjects = new List<InUseContainer<T>>();
+        private static Dictionary<object, InUseContainer<T>> reverseMapping = new Dictionary<object, InUseContainer<T>>();
+        private static object lockObject = new object();
 
-        public T GetObject()
+        public static T GetObject()
         {
             InUseContainer<T> freeObject = null;
-            lock (this)
+            lock (lockObject)
             {
                 foreach (InUseContainer<T> currentObject in currentObjects)
                 {
@@ -32,9 +33,9 @@ namespace DarkMultiPlayerCommon
             return freeObject.obj;
         }
 
-        public void ReleaseObject(T releaseObject)
+        public static void ReleaseObject(T releaseObject)
         {
-            lock (this)
+            lock (lockObject)
             {
                 if (reverseMapping.ContainsKey(releaseObject))
                 {
@@ -42,6 +43,27 @@ namespace DarkMultiPlayerCommon
                     container.free = true;
                 }
             }
+        }
+
+        public static int GetPoolCount()
+        {
+            return currentObjects.Count;
+        }
+
+        public static int GetPoolFreeCount()
+        {
+            int free = 0;
+            lock (lockObject)
+            {
+                foreach (InUseContainer<T> currentObject in currentObjects)
+                {
+                    if (currentObject.free)
+                    {
+                        free++;
+                    }
+                }
+            }
+            return free;
         }
 
         private class InUseContainer<U>

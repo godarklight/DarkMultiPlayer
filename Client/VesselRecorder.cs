@@ -70,10 +70,11 @@ namespace DarkMultiPlayer
             active = true;
             recording = new MemoryStream();
             recordingVector = new MemoryStream();
-            VesselUpdate update = new VesselUpdate();
+            VesselUpdate update = Recycler<VesselUpdate>.GetObject();
             update.SetVesselWorker(vesselWorker);
             update.CopyFromVessel(FlightGlobals.fetch.activeVessel);
             networkWorker.SendVesselUpdate(update);
+            Recycler<VesselUpdate>.ReleaseObject(update);
         }
 
         public void StopRecord()
@@ -212,7 +213,7 @@ namespace DarkMultiPlayer
 
             if (active)
             {
-                VesselUpdate vu = new VesselUpdate();
+                VesselUpdate vu = Recycler<VesselUpdate>.GetObject();
                 vu.SetVesselWorker(vesselWorker);
                 vu.CopyFromVessel(FlightGlobals.fetch.activeVessel);
                 ClientMessage updateBytes = networkWorker.GetVesselUpdateMessage(vu);
@@ -223,6 +224,7 @@ namespace DarkMultiPlayer
                 }
                 recordingVector.Write(lengthBytes, 0, lengthBytes.Length);
                 recordingVector.Write(updateBytes.data.data, 0, updateBytes.data.Length);
+                Recycler<VesselUpdate>.ReleaseObject(vu);
             }
         }
 

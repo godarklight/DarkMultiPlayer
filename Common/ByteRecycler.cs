@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+
 namespace DarkMultiPlayerCommon
 {
     public static class ByteRecycler
@@ -11,6 +13,10 @@ namespace DarkMultiPlayerCommon
 
         public static ByteArray GetObject(int size)
         {
+            if (size == 0)
+            {
+                throw new Exception("Cannot allocate 0 byte array");
+            }
             int pool_size = 0;
             foreach (int poolSize in poolSizes)
             {
@@ -99,6 +105,31 @@ namespace DarkMultiPlayerCommon
                 }
             }
             return free;
+        }
+
+        public static void DumpNonFree(string path)
+        {
+            Directory.CreateDirectory(path);
+            foreach (string file in Directory.GetFiles(path))
+            {
+                File.Delete(file);
+            }
+            int freeID = 0;
+            foreach (KeyValuePair<int, List<InUseContainer>> poolObjects in currentObjects)
+            {
+                foreach (InUseContainer iuc in poolObjects.Value)
+                {
+                    if (!iuc.free)
+                    {
+                        string fileName = Path.Combine(path, freeID + ".txt");
+                        using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
+                        {
+                            fs.Write(iuc.obj.data, 0, iuc.obj.Length);;
+                        }
+                        freeID++;
+                    }
+                }
+            }
         }
 
         private class InUseContainer

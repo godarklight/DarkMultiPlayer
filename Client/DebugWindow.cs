@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UDPMeshLib;
 using DarkMultiPlayerCommon;
@@ -23,6 +24,7 @@ namespace DarkMultiPlayer
         private bool displayMeshStats;
         private bool displayVesselCache;
         private bool displayRecycler;
+        private bool dumpRecycler;
         private string vectorText = "";
         private string ntpText = "";
         private string connectionText = "";
@@ -270,6 +272,10 @@ namespace DarkMultiPlayer
             {
                 GUILayout.Label(recyclerText, labelStyle);
             }
+            if (GUILayout.Button("Dump recycler", buttonStyle))
+            {
+                dumpRecycler = true;
+            }
             GUILayout.EndVertical();
         }
 
@@ -367,6 +373,14 @@ namespace DarkMultiPlayer
                         recyclerText = "16kB: " + ByteRecycler.GetPoolCount(Client.SMALL_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.SMALL_MESSAGE_SIZE) + "\n";
                         recyclerText += "512kB: " + ByteRecycler.GetPoolCount(Client.MEDIUM_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.MEDIUM_MESSAGE_SIZE) + "\n";
                         recyclerText += "6MB: " + ByteRecycler.GetPoolCount(Client.LARGE_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.LARGE_MESSAGE_SIZE) + "\n";
+                        recyclerText += "VesselUpdate: " + Recycler<VesselUpdate>.GetPoolCount() + ", free: " + Recycler<VesselUpdate>.GetPoolFreeCount() + "\n";
+                    }
+
+                    if (dumpRecycler)
+                    {
+                        dumpRecycler = false;
+                        string dumpPath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-Recycler");
+                        ByteRecycler.DumpNonFree(dumpPath);
                     }
                 }
             }

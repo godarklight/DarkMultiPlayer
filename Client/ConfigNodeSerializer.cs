@@ -100,5 +100,39 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
+        public ConfigNode Deserialize(ByteArray data)
+        {
+            if (data == null)
+            {
+                return null;
+            }
+
+            if (data.Length == 0)
+            {
+                return null;
+            }
+
+            using (MemoryStream stream = new MemoryStream(data.data, 0, data.Length))
+            {
+                using (StreamReader reader = new StreamReader(stream))
+                {
+                    List<string> lines = new List<string>();
+
+                    while (!reader.EndOfStream)
+                    {
+                        string line = reader.ReadLine();
+                        lines.Add(line);
+                    }
+
+                    string[] cfgData = lines.ToArray();
+
+                    List<string[]> cfg = PreFormatConfigThunk(cfgData);
+                    ConfigNode node = RecurseFormatThunk(cfg);
+
+                    return node;
+                }
+            }
+        }
     }
 }

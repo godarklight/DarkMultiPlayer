@@ -48,12 +48,8 @@ namespace DarkMultiPlayer
         public DMPModInterface dmpModInterface;
         //Profiler state
         public Profiler profiler;
-        private long kspGUITime;
-        private long kspGUIMemory;
-        private long kspUpdateTime;
-        private long kspUpdateMemory;
-        private long kspFixedUpdateTime;
-        private long kspFixedUpdateMemory;
+        private long kspTime;
+        private long kspMemory;
         public DMPGame dmpGame;
         public string dmpDir;
         public string dmpDataDir;
@@ -92,6 +88,8 @@ namespace DarkMultiPlayer
 
         public void Start()
         {
+            //Set buffered UDPMesh
+            UDPMeshLib.UdpMeshCommon.USE_BUFFERS = true;
             //Set pool sizes for ByteRecycler
             ByteRecycler.AddPoolSize(SMALL_MESSAGE_SIZE);
             ByteRecycler.AddPoolSize(MEDIUM_MESSAGE_SIZE);
@@ -126,12 +124,8 @@ namespace DarkMultiPlayer
 
             dmpClient = this;
             profiler = new Profiler();
-            kspGUITime = profiler.GetCurrentTime;
-            kspGUIMemory = profiler.GetCurrentMemory;
-            kspUpdateTime = kspGUITime;
-            kspUpdateMemory = kspGUIMemory;
-            kspFixedUpdateTime = kspGUITime;
-            kspFixedUpdateMemory = kspGUIMemory;
+            kspTime = profiler.GetCurrentTime;
+            kspMemory = profiler.GetCurrentMemory;
 
             dmpSettings = new Settings();
             toolbarSupport = new ToolbarSupport(dmpSettings);
@@ -275,8 +269,8 @@ namespace DarkMultiPlayer
 
         public void Update()
         {
+            profiler.Report("KSP", kspTime, kspMemory);
             DarkLog.Update();
-            profiler.Report("KSP.Update", kspUpdateTime, kspUpdateMemory);
             long profilerStartTime = profiler.GetCurrentTime;
             long profilerStartMemory = profiler.GetCurrentMemory;
             lastClockTicks = DateTime.UtcNow.Ticks;
@@ -418,15 +412,13 @@ namespace DarkMultiPlayer
                         dmpGame = null;
                     }
                 }
-                long profilerWindowStartTime = profiler.GetCurrentTime;
-                long profilerWindowStartMemory = profiler.GetCurrentMemory;
+
                 connectionWindow.Update();
                 modWindow.Update();
                 optionsWindow.Update();
                 universeConverterWindow.Update();
-                dmpModInterface.Update();
                 profiler.Update();
-                profiler.Report("DMP.WindowUpdate", profilerWindowStartTime, profilerWindowStartMemory);
+                dmpModInterface.Update();
 
                 if (dmpGame != null)
                 {
@@ -586,10 +578,10 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Threw in Update, state NO_NETWORKWORKER, exception: " + e);
                 }
             }
-            profiler.Report("Update", profilerStartTime, profilerStartMemory);
-            kspUpdateTime = profiler.GetCurrentTime;
-            kspUpdateMemory = profiler.GetCurrentMemory;
             DarkLog.Update();
+            profiler.Report("Update", profilerStartTime, profilerStartMemory);
+            kspTime = profiler.GetCurrentTime;
+            kspMemory = profiler.GetCurrentMemory;
         }
 
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
@@ -604,14 +596,14 @@ namespace DarkMultiPlayer
 
         public void TimingManagerFixedUpdate()
         {
+            profiler.Report("KSP", kspTime, kspMemory);
+            long profilerStartTime = profiler.GetCurrentTime;
+            long profilerStartMemory = profiler.GetCurrentMemory;
             DarkLog.Update();
             if (modDisabled)
             {
                 return;
             }
-            profiler.Report("KSP.FixedUpdate", kspFixedUpdateTime, kspFixedUpdateMemory);
-            long profilerStartTime = profiler.GetCurrentTime;
-            long profilerStartMemory = profiler.GetCurrentMemory;
             dmpModInterface.FixedUpdate();
 
             if (dmpGame != null)
@@ -650,15 +642,15 @@ namespace DarkMultiPlayer
                 }
 
             }
-            profiler.Report("FixedUpdate", profilerStartTime, profilerStartMemory);
-            kspFixedUpdateTime = profiler.GetCurrentTime;
-            kspFixedUpdateMemory = profiler.GetCurrentMemory;
             DarkLog.Update();
+            profiler.Report("FixedUpdate", profilerStartTime, profilerStartMemory);
+            kspTime = profiler.GetCurrentTime;
+            kspMemory = profiler.GetCurrentMemory;
         }
 
         public void OnGUI()
         {
-            profiler.Report("KSP.OnGUI", kspGUITime, kspGUIMemory);
+            profiler.Report("KSP", kspTime, kspMemory);
             long profilerStartTime = profiler.GetCurrentTime;
             long profilerStartMemory = profiler.GetCurrentMemory;
             //Window ID's - Doesn't include "random" offset.
@@ -715,8 +707,8 @@ namespace DarkMultiPlayer
                 }
             }
             profiler.Report("Draw", profilerStartTime, profilerStartMemory);
-            kspGUITime = profiler.GetCurrentTime;
-            kspGUIMemory = profiler.GetCurrentMemory;
+            kspTime = profiler.GetCurrentTime;
+            kspMemory = profiler.GetCurrentMemory;
         }
 
         private void StartGame()

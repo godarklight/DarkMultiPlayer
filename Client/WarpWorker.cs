@@ -774,7 +774,7 @@ namespace DarkMultiPlayer
             return clientSubspaceList.ContainsKey(playerName) ? clientSubspaceList[playerName] : -1;
         }
 
-        public SubspaceDisplayEntry[] GetSubspaceDisplayEntries()
+        public Tuple<SubspaceDisplayEntry[], int> GetSubspaceDisplayEntries()
         {
             if (warpMode == WarpMode.SUBSPACE || warpMode == WarpMode.SUBSPACE_SIMPLE)
             {
@@ -783,14 +783,19 @@ namespace DarkMultiPlayer
             return GetSubspaceDisplayEntriesMCWNone();
         }
 
-        private SubspaceDisplayEntry[] GetSubspaceDisplayEntriesMCWNone()
+        private Tuple<SubspaceDisplayEntry[], int> cacheGetSubspaceDisplayEntriesMCWNone;
+        private Tuple<SubspaceDisplayEntry[], int> GetSubspaceDisplayEntriesMCWNone()
         {
+            if (cacheGetSubspaceDisplayEntriesMCWNone == null)
+            {
+                cacheGetSubspaceDisplayEntriesMCWNone = new Tuple<SubspaceDisplayEntry[], int>(new SubspaceDisplayEntry[] { new SubspaceDisplayEntry() }, 1);
+            }
             int currentSubspace = timeSyncer.currentSubspace;
             List<string> allPlayers = new List<string>();
             allPlayers.Add(dmpSettings.playerName);
             allPlayers.AddRange(clientSubspaceList.Keys);
             allPlayers.Sort(PlayerSorter);
-            SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
+            SubspaceDisplayEntry sde = cacheGetSubspaceDisplayEntriesMCWNone.Item1[0];
             sde.players = allPlayers.ToArray();
             sde.isUs = true;
             if (currentSubspace != -1)
@@ -806,11 +811,24 @@ namespace DarkMultiPlayer
                     sde.warpingEntry = clientWarpList[dmpSettings.playerName];
                 }
             }
-            return new SubspaceDisplayEntry[] { sde };
+            return cacheGetSubspaceDisplayEntriesMCWNone;
         }
 
-        private SubspaceDisplayEntry[] GetSubspaceDisplayEntriesSubspace()
+        private SubspaceDisplayEntry[] cacheGetSubspaceDisplayEntriesSubspace;
+        private Dictionary<int, SubspaceDisplayEntry> cacheGetSubspaceDisplayEntriesSubspaceDict;
+        private Dictionary<string, SubspaceDisplayEntry> cacheUnknownGetSubspaceDisplayEntriesSubspaceDict;
+        private Tuple<SubspaceDisplayEntry[], int> GetSubspaceDisplayEntriesSubspace()
         {
+            int usedCacheEntries = 0;
+            if (cacheGetSubspaceDisplayEntriesSubspace == null)
+            {
+                cacheGetSubspaceDisplayEntriesSubspace = new SubspaceDisplayEntry[20];
+            }
+            if (cacheGetSubspaceDisplayEntriesSubspaceDict == null)
+            {
+                cacheGetSubspaceDisplayEntriesSubspaceDict = new Dictionary<int, SubspaceDisplayEntry>();
+            }
+
             //Subspace/subspace simple mode
             Dictionary<int, List<string>> nonWarpCache = new Dictionary<int, List<string>>();
             List<string> warpCache = new List<string>();
@@ -851,20 +869,27 @@ namespace DarkMultiPlayer
             }
             //Players missing subspace or warp entries
             List<string> unknownPlayers = new List<string>();
-            //Return list
-            List<SubspaceDisplayEntry> returnList = new List<SubspaceDisplayEntry>();
             //Process locked players
             foreach (KeyValuePair<int, List<string>> subspaceEntry in nonWarpCache)
             {
                 if (timeSyncer.SubspaceExists(subspaceEntry.Key))
                 {
-                    SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
+                    SubspaceDisplayEntry sde;
+                    if (!cacheGetSubspaceDisplayEntriesSubspaceDict.ContainsKey(subspaceEntry.Key))
+                    {
+                        cacheGetSubspaceDisplayEntriesSubspaceDict.Add(subspaceEntry.Key, new SubspaceDisplayEntry());
+                    }
+                    sde = cacheGetSubspaceDisplayEntriesSubspaceDict[subspaceEntry.Key];
                     sde.subspaceID = subspaceEntry.Key;
                     sde.subspaceEntry = timeSyncer.GetSubspace(subspaceEntry.Key);
                     subspaceEntry.Value.Sort(PlayerSorter);
                     sde.isUs = subspaceEntry.Value.Contains(dmpSettings.playerName);
                     sde.players = subspaceEntry.Value.ToArray();
-                    returnList.Add(sde);
+                    if (usedCacheEntries < cacheGetSubspaceDisplayEntriesSubspace.Length)
+                    {
+                        cacheGetSubspaceDisplayEntriesSubspace[usedCacheEntries] = sde;
+                        usedCacheEntries++;
+                    }
                 }
                 else
                 {
@@ -879,27 +904,59 @@ namespace DarkMultiPlayer
             {
                 if (clientWarpList.ContainsKey(warpingPlayer))
                 {
-                    SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
+                    if (!cacheUnknownGetSubspaceDisplayEntriesSubspaceDict.ContainsKey(warpingPlayer))
+                    {
+                        cacheUnknownGetSubspaceDisplayEntriesSubspaceDict.Add(warpingPlayer, new SubspaceDisplayEntry());
+                    }
+                    SubspaceDisplayEntry sde = cacheUnknownGetSubspaceDisplayEntriesSubspaceDict[warpingPlayer];
                     sde.warpingEntry = clientWarpList[warpingPlayer];
                     sde.players = new string[] { warpingPlayer };
                     sde.isUs = (warpingPlayer == dmpSettings.playerName);
                     sde.isWarping = true;
-                    returnList.Add(sde);
+                    sde.isUnknown = false;
+                    sde.subspaceID = 0;
+                    if (usedCacheEntries < cacheGetSubspaceDisplayEntriesSubspace.Length)
+                    {
+                        cacheGetSubspaceDisplayEntriesSubspace[usedCacheEntries] = sde;
+                        usedCacheEntries++;
+                    }
                 }
                 else
                 {
                     unknownPlayers.Add(warpingPlayer);
                 }
             }
-            returnList.Sort(SubpaceDisplayEntrySorter);
+            for (int i = usedCacheEntries; i < cacheGetSubspaceDisplayEntriesSubspace.Length; i++)
+            {
+                cacheGetSubspaceDisplayEntriesSubspace[i] = null;
+            }
+            Array.Sort(cacheGetSubspaceDisplayEntriesSubspace, SubpaceDisplayEntrySorter);
             if (unknownPlayers.Count > 0)
             {
-                SubspaceDisplayEntry sde = new SubspaceDisplayEntry();
-                sde.players = unknownPlayers.ToArray();
-                sde.isUs = unknownPlayers.Contains(dmpSettings.playerName);
-                returnList.Add(sde);
+                if (cacheUnknownGetSubspaceDisplayEntriesSubspaceDict == null)
+                {
+                    cacheUnknownGetSubspaceDisplayEntriesSubspaceDict = new Dictionary<string, SubspaceDisplayEntry>();
+                }
+                foreach (string playerName in unknownPlayers)
+                {
+                    if (!cacheUnknownGetSubspaceDisplayEntriesSubspaceDict.ContainsKey(playerName))
+                    {
+                        cacheUnknownGetSubspaceDisplayEntriesSubspaceDict[playerName] = new SubspaceDisplayEntry();
+                    }
+                    SubspaceDisplayEntry sde = cacheUnknownGetSubspaceDisplayEntriesSubspaceDict[playerName];
+                    sde.players = unknownPlayers.ToArray();
+                    sde.isUs = unknownPlayers.Contains(dmpSettings.playerName);
+                    sde.isUnknown = true;
+                    sde.isWarping = false;
+                    sde.subspaceID = 0;
+                    if (usedCacheEntries < cacheGetSubspaceDisplayEntriesSubspace.Length)
+                    {
+                        cacheGetSubspaceDisplayEntriesSubspace[usedCacheEntries] = sde;
+                        usedCacheEntries++;
+                    }
+                }
             }
-            return returnList.ToArray();
+            return new Tuple<SubspaceDisplayEntry[], int>(cacheGetSubspaceDisplayEntriesSubspace, usedCacheEntries);
         }
 
         private int PlayerSorter(string lhs, string rhs)
@@ -918,6 +975,18 @@ namespace DarkMultiPlayer
 
         private int SubpaceDisplayEntrySorter(SubspaceDisplayEntry lhs, SubspaceDisplayEntry rhs)
         {
+            if (lhs == null && rhs != null)
+            {
+                return 1;
+            }
+            if (lhs != null && rhs == null)
+            {
+                return -1;
+            }
+            if (lhs == null && rhs == null)
+            {
+                return 0;
+            }
             long serverClock = timeSyncer.GetServerClock();
             double subspace1Time = double.MinValue;
             double subspace2Time = double.MinValue;
@@ -1059,11 +1128,13 @@ namespace DarkMultiPlayer
     public class SubspaceDisplayEntry
     {
         public bool isWarping;
+        public bool isUnknown;
         public bool isUs;
         public PlayerWarpRate warpingEntry;
         public int subspaceID;
         public Subspace subspaceEntry;
         public string[] players;
+        public string relativeTimeDisplay;
     }
 }
 

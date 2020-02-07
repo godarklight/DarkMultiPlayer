@@ -305,22 +305,21 @@ namespace DarkMultiPlayer
                     if (scenarioBytes.Length == 0)
                     {
                         DarkLog.Debug("Error writing scenario data for " + scenarioType);
+                        ByteRecycler.ReleaseObject(scenarioBytes);
                         continue;
                     }
                     if (checkData.ContainsKey(scenarioType) ? (checkData[scenarioType] == scenarioHash) : false)
                     {
                         //Data is the same since last time - Skip it.
+                        ByteRecycler.ReleaseObject(scenarioBytes);
                         continue;
                     }
                     else
                     {
                         checkData[scenarioType] = scenarioHash;
                     }
-                    if (scenarioBytes != null)
-                    {
-                        scenarioName.Add(scenarioType);
-                        scenarioData.Add(scenarioBytes);
-                    }
+                    scenarioName.Add(scenarioType);
+                    scenarioData.Add(scenarioBytes);
                 }
                 catch (Exception e)
                 {

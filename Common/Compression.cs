@@ -69,6 +69,23 @@ namespace DarkMultiPlayerCommon
             return Decompress(RemoveDecompressedHeader(inputBytes));
         }
 
+        public static ByteArray DecompressIfNeeded(ByteArray inputBytes)
+        {
+            if (inputBytes == null)
+            {
+                throw new Exception("Input bytes are null");
+            }
+            if (!BytesAreCompressed(inputBytes))
+            {
+                return RemoveDecompressedHeader(inputBytes);
+            }
+            if (!compressionEnabled)
+            {
+                throw new Exception("Cannot decompress if compression is disabled!");
+            }
+            return Decompress(RemoveDecompressedHeader(inputBytes));
+        }
+
         /// <summary>
         /// Tests if the byte[] is compressed.
         /// </summary>
@@ -81,6 +98,15 @@ namespace DarkMultiPlayerCommon
                 throw new Exception("Input bytes are null");
             }
             return BitConverter.ToBoolean(inputBytes, 0);
+        }
+
+        public static bool BytesAreCompressed(ByteArray inputBytes)
+        {
+            if (inputBytes == null)
+            {
+                throw new Exception("Input bytes are null");
+            }
+            return BitConverter.ToBoolean(inputBytes.data, 0);
         }
 
         /// <summary>
@@ -133,6 +159,17 @@ namespace DarkMultiPlayerCommon
             return returnBytes;
         }
 
+        public static ByteArray RemoveDecompressedHeader(ByteArray inputBytes)
+        {
+            if (inputBytes == null)
+            {
+                throw new Exception("Input bytes are null");
+            }
+            ByteArray returnBytes = ByteRecycler.GetObject(inputBytes.Length - 1);
+            Array.Copy(inputBytes.data, 1, returnBytes.data, 0, inputBytes.Length - 1);
+            return returnBytes;
+        }
+
         public static byte[] Compress(byte[] inputBytes)
         {
             byte[] returnBytes = null;
@@ -158,11 +195,11 @@ namespace DarkMultiPlayerCommon
             {
                 using (MemoryStream ms = new MemoryStream(CompressionBuffer))
                 {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress))
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
                     {
                         gs.Write(inputBytes.data, 0, inputBytes.Length);
-                        compressSize = (int)ms.Position;
                     }
+                    compressSize = (int)ms.Position;
                 }
             }
             ByteArray returnBytes = ByteRecycler.GetObject(compressSize);
@@ -194,6 +231,29 @@ namespace DarkMultiPlayerCommon
                     }
                     returnBytes = outputStream.ToArray();
                 }
+            }
+            return returnBytes;
+        }
+
+        public static ByteArray Decompress(ByteArray inputBytes)
+        {
+            ByteArray returnBytes = null;
+            lock (CompressionBuffer)
+            {
+                int totalRead = 0;
+                using (MemoryStream ms = new MemoryStream(inputBytes.data, 0, inputBytes.Length))
+                {
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
+                    {
+                        int thisRead;
+                        while ((thisRead = gs.Read(CompressionBuffer, totalRead, 4096)) > 0)
+                        {
+                            totalRead += thisRead;
+                        }
+                    }
+                }
+                returnBytes = ByteRecycler.GetObject(totalRead);
+                Array.Copy(CompressionBuffer, 0, returnBytes.data, 0, totalRead);
             }
             return returnBytes;
         }

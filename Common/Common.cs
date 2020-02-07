@@ -67,11 +67,11 @@ namespace DarkMultiPlayerCommon
             if (messageData == null || messageData.Length == 0)
             {
                 returnBytes = ByteRecycler.GetObject(8);
-                for (int i = 4; i < 8; i++)
-                {
-                    returnBytes.data[i] = 0;
-                }
                 typeBytes.CopyTo(returnBytes.data, 0);
+                returnBytes.data[4] = 0;
+                returnBytes.data[5] = 0;
+                returnBytes.data[6] = 0;
+                returnBytes.data[7] = 0;
             }
             else
             {

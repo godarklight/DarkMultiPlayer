@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using DarkMultiPlayerCommon;
 
@@ -16,6 +17,7 @@ namespace DarkMultiPlayer
         private Vector2 scrollPosition;
         public bool minmized;
         private bool safeMinimized;
+        private int lastUpdateTime;
         //GUI Layout
         private bool calculatedMinSize;
         private Rect windowRect;
@@ -33,7 +35,7 @@ namespace DarkMultiPlayer
         private GUIStyle vesselNameStyle;
         private GUIStyle stateTextStyle;
         //Player status dictionaries
-        private SubspaceDisplayEntry[] subspaceDisplay;
+        private Tuple<SubspaceDisplayEntry[], int> subspaceDisplay;
         private double lastStatusUpdate;
         //const
         private const float WINDOW_HEIGHT = 400;
@@ -54,6 +56,7 @@ namespace DarkMultiPlayer
         private PermissionsWindow permissionsWindow;
         private NamedAction updateAction;
         private NamedAction drawAction;
+        private StringBuilder stringBuilder = new StringBuilder(128);
 
         public PlayerStatusWindow(DMPGame dmpGame, Settings dmpSettings, WarpWorker warpWorker, ChatWorker chatWorker, CraftLibraryWorker craftLibraryWorker, ScreenshotWorker screenshotWorker, TimeSyncer timeSyncer, PlayerStatusWorker playerStatusWorker, OptionsWindow optionsWindow, PlayerColorWorker playerColorWorker, GroupsWindow groupsWindow, PermissionsWindow permissionsWindow)
         {
@@ -91,7 +94,8 @@ namespace DarkMultiPlayer
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
             subspaceStyle = new GUIStyle();
             subspaceStyle.normal.background = new Texture2D(1, 1);
-            subspaceStyle.normal.background.SetPixel(0, 0, Color.black);
+            Color black = new Color(0, 0, 0, 0.5f);
+            subspaceStyle.normal.background.SetPixel(0, 0, black);
             subspaceStyle.normal.background.Apply();
 
             layoutOptions = new GUILayoutOption[4];
@@ -125,7 +129,7 @@ namespace DarkMultiPlayer
             stateTextStyle.fontSize = 12;
             stateTextStyle.stretchWidth = true;
 
-            subspaceDisplay = new SubspaceDisplayEntry[0];
+            subspaceDisplay = new Tuple<SubspaceDisplayEntry[], int>(new SubspaceDisplayEntry[0], 0);
         }
 
         private void Update()
@@ -209,52 +213,90 @@ namespace DarkMultiPlayer
             //Draw subspaces
             double ourTime = timeSyncer.locked ? timeSyncer.GetUniverseTime() : Planetarium.GetUniversalTime();
             long serverClock = timeSyncer.GetServerClock();
-            foreach (SubspaceDisplayEntry currentEntry in subspaceDisplay)
+            bool updateSubspace = false;
+            if (lastUpdateTime != (int)Client.realtimeSinceStartup)
             {
-                double currentTime = 0;
-                double diffTime = 0;
-                string diffState = "Unknown";
-                if (!currentEntry.isUs)
+                updateSubspace = true;
+                lastUpdateTime = (int)Client.realtimeSinceStartup;
+            }
+            for (int i = 0; i < subspaceDisplay.Item2; i++)
+            {
+                SubspaceDisplayEntry currentEntry = subspaceDisplay.Item1[i];
+                if (updateSubspace || currentEntry.relativeTimeDisplay == null)
                 {
-                    if (!currentEntry.isWarping)
+                    int currentTime = 0;
+                    int diffTime = 0;
+                    if (!currentEntry.isUnknown)
                     {
-                        //Subspace entry
-                        if (currentEntry.subspaceEntry != null)
+                        if (!currentEntry.isUs)
                         {
-                            long serverClockDiff = serverClock - currentEntry.subspaceEntry.serverClock;
-                            double secondsDiff = serverClockDiff / 10000000d;
-                            currentTime = currentEntry.subspaceEntry.planetTime + (currentEntry.subspaceEntry.subspaceSpeed * secondsDiff);
-                            diffTime = currentTime - ourTime;
-                            diffState = (diffTime > 0) ? SecondsToVeryShortString((int)diffTime) + " in the future" : SecondsToVeryShortString(-(int)diffTime) + " in the past";
+                            if (!currentEntry.isWarping)
+                            {
+                                //Subspace entry
+                                if (currentEntry.subspaceEntry != null)
+                                {
+                                    long serverClockDiff = serverClock - currentEntry.subspaceEntry.serverClock;
+                                    double secondsDiff = serverClockDiff / 10000000d;
+                                    currentTime = (int)(currentEntry.subspaceEntry.planetTime + (currentEntry.subspaceEntry.subspaceSpeed * secondsDiff));
+                                    diffTime = (int)(currentTime - ourTime);
+                                    if (diffTime > 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToShortString(currentTime), SecondsToVeryShortString(diffTime));
+                                    }
+                                    if (diffTime < 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToShortString(currentTime), SecondsToVeryShortString(-diffTime));
+                                    }
+                                    if (diffTime == 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                //Warp entry
+                                if (currentEntry.warpingEntry != null)
+                                {
+                                    float[] warpRates = TimeWarp.fetch.warpRates;
+                                    if (currentEntry.warpingEntry.isPhysWarp)
+                                    {
+                                        warpRates = TimeWarp.fetch.physicsWarpRates;
+                                    }
+                                    long serverClockDiff = serverClock - currentEntry.warpingEntry.serverClock;
+                                    double secondsDiff = serverClockDiff / 10000000d;
+                                    currentTime = (int)(currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff));
+                                    diffTime = (int)(currentTime - ourTime);
+                                    if (diffTime > 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToShortString(currentTime), SecondsToVeryShortString(diffTime));
+                                    }
+                                    if (diffTime < 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToShortString(currentTime), SecondsToVeryShortString(-diffTime));
+                                    }
+                                    if (diffTime == 0)
+                                    {
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            currentTime = (int)ourTime;
+                            currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
                         }
                     }
                     else
                     {
-                        //Warp entry
-                        if (currentEntry.warpingEntry != null)
-                        {
-                            float[] warpRates = TimeWarp.fetch.warpRates;
-                            if (currentEntry.warpingEntry.isPhysWarp)
-                            {
-                                warpRates = TimeWarp.fetch.physicsWarpRates;
-                            }
-                            long serverClockDiff = serverClock - currentEntry.warpingEntry.serverClock;
-                            double secondsDiff = serverClockDiff / 10000000d;
-                            currentTime = currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff);
-                            diffTime = currentTime - ourTime;
-                            diffState = (diffTime > 0) ? SecondsToVeryShortString((int)diffTime) + " in the future" : SecondsToVeryShortString(-(int)diffTime) + " in the past";
-                        }
+                        currentEntry.relativeTimeDisplay = "Unknown";
                     }
-                }
-                else
-                {
-                    currentTime = ourTime;
-                    diffState = "NOW";
                 }
 
                 //Draw the subspace black bar.
                 GUILayout.BeginHorizontal(subspaceStyle);
-                GUILayout.Label("T+ " + SecondsToShortString((int)currentTime) + " - " + diffState);
+                GUILayout.Label(currentEntry.relativeTimeDisplay);
                 GUILayout.FlexibleSpace();
                 //Draw the sync button if needed
 #if !DEBUG
@@ -370,106 +412,131 @@ namespace DarkMultiPlayer
             int minutes = time / 60;
             time -= minutes * 60;
             int seconds = time;
-            string returnString = "";
+            stringBuilder.Clear();
+            bool addComma = false;
             if (years > 0)
             {
                 if (years == 1)
                 {
-                    returnString += "1 year";
+                    stringBuilder.Append("1 year");
                 }
                 else
                 {
-                    returnString += years + " years";
+                    stringBuilder.Append(years);
+                    stringBuilder.Append(" years");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (months > 0)
             {
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
                 if (months == 1)
                 {
-                    returnString += "1 month";
+                    stringBuilder.Append("1 month");
                 }
                 else
                 {
-                    returnString += months + " month";
+                    stringBuilder.Append(months);
+                    stringBuilder.Append(" month");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (weeks > 0)
             {
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
                 if (weeks == 1)
                 {
-                    returnString += "1 week";
+                    stringBuilder.Append("1 week");
                 }
                 else
                 {
-                    returnString += weeks + " weeks";
+                    stringBuilder.Append(weeks);
+                    stringBuilder.Append(" weeks");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (days > 0)
             {
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
                 if (days == 1)
                 {
-                    returnString += "1 day";
+                    stringBuilder.Append("1 day");
                 }
                 else
                 {
-                    returnString += days + " days";
+                    stringBuilder.Append(days);
+                    stringBuilder.Append(" days");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (hours > 0)
             {
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
                 if (hours == 1)
                 {
-                    returnString += "1 hour";
+                    stringBuilder.Append("1 hour");
                 }
                 else
                 {
-                    returnString += hours + " hours";
+                    stringBuilder.Append(hours);
+                    stringBuilder.Append(" hours");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (minutes > 0)
             {
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
                 if (minutes == 1)
                 {
-                    returnString += "1 minute";
+                    stringBuilder.Append("1 minute");
                 }
                 else
                 {
-                    returnString += minutes + " minutes";
+                    stringBuilder.Append(minutes);
+                    stringBuilder.Append(" minutes");
                 }
-            }
-            if (returnString != "")
-            {
-                returnString += ", ";
+                addComma = true;
             }
             if (seconds == 1)
             {
-                returnString += "1 second";
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
+                stringBuilder.Append("1 second");
             }
             else
             {
-                returnString += seconds + " seconds";
+                if (addComma)
+                {
+                    addComma = false;
+                    stringBuilder.Append(", ");
+                }
+                stringBuilder.Append(seconds);
+                stringBuilder.Append(" seconds");
             }
-            return returnString;
+            return stringBuilder.ToString();
         }
 
         private string SecondsToShortString(int time)
@@ -492,53 +559,57 @@ namespace DarkMultiPlayer
             int minutes = time / 60;
             time -= minutes * 60;
             int seconds = time;
-            string returnString = "";
+            stringBuilder.Clear();
             if (years > 0)
             {
                 if (years == 1)
                 {
-                    returnString += "1y, ";
+                    stringBuilder.Append("1y, ");
                 }
                 else
                 {
-                    returnString += years + "y, ";
+                    stringBuilder.Append(years);
+                    stringBuilder.Append("y, ");
                 }
             }
             if (months > 0)
             {
                 if (months == 1)
                 {
-                    returnString += "1m, ";
+                    stringBuilder.Append("1m, ");
                 }
                 else
                 {
-                    returnString += months + "m, ";
+                    stringBuilder.Append(months);
+                    stringBuilder.Append("m, ");
                 }
             }
             if (weeks > 0)
             {
                 if (weeks == 1)
                 {
-                    returnString += "1w, ";
+                    stringBuilder.Append("1w, ");
                 }
                 else
                 {
-                    returnString += weeks + "w, ";
+                    stringBuilder.Append(weeks);
+                    stringBuilder.Append("w, ");
                 }
             }
             if (days > 0)
             {
                 if (days == 1)
                 {
-                    returnString += "1d, ";
+                    stringBuilder.Append("1d, ");
                 }
                 else
                 {
-                    returnString += days + "d, ";
+                    stringBuilder.Append(days);
+                    stringBuilder.Append("d, ");
                 }
             }
-            returnString += hours.ToString("00") + ":" + minutes.ToString("00") + ":" + seconds.ToString("00");
-            return returnString;
+            stringBuilder.AppendFormat("{0:D2}:{1:D2}:{2:D2}", hours, minutes, seconds);
+            return stringBuilder.ToString();
         }
 
         private string SecondsToVeryShortString(int time)
@@ -569,7 +640,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return years + " years";
+                    return String.Format("{0} years", years);
                 }
             }
             if (months > 0)
@@ -580,7 +651,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return months + " months";
+                    return String.Format("{0} months", months);
                 }
             }
             if (weeks > 0)
@@ -591,7 +662,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return weeks + " weeks";
+                    return String.Format("{0} weeks", weeks);
                 }
             }
             if (days > 0)
@@ -602,7 +673,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return days + " days";
+                    return String.Format("{0} days", days);
                 }
             }
             if (hours > 0)
@@ -613,7 +684,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return hours + " hours";
+                    return String.Format("{0} hours", hours);
                 }
             }
             if (minutes > 0)
@@ -624,7 +695,7 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    return minutes + " minutes";
+                    return String.Format("{0} minutes", minutes);
                 }
             }
             if (seconds == 1)
@@ -633,7 +704,7 @@ namespace DarkMultiPlayer
             }
             else
             {
-                return seconds + " seconds";
+                return String.Format("{0} seconds", seconds);
             }
         }
 

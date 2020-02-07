@@ -41,15 +41,18 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            long elapsedTime = GetCurrentTime - startTime;
-            if (!profilerData.ContainsKey(name))
+            lock (profilerData)
             {
-                profilerData.Add(name, new ProfilerData());
+                long elapsedTime = GetCurrentTime - startTime;
+                if (!profilerData.ContainsKey(name))
+                {
+                    profilerData.Add(name, new ProfilerData());
+                }
+                ProfilerData data = profilerData[name];
+                data.time.Add(elapsedTime);
+                long memoryDelta = GetCurrentMemory - startMemory;
+                data.memory.Add(memoryDelta);
             }
-            ProfilerData data = profilerData[name];
-            data.time.Add(elapsedTime);
-            long memoryDelta = GetCurrentMemory - startMemory;
-            data.memory.Add(memoryDelta);
         }
 
         public void Update()
@@ -78,19 +81,24 @@ namespace DarkMultiPlayer
                     }
                     using (StreamWriter srtotal = new StreamWriter(Path.Combine(profilerPath, "totals-memory.txt")))
                     {
-                        long totalMemory = 0;
+                        long absoluteTotalMemory = 0;
+                        long absoluteTotalSamples = 0;
                         foreach (KeyValuePair<string, ProfilerData> data in profilerData)
                         {
+                            long totalMemory = 0;
                             using (StreamWriter sr = new StreamWriter(Path.Combine(profilerPath, data.Key + ".memory.txt")))
                             {
                                 foreach (long dataLine in data.Value.memory)
                                 {
+                                    absoluteTotalSamples++;
                                     totalMemory += dataLine;
                                     sr.WriteLine(dataLine);
                                 }
                             }
+                            absoluteTotalMemory += totalMemory;
                             srtotal.WriteLine(data.Key + ": " + totalMemory + ", samples: " + data.Value.memory.Count);
                         }
+                        srtotal.WriteLine("TOTAL: " + absoluteTotalMemory + ", samples: " + absoluteTotalSamples);
                     }
                     profilerData = new Dictionary<string, ProfilerData>();
                     DarkLog.Debug("Profiling Finished");
