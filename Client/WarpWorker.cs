@@ -828,6 +828,10 @@ namespace DarkMultiPlayer
             {
                 cacheGetSubspaceDisplayEntriesSubspaceDict = new Dictionary<int, SubspaceDisplayEntry>();
             }
+            if (cacheUnknownGetSubspaceDisplayEntriesSubspaceDict == null)
+            {
+                cacheUnknownGetSubspaceDisplayEntriesSubspaceDict = new Dictionary<string, SubspaceDisplayEntry>();
+            }
 
             //Subspace/subspace simple mode
             Dictionary<int, List<string>> nonWarpCache = new Dictionary<int, List<string>>();
@@ -933,10 +937,6 @@ namespace DarkMultiPlayer
             Array.Sort(cacheGetSubspaceDisplayEntriesSubspace, SubpaceDisplayEntrySorter);
             if (unknownPlayers.Count > 0)
             {
-                if (cacheUnknownGetSubspaceDisplayEntriesSubspaceDict == null)
-                {
-                    cacheUnknownGetSubspaceDisplayEntriesSubspaceDict = new Dictionary<string, SubspaceDisplayEntry>();
-                }
                 foreach (string playerName in unknownPlayers)
                 {
                     if (!cacheUnknownGetSubspaceDisplayEntriesSubspaceDict.ContainsKey(playerName))

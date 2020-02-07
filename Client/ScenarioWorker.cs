@@ -324,9 +324,9 @@ namespace DarkMultiPlayer
                 catch (Exception e)
                 {
                     string fullName = sm.GetType().FullName;
-                    DarkLog.Debug("Unable to save module data from " + fullName + ", skipping upload of this module. Exception: " + e);
                     if (!warnedModules.Contains(fullName))
                     {
+                        DarkLog.Debug("Unable to save module data from " + fullName + ", skipping upload of this module. Exception: " + e);
                         warnedModules.Add(fullName);
                         if (!fullName.Contains("Expansions.Serenity.DeployedScience"))
                         {
