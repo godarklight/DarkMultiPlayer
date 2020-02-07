@@ -164,9 +164,9 @@ namespace DarkMultiPlayer
         /// <summary>
         /// Internal use only - Called when a mod message is received from NetworkWorker.
         /// </summary>
-        public void HandleModData(byte[] messageData)
+        public void HandleModData(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string modName = mr.Read<string>();
                 byte[] modData = mr.Read<byte[]>();

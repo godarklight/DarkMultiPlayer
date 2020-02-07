@@ -18,9 +18,9 @@ namespace DarkMultiPlayer
             this.dmpSettings = dmpSettings;
         }
 
-        public void HandleAdminMessage(byte[] messageData)
+        public void HandleAdminMessage(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 AdminMessageType messageType = (AdminMessageType)mr.Read<int>();
                 switch (messageType)

@@ -18,8 +18,8 @@ namespace DarkMultiPlayer
         //private VesselUpdate lastUpdate;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
         private string recordVectorPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording-vector.bin");
-        private Action<byte[]> HandleProtoUpdate, HandleVesselRemove;
-        private Action<byte[], bool> HandleVesselUpdate;
+        private Action<ByteArray> HandleProtoUpdate, HandleVesselRemove;
+        private Action<ByteArray, bool> HandleVesselUpdate;
         private VesselWorker vesselWorker;
         private NetworkWorker networkWorker;
         private Settings dmpSettings;
@@ -39,14 +39,14 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(updateAction);
         }
 
-        public void SetHandlers(Action<byte[]> HandleProtoUpdate, Action<byte[], bool> HandleVesselUpdate, Action<byte[]> HandleVesselRemove)
+        public void SetHandlers(Action<ByteArray> HandleProtoUpdate, Action<ByteArray, bool> HandleVesselUpdate, Action<ByteArray> HandleVesselRemove)
         {
             this.HandleProtoUpdate = HandleProtoUpdate;
             this.HandleVesselUpdate = HandleVesselUpdate;
             this.HandleVesselRemove = HandleVesselRemove;
         }
 
-        public void RecordSend(byte[] data, ClientMessageType messageType, Guid vesselID)
+        public void RecordSend(ByteArray data, ClientMessageType messageType, Guid vesselID)
         {
             if (!active)
             {
@@ -61,7 +61,7 @@ namespace DarkMultiPlayer
                     byte[] headerData = mw.GetMessageBytes();
                     recording.Write(headerData, 0, headerData.Length);
                 }
-                recording.Write(data, 0, data.Length);
+                recording.Write(data.data, 0, data.Length);
             }
         }
 
@@ -114,6 +114,7 @@ namespace DarkMultiPlayer
             recordingVector = null;
         }
 
+        byte[] headerBytesInt = new byte[4];
         public void StartPlayback()
         {
             int messagesLoaded = 0;
@@ -123,15 +124,15 @@ namespace DarkMultiPlayer
                 while (fs.Position < fs.Length)
                 {
                     messagesLoaded++;
-                    byte[] headerBytes = new byte[8];
-                    fs.Read(headerBytes, 0, 8);
-                    using (MessageReader mr = new MessageReader(headerBytes))
+                    ByteArray headerBytes = ByteRecycler.GetObject(8);
+                    fs.Read(headerBytes.data, 0, 8);
+                    using (MessageReader mr = new MessageReader(headerBytes.data))
                     {
                         ClientMessageType messageType = (ClientMessageType)mr.Read<int>();
                         int length = mr.Read<int>();
-                        byte[] dataBytes = new byte[length];
-                        fs.Read(dataBytes, 0, length);
-                        using (MessageReader timeReader = new MessageReader(dataBytes))
+                        ByteArray dataBytes = ByteRecycler.GetObject(length);
+                        fs.Read(dataBytes.data, 0, length);
+                        using (MessageReader timeReader = new MessageReader(dataBytes.data))
                         {
                             //Planet time is the first part of the message for the three types we care about here
                             double planetTime = timeReader.Read<double>();
@@ -144,7 +145,7 @@ namespace DarkMultiPlayer
                                 warpWorker.SendNewSubspace();
                             }
                         }
-                        using (MessageReader mrignore = new MessageReader(dataBytes))
+                        using (MessageReader mrignore = new MessageReader(dataBytes.data))
                         {
                             //Planet time, don't care here
                             mrignore.Read<double>();
@@ -165,7 +166,9 @@ namespace DarkMultiPlayer
                             default:
                                 break;
                         }
+                        ByteRecycler.ReleaseObject(dataBytes);
                     }
+                    ByteRecycler.ReleaseObject(headerBytes);
                 }
             }
 
@@ -174,17 +177,17 @@ namespace DarkMultiPlayer
             {
                 while (fs.Position < fs.Length)
                 {
-                    byte[] headerBytes = new byte[4];
-                    fs.Read(headerBytes, 0, 4);
+                    fs.Read(headerBytesInt, 0, 4);
                     if (BitConverter.IsLittleEndian)
                     {
-                        Array.Reverse(headerBytes);
+                        Array.Reverse(headerBytesInt);
                     }
-                    int updateLength = BitConverter.ToInt32(headerBytes, 0);
-                    byte[] updateBytes = new byte[updateLength];
-                    fs.Read(updateBytes, 0, updateLength);
-                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes, false);
+                    int updateLength = BitConverter.ToInt32(headerBytesInt, 0);
+                    ByteArray updateBytes = ByteRecycler.GetObject(updateLength);
+                    fs.Read(updateBytes.data, 0, updateLength);
+                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes.data, false);
                     playbackQueue.Enqueue(vu);
+                    ByteRecycler.ReleaseObject(updateBytes);
                 }
             }
 
@@ -228,6 +231,8 @@ namespace DarkMultiPlayer
             }
         }
 
+
+        //TODO: This is clearly what plays back the recordings. This needs fixing when I need to use it next. MAKE SURE TO Recycler<VesselUpdate>.ReleaseObject()!
         /*
         public void DisplayUpdateVesselOffset()
         {

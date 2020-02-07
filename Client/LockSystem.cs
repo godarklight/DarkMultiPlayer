@@ -119,11 +119,11 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleLockMessage(byte[] messageData)
+        public void HandleLockMessage(ByteArray messageData)
         {
             lock (lockObject)
             {
-                using (MessageReader mr = new MessageReader(messageData))
+                using (MessageReader mr = new MessageReader(messageData.data))
                 {
                     LockMessageType lockMessageType = (LockMessageType)mr.Read<int>();
                     switch (lockMessageType)

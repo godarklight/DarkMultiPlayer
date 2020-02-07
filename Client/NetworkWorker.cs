@@ -651,7 +651,10 @@ namespace DarkMultiPlayer
 
         private void HandleMeshVesselUpdate(byte[] inputData, int inputDataLength, Guid clientGuid, IPEndPoint endPoint)
         {
-            HandleVesselUpdate(inputData, true);
+            ByteArray tempArray = ByteRecycler.GetObject(inputDataLength);
+            Array.Copy(inputData, 0, tempArray.data, 0, inputDataLength);
+            HandleVesselUpdate(tempArray, true);
+            ByteRecycler.ReleaseObject(tempArray);
         }
 
         public string GetMeshPlayername(Guid peerGuid)
@@ -984,103 +987,103 @@ namespace DarkMultiPlayer
                     case ServerMessageType.HEARTBEAT:
                         break;
                     case ServerMessageType.HANDSHAKE_CHALLANGE:
-                        HandleHandshakeChallange(message.data.data);
+                        HandleHandshakeChallange(message.data);
                         break;
                     case ServerMessageType.HANDSHAKE_REPLY:
-                        HandleHandshakeReply(message.data.data);
+                        HandleHandshakeReply(message.data);
                         break;
                     case ServerMessageType.CHAT_MESSAGE:
-                        HandleChatMessage(message.data.data);
+                        HandleChatMessage(message.data);
                         break;
                     case ServerMessageType.SERVER_SETTINGS:
-                        HandleServerSettings(message.data.data);
+                        HandleServerSettings(message.data);
                         break;
                     case ServerMessageType.PLAYER_STATUS:
-                        HandlePlayerStatus(message.data.data);
+                        HandlePlayerStatus(message.data);
                         break;
                     case ServerMessageType.PLAYER_COLOR:
                         playerColorWorker.HandlePlayerColorMessage(message.data);
                         break;
                     case ServerMessageType.PLAYER_JOIN:
-                        HandlePlayerJoin(message.data.data);
+                        HandlePlayerJoin(message.data);
                         break;
                     case ServerMessageType.PLAYER_DISCONNECT:
-                        HandlePlayerDisconnect(message.data.data);
+                        HandlePlayerDisconnect(message.data);
                         break;
                     case ServerMessageType.GROUP:
-                        HandleGroupMessage(message.data.data);
+                        HandleGroupMessage(message.data);
                         break;
                     case ServerMessageType.PERMISSION:
-                        HandlePermissionMessage(message.data.data);
+                        HandlePermissionMessage(message.data);
                         break;
                     case ServerMessageType.SCENARIO_DATA:
-                        HandleScenarioModuleData(message.data.data);
+                        HandleScenarioModuleData(message.data);
                         break;
                     case ServerMessageType.KERBAL_REPLY:
-                        HandleKerbalReply(message.data.data);
+                        HandleKerbalReply(message.data);
                         break;
                     case ServerMessageType.KERBAL_COMPLETE:
                         HandleKerbalComplete();
                         break;
                     case ServerMessageType.KERBAL_REMOVE:
-                        HandleKerbalRemove(message.data.data);
+                        HandleKerbalRemove(message.data);
                         break;
                     case ServerMessageType.VESSEL_LIST:
-                        HandleVesselList(message.data.data);
+                        HandleVesselList(message.data);
                         break;
                     case ServerMessageType.VESSEL_PROTO:
-                        HandleVesselProto(message.data.data);
+                        HandleVesselProto(message.data);
                         break;
                     case ServerMessageType.VESSEL_UPDATE:
-                        HandleVesselUpdate(message.data.data, false);
+                        HandleVesselUpdate(message.data, false);
                         break;
                     case ServerMessageType.VESSEL_COMPLETE:
                         HandleVesselComplete();
                         break;
                     case ServerMessageType.VESSEL_REMOVE:
-                        HandleVesselRemove(message.data.data);
+                        HandleVesselRemove(message.data);
                         break;
                     case ServerMessageType.CRAFT_LIBRARY:
-                        HandleCraftLibrary(message.data.data);
+                        HandleCraftLibrary(message.data);
                         break;
                     case ServerMessageType.SCREENSHOT_LIBRARY:
-                        HandleScreenshotLibrary(message.data.data);
+                        HandleScreenshotLibrary(message.data);
                         break;
                     case ServerMessageType.FLAG_SYNC:
-                        flagSyncer.HandleMessage(message.data.data);
+                        flagSyncer.HandleMessage(message.data);
                         break;
                     case ServerMessageType.SET_SUBSPACE:
-                        warpWorker.HandleSetSubspace(message.data.data);
+                        warpWorker.HandleSetSubspace(message.data);
                         break;
                     case ServerMessageType.SYNC_TIME_REPLY:
-                        HandleSyncTimeReply(message.data.data);
+                        HandleSyncTimeReply(message.data);
                         break;
                     case ServerMessageType.PING_REPLY:
-                        HandlePingReply(message.data.data);
+                        HandlePingReply(message.data);
                         break;
                     case ServerMessageType.MOTD_REPLY:
-                        HandleMotdReply(message.data.data);
+                        HandleMotdReply(message.data);
                         break;
                     case ServerMessageType.WARP_CONTROL:
-                        HandleWarpControl(message.data.data);
+                        HandleWarpControl(message.data);
                         break;
                     case ServerMessageType.ADMIN_SYSTEM:
-                        adminSystem.HandleAdminMessage(message.data.data);
+                        adminSystem.HandleAdminMessage(message.data);
                         break;
                     case ServerMessageType.LOCK_SYSTEM:
-                        lockSystem.HandleLockMessage(message.data.data);
+                        lockSystem.HandleLockMessage(message.data);
                         break;
                     case ServerMessageType.MOD_DATA:
-                        dmpModInterface.HandleModData(message.data.data);
+                        dmpModInterface.HandleModData(message.data);
                         break;
                     case ServerMessageType.SPLIT_MESSAGE:
                         HandleSplitMessage(message.data);
                         break;
                     case ServerMessageType.CONNECTION_END:
-                        HandleConnectionEnd(message.data.data);
+                        HandleConnectionEnd(message.data);
                         break;
                     case ServerMessageType.MODPACK_DATA:
-                        HandleModpackData(message.data.data);
+                        HandleModpackData(message.data);
                         break;
                 default:
                         DarkLog.Debug("Unhandled message type " + message.type);
@@ -1096,11 +1099,11 @@ namespace DarkMultiPlayer
 #endif
         }
 
-        private void HandleHandshakeChallange(byte[] messageData)
+        private void HandleHandshakeChallange(ByteArray messageData)
         {
             try
             {
-                using (MessageReader mr = new MessageReader(messageData))
+                using (MessageReader mr = new MessageReader(messageData.data))
                 {
                     byte[] challange = mr.Read<byte[]>();
                     using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(1024))
@@ -1119,7 +1122,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleHandshakeReply(byte[] messageData)
+        private void HandleHandshakeReply(ByteArray messageData)
         {
 
             int reply = 0;
@@ -1129,7 +1132,7 @@ namespace DarkMultiPlayer
             string serverVersion = "Unknown";
             try
             {
-                using (MessageReader mr = new MessageReader(messageData))
+                using (MessageReader mr = new MessageReader(messageData.data))
                 {
                     reply = mr.Read<int>();
                     reason = mr.Read<string>();
@@ -1213,9 +1216,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleChatMessage(byte[] messageData)
+        private void HandleChatMessage(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 ChatMessageType chatMessageType = (ChatMessageType)mr.Read<int>();
 
@@ -1279,9 +1282,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleServerSettings(byte[] messageData)
+        private void HandleServerSettings(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 warpWorker.warpMode = (WarpMode)mr.Read<int>();
                 timeSyncer.isSubspace = warpWorker.warpMode == WarpMode.SUBSPACE;
@@ -1345,9 +1348,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandlePlayerStatus(byte[] messageData)
+        private void HandlePlayerStatus(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string playerName = mr.Read<string>();
                 string vesselText = mr.Read<string>();
@@ -1360,18 +1363,18 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandlePlayerJoin(byte[] messageData)
+        private void HandlePlayerJoin(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string playerName = mr.Read<string>();
                 chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", playerName + " has joined the server");
             }
         }
 
-        private void HandlePlayerDisconnect(byte[] messageData)
+        private void HandlePlayerDisconnect(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string playerName = mr.Read<string>();
                 warpWorker.RemovePlayer(playerName);
@@ -1382,9 +1385,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleSyncTimeReply(byte[] messageData)
+        private void HandleSyncTimeReply(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 long clientSend = mr.Read<long>();
                 long serverReceive = mr.Read<long>();
@@ -1393,9 +1396,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleScenarioModuleData(byte[] messageData)
+        private void HandleScenarioModuleData(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string[] scenarioName = mr.Read<string[]>();
                 for (int i = 0; i < scenarioName.Length; i++)
@@ -1423,10 +1426,10 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleKerbalReply(byte[] messageData)
+        private void HandleKerbalReply(ByteArray messageData)
         {
             numberOfKerbalsReceived++;
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
@@ -1472,9 +1475,9 @@ namespace DarkMultiPlayer
             connectionWindow.status = "Kerbals synced";
         }
 
-        private void HandleKerbalRemove(byte[] messageData)
+        private void HandleKerbalRemove(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 double planetTime = mr.Read<double>();
                 string kerbalName = mr.Read<string>();
@@ -1483,11 +1486,11 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleVesselList(byte[] messageData)
+        private void HandleVesselList(ByteArray messageData)
         {
             state = ClientState.SYNCING_VESSELS;
             connectionWindow.status = "Syncing vessels";
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 List<string> serverVessels = new List<string>(mr.Read<string[]>());
                 List<string> cacheObjects = new List<string>(universeSyncCache.GetCachedObjects());
@@ -1550,10 +1553,10 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleVesselProto(byte[] messageData)
+        private void HandleVesselProto(ByteArray messageData)
         {
             numberOfVesselsReceived++;
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 double planetTime = mr.Read<double>();
                 string vesselID = mr.Read<string>();
@@ -1684,9 +1687,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleVesselUpdate(byte[] messageData, bool fromMesh)
+        private void HandleVesselUpdate(ByteArray messageData, bool fromMesh)
         {
-            VesselUpdate update = VeselUpdateFromBytes(messageData, fromMesh);
+            VesselUpdate update = VeselUpdateFromBytes(messageData.data, fromMesh);
             vesselWorker.QueueVesselUpdate(update, fromMesh);
         }
 
@@ -1705,9 +1708,9 @@ namespace DarkMultiPlayer
             state = ClientState.VESSELS_SYNCED;
         }
 
-        private void HandleVesselRemove(byte[] messageData)
+        private void HandleVesselRemove(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 double planetTime = mr.Read<double>();
                 Guid vesselID = new Guid(mr.Read<string>());
@@ -1726,9 +1729,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleCraftLibrary(byte[] messageData)
+        private void HandleCraftLibrary(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 CraftMessageType messageType = (CraftMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1822,9 +1825,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleScreenshotLibrary(byte[] messageData)
+        private void HandleScreenshotLibrary(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 switch (messageType)
@@ -1860,9 +1863,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandlePingReply(byte[] messageData)
+        private void HandlePingReply(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
                 chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
@@ -1870,9 +1873,9 @@ namespace DarkMultiPlayer
 
         }
 
-        private void HandleMotdReply(byte[] messageData)
+        private void HandleMotdReply(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 serverMotd = mr.Read<string>();
                 if (serverMotd != "")
@@ -1883,17 +1886,17 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleGroupMessage(byte[] messageData)
+        private void HandleGroupMessage(ByteArray messageData)
         {
             groups.QueueMessage(messageData);
         }
 
-        private void HandlePermissionMessage(byte[] messageData)
+        private void HandlePermissionMessage(ByteArray messageData)
         {
             permissions.QueueMessage(messageData);
         }
 
-        private void HandleWarpControl(byte[] messageData)
+        private void HandleWarpControl(ByteArray messageData)
         {
             warpWorker.QueueWarpMessage(messageData);
         }
@@ -1931,17 +1934,17 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void HandleConnectionEnd(byte[] messageData)
+        private void HandleConnectionEnd(ByteArray messageData)
         {
             string reason = "";
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 reason = mr.Read<string>();
             }
             Disconnect("Server closed connection: " + reason);
         }
 
-        private void HandleModpackData(byte[] data)
+        private void HandleModpackData(ByteArray data)
         {
             modpackWorker.HandleModpackMessage(data);
         }
@@ -2214,7 +2217,7 @@ namespace DarkMultiPlayer
                 Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
                 DarkLog.Debug("Sending vessel " + vessel.vesselID + ", name " + vessel.vesselName + ", type: " + vessel.vesselType + ", size: " + newMessage.data.Length);
                 QueueOutgoingMessage(newMessage, false);
-                vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_PROTO, vessel.vesselID);
+                vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_PROTO, vessel.vesselID);
                 ByteRecycler.ReleaseObject(vesselBytes);
             }
             else
@@ -2288,7 +2291,7 @@ namespace DarkMultiPlayer
         {
             ClientMessage newMessage = GetVesselUpdateMessage(update);
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_UPDATE, update.vesselID);
         }
         //Called from vesselWorker
         public void SendVesselUpdateMesh(VesselUpdate update, List<string> clientsInSubspace)
@@ -2328,7 +2331,7 @@ namespace DarkMultiPlayer
             newMessage.data = ByteRecycler.GetObject(newMessageLength);
             Array.Copy(messageWriterBuffer, 0, newMessage.data.data, 0, newMessageLength);
             QueueOutgoingMessage(newMessage, false);
-            vesselRecorder.RecordSend(newMessage.data.data, ClientMessageType.VESSEL_REMOVE, vesselID);
+            vesselRecorder.RecordSend(newMessage.data, ClientMessageType.VESSEL_REMOVE, vesselID);
         }
 
         // Called from VesselWorker

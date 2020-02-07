@@ -122,7 +122,7 @@ namespace DarkMultiPlayer
                     while (messageQueue.Count > 0)
                     {
                         ByteArray queueByteArray = messageQueue.Dequeue();
-                        RealHandleMessage(queueByteArray.data);
+                        RealHandleMessage(queueByteArray);
                         ByteRecycler.ReleaseObject(queueByteArray);
                         //Don't process incoming files or MOD_COMPLETE if we are hashing our gamedata folder
                         if (hashingThreads != null)
@@ -505,19 +505,19 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleModpackMessage(byte[] messageData)
+        public void HandleModpackMessage(ByteArray messageData)
         {
             lock (messageQueue)
             {
                 ByteArray queueByteArray = ByteRecycler.GetObject(messageData.Length);
-                Array.Copy(messageData, 0, queueByteArray.data, 0, messageData.Length);
+                Array.Copy(messageData.data, 0, queueByteArray.data, 0, messageData.Length);
                 messageQueue.Enqueue(queueByteArray);
             }
         }
 
-        private void RealHandleMessage(byte[] messageData)
+        private void RealHandleMessage(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 ModpackDataMessageType type = (ModpackDataMessageType)mr.Read<int>();
                 switch (type)
@@ -525,24 +525,36 @@ namespace DarkMultiPlayer
                     case ModpackDataMessageType.CKAN:
                         {
                             modpackMode = ModpackMode.CKAN;
-                            byte[] receiveData = mr.Read<byte[]>();
-                            byte[] oldData = null;
+                            ByteArray receiveData = mr.Read<ByteArray>();
+                            ByteArray oldData = null;
                             if (File.Exists(ckanDataPath))
                             {
-                                oldData = File.ReadAllBytes(ckanDataPath);
+                                using (FileStream fs = new FileStream(ckanDataPath, FileMode.Open))
+                                {
+                                    oldData = ByteRecycler.GetObject((int)fs.Length);
+                                    fs.Read(oldData.data, 0, oldData.Length);
+                                }
                             }
                             if (!BytesMatch(oldData, receiveData))
                             {
                                 missingWarnFile = true;
                                 DarkLog.Debug("Ckan file changed");
                                 File.Delete(ckanDataPath);
-                                File.WriteAllBytes(ckanDataPath, receiveData);
+                                using (FileStream fs = new FileStream(ckanDataPath, FileMode.OpenOrCreate))
+                                {
+                                    fs.Write(receiveData.data, 0, receiveData.Length);
+                                }
                             }
                             if (!registeredChatCommand)
                             {
                                 registeredChatCommand = true;
                                 chatWorker.RegisterChatCommand("upload", UploadCKANToServer, "Upload DarkMultiPlayer.ckan to the server");
                             }
+                            if (oldData != null)
+                            {
+                                ByteRecycler.ReleaseObject(oldData);
+                            }
+                            ByteRecycler.ReleaseObject(receiveData);
                         }
                         break;
                     case ModpackDataMessageType.MOD_LIST:
@@ -607,12 +619,16 @@ namespace DarkMultiPlayer
                             if (mr.Read<bool>())
                             {
                                 syncString = "Syncing files " + filesDownloaded + "/" + requestList.Count + " (" + (serverPathCache.Count - requestList.Count) + " cached)";
-                                byte[] fileBytes = mr.Read<byte[]>();
+                                ByteArray fileBytes = mr.Read<ByteArray>();
                                 string filePath = Path.Combine(cacheDataPath, sha256sum + ".bin");
                                 if (!File.Exists(filePath))
                                 {
-                                    File.WriteAllBytes(filePath, fileBytes);
+                                    using (FileStream fs = new FileStream(filePath, FileMode.OpenOrCreate))
+                                    {
+                                        fs.Write(fileBytes.data, 0, fileBytes.Length);
+                                    }
                                 }
+                                ByteRecycler.ReleaseObject(fileBytes);
                             }
                             else
                             {
@@ -677,6 +693,30 @@ namespace DarkMultiPlayer
             for (int i = 0; i < lhs.Length; i++)
             {
                 if (lhs[i] != rhs[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private bool BytesMatch(ByteArray lhs, ByteArray rhs)
+        {
+            if (lhs == null && rhs == null)
+            {
+                return true;
+            }
+            if (lhs == null || rhs == null)
+            {
+                return false;
+            }
+            if (lhs.Length != rhs.Length)
+            {
+                return false;
+            }
+            for (int i = 0; i < lhs.Length; i++)
+            {
+                if (lhs.data[i] != rhs.data[i])
                 {
                     return false;
                 }

@@ -49,7 +49,10 @@ namespace DarkMultiPlayerCommon
             {
                 return AddCompressionHeader(inputBytes, false);
             }
-            return AddCompressionHeader(Compress(inputBytes), true);
+            ByteArray compressedBytes = Compress(inputBytes);
+            ByteArray compressedBytesWithHeader = AddCompressionHeader(compressedBytes, true);
+            ByteRecycler.ReleaseObject(compressedBytes);
+            return compressedBytesWithHeader;
         }
 
         public static byte[] DecompressIfNeeded(byte[] inputBytes)

@@ -45,12 +45,12 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Remove(updateAction);
         }
 
-        public void QueueMessage(byte[] data)
+        public void QueueMessage(ByteArray data)
         {
             lock (messageQueue)
             {
                 ByteArray queueByteArray = ByteRecycler.GetObject(data.Length);
-                Array.Copy(data, 0, queueByteArray.data, 0, data.Length);
+                Array.Copy(data.data, 0, queueByteArray.data, 0, data.Length);
                 messageQueue.Enqueue(queueByteArray);
             }
         }

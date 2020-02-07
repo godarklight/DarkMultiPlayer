@@ -52,9 +52,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleMessage(byte[] messageData)
+        public void HandleMessage(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 FlagMessageType messageType = (FlagMessageType)mr.Read<int>();
                 switch (messageType)

@@ -398,9 +398,9 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleSetSubspace(byte[] messageData)
+        public void HandleSetSubspace(ByteArray messageData)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 int subspaceID = mr.Read<int>();
                 newSetSubspace = subspaceID;
@@ -759,12 +759,12 @@ namespace DarkMultiPlayer
             warpMessage = ScreenMessages.PostScreenMessage(messageText, messageDuration, ScreenMessageStyle.UPPER_CENTER);
         }
 
-        public void QueueWarpMessage(byte[] messageData)
+        public void QueueWarpMessage(ByteArray messageData)
         {
             lock (newWarpMessages)
             {
                 ByteArray queueByteArray = ByteRecycler.GetObject(messageData.Length);
-                Array.Copy(messageData, 0, queueByteArray.data, 0, messageData.Length);
+                Array.Copy(messageData.data, 0, queueByteArray.data, 0, messageData.Length);
                 newWarpMessages.Enqueue(queueByteArray);
             }
         }

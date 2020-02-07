@@ -8,3 +8,4 @@
 *.mdb
 saves/
 .vs/
+.vscode/
