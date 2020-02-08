@@ -54,15 +54,17 @@ namespace DarkMultiPlayer
         private UniverseSyncCache universeSyncCache;
         private ModWorker modWorker;
         private UniverseConverterWindow universeConverterWindow;
+        private ServerListDisclaimerWindow serverListDisclaimerWindow;
         private ToolbarSupport toolbarSupport;
 
-        public OptionsWindow(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, UniverseConverterWindow universeConverterWindow, ToolbarSupport toolbarSupport)
+        public OptionsWindow(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, UniverseConverterWindow universeConverterWindow, ToolbarSupport toolbarSupport, ServerListDisclaimerWindow serverListDisclaimerWindow)
         {
             this.dmpSettings = dmpSettings;
             this.universeSyncCache = universeSyncCache;
             this.modWorker = modWorker;
             this.universeConverterWindow = universeConverterWindow;
             this.toolbarSupport = toolbarSupport;
+            this.serverListDisclaimerWindow = serverListDisclaimerWindow;
         }
 
         public void SetDependencies(DMPGame dmpGame, NetworkWorker networkWorker, PlayerColorWorker playerColorWorker)
@@ -455,6 +457,14 @@ namespace DarkMultiPlayer
                 {
                     dmpSettings.disclaimerAccepted = 0;
                     dmpSettings.SaveSettings();
+                }
+                groupY += 22;
+
+                if (GUI.Button(new Rect(0, groupY, windowRect.width - 20, 20), "Reset Serverlist Disclaimer"))
+                {
+                    dmpSettings.serverlistMode = 0;
+                    dmpSettings.SaveSettings();
+                    serverListDisclaimerWindow.SpawnDialog();
                 }
                 groupY += 22;
 

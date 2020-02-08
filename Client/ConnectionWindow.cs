@@ -49,13 +49,17 @@ namespace DarkMultiPlayer
             return Common.PROGRAM_VERSION;
         }
         //Services
-        Settings dmpSettings;
-        OptionsWindow optionsWindow;
+        private Settings dmpSettings;
+        private OptionsWindow optionsWindow;
+        private ServerListDisclaimerWindow serverListDisclaimerWindow;
+        private ServersWindow serversWindow;
 
-        public ConnectionWindow(Settings dmpSettings, OptionsWindow optionsWindow)
+        public ConnectionWindow(Settings dmpSettings, OptionsWindow optionsWindow, ServersWindow serversWindow, ServerListDisclaimerWindow serverListDisclaimerWindow)
         {
             this.dmpSettings = dmpSettings;
             this.optionsWindow = optionsWindow;
+            this.serversWindow = serversWindow;
+            this.serverListDisclaimerWindow = serverListDisclaimerWindow;
         }
 
         public void Update()
@@ -162,6 +166,21 @@ namespace DarkMultiPlayer
             }
             GUI.enabled = true;
             optionsWindow.display = GUILayout.Toggle(optionsWindow.display, "Options", buttonStyle);
+
+            if (dmpSettings.serverlistMode != -1)
+            {
+                if (dmpSettings.serverlistMode == 0)
+                {
+                    if (GUILayout.Button("Servers", buttonStyle))
+                    {
+                        serverListDisclaimerWindow.SpawnDialog();
+                    }
+                }
+                else
+                {
+                    serversWindow.display = GUILayout.Toggle(serversWindow.display, "Servers", buttonStyle);
+                }
+            }
             GUILayout.EndHorizontal();
             if (addingServerSafe)
             {

@@ -5,6 +5,7 @@ using UnityEngine;
 using DarkMultiPlayerCommon;
 using DarkMultiPlayer.Utilities;
 using MessageStream2;
+using System.Net;
 
 namespace DarkMultiPlayer
 {
@@ -45,6 +46,9 @@ namespace DarkMultiPlayer
         public UniverseConverter universeConverter;
         public UniverseConverterWindow universeConverterWindow;
         public DisclaimerWindow disclaimerWindow;
+        public ServersWindow serversWindow;
+        public ServerListDisclaimerWindow serverListDisclaimerWindow;
+        public ServerListConnection serverListConnection;
         public DMPModInterface dmpModInterface;
         //Profiler state
         public Profiler profiler;
@@ -135,8 +139,12 @@ namespace DarkMultiPlayer
             modWindow.SetDependenices(modWorker);
             universeConverter = new UniverseConverter(dmpSettings);
             universeConverterWindow = new UniverseConverterWindow(universeConverter);
-            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport);
-            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow);
+            serverListDisclaimerWindow = new ServerListDisclaimerWindow(dmpSettings);
+            optionsWindow = new OptionsWindow(dmpSettings, universeSyncCache, modWorker, universeConverterWindow, toolbarSupport, serverListDisclaimerWindow);
+            serverListConnection = new ServerListConnection(dmpSettings);
+            serversWindow = new ServersWindow(dmpSettings, optionsWindow, serverListConnection);
+            serverListConnection.SetDependancy(serversWindow);
+            connectionWindow = new ConnectionWindow(dmpSettings, optionsWindow, serversWindow, serverListDisclaimerWindow);
             disclaimerWindow = new DisclaimerWindow(dmpSettings);
             dmpModInterface = new DMPModInterface();
             //SafetyBubble.RegisterDefaultLocations();
@@ -385,13 +393,11 @@ namespace DarkMultiPlayer
                 if (!connectionWindow.connectEventHandled)
                 {
                     connectionWindow.connectEventHandled = true;
-                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow, profiler);
-                    dmpGame.networkWorker.ConnectToServer(dmpSettings.servers[connectionWindow.selected].address, dmpSettings.servers[connectionWindow.selected].port);
+                    ConnectToServer(dmpSettings.servers[connectionWindow.selected].address, dmpSettings.servers[connectionWindow.selected].port);
                 }
                 if (commandLineConnect != null && HighLogic.LoadedScene == GameScenes.MAINMENU && Time.timeSinceLevelLoad > 1f)
                 {
-                    dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow, profiler);
-                    dmpGame.networkWorker.ConnectToServer(commandLineConnect.address, commandLineConnect.port);
+                    ConnectToServer(commandLineConnect.address, commandLineConnect.port);
                     commandLineConnect = null;
                 }
 
@@ -414,6 +420,8 @@ namespace DarkMultiPlayer
                 }
 
                 connectionWindow.Update();
+                serverListConnection.Update();
+                serversWindow.Update();
                 modWindow.Update();
                 optionsWindow.Update();
                 universeConverterWindow.Update();
@@ -584,6 +592,13 @@ namespace DarkMultiPlayer
             kspMemory = profiler.GetCurrentMemory;
         }
 
+        public void ConnectToServer(string address, int port)
+        {
+            dmpGame = new DMPGame(dmpSettings, universeSyncCache, modWorker, connectionWindow, dmpModInterface, toolbarSupport, optionsWindow, profiler);
+            dmpGame.networkWorker.ConnectToServer(address, port);
+        }
+
+
         public IEnumerator<WaitForEndOfFrame> UploadScreenshot()
         {
             yield return new WaitForEndOfFrame();
@@ -678,6 +693,10 @@ namespace DarkMultiPlayer
                 if (optionsWindow != null)
                 {
                     optionsWindow.Draw();
+                }
+                if (serversWindow != null)
+                {
+                    serversWindow.Draw();
                 }
                 if (universeConverterWindow != null)
                 {

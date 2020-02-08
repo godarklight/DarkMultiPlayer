@@ -15,6 +15,8 @@ namespace DarkMultiPlayer
         public string playerPrivateKey;
         public int cacheSize;
         public int disclaimerAccepted;
+        //-1 disabled and hide button, 0 - ask user, 1 grab on servers click, 2 grab on startup
+        public int serverlistMode;
         public List<ServerEntry> servers = new List<ServerEntry>();
         public Color playerColor;
         public KeyCode screenshotKey;
@@ -218,6 +220,13 @@ namespace DarkMultiPlayer
                     saveAfterLoad = true;
                 }
 
+                if (!int.TryParse(settingsNode.GetValue("serverlist-mode"), out serverlistMode))
+                {
+                    DarkLog.Debug("[Settings]: Adding serverlist-mode to settings file");
+                    serverlistMode = 0;
+                    saveAfterLoad = true;
+                }
+
                 if (!playerNode.TryGetValue("color", ref playerColor))
                 {
                     DarkLog.Debug("[Settings]: Adding color to settings file");
@@ -380,6 +389,7 @@ namespace DarkMultiPlayer
 
             settingsNode.SetValue("cacheSize", cacheSize, true);
             settingsNode.SetValue("disclaimer", disclaimerAccepted, true);
+            settingsNode.SetValue("serverlist-mode", serverlistMode, true);
             settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
             settingsNode.SetValue("interpolation", interpolatorType.ToString(), true);

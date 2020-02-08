@@ -93,10 +93,11 @@ namespace DarkMultiPlayer
             highlightStyle.hover.textColor = Color.red;
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
             subspaceStyle = new GUIStyle();
-            subspaceStyle.normal.background = new Texture2D(1, 1);
+            Texture2D blackTexture = new Texture2D(1, 1);
             Color black = new Color(0, 0, 0, 0.5f);
-            subspaceStyle.normal.background.SetPixel(0, 0, black);
-            subspaceStyle.normal.background.Apply();
+            blackTexture.SetPixel(0, 0, black);
+            blackTexture.Apply();
+            subspaceStyle.normal.background = blackTexture;
 
             layoutOptions = new GUILayoutOption[4];
             layoutOptions[0] = GUILayout.MinWidth(WINDOW_WIDTH);
