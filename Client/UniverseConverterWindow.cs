@@ -54,13 +54,13 @@ namespace DarkMultiPlayer
 
         public void Draw()
         {
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
             if (safeDisplay)
             {
+                if (!initialized)
+                {
+                    initialized = true;
+                    InitGUI();
+                }
                 windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6712 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Universe Converter", windowStyle, layoutOptions));
             }
         }

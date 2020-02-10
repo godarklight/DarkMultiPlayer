@@ -252,13 +252,13 @@ namespace DarkMultiPlayer
 
         private void Draw()
         {
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
             if (safeDisplay)
             {
+                if (!initialized)
+                {
+                    initialized = true;
+                    InitGUI();
+                }
                 windowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6710 + Client.WINDOW_OFFSET, windowRect, DrawContent, "Screenshots", windowStyle, windowLayoutOption));
             }
             CheckWindowLock();

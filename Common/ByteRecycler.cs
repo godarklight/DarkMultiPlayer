@@ -6,8 +6,8 @@ namespace DarkMultiPlayerCommon
 {
     public static class ByteRecycler
     {
-        private static Dictionary<int, List<InUseContainer>> currentObjects = new Dictionary<int, List<InUseContainer>>();
-        private static Dictionary<object, InUseContainer> reverseMapping = new Dictionary<object, InUseContainer>();
+        private static Dictionary<int, HashSet<ByteArray>> inUseObjects = new Dictionary<int, HashSet<ByteArray>>();
+        private static Dictionary<int, Stack<ByteArray>> freeObjects = new Dictionary<int, Stack<ByteArray>>();
         private static List<int> poolSizes = new List<int>();
         private static object lockObject = new object();
 
@@ -28,41 +28,35 @@ namespace DarkMultiPlayerCommon
             }
             if (pool_size == 0)
             {
-                throw new InvalidOperationException("Pool size not big enough for current request");
+                throw new InvalidOperationException("Pool size not big enough for current request. Add a bigger pool size.");
             }
-            InUseContainer freeObject = null;
+            ByteArray freeObject = null;
             lock (lockObject)
             {
-                List<InUseContainer> currentObjectsOfSize = currentObjects[pool_size];
-                foreach (InUseContainer currentObject in currentObjectsOfSize)
+                Stack<ByteArray> currentObjectsOfSize = freeObjects[pool_size];
+                if (currentObjectsOfSize.Count > 0)
                 {
-                    if (currentObject.free)
-                    {
-                        freeObject = currentObject;
-                        break;
-                    }
+                    freeObject = currentObjectsOfSize.Pop();
                 }
                 if (freeObject == null)
                 {
-                    freeObject = new InUseContainer();
-                    freeObject.obj = new ByteArray(pool_size);
-                    currentObjectsOfSize.Add(freeObject);
-                    reverseMapping.Add(freeObject.obj, freeObject);
+                    freeObject = new ByteArray(pool_size);
                 }
-                freeObject.obj.size = size;
-                freeObject.free = false;
+                inUseObjects[pool_size].Add(freeObject);
+                freeObject.size = size;
             }
-            return freeObject.obj;
+            return freeObject;
         }
 
         public static void ReleaseObject(ByteArray releaseObject)
         {
             lock (lockObject)
             {
-                if (reverseMapping.ContainsKey(releaseObject))
+                if (inUseObjects.ContainsKey(releaseObject.data.Length))
                 {
-                    InUseContainer container = reverseMapping[releaseObject];
-                    container.free = true;
+                    HashSet<ByteArray> currentObjectsOfSize = inUseObjects[releaseObject.data.Length];
+                    currentObjectsOfSize.Remove(releaseObject);
+                    freeObjects[releaseObject.data.Length].Push(releaseObject);
                 }
                 else
                 {
@@ -76,35 +70,45 @@ namespace DarkMultiPlayerCommon
             if (!poolSizes.Contains(pool_size))
             {
                 poolSizes.Add(pool_size);
-                currentObjects.Add(pool_size, new List<InUseContainer>());
+                freeObjects.Add(pool_size, new Stack<ByteArray>());
+                inUseObjects.Add(pool_size, new HashSet<ByteArray>());
                 poolSizes.Sort();
             }
         }
 
         public static int GetPoolCount(int size)
         {
-            if (!currentObjects.ContainsKey(size))
+            if (!poolSizes.Contains(size))
             {
                 return 0;
             }
-            return currentObjects[size].Count;
+            return inUseObjects[size].Count + freeObjects[size].Count;
         }
 
         public static int GetPoolFreeCount(int size)
         {
-            if (!currentObjects.ContainsKey(size))
+            if (!poolSizes.Contains(size))
             {
                 return 0;
             }
-            int free = 0;
-            foreach (InUseContainer iuc in currentObjects[size])
+            return freeObjects[size].Count;
+        }
+
+        public static void GarbageCollect(int freeObjectsToLeave, int freeObjectsToTrigger)
+        {
+            lock (lockObject)
             {
-                if (iuc.free)
+                foreach (Stack<ByteArray> freeObjectStack in freeObjects.Values)
                 {
-                    free++;
+                    if (freeObjectStack.Count > freeObjectsToTrigger)
+                    {
+                        while ( freeObjectStack.Count > freeObjectsToLeave)
+                        {
+                            freeObjectStack.Pop();
+                        }
+                    }
                 }
             }
-            return free;
         }
 
         public static void DumpNonFree(string path)
@@ -115,27 +119,18 @@ namespace DarkMultiPlayerCommon
                 File.Delete(file);
             }
             int freeID = 0;
-            foreach (KeyValuePair<int, List<InUseContainer>> poolObjects in currentObjects)
+            foreach (HashSet<ByteArray> currentObjectsOfSize in inUseObjects.Values)
             {
-                foreach (InUseContainer iuc in poolObjects.Value)
+                foreach (ByteArray byteArray in currentObjectsOfSize)
                 {
-                    if (!iuc.free)
+                    string fileName = Path.Combine(path, freeID + ".txt");
+                    using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
                     {
-                        string fileName = Path.Combine(path, freeID + ".txt");
-                        using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate))
-                        {
-                            fs.Write(iuc.obj.data, 0, iuc.obj.Length);;
-                        }
-                        freeID++;
+                        fs.Write(byteArray.data, 0, byteArray.Length); ;
                     }
+                    freeID++;
                 }
             }
-        }
-
-        private class InUseContainer
-        {
-            public ByteArray obj;
-            public bool free;
         }
     }
 }

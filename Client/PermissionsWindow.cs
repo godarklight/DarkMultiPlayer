@@ -68,13 +68,13 @@ namespace DarkMultiPlayer
 
         private void Draw()
         {
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
             if (display)
             {
+                if (!initialized)
+                {
+                    initialized = true;
+                    InitGUI();
+                }
                 Vector2 mousePos = Input.mousePosition;
                 mousePos.y = Screen.height - mousePos.y;
                 bool shouldLock = windowRect.Contains(mousePos);

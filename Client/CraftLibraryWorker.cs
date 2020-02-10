@@ -335,13 +335,13 @@ namespace DarkMultiPlayer
 
         public void Draw()
         {
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
             if (safeDisplay)
             {
+                if (!initialized)
+                {
+                    initialized = true;
+                    InitGUI();
+                }
                 playerWindowRect = DMPGuiUtil.PreventOffscreenWindow(GUILayout.Window(6707 + Client.WINDOW_OFFSET, playerWindowRect, DrawPlayerContent, "DarkMultiPlayer - Craft Library", windowStyle, playerLayoutOptions));
             }
             if (safeDisplay && selectedPlayer != null)

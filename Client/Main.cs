@@ -156,6 +156,7 @@ namespace DarkMultiPlayer
                 disclaimerWindow.SpawnDialog();
             }
 
+            Application.wantsToQuit += WantsToQuit;
             DontDestroyOnLoad(this);
 
             // Prevents symlink warning for development.
@@ -279,6 +280,8 @@ namespace DarkMultiPlayer
         {
             profiler.Report("KSP", kspTime, kspMemory);
             DarkLog.Update();
+            ByteRecycler.GarbageCollect(50, 100);
+            Recycler<VesselUpdate>.GarbageCollect(50, 100);
             long profilerStartTime = profiler.GetCurrentTime;
             long profilerStartMemory = profiler.GetCurrentMemory;
             lastClockTicks = DateTime.UtcNow.Ticks;
@@ -792,14 +795,15 @@ namespace DarkMultiPlayer
             return Game.Modes.SANDBOX;
         }
 
-        private void OnApplicationQuit()
+        private bool WantsToQuit()
         {
             if (dmpGame != null && dmpGame.networkWorker.state == ClientState.RUNNING)
             {
-                Application.CancelQuit();
                 dmpGame.scenarioWorker.SendScenarioModules(true);
                 HighLogic.LoadScene(GameScenes.MAINMENU);
+                return false;
             }
+            return true;
         }
 
         private void SetupDirectoriesIfNeeded()

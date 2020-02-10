@@ -92,9 +92,9 @@ namespace DarkMultiPlayer
             highlightStyle.active.textColor = Color.red;
             highlightStyle.hover.textColor = Color.red;
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
-            subspaceStyle = new GUIStyle();
+            subspaceStyle = new GUIStyle(); 
             Texture2D blackTexture = new Texture2D(1, 1);
-            Color black = new Color(0, 0, 0, 0.5f);
+            Color black = new Color(0f, 0f, 0f, 0.5f);
             blackTexture.SetPixel(0, 0, black);
             blackTexture.Apply();
             subspaceStyle.normal.background = blackTexture;
@@ -158,13 +158,13 @@ namespace DarkMultiPlayer
                 playerNameStyle = new Dictionary<string, GUIStyle>();
                 colorEventHandled = true;
             }
-            if (!initialized)
-            {
-                initialized = true;
-                InitGUI();
-            }
             if (display)
             {
+                if (!initialized)
+                {
+                    initialized = true;
+                    InitGUI();
+                }
                 //Calculate the minimum size of the minimize window by drawing it off the screen
                 if (!calculatedMinSize)
                 {

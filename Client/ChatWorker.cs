@@ -727,13 +727,13 @@ namespace DarkMultiPlayer
 
         public void Draw()
         {
-            if (!initialized)
-            {
-                InitGUI();
-                initialized = true;
-            }
             if (safeDisplay)
             {
+                if (!initialized)
+                {
+                    InitGUI();
+                    initialized = true;
+                }
                 bool pressedChatShortcutKey = (Event.current.type == EventType.KeyDown && Event.current.keyCode == dmpSettings.chatKey);
                 if (pressedChatShortcutKey)
                 {

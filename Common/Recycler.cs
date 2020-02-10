@@ -2,74 +2,64 @@
 using System.Collections.Generic;
 namespace DarkMultiPlayerCommon
 {
-    public static class Recycler<T> where T : new()
+    public static class Recycler<T> where T : class, new()
     {
-        private static List<InUseContainer<T>> currentObjects = new List<InUseContainer<T>>();
-        private static Dictionary<object, InUseContainer<T>> reverseMapping = new Dictionary<object, InUseContainer<T>>();
+        private static HashSet<T> inUseObjects = new HashSet<T>();
+        private static Stack<T> freeObjects = new Stack<T>();
         private static object lockObject = new object();
 
         public static T GetObject()
         {
-            InUseContainer<T> freeObject = null;
+            T freeObject = default(T);
             lock (lockObject)
             {
-                foreach (InUseContainer<T> currentObject in currentObjects)
+                if (freeObjects.Count > 0)
                 {
-                    if (currentObject.free)
-                    {
-                        freeObject = currentObject;
-                        break;
-                    }
+                    freeObject = freeObjects.Pop();
                 }
                 if (freeObject == null)
                 {
-                    freeObject = new InUseContainer<T>();
-                    freeObject.obj = new T();
-                    currentObjects.Add(freeObject);
-                    reverseMapping.Add(freeObject.obj, freeObject);
+                    freeObject = new T();
                 }
-                freeObject.free = false;
             }
-            return freeObject.obj;
+            inUseObjects.Add(freeObject);
+            return freeObject;
         }
 
         public static void ReleaseObject(T releaseObject)
         {
             lock (lockObject)
             {
-                if (reverseMapping.ContainsKey(releaseObject))
+                if (inUseObjects.Contains(releaseObject))
                 {
-                    InUseContainer<T> container = reverseMapping[releaseObject];
-                    container.free = true;
+                    inUseObjects.Remove(releaseObject);
+                    freeObjects.Push(releaseObject);
                 }
             }
         }
 
         public static int GetPoolCount()
         {
-            return currentObjects.Count;
+            return inUseObjects.Count + freeObjects.Count;
         }
 
         public static int GetPoolFreeCount()
         {
-            int free = 0;
+            return freeObjects.Count;
+        }
+
+        public static void GarbageCollect(int freeObjectsToLeave, int freeObjectsToTrigger)
+        {
             lock (lockObject)
             {
-                foreach (InUseContainer<T> currentObject in currentObjects)
+                if (freeObjects.Count > freeObjectsToTrigger)
                 {
-                    if (currentObject.free)
+                    while (freeObjects.Count > freeObjectsToLeave)
                     {
-                        free++;
+                        freeObjects.Pop();
                     }
                 }
             }
-            return free;
-        }
-
-        private class InUseContainer<U>
-        {
-            public U obj;
-            public bool free;
         }
     }
 }
