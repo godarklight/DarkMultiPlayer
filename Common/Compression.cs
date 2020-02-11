@@ -175,24 +175,25 @@ namespace DarkMultiPlayerCommon
 
         public static byte[] Compress(byte[] inputBytes)
         {
-            byte[] returnBytes = null;
+            int compressSize = 0;
             lock (CompressionBuffer)
             {
                 using (MemoryStream ms = new MemoryStream(CompressionBuffer))
                 {
-                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress))
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Compress, true))
                     {
                         gs.Write(inputBytes, 0, inputBytes.Length);
                     }
-                    returnBytes = ms.ToArray();
+                    compressSize = (int)ms.Position;
                 }
             }
+            byte[] returnBytes = new byte[compressSize];
+            Array.Copy(CompressionBuffer, 0, returnBytes, 0, compressSize);
             return returnBytes;
         }
 
         public static ByteArray Compress(ByteArray inputBytes)
         {
-
             int compressSize = 0;
             lock (CompressionBuffer)
             {
@@ -208,7 +209,6 @@ namespace DarkMultiPlayerCommon
             ByteArray returnBytes = ByteRecycler.GetObject(compressSize);
             Array.Copy(CompressionBuffer, 0, returnBytes.data, 0, compressSize);
             return returnBytes;
-
         }
 
         public static byte[] Decompress(byte[] inputBytes)
@@ -217,22 +217,20 @@ namespace DarkMultiPlayerCommon
             byte[] returnBytes = null;
             lock (CompressionBuffer)
             {
-                using (MemoryStream outputStream = new MemoryStream(CompressionBuffer))
+                int totalRead = 0;
+
+                using (MemoryStream ms = new MemoryStream(inputBytes))
                 {
-                    using (MemoryStream ms = new MemoryStream(inputBytes))
+                    using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
                     {
-                        using (GZipStream gs = new GZipStream(ms, CompressionMode.Decompress))
+                        int thisRead;
+                        while ((thisRead = gs.Read(CompressionBuffer, totalRead, 4096)) > 0)
                         {
-                            //Stream.CopyTo is a .NET 4 feature?
-                            byte[] buffer = new byte[4096];
-                            int numRead;
-                            while ((numRead = gs.Read(buffer, 0, buffer.Length)) != 0)
-                            {
-                                outputStream.Write(buffer, 0, numRead);
-                            }
+                            totalRead += thisRead;
                         }
                     }
-                    returnBytes = outputStream.ToArray();
+                    returnBytes = new byte[totalRead];
+                    Array.Copy(CompressionBuffer, 0, returnBytes, 0, totalRead);
                 }
             }
             return returnBytes;

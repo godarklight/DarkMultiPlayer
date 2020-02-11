@@ -227,6 +227,7 @@ namespace DarkMultiPlayer
                 }
                 recordingVector.Write(lengthBytes, 0, lengthBytes.Length);
                 recordingVector.Write(updateBytes.data.data, 0, updateBytes.data.Length);
+                ByteRecycler.ReleaseObject(updateBytes.data);
                 Recycler<VesselUpdate>.ReleaseObject(vu);
             }
         }

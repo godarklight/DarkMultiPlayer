@@ -95,11 +95,12 @@ namespace DarkMultiPlayer
         private ConfigNodeSerializer configNodeSerializer;
         private UniverseSyncCache universeSyncCache;
         private VesselRecorder vesselRecorder;
+        private VesselRangeBumper vesselRangeBumper;
         private ModpackWorker modpackWorker;
         private NamedAction updateAction;
         private Profiler profiler;
 
-        public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer, Profiler profiler)
+        public NetworkWorker(DMPGame dmpGame, Settings dmpSettings, ConnectionWindow connectionWindow, ModWorker modWorker, ConfigNodeSerializer configNodeSerializer, Profiler profiler, VesselRangeBumper vesselRangeBumper)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -107,6 +108,7 @@ namespace DarkMultiPlayer
             this.modWorker = modWorker;
             this.configNodeSerializer = configNodeSerializer;
             this.profiler = profiler;
+            this.vesselRangeBumper = vesselRangeBumper;
             updateAction = new NamedAction(Update);
             dmpGame.updateEvent.Add(updateAction);
         }
@@ -235,6 +237,7 @@ namespace DarkMultiPlayer
                 playerColorWorker.workerEnabled = true;
                 flagSyncer.workerEnabled = true;
                 flagSyncer.SendFlagList();
+                vesselRangeBumper.workerEnabled = true;
                 playerColorWorker.SendPlayerColorToServer();
                 partKiller.RegisterGameHooks();
                 kerbalReassigner.RegisterGameHooks();

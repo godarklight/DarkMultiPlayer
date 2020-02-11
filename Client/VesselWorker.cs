@@ -98,8 +98,9 @@ namespace DarkMultiPlayer
         private Permissions permissions;
         private NamedAction fixedUpdateAction;
         private Profiler profiler;
+        private VesselRangeBumper vesselRangeBumper;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler, VesselRangeBumper vesselRangeBumper)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -113,6 +114,7 @@ namespace DarkMultiPlayer
             this.posistionStatistics = posistionStatistics;
             this.permissions = permissions;
             this.profiler = profiler;
+            this.vesselRangeBumper = vesselRangeBumper;
             fixedUpdateAction = new NamedAction(FixedUpdate);
             dmpGame.fixedUpdateEvent.Add(fixedUpdateAction);
         }
@@ -533,6 +535,7 @@ namespace DarkMultiPlayer
                     {
                         nextUpdate = vesselQueue.Value.Peek();
                     }
+                    vesselRangeBumper.ReportVesselUpdate(vu.vesselID);
                     vu.Apply(posistionStatistics, vesselControlUpdates, previousUpdate, nextUpdate, dmpSettings);
                     if (previousUpdate != null)
                     {
@@ -1546,6 +1549,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Skipping flying vessel load - Protovessel does not have an orbit snapshot");
                     return;
                 }
+                /*
                 CelestialBody updateBody = FlightGlobals.fetch.bodies[currentProto.orbitSnapShot.ReferenceBodyIndex];
                 if (updateBody == null)
                 {
@@ -1567,6 +1571,7 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Skipping flying vessel load - Vessel will get killed in the atmosphere");
                     return;
                 }
+                */
             }
 
             RegisterServerAsteriodIfVesselIsAsteroid(currentProto);
@@ -1671,6 +1676,7 @@ namespace DarkMultiPlayer
                 DarkLog.Debug("Set docking target");
                 FlightGlobals.fetch.SetVesselTarget(currentProto.vesselRef);
             }
+            vesselRangeBumper.SetVesselRanges(currentProto.vesselRef);
             DarkLog.Debug("Protovessel Loaded");
         }
 

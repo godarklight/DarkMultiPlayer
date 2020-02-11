@@ -50,6 +50,7 @@ namespace DarkMultiPlayer
         public readonly VesselRecorder vesselRecorder;
         public readonly PosistionStatistics posistionStatistics;
         public readonly Profiler profiler;
+        public readonly VesselRangeBumper vesselRangeBumper;
         private DMPModInterface dmpModInterface;
 
         public DMPGame(Settings dmpSettings, UniverseSyncCache universeSyncCache, ModWorker modWorker, ConnectionWindow connectionWindow, DMPModInterface dmpModInterface, ToolbarSupport toolbarSupport, OptionsWindow optionsWindow, Profiler profiler)
@@ -62,7 +63,8 @@ namespace DarkMultiPlayer
             this.profiler = profiler;
             this.configNodeSerializer = new ConfigNodeSerializer();
             this.posistionStatistics = new PosistionStatistics();
-            this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer, profiler);
+            this.vesselRangeBumper = new VesselRangeBumper(this);
+            this.networkWorker = new NetworkWorker(this, dmpSettings, connectionWindow, modWorker, configNodeSerializer, profiler, vesselRangeBumper);
             this.adminSystem = new AdminSystem(dmpSettings);
             this.flagSyncer = new FlagSyncer(this, dmpSettings, networkWorker);
             this.lockSystem = new LockSystem(dmpSettings, networkWorker);
@@ -73,7 +75,7 @@ namespace DarkMultiPlayer
             this.partKiller = new PartKiller(lockSystem);
             this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
-            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler);
+            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler, vesselRangeBumper);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker, permissions);
             this.timeSyncer = new TimeSyncer(this, networkWorker, vesselWorker);
@@ -119,6 +121,7 @@ namespace DarkMultiPlayer
             this.stopEvent.Add(this.groupsWindow.Stop);
             this.stopEvent.Add(this.permissionsWindow.Stop);
             this.stopEvent.Add(this.modpackWorker.Stop);
+            this.stopEvent.Add(this.vesselRangeBumper.Stop);
         }
 
         public void Stop()

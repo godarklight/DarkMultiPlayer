@@ -138,6 +138,7 @@
     <Compile Include="ServerListDisclaimerWindow.cs" />
     <Compile Include="ServersWindow.cs" />
     <Compile Include="ServerListConnection.cs" />
+    <Compile Include="VesselRangeBumper.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
