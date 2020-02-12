@@ -1587,17 +1587,6 @@ namespace DarkMultiPlayer
 
             foreach (ProtoPartSnapshot part in currentProto.protoPartSnapshots)
             {
-                if (currentProto.vesselType != VesselType.EVA)
-                {
-                    //We want to be cool.
-                    part.temperature = ((part.temperature + 273.15f) * 0.8f) - 273.15f;
-                }
-                else
-                {
-                    //But not so cool that we show off.
-                    part.temperature = ((part.temperature + 273.15f) * 1.2f) - 273.15f;
-                }
-
                 //Fix up flag URLS.
                 if (part.flagURL.Length != 0)
                 {
