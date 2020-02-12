@@ -99,8 +99,9 @@ namespace DarkMultiPlayer
         private NamedAction fixedUpdateAction;
         private Profiler profiler;
         private VesselRangeBumper vesselRangeBumper;
+        private PlayerColorWorker playerColorWorker;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler, VesselRangeBumper vesselRangeBumper)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler, VesselRangeBumper vesselRangeBumper, PlayerColorWorker playerColorWorker)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -115,6 +116,7 @@ namespace DarkMultiPlayer
             this.permissions = permissions;
             this.profiler = profiler;
             this.vesselRangeBumper = vesselRangeBumper;
+            this.playerColorWorker = playerColorWorker;
             fixedUpdateAction = new NamedAction(FixedUpdate);
             dmpGame.fixedUpdateEvent.Add(fixedUpdateAction);
         }
@@ -1673,6 +1675,7 @@ namespace DarkMultiPlayer
                 FlightGlobals.fetch.SetVesselTarget(currentProto.vesselRef);
             }
             vesselRangeBumper.SetVesselRanges(currentProto.vesselRef);
+            playerColorWorker.DetectNewVessel(currentProto.vesselRef);
             DarkLog.Debug("Protovessel Loaded");
         }
 

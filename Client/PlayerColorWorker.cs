@@ -9,19 +9,31 @@ namespace DarkMultiPlayer
     //Damn you americans - You're making me spell 'colour' wrong!
     public class PlayerColorWorker
     {
-        //As this worker is entirely event based, we need to register and unregister hooks in the workerEnabled accessor.
-        private bool privateWorkerEnabled;
         //Services
+        private DMPGame dmpGame;
         private Settings dmpSettings;
         private LockSystem lockSystem;
         private PlayerStatusWindow playerStatusWindow;
         private NetworkWorker networkWorker;
+        private bool registered;
+        public bool workerEnabled;
+        private NamedAction updateEvent;
+        private const int FRAMES_TO_DELAY_RETRY = 1;
+        private Dictionary<Vessel, FrameCount> delaySetColors = new Dictionary<Vessel, FrameCount>();
+        private List<Vessel> delayRemoveList = new List<Vessel>();
+        private Dictionary<string, Color> playerColors = new Dictionary<string, Color>();
+        private object playerColorLock = new object();
+        //Can't declare const - But no touchy.
+        public readonly Color DEFAULT_COLOR = Color.grey;
 
-        public PlayerColorWorker(Settings dmpSettings, LockSystem lockSystem, NetworkWorker networkWorker)
+        public PlayerColorWorker(DMPGame dmpGame, Settings dmpSettings, LockSystem lockSystem, NetworkWorker networkWorker)
         {
+            this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.lockSystem = lockSystem;
             this.networkWorker = networkWorker;
+            updateEvent = new NamedAction(Update);
+            dmpGame.updateEvent.Add(updateEvent);
         }
 
         public void SetDependencies(PlayerStatusWindow playerStatusWindow)
@@ -29,48 +41,76 @@ namespace DarkMultiPlayer
             this.playerStatusWindow = playerStatusWindow;
         }
 
-        public bool workerEnabled
+        public void Update()
         {
-            get
+            if (workerEnabled && !registered)
             {
-                return privateWorkerEnabled;
+                RegisterGameHooks();
             }
-            set
+            if (!workerEnabled && registered)
             {
-                if (!privateWorkerEnabled && value)
-                {
-                    GameEvents.onVesselCreate.Add(this.SetVesselColor);
-                    lockSystem.RegisterAcquireHook(this.OnLockAcquire);
-                    lockSystem.RegisterReleaseHook(this.OnLockRelease);
-                }
-                if (privateWorkerEnabled && !value)
-                {
-                    GameEvents.onVesselCreate.Remove(this.SetVesselColor);
-                    lockSystem.UnregisterAcquireHook(this.OnLockAcquire);
-                    lockSystem.UnregisterReleaseHook(this.OnLockRelease);
-                }
-                privateWorkerEnabled = value;
+                UnregisterGameHooks();
+            }
+            if (!workerEnabled)
+            {
+                return;
+            }
+            if (!FlightGlobals.ready)
+            {
+                return;
+            }
+            DelaySetColors();
+        }
+
+        public void DetectNewVessel(Vessel v)
+        {
+            if (!delaySetColors.ContainsKey(v))
+            {
+                delaySetColors.Add(v, new FrameCount(FRAMES_TO_DELAY_RETRY));
             }
         }
 
-        private Dictionary<string, Color> playerColors = new Dictionary<string, Color>();
-        private object playerColorLock = new object();
-        //Can't declare const - But no touchy.
-        public readonly Color DEFAULT_COLOR = Color.grey;
+        private void DelaySetColors()
+        {
+            foreach (KeyValuePair<Vessel, FrameCount> kvp in delaySetColors)
+            {
+                FrameCount frameCount = kvp.Value;
+                frameCount.number = frameCount.number - 1;
+                if (frameCount.number == 0)
+                {
+                    delayRemoveList.Add(kvp.Key);
+                }
+            }
+            foreach (Vessel setVessel in delayRemoveList)
+            {
+                delaySetColors.Remove(setVessel);
+                if (FlightGlobals.fetch.vessels.Contains(setVessel))
+                {
+                    SetVesselColor(setVessel);
+                }
+            }
+            if (delayRemoveList.Count > 0)
+            {
+                delayRemoveList.Clear();
+            }
+        }
 
         private void SetVesselColor(Vessel colorVessel)
         {
             if (workerEnabled)
             {
-                if (lockSystem.LockExists("control-" + colorVessel.id.ToString()) && !lockSystem.LockIsOurs("control-" + colorVessel.id.ToString()))
+                if (lockSystem.ControlLockExists(colorVessel.id) && !lockSystem.ControlLockIsOurs(colorVessel.id))
                 {
-                    string vesselOwner = lockSystem.LockOwner("control-" + colorVessel.id.ToString());
+                    string vesselOwner = lockSystem.ControlLockOwner(colorVessel.id);
                     DarkLog.Debug("Vessel " + colorVessel.id.ToString() + " owner is " + vesselOwner);
-                    colorVessel.orbitDriver.orbitColor = GetPlayerColor(vesselOwner);
+                    if (colorVessel.orbitRenderer != null)
+                    {
+                        colorVessel.orbitRenderer.SetColor(GetPlayerColor(vesselOwner));
+                    }
                 }
                 else
                 {
-                    colorVessel.orbitDriver.orbitColor = DEFAULT_COLOR;
+                    colorVessel.orbitRenderer.SetColor(DEFAULT_COLOR);
                 }
             }
         }
@@ -242,9 +282,43 @@ namespace DarkMultiPlayer
             }
         }
 
+        private void RegisterGameHooks()
+        {
+            if (!registered)
+            {
+                registered = true;
+                GameEvents.onVesselCreate.Add(this.DetectNewVessel);
+                lockSystem.RegisterAcquireHook(this.OnLockAcquire);
+                lockSystem.RegisterReleaseHook(this.OnLockRelease);
+            }
+        }
+
+        private void UnregisterGameHooks()
+        {
+            if (registered)
+            {
+                registered = false;
+                GameEvents.onVesselCreate.Remove(this.DetectNewVessel);
+                lockSystem.UnregisterAcquireHook(this.OnLockAcquire);
+                lockSystem.UnregisterReleaseHook(this.OnLockRelease);
+            }
+        }
+
         public void Stop()
         {
             workerEnabled = false;
+            UnregisterGameHooks();
+        }
+
+        //Can't modify a dictionary so we're going to have to make a reference class...
+        private class FrameCount
+        {
+            public int number;
+
+            public FrameCount(int number)
+            {
+                this.number = number;
+            }
         }
     }
 }

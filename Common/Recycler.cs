@@ -21,8 +21,8 @@ namespace DarkMultiPlayerCommon
                 {
                     freeObject = new T();
                 }
+                inUseObjects.Add(freeObject);
             }
-            inUseObjects.Add(freeObject);
             return freeObject;
         }
 

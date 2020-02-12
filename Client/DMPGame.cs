@@ -75,7 +75,8 @@ namespace DarkMultiPlayer
             this.partKiller = new PartKiller(lockSystem);
             this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
-            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler, vesselRangeBumper);
+            this.playerColorWorker = new PlayerColorWorker(this, dmpSettings, lockSystem, networkWorker);
+            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler, vesselRangeBumper, playerColorWorker);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker, permissions);
             this.timeSyncer = new TimeSyncer(this, networkWorker, vesselWorker);
@@ -87,7 +88,6 @@ namespace DarkMultiPlayer
             this.debugWindow = new DebugWindow(this, dmpSettings, timeSyncer, networkWorker, vesselWorker, dynamicTickWorker, warpWorker, vesselRecorder, posistionStatistics, optionsWindow, profiler);
             this.craftLibraryWorker = new CraftLibraryWorker(this, dmpSettings, networkWorker);
             this.asteroidWorker = new AsteroidWorker(this, lockSystem, networkWorker, vesselWorker);
-            this.playerColorWorker = new PlayerColorWorker(dmpSettings, lockSystem, networkWorker);
             this.playerStatusWindow = new PlayerStatusWindow(this, dmpSettings, warpWorker, chatWorker, craftLibraryWorker, screenshotWorker, timeSyncer, playerStatusWorker, optionsWindow, playerColorWorker, groupsWindow, permissionsWindow);
             this.playerColorWorker.SetDependencies(playerStatusWindow);
             this.vesselWorker.SetDependencies(timeSyncer, warpWorker, asteroidWorker, chatWorker, playerStatusWorker);
