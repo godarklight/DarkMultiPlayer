@@ -227,6 +227,7 @@ namespace DarkMultiPlayer
                 if (updateSubspace || currentEntry.relativeTimeDisplay == null)
                 {
                     int currentTime = 0;
+                    currentEntry.showSyncButton = false;
                     if (!currentEntry.isUnknown)
                     {
                         if (!currentEntry.isUs)
@@ -242,6 +243,7 @@ namespace DarkMultiPlayer
                                     diffTime = (int)(currentTime - ourTime);
                                     if (diffTime > 0)
                                     {
+                                        currentEntry.showSyncButton = true;
                                         currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToShortString(currentTime), SecondsToVeryShortString(diffTime));
                                     }
                                     if (diffTime < 0)
@@ -301,7 +303,7 @@ namespace DarkMultiPlayer
                 GUILayout.FlexibleSpace();
                 //Draw the sync button if needed
 #if !DEBUG
-                if ((warpWorker.warpMode == WarpMode.SUBSPACE) && !currentEntry.isUs && !currentEntry.isWarping && (currentEntry.subspaceEntry != null) && (diffTime > 0))
+                if ((warpWorker.warpMode == WarpMode.SUBSPACE) && !currentEntry.isUs && !currentEntry.isWarping && (currentEntry.subspaceEntry != null) && currentEntry.showSyncButton)
 #else
                 if ((warpWorker.warpMode == WarpMode.SUBSPACE) && !currentEntry.isUs && !currentEntry.isWarping && (currentEntry.subspaceEntry != null))
 #endif

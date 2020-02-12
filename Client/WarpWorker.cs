@@ -1130,6 +1130,7 @@ namespace DarkMultiPlayer
         public bool isWarping;
         public bool isUnknown;
         public bool isUs;
+        public bool showSyncButton;
         public PlayerWarpRate warpingEntry;
         public int subspaceID;
         public Subspace subspaceEntry;
