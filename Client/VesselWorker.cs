@@ -1549,29 +1549,36 @@ namespace DarkMultiPlayer
                     DarkLog.Debug("Skipping flying vessel load - Protovessel does not have an orbit snapshot");
                     return;
                 }
-                /*
-                CelestialBody updateBody = FlightGlobals.fetch.bodies[currentProto.orbitSnapShot.ReferenceBodyIndex];
-                if (updateBody == null)
+                if (FlightGlobals.fetch.activeVessel == null)
                 {
-                    DarkLog.Debug("Skipping flying vessel load - Could not find celestial body index " + currentProto.orbitSnapShot.ReferenceBodyIndex);
+                    DarkLog.Debug("Skipping flying vessel load - active vessel is null");
                     return;
                 }
-                bool willGetKilledInAtmo = false;
-                if (updateBody.atmosphere)
+                Orbit protoOrbit = currentProto.orbitSnapShot.Load();
+                Vector3d protoPos = protoOrbit.getTruePositionAtUT(Planetarium.GetUniversalTime());
+                Vector3d ourPos = FlightGlobals.fetch.activeVessel.GetWorldPos3D();
+                double flyingDistance = Vector3d.Distance(protoPos, ourPos);
+                if (flyingDistance > VesselRangeBumper.BUMP_FLYING_LOAD_DISTANCE)
                 {
-                    double atmoPressure = updateBody.GetPressure(-currentProto.altitude);
-                    //KSP magic cut off limit for killing vessels. Works out to be ~23km on kerbin.
-                    if (atmoPressure > 0.01f)
+                    //Vessel is out of range but we can still spawn it if it's above the kill limit.
+                    CelestialBody updateBody = FlightGlobals.fetch.bodies[currentProto.orbitSnapShot.ReferenceBodyIndex];
+                    if (updateBody == null)
                     {
-                        willGetKilledInAtmo = true;
+                        DarkLog.Debug("Skipping flying vessel load - Could not find celestial body index " + currentProto.orbitSnapShot.ReferenceBodyIndex);
+                        return;
+                    }
+                    if (updateBody.atmosphere)
+                    {
+                        double atmoPressure = updateBody.GetPressure(currentProto.altitude);
+                        DarkLog.Debug("Proto load is: " + currentProto.altitude + " alt high, pressure: " + atmoPressure);
+                        //KSP magic cut off limit for killing vessels. Works out to be ~23km on kerbin.
+                        if (atmoPressure > 1f)
+                        {
+                            DarkLog.Debug("Skipping flying vessel load - Vessel will get killed in the atmosphere");
+                            return;
+                        }
                     }
                 }
-                if (willGetKilledInAtmo)
-                {
-                    DarkLog.Debug("Skipping flying vessel load - Vessel will get killed in the atmosphere");
-                    return;
-                }
-                */
             }
 
             RegisterServerAsteriodIfVesselIsAsteroid(currentProto);

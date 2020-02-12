@@ -9,13 +9,13 @@ namespace DarkMultiPlayer
     {
         public bool active;
         public bool playback;
-        //private Guid playbackID;
+        private Guid playbackID;
         ScreenMessage screenMessage;
         private MemoryStream recording;
         private MemoryStream recordingVector;
         private WarpWorker warpWorker;
         private Queue<VesselUpdate> playbackQueue;
-        //private VesselUpdate lastUpdate;
+        private VesselUpdate lastUpdate;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
         private string recordVectorPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording-vector.bin");
         private Action<ByteArray> HandleProtoUpdate, HandleVesselRemove;
@@ -119,12 +119,12 @@ namespace DarkMultiPlayer
         {
             int messagesLoaded = 0;
             bool firstMessage = true;
+            ByteArray headerBytes = ByteRecycler.GetObject(8);
             using (FileStream fs = new FileStream(recordPath, FileMode.Open))
             {
                 while (fs.Position < fs.Length)
                 {
                     messagesLoaded++;
-                    ByteArray headerBytes = ByteRecycler.GetObject(8);
                     fs.Read(headerBytes.data, 0, 8);
                     using (MessageReader mr = new MessageReader(headerBytes.data))
                     {
@@ -168,8 +168,8 @@ namespace DarkMultiPlayer
                         }
                         ByteRecycler.ReleaseObject(dataBytes);
                     }
-                    ByteRecycler.ReleaseObject(headerBytes);
                 }
+                ByteRecycler.ReleaseObject(headerBytes);
             }
 
             playbackQueue = new Queue<VesselUpdate>();
@@ -200,6 +200,7 @@ namespace DarkMultiPlayer
         {
             if (playback)
             {
+                DisplayUpdateVesselOffset();
                 if (Planetarium.GetUniversalTime() > (lastTime))
                 {
                     playback = false;
@@ -232,9 +233,6 @@ namespace DarkMultiPlayer
             }
         }
 
-
-        //TODO: This is clearly what plays back the recordings. This needs fixing when I need to use it next. MAKE SURE TO Recycler<VesselUpdate>.ReleaseObject()!
-        /*
         public void DisplayUpdateVesselOffset()
         {
             double interpolatorDelay = 0;
@@ -246,8 +244,13 @@ namespace DarkMultiPlayer
             {
                 interpolatorDelay = 3;
             }
+
             while (playbackQueue.Count > 0 && Planetarium.GetUniversalTime() > (playbackQueue.Peek().planetTime + interpolatorDelay))
             {
+                if (lastUpdate != null)
+                {
+                    Recycler<VesselUpdate>.ReleaseObject(lastUpdate);
+                }
                 lastUpdate = playbackQueue.Dequeue();
                 playbackID = lastUpdate.vesselID;
             }
@@ -269,8 +272,16 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            else
+            {
+                //Free the last update too!
+                if (lastUpdate != null)
+                {
+                    Recycler<VesselUpdate>.ReleaseObject(lastUpdate);
+                    lastUpdate = null;
+                }
+            }
         }
-        */
 
         public void Stop()
         {

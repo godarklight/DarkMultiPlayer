@@ -6,6 +6,8 @@ namespace DarkMultiPlayer
 {
     public class VesselRangeBumper
     {
+        public const float BUMP_FLYING_LOAD_DISTANCE = 25000f;
+        public const float BUMP_LANDED_LOAD_DISTANCE = 5000f;
         private const float BUMP_TIME = 10f;
         public bool workerEnabled = false;
         private bool registered = false;
@@ -68,14 +70,14 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Setting vessel " + v.id + " to bumped ranges");
                 bumpedVessels[v.id] = Client.realtimeSinceStartup;
-                v.vesselRanges.flying.load = 26000;
-                v.vesselRanges.flying.pack = 27000;
-                v.vesselRanges.flying.unload = 28000;
-                v.vesselRanges.flying.unpack = 25000;
-                v.vesselRanges.landed.load = 6000;
-                v.vesselRanges.landed.pack = 7000;
-                v.vesselRanges.landed.unload = 8000;
-                v.vesselRanges.landed.unpack = 5000;
+                v.vesselRanges.flying.unpack = BUMP_FLYING_LOAD_DISTANCE;
+                v.vesselRanges.flying.load = BUMP_FLYING_LOAD_DISTANCE + 1000f;
+                v.vesselRanges.flying.pack = BUMP_FLYING_LOAD_DISTANCE + 2000f;
+                v.vesselRanges.flying.unload = BUMP_FLYING_LOAD_DISTANCE + 3000f;
+                v.vesselRanges.landed.unpack = BUMP_LANDED_LOAD_DISTANCE;
+                v.vesselRanges.landed.load = BUMP_LANDED_LOAD_DISTANCE + 1000f;
+                v.vesselRanges.landed.pack = BUMP_LANDED_LOAD_DISTANCE + 2000f;
+                v.vesselRanges.landed.unload = BUMP_LANDED_LOAD_DISTANCE + 3000f;
             }
         }
 
