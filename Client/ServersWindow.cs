@@ -271,9 +271,9 @@ namespace DarkMultiPlayer
                                 {
                                     sle.location = sle.location.ToUpper();
                                 }
-                                if (sle.programVersion != null && sle.programVersion.Length > 6)
+                                if (sle.programVersion != null && sle.programVersion.Length > 9)
                                 {
-                                    sle.programVersion = sle.programVersion.Substring(0, 6);
+                                    sle.programVersion = sle.programVersion.Substring(0, 9);
                                 }
                             }
                             if (sle.protocolVersion > Common.PROTOCOL_VERSION)

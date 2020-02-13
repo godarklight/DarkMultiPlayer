@@ -440,8 +440,7 @@ namespace DarkMultiPlayer
 
     public enum InterpolatorType
     {
-        EXTRAPOLATE_FULL,
-        EXTRAPOLATE_NO_ROT,
+        EXTRAPOLATE,
         INTERPOLATE1S,
         INTERPOLATE3S
     }
