@@ -97,6 +97,10 @@ namespace DarkMultiPlayer
 
         private void SetVesselColor(Vessel colorVessel)
         {
+            if (colorVessel == null)
+            {
+                return;
+            }
             if (workerEnabled)
             {
                 if (lockSystem.ControlLockExists(colorVessel.id) && !lockSystem.ControlLockIsOurs(colorVessel.id))
@@ -110,7 +114,10 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
-                    colorVessel.orbitRenderer.SetColor(DEFAULT_COLOR);
+                    if (colorVessel.orbitRenderer != null)
+                    {
+                        colorVessel.orbitRenderer.SetColor(DEFAULT_COLOR);
+                    }
                 }
             }
         }
