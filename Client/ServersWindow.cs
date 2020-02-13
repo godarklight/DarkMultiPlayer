@@ -125,7 +125,12 @@ namespace DarkMultiPlayer
                 windowRect.width = WINDOW_WIDTH * Screen.width;
                 if (servers != null)
                 {
-                    windowRect.height = (3 + displayedServers) * Screen.height * GROUP_HEIGHT_SPACING_PERCENT;
+                    float groupSpacing = Screen.height * GROUP_HEIGHT_SPACING_PERCENT;
+                    if (groupSpacing < 22f)
+                    {
+                        groupSpacing = 22f;
+                    }
+                    windowRect.height = (3 + displayedServers) * groupSpacing;
                 }
                 if (windowRect.height < MIN_WINDOW_HEIGHT * Screen.height)
                 {
@@ -145,7 +150,15 @@ namespace DarkMultiPlayer
             float windowWidth = windowRect.width;
             float windowHeight = windowRect.height;
             float groupHeight = Screen.height * GROUP_HEIGHT_PERCENT;
+            if (groupHeight < 20f)
+            {
+                groupHeight = 20f;
+            }
             float groupSpacing = Screen.height * GROUP_HEIGHT_SPACING_PERCENT;
+            if (groupSpacing < 22f)
+            {
+                groupSpacing = 22f;
+            }
             float groupY = windowStyle.border.top;
             GUI.DragWindow(moveRect);
             GUI.Box(new Rect(2f, groupY, windowWidth - 4f, groupSpacing + groupY), string.Empty, darkColor);
@@ -158,7 +171,7 @@ namespace DarkMultiPlayer
             GUI.Label(new Rect(0.165f * windowWidth, groupY, 0.05f * windowWidth, groupHeight), "Mode");
             GUI.Label(new Rect(0.20f * windowWidth, groupY, 0.05f * windowWidth, groupHeight), "Version");
             GUI.Label(new Rect(0.5f * windowWidth, groupY, 0.05f * windowWidth, groupHeight), "Server Name");
-            int displayedServers = 0;
+            displayedServers = 0;
             for (int i = 0; i < servers.Length; i++)
             {
                 ServerListConnection.ServerListEntry sle = servers[i];
@@ -257,6 +270,10 @@ namespace DarkMultiPlayer
                                 if (sle.location != null)
                                 {
                                     sle.location = sle.location.ToUpper();
+                                }
+                                if (sle.programVersion != null && sle.programVersion.Length > 6)
+                                {
+                                    sle.programVersion = sle.programVersion.Substring(0, 6);
                                 }
                             }
                             if (sle.protocolVersion > Common.PROTOCOL_VERSION)
