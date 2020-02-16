@@ -157,7 +157,7 @@ namespace DarkMultiPlayer
                 if (partID != 0)
                 {
                     Vessel contractVessel = FinePrint.Utilities.VesselUtilities.FindVesselWithPartIDs(new List<uint> { partID });
-                    if (contractVessel != null) vesselWorker.SendVesselUpdateIfNeeded(contractVessel);
+                    if (contractVessel != null) vesselWorker.SendVesselUpdateIfNeeded(contractVessel, true);
                 }
             }
 
