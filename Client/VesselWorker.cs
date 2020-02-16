@@ -1673,6 +1673,8 @@ namespace DarkMultiPlayer
                 wasActive = (FlightGlobals.fetch.activeVessel != null) && (FlightGlobals.fetch.activeVessel.id == currentProto.vesselID);
             }
 
+            bool killedLoadedVessel = false;
+
             if (oldVessel != null)
             {
                 //Don't replace the vessel if it's unpacked, not landed, close to the ground, and has the same amount of parts.
@@ -1691,6 +1693,10 @@ namespace DarkMultiPlayer
                 }
                 else
                 {
+                    if (oldVessel.loaded)
+                    {
+                        killedLoadedVessel = true;
+                    }
                     KillVessel(oldVessel);
                 }
             }
@@ -1705,6 +1711,13 @@ namespace DarkMultiPlayer
             {
                 DarkLog.Debug("Protovessel " + currentProto.vesselID + " failed to create a vessel!");
                 return;
+            }
+            else
+            {
+                if (killedLoadedVessel)
+                {
+                    currentProto.vesselRef.Load();
+                }
             }
             if (wasActive)
             {
