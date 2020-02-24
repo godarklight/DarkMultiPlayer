@@ -226,6 +226,7 @@ namespace DarkMultiPlayerServer
                 if (!vesselPermissions.ContainsKey(guid))
                 {
                     SetVesselOwner(guid, owner);
+                    SetVesselProtection(guid, Settings.settingsStore.newVesselProtection);
                 }
             }
         }
