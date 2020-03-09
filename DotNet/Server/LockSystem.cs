@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/LockSystem.cs
+../../Server/LockSystem.cs

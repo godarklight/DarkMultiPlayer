@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/Main.cs
+../../Server/Main.cs

@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/AdminSystem.cs
+../../Server/AdminSystem.cs

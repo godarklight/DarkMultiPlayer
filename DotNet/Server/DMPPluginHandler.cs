@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/DMPPluginHandler.cs
+../../Server/DMPPluginHandler.cs

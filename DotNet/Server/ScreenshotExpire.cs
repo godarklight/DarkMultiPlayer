@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/ScreenshotExpire.cs
+../../Server/ScreenshotExpire.cs

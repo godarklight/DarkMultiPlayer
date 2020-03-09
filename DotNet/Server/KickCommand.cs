@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/KickCommand.cs
+../../Server/KickCommand.cs

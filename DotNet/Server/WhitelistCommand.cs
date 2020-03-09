@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/WhitelistCommand.cs
+../../Server/WhitelistCommand.cs

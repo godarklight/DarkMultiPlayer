@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/Permissions.cs
+../../Server/Permissions.cs

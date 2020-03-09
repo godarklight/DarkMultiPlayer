@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/DMPModInterface.cs
+../../Server/DMPModInterface.cs

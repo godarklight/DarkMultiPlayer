@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/NukeKSC.cs
+../../Server/NukeKSC.cs

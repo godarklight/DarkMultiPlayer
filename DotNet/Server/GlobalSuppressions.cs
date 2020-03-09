@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/GlobalSuppressions.cs
+../../Server/GlobalSuppressions.cs

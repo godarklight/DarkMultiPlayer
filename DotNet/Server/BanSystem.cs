@@ -1,1 +1,1 @@
-/home/darklight/DarkMultiPlayer/Server/BanSystem.cs
+../../Server/BanSystem.cs
