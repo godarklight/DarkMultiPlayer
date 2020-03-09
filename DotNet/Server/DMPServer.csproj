@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\Common\Common.csproj" />
+    <Reference Include="MessageWriter2">
+      <HintPath>../MessageWriter2.dll</HintPath>
+    </Reference>
+    <Reference Include="UDPMeshLib">
+      <HintPath>../UDPMeshLib.dll</HintPath>
+    </Reference>
+    <Reference Include="SettingsParser">
+      <HintPath>../SettingsParser.dll</HintPath>
+    </Reference>
+    <Reference Include="ConfigNodeParser">
+      <HintPath>../ConfigNodeParser.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>EXE</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+</Project>
