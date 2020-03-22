@@ -1,0 +1,48 @@
+#This is an example DMPServer unit file for systemd on linux.
+#It supports multiple installs in ~/DMPServer/(server name)
+
+#==Service file setup==
+#Set the user you want to run DMPServer as down below in the User= line, or create a 'dmp' user. Be sure to change WorkingDirectory= too.
+#Uncomment the ExecStartPre= line to enable autoupdating, but make sure DMPUpdater is in that folder
+#Uncomment Restart=always and RestartSec=60 if you want DMPServer to autorestart after 60 seconds of shutting down.
+
+#==Install a DMPServer==
+#You can install DMPServer using DMPUpdater by running (from your home folder):
+#mkdir -p DMPServer/new && touch DMPServer/new/DMPServer.exe && wget https://godarklight.info.tm/dmp/downloads/dmpupdater/DMPUpdater.exe -O DMPServer/new/DMPUpdater.exe && mono DMPServer/new/DMPUpdater.exe -b
+#Then copying or renaming 'new' to the name you want
+#cp -av DMPServer/new DMPServer/example
+#Remember to change the port for multiple servers or it will fail to start.
+#If you run the service before changing the port it will crash but generate the config file. Change the port and restart the service
+#sed -i 's/port=6702/port=6703/g' DMPServer/example/Config/Settings.txt
+
+#==Enabling the service==
+#Copy the unit file to /etc/systemd/system:
+#sudo cp dmp\@.service /etc/systemd/system/
+#Enable the service, for a server named 'example' running in ~/DMPServer/example, run:
+#systemctl enable dmp@example
+#systemctl start dmp@example
+
+#==Attaching to a server console
+#Because this service runs DMPServer inside a screen rather than directly, you can attach to the servers console by typing:
+#screen -rS DMPServer-(server name)
+#If you want to see a list of things you can attach to
+#screen -list
+#Or type to the server console via a script
+#screen -S DMPServer-(server name) -p 0 -X stuff 'Server restarting in 5 minutes\n'
+
+[Unit]
+Description=DMPServer %i
+Wants=network-online.target
+After=syslog.target network.target nss-lookup.target network-online.target
+PartOf=dmp.service
+
+[Service]
+User=dmp
+WorkingDirectory=/home/dmp/DMPServer/%i
+#ExecStartPre=/usr/bin/mono DMPUpdater.exe -b
+ExecStart=/usr/bin/screen -DmS DMPServer-%i mono DMPServer.exe
+#Restart=always
+#RestartSec=60
+
+[Install]
+WantedBy=multi-user.target

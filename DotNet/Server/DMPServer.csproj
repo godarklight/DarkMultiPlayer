@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <PropertyGroup>
-    <OutputType>EXE</OutputType>
+    <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
