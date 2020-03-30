@@ -1,5 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -14,14 +15,14 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     if (otherClient != client)
                     {
-                        ServerMessage newMessage = new ServerMessage();
-                        newMessage.type = ServerMessageType.PLAYER_STATUS;
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048);
+                        newMessage.reliable = true;
                         using (MessageWriter mw = new MessageWriter())
                         {
                             mw.Write<string>(otherClient.playerName);
                             mw.Write<string>(otherClient.playerStatus.vesselText);
                             mw.Write<string>(otherClient.playerStatus.statusText);
-                            newMessage.data = mw.GetMessageBytes();
+                            newMessage.data.size = (int)mw.GetMessageLength();
                         }
                         ClientHandler.SendToClient(client, newMessage, true);
                     }
@@ -29,9 +30,10 @@ namespace DarkMultiPlayerServer.Messages
             }
         }
 
-        public static void HandlePlayerStatus(ClientObject client, byte[] messageData)
+        public static void HandlePlayerStatus(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string playerName = mr.Read<string>();
                 if (playerName != client.playerName)
@@ -44,9 +46,9 @@ namespace DarkMultiPlayerServer.Messages
                 client.playerStatus.statusText = mr.Read<string>();
             }
             //Relay the message
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.PLAYER_STATUS;
-            newMessage.data = messageData;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048 + messageData.Length);
+            newMessage.reliable = true;
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.data.Length);
             ClientHandler.SendToAll(client, newMessage, false);
         }
     }

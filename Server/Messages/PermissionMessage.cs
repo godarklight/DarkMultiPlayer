@@ -1,15 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class PermissionMessage
     {
-        public static void HandleMessage(ClientObject client, byte[] data)
+        public static void HandleMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(data))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 int type = mr.Read<int>();
                 switch ((PermissionMessageType)type)
@@ -58,7 +60,9 @@ namespace DarkMultiPlayerServer.Messages
             Dictionary<Guid, VesselPermission> vesselPermissions = Permissions.fetch.GetPermissionsCopy();
             foreach (KeyValuePair<Guid, VesselPermission> kvp in vesselPermissions)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
+                sm.reliable = true;
+                using (MessageWriter mw = new MessageWriter(sm.data.data))
                 {
                     mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);
                     mw.Write<string>(kvp.Key.ToString());
@@ -73,9 +77,7 @@ namespace DarkMultiPlayerServer.Messages
                     {
                         mw.Write<bool>(false);
                     }
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.PERMISSION;
-                    sm.data = mw.GetMessageBytes();
+                    sm.data.size = (int)mw.GetMessageLength();
                     ClientHandler.SendToAll(null, sm, true);
                 }
             }
@@ -87,7 +89,9 @@ namespace DarkMultiPlayerServer.Messages
             Dictionary<Guid, VesselPermission> vesselPermissions = Permissions.fetch.GetPermissionsCopy();
             foreach (KeyValuePair<Guid, VesselPermission> kvp in vesselPermissions)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);
                     mw.Write<string>(kvp.Key.ToString());
@@ -102,20 +106,17 @@ namespace DarkMultiPlayerServer.Messages
                     {
                         mw.Write<bool>(false);
                     }
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.PERMISSION;
-                    sm.data = mw.GetMessageBytes();
-                    ClientHandler.SendToClient(client, sm, true);
+                    newMessage.data.size = (int)mw.GetMessageLength();
+                    ClientHandler.SendToClient(client, newMessage, true);
                 }
             }
-            ServerMessage sm2 = new ServerMessage();
-            sm2.type = ServerMessageType.PERMISSION;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 4);
+            newMessage2.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
             {
                 mw.Write<int>((int)PermissionMessageType.PERMISSION_SYNCED);
-                sm2.data = mw.GetMessageBytes();
             }
-            ClientHandler.SendToClient(client, sm2, true);
+            ClientHandler.SendToClient(client, newMessage2, true);
         }
 
         public static void SendVesselPermissionToAll(Guid vesselID)
@@ -127,7 +128,9 @@ namespace DarkMultiPlayerServer.Messages
                 return;
             }
             VesselPermission vesselPermission = vesselPermissions[vesselID];
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);
                 mw.Write<string>(vesselID.ToString());
@@ -142,10 +145,8 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     mw.Write<bool>(false);
                 }
-                ServerMessage sm = new ServerMessage();
-                sm.type = ServerMessageType.PERMISSION;
-                sm.data = mw.GetMessageBytes();
-                ClientHandler.SendToAll(null, sm, true);
+                newMessage.data.size = (int)mw.GetMessageLength();
+                ClientHandler.SendToAll(null, newMessage, true);
             }
         }
     }

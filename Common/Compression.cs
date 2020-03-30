@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayerCommon
 {
@@ -8,7 +9,6 @@ namespace DarkMultiPlayerCommon
     {
         private static byte[] CompressionBuffer = new byte[Common.MAX_MESSAGE_SIZE];
         public const int COMPRESSION_THRESHOLD = 4096;
-        public static bool compressionEnabled = false;
 
         public static bool ByteCompare(byte[] lhs, byte[] rhs)
         {
@@ -32,7 +32,7 @@ namespace DarkMultiPlayerCommon
             {
                 throw new Exception("Input bytes are null");
             }
-            if (inputBytes.Length < COMPRESSION_THRESHOLD || !compressionEnabled)
+            if (inputBytes.Length < COMPRESSION_THRESHOLD)
             {
                 return AddCompressionHeader(inputBytes, false);
             }
@@ -45,7 +45,7 @@ namespace DarkMultiPlayerCommon
             {
                 throw new Exception("Input bytes are null");
             }
-            if (inputBytes.Length < COMPRESSION_THRESHOLD || !compressionEnabled)
+            if (inputBytes.Length < COMPRESSION_THRESHOLD)
             {
                 return AddCompressionHeader(inputBytes, false);
             }
@@ -65,10 +65,6 @@ namespace DarkMultiPlayerCommon
             {
                 return RemoveDecompressedHeader(inputBytes);
             }
-            if (!compressionEnabled)
-            {
-                throw new Exception("Cannot decompress if compression is disabled!");
-            }
             return Decompress(RemoveDecompressedHeader(inputBytes));
         }
 
@@ -81,10 +77,6 @@ namespace DarkMultiPlayerCommon
             if (!BytesAreCompressed(inputBytes))
             {
                 return RemoveDecompressedHeader(inputBytes);
-            }
-            if (!compressionEnabled)
-            {
-                throw new Exception("Cannot decompress if compression is disabled!");
             }
             return Decompress(RemoveDecompressedHeader(inputBytes));
         }

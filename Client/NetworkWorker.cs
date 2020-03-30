@@ -5,6 +5,7 @@ using System.Net.Sockets;
 using System.Security.Cryptography;
 using System.Threading;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 using UDPMeshLib;
 using UnityEngine;
@@ -803,7 +804,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        private void QueueOutgoingMessage(ClientMessage message, bool highPriority)
+        private void QueueOutgoingMessage(NetworkMessage message, bool highPriority)
         {
             lock (messageQueueLock)
             {
@@ -1151,7 +1152,6 @@ namespace DarkMultiPlayer
                     //If we handshook successfully, the mod data will be available to read.
                     if (reply == 0)
                     {
-                        Compression.compressionEnabled = mr.Read<bool>() && dmpSettings.compressionEnabled;
                         modWorker.modControl = (ModControlMode)mr.Read<int>();
                         if (modWorker.modControl != ModControlMode.DISABLED)
                         {
@@ -1982,7 +1982,6 @@ namespace DarkMultiPlayer
                 mw.Write<string>(dmpSettings.playerPublicKey);
                 mw.Write<byte[]>(signature);
                 mw.Write<string>(Common.PROGRAM_VERSION);
-                mw.Write<bool>(dmpSettings.compressionEnabled);
                 newMessageLength = (int)mw.GetMessageLength();
             }
             newMessage.data = ByteRecycler.GetObject(newMessageLength);

@@ -1,5 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -8,13 +9,13 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAllAdmins(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.ADMIN_SYSTEM;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write((int)AdminMessageType.LIST);
                 mw.Write<string[]>(DarkMultiPlayerServer.AdminSystem.fetch.GetAdmins());
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }

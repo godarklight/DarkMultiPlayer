@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -11,60 +12,60 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendChatMessageToClient(ClientObject client, string messageText)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CHAT_MESSAGE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 mw.Write<string>(client.playerName);
                 mw.Write(messageText);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
 
         public static void SendChatMessageToAll(string messageText)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CHAT_MESSAGE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 //Global channel
                 mw.Write<string>("");
                 mw.Write(messageText);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(null, newMessage, true);
         }
 
         public static void SendChatMessageToChannel(string channel, string messageText)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CHAT_MESSAGE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
                 mw.Write<string>(Settings.settingsStore.consoleIdentifier);
                 // Channel
                 mw.Write<string>(channel);
                 mw.Write(messageText);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(null, newMessage, true);
         }
 
         public static void SendConsoleMessageToClient(ClientObject client, string message)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CHAT_MESSAGE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
                 mw.Write<string>(message);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, false);
         }
@@ -80,12 +81,13 @@ namespace DarkMultiPlayerServer.Messages
             }
         }
 
-        public static void HandleChatMessage(ClientObject client, byte[] messageData)
+        public static void HandleChatMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CHAT_MESSAGE;
-            newMessage.data = messageData;
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, messageData.Length);
+            newMessage.reliable = true;
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 ChatMessageType messageType = (ChatMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();
@@ -135,6 +137,7 @@ namespace DarkMultiPlayerServer.Messages
                             string message = mr.Read<string>();
                             if (channel != "")
                             {
+                                List<ClientObject> sendList = new List<ClientObject>();
                                 foreach (KeyValuePair<string, List<string>> playerEntry in playerChatChannels)
                                 {
                                     if (playerEntry.Value.Contains(channel))
@@ -142,16 +145,21 @@ namespace DarkMultiPlayerServer.Messages
                                         ClientObject findClient = ClientHandler.GetClientByName(playerEntry.Key);
                                         if (findClient != null)
                                         {
-                                            ClientHandler.SendToClient(findClient, newMessage, true);
+                                            sendList.Add(findClient);
                                         }
                                     }
                                 }
+                                newMessage.usageCount = sendList.Count;
+                                foreach (ClientObject sendClient in sendList)
+                                {
+                                    ClientHandler.SendToClient(sendClient, newMessage, true);
+                                }
+                                sendList.Clear();
                                 DarkLog.ChatMessage(fromPlayer + " -> #" + channel + ": " + message);
                             }
                             else
                             {
-                                ClientHandler.SendToClient(client, newMessage, true);
-                                ClientHandler.SendToAll(client, newMessage, true);
+                                ClientHandler.SendToAll(null, newMessage, true);
                                 DarkLog.ChatMessage(fromPlayer + " -> #Global: " + message);
                             }
                         }
@@ -165,11 +173,15 @@ namespace DarkMultiPlayerServer.Messages
                                 ClientObject findClient = ClientHandler.GetClientByName(toPlayer);
                                 if (findClient != null)
                                 {
+                                    newMessage.usageCount = 2;
                                     ClientHandler.SendToClient(client, newMessage, true);
                                     ClientHandler.SendToClient(findClient, newMessage, true);
                                     DarkLog.ChatMessage(fromPlayer + " -> @" + toPlayer + ": " + message);
                                 }
+                                else
                                 {
+                                    ByteRecycler.ReleaseObject(newMessage.data);
+                                    Recycler<NetworkMessage>.ReleaseObject(newMessage);
                                     DarkLog.ChatMessage(fromPlayer + " -X-> @" + toPlayer + ": " + message);
                                 }
                             }
@@ -200,6 +212,8 @@ namespace DarkMultiPlayerServer.Messages
         public static void SendPlayerChatChannels(ClientObject client)
         {
             List<string> playerList = new List<string>();
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 2048);
+            newMessage.reliable = true;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ChatMessageType.LIST);
@@ -212,9 +226,7 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     mw.Write<string[]>(playerChatChannels[player].ToArray());
                 }
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.CHAT_MESSAGE;
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
                 ClientHandler.SendToClient(client, newMessage, true);
             }
         }

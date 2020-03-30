@@ -1,6 +1,6 @@
 using System;
 using DarkMultiPlayerCommon;
-
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayerServer
 {
@@ -35,13 +35,13 @@ namespace DarkMultiPlayerServer
         /// </summary>
         /// <param name="client">The client that has sent the message</param>
         /// <param name="messageData">The message payload (Null for certain types)</param>
-        void OnMessageReceived(ClientObject client, ClientMessage messageData);
+        bool OnMessageReceived(ClientObject client, NetworkMessage messageData);
         /// <summary>
         /// Fires every time a message is sent to a client.
         /// </summary>
         /// <param name="client">The client that will receive the message</param>
         /// <param name="messageData">The message payload (Null for certain types)</param>
-        void OnMessageSent(ClientObject client, ServerMessage messageData);
+        void OnMessageSent(ClientObject client, NetworkMessage messageData);
     }
 
     public abstract class DMPPlugin : IDMPPlugin
@@ -52,7 +52,7 @@ namespace DarkMultiPlayerServer
         public virtual void OnClientConnect(ClientObject client) { }
         public virtual void OnClientAuthenticated(ClientObject client) { }
         public virtual void OnClientDisconnect(ClientObject client) { }
-        public virtual void OnMessageReceived(ClientObject client, ClientMessage messageData) { }
-        public virtual void OnMessageSent(ClientObject client, ServerMessage messageData) { }
+        public virtual bool OnMessageReceived(ClientObject client, NetworkMessage messageData) { return false; }
+        public virtual void OnMessageSent(ClientObject client, NetworkMessage messageData) { }
     }
 }

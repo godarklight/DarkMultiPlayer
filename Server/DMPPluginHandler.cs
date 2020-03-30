@@ -3,6 +3,7 @@ using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayerServer
 {
@@ -227,19 +228,16 @@ namespace DarkMultiPlayerServer
         }
 
         //Fire OnMessageReceived
-        public static void FireOnMessageReceived(ClientObject client, ClientMessage message)
+        public static bool FireOnMessageReceived(ClientObject client, NetworkMessage message)
         {
-            bool handledByAny = false;
             foreach (var plugin in loadedPlugins)
             {
                 try
                 {
-                    plugin.OnMessageReceived(client, message);
-
                     //prevent plugins from unhandling other plugin's handled requests
-                    if (message.handled)
+                    if (plugin.OnMessageReceived(client, message))
                     {
-                        handledByAny = true;
+                        return true;
                     }
                 }
                 catch (Exception e)
@@ -248,11 +246,11 @@ namespace DarkMultiPlayerServer
                     DarkLog.Debug("Error thrown in OnMessageReceived event for " + type.FullName + " (" + type.Assembly.FullName + "), Exception: " + e);
                 }
             }
-            message.handled = handledByAny;
+            return false;
         }
 
         //Fire OnMessageReceived
-        public static void FireOnMessageSent(ClientObject client, ServerMessage message)
+        public static void FireOnMessageSent(ClientObject client, NetworkMessage message)
         {
             foreach (var plugin in loadedPlugins)
             {

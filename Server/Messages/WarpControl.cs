@@ -2,6 +2,7 @@
 using System.IO;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -49,14 +50,14 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     if (otherClient != client)
                     {
-                        ServerMessage newMessage = new ServerMessage();
-                        newMessage.type = ServerMessageType.WARP_CONTROL;
-                        using (MessageWriter mw = new MessageWriter())
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048);
+                        newMessage.reliable = true;
+                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             mw.Write<int>((int)WarpMessageType.REPORT_RATE);
                             mw.Write<string>(otherClient.playerName);
                             mw.Write<float>(otherClient.subspaceRate);
-                            newMessage.data = mw.GetMessageBytes();
+                            newMessage.data.size = (int)mw.GetMessageLength();
                         }
                         ClientHandler.SendToClient(client, newMessage, true);
                     }
@@ -64,9 +65,10 @@ namespace DarkMultiPlayerServer.Messages
             }
         }
 
-        public static void HandleWarpControl(ClientObject client, byte[] messageData)
+        public static void HandleWarpControl(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 WarpMessageType warpType = (WarpMessageType)mr.Read<int>();
                 switch (warpType)
@@ -116,10 +118,10 @@ namespace DarkMultiPlayerServer.Messages
                             HandleChangeWarp(client, physWarp, rateIndex, serverClock, planetTime);
                         }
                         break;
-                        #if DEBUG
+#if DEBUG
                     default:
                         throw new NotImplementedException("Warp type not implemented");
-                        #endif
+#endif
                 }
             }
         }
@@ -208,14 +210,13 @@ namespace DarkMultiPlayerServer.Messages
                         voteNoCount++;
                     }
                 }
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 12);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.REPLY_VOTE);
                     mw.Write<int>(voteYesCount);
                     mw.Write<int>(voteNoCount);
-                    newMessage.data = mw.GetMessageBytes();
                 }
                 ClientHandler.SendToAll(null, newMessage, true);
                 if (voteYesCount >= voteNeededCount)
@@ -276,16 +277,16 @@ namespace DarkMultiPlayerServer.Messages
                 newSubspace.subspaceSpeed = subspaceSpeed;
                 subspaces.Add(freeID, newSubspace);
                 //Create message
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
                     mw.Write<int>(freeID);
                     mw.Write<long>(serverClock);
                     mw.Write<double>(planetTime);
                     mw.Write<float>(subspaceSpeed);
-                    newMessage.data = mw.GetMessageBytes();
+                    newMessage.data.size = (int)mw.GetMessageLength();
                 }
                 //Tell all clients about the new subspace
                 ClientHandler.SendToAll(null, newMessage, true);
@@ -307,14 +308,14 @@ namespace DarkMultiPlayerServer.Messages
         private static void HandleChangeSubspace(ClientObject client, int subspace)
         {
             client.subspace = subspace;
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.WARP_CONTROL;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                 mw.Write<string>(client.playerName);
                 mw.Write<int>(subspace);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(client, newMessage, true);
         }
@@ -350,39 +351,39 @@ namespace DarkMultiPlayerServer.Messages
                 UpdateSubspace(reportedSubspace);
                 //Change the subspace speed and report it to the clients
                 subspaces[reportedSubspace].subspaceSpeed = newSubspaceRate;
-                ServerMessage relockMessage = new ServerMessage();
-                relockMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage relockMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                relockMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(relockMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
                     mw.Write<int>(reportedSubspace);
                     mw.Write<long>(subspaces[reportedSubspace].serverClock);
                     mw.Write<double>(subspaces[reportedSubspace].planetTime);
                     mw.Write<float>(subspaces[reportedSubspace].subspaceSpeed);
-                    relockMessage.data = mw.GetMessageBytes();
+                    relockMessage.data.size = (int)mw.GetMessageLength();
                 }
                 ClientHandler.SendToAll(null, relockMessage, true);
                 //Save to disk
                 SaveLatestSubspace();
             }
             //Tell other players about the reported rate
-            ServerMessage reportMessage = new ServerMessage();
-            reportMessage.type = ServerMessageType.WARP_CONTROL;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage reportMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+            reportMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(reportMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.REPORT_RATE);
                 mw.Write<string>(client.playerName);
                 mw.Write<float>(client.subspaceRate);
-                reportMessage.data = mw.GetMessageBytes();
+                reportMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(client, reportMessage, true);
         }
 
         private static void HandleChangeWarp(ClientObject client, bool physWarp, int rateIndex, long serverClock, double planetTime)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.WARP_CONTROL;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
                 mw.Write<string>(client.playerName);
@@ -390,7 +391,7 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<int>(rateIndex);
                 mw.Write<long>(serverClock);
                 mw.Write<double>(planetTime);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             if (Settings.settingsStore.warpMode == WarpMode.MCW_LOWEST)
             {
@@ -471,16 +472,16 @@ namespace DarkMultiPlayerServer.Messages
             //Send all the locks.
             foreach (KeyValuePair<int, Subspace> subspace in subspaces)
             {
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
                     mw.Write<int>(subspace.Key);
                     mw.Write<long>(subspace.Value.serverClock);
                     mw.Write<double>(subspace.Value.planetTime);
                     mw.Write<float>(subspace.Value.subspaceSpeed);
-                    newMessage.data = mw.GetMessageBytes();
+                    newMessage.data.size = (int)mw.GetMessageLength();
                 }
                 ClientHandler.SendToClient(client, newMessage, true);
             }
@@ -489,14 +490,14 @@ namespace DarkMultiPlayerServer.Messages
             {
                 if (otherClient.authenticated && (otherClient.playerName != client.playerName))
                 {
-                    ServerMessage newMessage = new ServerMessage();
-                    newMessage.type = ServerMessageType.WARP_CONTROL;
-                    using (MessageWriter mw = new MessageWriter())
+                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                    newMessage.reliable = true;
+                    using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                     {
                         mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                         mw.Write<string>(otherClient.playerName);
                         mw.Write<int>(otherClient.subspace);
-                        newMessage.data = mw.GetMessageBytes();
+                        newMessage.data.size = (int)mw.GetMessageLength();
                     }
                     ClientHandler.SendToClient(client, newMessage, true);
                 }
@@ -507,14 +508,14 @@ namespace DarkMultiPlayerServer.Messages
         {
             if (Settings.settingsStore.warpMode == WarpMode.MCW_FORCE || Settings.settingsStore.warpMode == WarpMode.MCW_VOTE)
             {
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.REQUEST_VOTE);
                     mw.Write<string>(playerName);
                     mw.Write<long>(expireTime);
-                    newMessage.data = mw.GetMessageBytes();
+                    newMessage.data.size = (int)mw.GetMessageLength();
                 }
                 ClientHandler.SendToAll(null, newMessage, true);
             }
@@ -524,14 +525,14 @@ namespace DarkMultiPlayerServer.Messages
         {
             if (Settings.settingsStore.warpMode == WarpMode.MCW_FORCE || Settings.settingsStore.warpMode == WarpMode.MCW_VOTE || Settings.settingsStore.warpMode == WarpMode.MCW_LOWEST)
             {
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.WARP_CONTROL;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+                newMessage.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
                     mw.Write<string>(playerName);
                     mw.Write<long>(expireTime);
-                    newMessage.data = mw.GetMessageBytes();
+                    newMessage.data.size = (int)mw.GetMessageLength();
                 }
                 ClientHandler.SendToAll(null, newMessage, true);
             }
@@ -549,7 +550,7 @@ namespace DarkMultiPlayerServer.Messages
             }
             else
             {
-                
+
                 DarkLog.Debug("Sending " + client.playerName + " to the past time " + storedTime);
                 //Creating a subspace is a server side process - the server will send the created subspace back to the client
                 HandleNewSubspace(client, DateTime.UtcNow.Ticks, storedTime, 1f);
@@ -560,23 +561,22 @@ namespace DarkMultiPlayerServer.Messages
         {
             DarkLog.Debug("Sending " + client.playerName + " to subspace " + subspace);
             client.subspace = subspace;
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SET_SUBSPACE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SET_SUBSPACE, 4);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>(subspace);
-                newMessage.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, newMessage, true);
             //Tell everyone else they changed
-            ServerMessage changeMessage = new ServerMessage();
-            changeMessage.type = ServerMessageType.WARP_CONTROL;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage changeMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
+            changeMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(changeMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                 mw.Write<string>(client.playerName);
                 mw.Write<int>(subspace);
-                changeMessage.data = mw.GetMessageBytes();
+                changeMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(client, changeMessage, true);
         }
@@ -636,7 +636,7 @@ namespace DarkMultiPlayerServer.Messages
             int latestID = 0;
             double latestPlanetTime = 0;
             long currentTime = DateTime.UtcNow.Ticks;
-            foreach (KeyValuePair<int,Subspace> subspace in subspaces)
+            foreach (KeyValuePair<int, Subspace> subspace in subspaces)
             {
                 double currentPlanetTime = subspace.Value.planetTime + (((currentTime - subspace.Value.serverClock) / 10000000) * subspace.Value.subspaceSpeed);
                 if (currentPlanetTime > latestPlanetTime)
@@ -682,7 +682,8 @@ namespace DarkMultiPlayerServer.Messages
         internal static void DisconnectPlayer(ClientObject client)
         {
             string playerName = client.playerName;
-            if (warpList != null) {
+            if (warpList != null)
+            {
                 if (warpList.ContainsKey(playerName))
                 {
                     warpList.Remove(playerName);

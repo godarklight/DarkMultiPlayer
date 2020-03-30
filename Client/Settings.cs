@@ -22,7 +22,6 @@ namespace DarkMultiPlayer
         public KeyCode screenshotKey;
         public KeyCode chatKey;
         public string selectedFlag;
-        public bool compressionEnabled;
         public bool revertEnabled;
         public DMPToolbarType toolbarType;
         public InterpolatorType interpolatorType;
@@ -118,7 +117,6 @@ namespace DarkMultiPlayer
                 chatKey = (KeyCode)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@chat-key").Value);
                 screenshotKey = (KeyCode)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@screenshot-key").Value);
                 selectedFlag = xmlDoc.SelectSingleNode("/settings/global/@selected-flag").Value;
-                compressionEnabled = Boolean.Parse(xmlDoc.SelectSingleNode("/settings/global/@compression").Value);
                 revertEnabled = Boolean.Parse(xmlDoc.SelectSingleNode("/settings/global/@revert").Value);
                 toolbarType = (DMPToolbarType)Int32.Parse(xmlDoc.SelectSingleNode("/settings/global/@toolbar").Value);
                 XmlNodeList serverNodeList = xmlDoc.GetElementsByTagName("server");
@@ -264,13 +262,6 @@ namespace DarkMultiPlayer
                     saveAfterLoad = true;
                 }
 
-                if (!settingsNode.TryGetValue("compression", ref compressionEnabled))
-                {
-                    DarkLog.Debug("[Settings]: Adding compression flag to settings file");
-                    compressionEnabled = true;
-                    saveAfterLoad = true;
-                }
-
                 if (!settingsNode.TryGetValue("revert", ref revertEnabled))
                 {
                     DarkLog.Debug("[Settings]: Adding revert flag to settings file");
@@ -390,7 +381,6 @@ namespace DarkMultiPlayer
             settingsNode.SetValue("cacheSize", cacheSize, true);
             settingsNode.SetValue("disclaimer", disclaimerAccepted, true);
             settingsNode.SetValue("serverlist-mode", serverlistMode, true);
-            settingsNode.SetValue("compression", compressionEnabled, true);
             settingsNode.SetValue("revert", revertEnabled, true);
             settingsNode.SetValue("interpolation", interpolatorType.ToString(), true);
             settingsNode.SetValue("toolbar", (int)toolbarType, true);

@@ -171,7 +171,7 @@ namespace DarkMultiPlayerServer
                     File.Delete(playerPath);
                 }
                 if (playerGroups.ContainsKey(playerName))
-                {               
+                {
                     List<string> groups = playerGroups[playerName];
                     using (StreamWriter sw = new StreamWriter(playerPath))
                     {

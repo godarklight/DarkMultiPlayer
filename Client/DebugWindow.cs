@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using UDPMeshLib;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayer
 {
@@ -375,13 +376,14 @@ namespace DarkMultiPlayer
                         recyclerText += "6MB: " + ByteRecycler.GetPoolCount(Client.LARGE_MESSAGE_SIZE) + ", free: " + ByteRecycler.GetPoolFreeCount(Client.LARGE_MESSAGE_SIZE) + "\n";
                         recyclerText += "VesselUpdate: " + Recycler<VesselUpdate>.GetPoolCount() + ", free: " + Recycler<VesselUpdate>.GetPoolFreeCount() + "\n";
                     }
-
+                    /*
                     if (dumpRecycler)
                     {
                         dumpRecycler = false;
                         string dumpPath = Path.Combine(KSPUtil.ApplicationRootPath, "DarkMultiPlayer-Recycler");
                         ByteRecycler.DumpNonFree(dumpPath);
                     }
+                    */
                 }
             }
         }

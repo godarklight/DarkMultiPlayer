@@ -2,14 +2,16 @@
 using System.Collections.Generic;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class Modpack
     {
-        public static void HandleModpackMessage(ClientObject client, byte[] messageData)
+        public static void HandleModpackMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             if (messageData == null || messageData.Length == 0)
             {
                 ConnectionEnd.SendConnectionEnd(client, "Invalid mod control message from client");
@@ -20,8 +22,8 @@ namespace DarkMultiPlayerServer.Messages
             {
                 ConnectionEnd.SendConnectionEnd(client, "Unauthenticated client tried to send modpack message");
             }
-            
-            using (MessageReader mr = new MessageReader(messageData))
+
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 ModpackDataMessageType type = (ModpackDataMessageType)mr.Read<int>();
                 switch (type)
@@ -109,17 +111,17 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendModData(ClientObject client, byte[] data)
         {
-            ServerMessage sm = new ServerMessage();
-            sm.type = ServerMessageType.MODPACK_DATA;
-            sm.data = data;
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 2048 + data.Length);
+            sm.reliable = true;
+            Array.Copy(data, 0, sm.data.data, 0, data.Length);
             ClientHandler.SendToClient(client, sm, false);
         }
 
         public static void SendModList(ClientObject client)
         {
-            ServerMessage sm = new ServerMessage();
-            sm.type = ServerMessageType.MODPACK_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024);
+            sm.reliable = true;
+            using (MessageWriter mw = new MessageWriter(sm.data.data))
             {
                 mw.Write<int>((int)ModpackDataMessageType.MOD_LIST);
                 Dictionary<string, string> sendData = ModpackSystem.fetch.GetModListData();
@@ -127,19 +129,18 @@ namespace DarkMultiPlayerServer.Messages
                 List<string> sha = new List<string>(sendData.Values);
                 mw.Write<string[]>(files.ToArray());
                 mw.Write<string[]>(sha.ToArray());
-                sm.data = mw.GetMessageBytes();
+                sm.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, sm, false);
         }
 
         public static void SendModDone(ClientObject client)
         {
-            ServerMessage sm = new ServerMessage();
-            sm.type = ServerMessageType.MODPACK_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 4);
+            sm.reliable = true;
+            using (MessageWriter mw = new MessageWriter(sm.data.data))
             {
                 mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
-                sm.data = mw.GetMessageBytes();
             }
             ClientHandler.SendToClient(client, sm, false);
         }
@@ -149,13 +150,13 @@ namespace DarkMultiPlayerServer.Messages
             byte[] fileData = ModpackSystem.fetch.GetCKANData();
             if (fileData != null)
             {
-                ServerMessage sm = new ServerMessage();
-                sm.type = ServerMessageType.MODPACK_DATA;
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024);
+                sm.reliable = true;
+                using (MessageWriter mw = new MessageWriter(sm.data.data))
                 {
                     mw.Write<int>((int)ModpackDataMessageType.CKAN);
                     mw.Write<byte[]>(fileData);
-                    sm.data = mw.GetMessageBytes();
+                    sm.data.size = (int)mw.GetMessageLength();
                 }
                 ClientHandler.SendToClient(client, sm, false);
             }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using MessageStream2;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
+
 namespace DarkMultiPlayer
 {
     public class VesselRecorder

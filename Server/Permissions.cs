@@ -136,7 +136,7 @@ namespace DarkMultiPlayerServer
             {
                 string vesselFileName = Path.GetFileName(file);
                 string vesselFileNameWE = Path.GetFileNameWithoutExtension(file);
-                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName))) 
+                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName)))
                 {
                     DarkLog.Debug("Deleting permissions for unknown vessel: " + vesselFileNameWE);
                     File.Delete(file);
@@ -292,7 +292,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
-            public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
+        public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
         {
             lock (vesselPermissions)
             {
@@ -316,7 +316,7 @@ namespace DarkMultiPlayerServer
                         return true;
                     }
                 }
-            } 
+            }
             return false;
         }
     }

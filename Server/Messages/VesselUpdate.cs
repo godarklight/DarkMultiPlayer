@@ -1,17 +1,19 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class VesselUpdate
     {
-        public static void HandleVesselUpdate(ClientObject client, byte[] messageData)
+        public static void HandleVesselUpdate(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             //We only relay this message.
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_UPDATE;
-            newMessage.data = messageData;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_UPDATE, messageData.Length);
+            newMessage.reliable = true;
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             ClientHandler.SendToAll(client, newMessage, false);
         }
     }

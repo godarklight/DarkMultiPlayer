@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -9,7 +10,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAllPlayerColors(ClientObject client)
         {
-            Dictionary<string,float[]> sendColors = new Dictionary<string, float[]>();
+            Dictionary<string, float[]> sendColors = new Dictionary<string, float[]>();
             foreach (ClientObject otherClient in ClientHandler.GetClients())
             {
                 if (otherClient.authenticated && otherClient.playerColor != null)
@@ -20,9 +21,9 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
             }
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.PLAYER_COLOR;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)PlayerColorMessageType.LIST);
                 mw.Write<int>(sendColors.Count);
@@ -31,14 +32,15 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<string>(kvp.Key);
                     mw.Write<float[]>(kvp.Value);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
 
-        public static void HandlePlayerColor(ClientObject client, byte[] messageData)
+        public static void HandlePlayerColor(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 PlayerColorMessageType messageType = (PlayerColorMessageType)mr.Read<int>();
                 switch (messageType)
@@ -54,9 +56,9 @@ namespace DarkMultiPlayerServer.Messages
                             }
                             client.playerColor = mr.Read<float[]>();
                             //Relay the message
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.PLAYER_COLOR;
-                            newMessage.data = messageData;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, messageData.Length);
+                            newMessage.reliable = true;
+                            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                             ClientHandler.SendToAll(client, newMessage, true);
                         }
                         break;

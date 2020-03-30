@@ -30,13 +30,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="DarkNetworkUDP">
+      <HintPath>..\DarkNetworkUDP.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Common.cs" />
     <Compile Include="Compression.cs" />
-    <Compile Include="ByteRecycler.cs" />
-    <Compile Include="Recycler.cs" />
-    <Compile Include="ByteArray.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

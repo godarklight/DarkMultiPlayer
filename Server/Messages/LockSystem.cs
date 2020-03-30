@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -9,29 +10,28 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAllLocks(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.LOCK_SYSTEM;
             //Send the dictionary as 2 string[]'s.
-            Dictionary<string,string> lockList = DarkMultiPlayerServer.LockSystem.fetch.GetLockList();
+            Dictionary<string, string> lockList = DarkMultiPlayerServer.LockSystem.fetch.GetLockList();
             List<string> lockKeys = new List<string>(lockList.Keys);
             List<string> lockValues = new List<string>(lockList.Values);
-            using (MessageWriter mw = new MessageWriter())
+
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write((int)LockMessageType.LIST);
                 mw.Write<string[]>(lockKeys.ToArray());
                 mw.Write<string[]>(lockValues.ToArray());
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
 
-        public static void HandleLockSystemMessage(ClientObject client, byte[] messageData)
+        public static void HandleLockSystemMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
-                //All of the messages need replies, let's create a message for it.
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.LOCK_SYSTEM;
                 //Read the lock-system message type
                 LockMessageType lockMessageType = (LockMessageType)mr.Read<int>();
                 switch (lockMessageType)
@@ -46,13 +46,15 @@ namespace DarkMultiPlayerServer.Messages
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for sending a lock message for another player");
                             }
                             bool lockResult = DarkMultiPlayerServer.LockSystem.fetch.AcquireLock(lockName, playerName, force);
-                            using (MessageWriter mw = new MessageWriter())
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048);
+                            newMessage.reliable = true;
+                            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write((int)LockMessageType.ACQUIRE);
                                 mw.Write(playerName);
                                 mw.Write(lockName);
                                 mw.Write(lockResult);
-                                newMessage.data = mw.GetMessageBytes();
+                                newMessage.data.size = (int)mw.GetMessageLength();
                             }
                             //Send to all clients
                             ClientHandler.SendToAll(null, newMessage, true);
@@ -81,13 +83,15 @@ namespace DarkMultiPlayerServer.Messages
                             }
                             else
                             {
-                                using (MessageWriter mw = new MessageWriter())
+                                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048);
+                                newMessage.reliable = true;
+                                using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                 {
                                     mw.Write((int)LockMessageType.RELEASE);
                                     mw.Write(playerName);
                                     mw.Write(lockName);
                                     mw.Write(lockResult);
-                                    newMessage.data = mw.GetMessageBytes();
+                                    newMessage.data.size = (int)mw.GetMessageLength();
                                 }
                                 //Send to all clients
                                 ClientHandler.SendToAll(null, newMessage, true);

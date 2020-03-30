@@ -1,15 +1,17 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class VesselRemove
     {
-        public static void HandleVesselRemoval(ClientObject client, byte[] messageData)
+        public static void HandleVesselRemoval(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 //Don't care about the subspace on the server.
                 mr.Read<double>();
@@ -37,16 +39,17 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
                 //Relay the message.
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.VESSEL_REMOVE;
-                newMessage.data = messageData;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_REMOVE, messageData.Length);
+                newMessage.reliable = true;
+                Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                 ClientHandler.SendToAll(client, newMessage, false);
             }
         }
 
-        public static void HandleKerbalRemoval(ClientObject client, byte[] messageData)
+        public static void HandleKerbalRemoval(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 //Don't care about the subspace on the server.
                 mr.Read<double>();
@@ -60,9 +63,9 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
                 //Relay the message.
-                ServerMessage newMessage = new ServerMessage();
-                newMessage.type = ServerMessageType.KERBAL_REMOVE;
-                newMessage.data = messageData;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REMOVE, messageData.Length);
+                newMessage.reliable = true;
+                Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                 ClientHandler.SendToAll(client, newMessage, false);
             }
         }

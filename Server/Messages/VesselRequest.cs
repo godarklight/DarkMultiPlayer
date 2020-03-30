@@ -2,15 +2,17 @@
 using System.Collections.Generic;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class VesselRequest
     {
-        public static void HandleVesselsRequest(ClientObject client, byte[] messageData)
+        public static void HandleVesselsRequest(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 int sendVesselCount = 0;
                 int cachedVesselCount = 0;
@@ -40,18 +42,18 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendVesselList(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_LIST;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_LIST, 512 * 1024);
+            newMessage.reliable = true;
             string[] vesselFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
             string[] vesselObjects = new string[vesselFiles.Length];
             for (int i = 0; i < vesselFiles.Length; i++)
             {
                 vesselObjects[i] = Common.CalculateSHA256Hash(vesselFiles[i]);
             }
-            using (MessageWriter mw = new MessageWriter())
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string[]>(vesselObjects);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, false);
         }
@@ -60,8 +62,8 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendVesselsComplete(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.VESSEL_COMPLETE;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_COMPLETE, 0);
+            newMessage.reliable = true;
             ClientHandler.SendToClient(client, newMessage, false);
         }
     }

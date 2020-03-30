@@ -78,6 +78,9 @@
       <HintPath>..\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="DarkNetworkUDP">
+      <HintPath>..\DarkNetworkUDP.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
@@ -134,7 +137,6 @@
     <Compile Include="GroupsWindow.cs" />
     <Compile Include="PermissionsWindow.cs" />
     <Compile Include="ModpackWorker.cs" />
-    <Compile Include="RecycledMessageTypes.cs" />
     <Compile Include="ServerListDisclaimerWindow.cs" />
     <Compile Include="ServersWindow.cs" />
     <Compile Include="ServerListConnection.cs" />

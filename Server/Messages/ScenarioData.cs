@@ -2,6 +2,7 @@
 using System.IO;
 using MessageStream2;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayerServer.Messages
 {
@@ -42,23 +43,16 @@ namespace DarkMultiPlayerServer.Messages
                 scenarioDataArray[currentScenarioModule] = File.ReadAllBytes(file);
                 currentScenarioModule++;
             }
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SCENARIO_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 5 * 1024 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string[]>(scenarioNames);
                 foreach (byte[] scenarioData in scenarioDataArray)
                 {
-                    if (client.compressionEnabled)
-                    {
-                        mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioData));
-                    }
-                    else
-                    {
-                        mw.Write<byte[]>(Compression.AddCompressionHeader(scenarioData, false));
-                    }
+                    mw.Write<byte[]>(Compression.CompressIfNeeded(scenarioData));
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
@@ -74,8 +68,8 @@ namespace DarkMultiPlayerServer.Messages
             scenarioNames[0] = scenarioName;
             scenarioDataArray[0] = File.ReadAllBytes(scenarioFile);
 
-            ServerMessage newMessageComp = new ServerMessage();
-            newMessageComp.type = ServerMessageType.SCENARIO_DATA;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 512 * 1024);
+            newMessage.reliable = true;
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<string[]>(scenarioNames);
@@ -83,27 +77,16 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     mw.Write<byte[]>(Compression.CompressIfNeeded(thisScenarioData));
                 }
-                newMessageComp.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SCENARIO_DATA;
-            using (MessageWriter mw = new MessageWriter())
-            {
-                mw.Write<string[]>(scenarioNames);
-                foreach (byte[] thisScenarioData in scenarioDataArray)
-                {
-                    mw.Write<byte[]>(Compression.AddCompressionHeader(thisScenarioData, false));
-                }
-                newMessage.data = mw.GetMessageBytes();
-            }
-            ClientHandler.SendToAllAutoCompressed(null, newMessageComp, newMessage, true);
             DarkLog.Debug("Sent " + scenarioName + " to all players.");
         }
 
-        public static void HandleScenarioModuleData(ClientObject client, byte[] messageData)
+        public static void HandleScenarioModuleData(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             string clientPath = GetScenarioPath(client);
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 //Don't care about subspace / send time.
                 string[] scenarioName = mr.Read<string[]>();

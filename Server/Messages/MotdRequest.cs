@@ -1,29 +1,30 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class MotdRequest
     {
-        public static void HandleMotdRequest(ClientObject client)
+        public static void HandleMotdRequest(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             SendMotdReply(client);
         }
 
         private static void SendMotdReply(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.MOTD_REPLY;
-
             string newMotd = Settings.settingsStore.serverMotd;
             newMotd = newMotd.Replace("%name%", client.playerName);
             newMotd = newMotd.Replace(@"\n", Environment.NewLine);
 
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOTD_REPLY, 16 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(newMotd);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }

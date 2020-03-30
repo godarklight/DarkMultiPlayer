@@ -1,22 +1,24 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class KerbalsRequest
     {
-        public static void HandleKerbalsRequest(ClientObject client)
+        public static void HandleKerbalsRequest(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             //The time sensitive SYNC_TIME is over by this point.
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_JOIN, 2048);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(client.playerName);
-                ServerMessage joinMessage = new ServerMessage();
-                joinMessage.type = ServerMessageType.PLAYER_JOIN;
-                joinMessage.data = mw.GetMessageBytes();
-                ClientHandler.SendToAll(client, joinMessage, true);
+                newMessage.data.size = (int)mw.GetMessageLength();
+                ClientHandler.SendToAll(client, newMessage, true);
             }
             Messages.ServerSettings.SendServerSettings(client);
             Messages.WarpControl.SendSetSubspace(client);
@@ -46,23 +48,23 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendKerbal(ClientObject client, string kerbalName, byte[] kerbalData)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.KERBAL_REPLY;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REPLY, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
                 mw.Write<double>(0);
                 mw.Write<string>(kerbalName);
                 mw.Write<byte[]>(kerbalData);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, false);
         }
 
         private static void SendKerbalsComplete(ClientObject client)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.KERBAL_COMPLETE;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_COMPLETE, 0);
+            newMessage.reliable = true;
             ClientHandler.SendToClient(client, newMessage, false);
             //Send vessel list needed for sync to the client
             VesselRequest.SendVesselList(client);

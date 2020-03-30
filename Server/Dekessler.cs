@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer
@@ -45,15 +46,15 @@ namespace DarkMultiPlayerServer
                             File.Delete(vesselFile);
                         }
                         //Send a vessel remove message
-                        ServerMessage newMessage = new ServerMessage();
-                        newMessage.type = ServerMessageType.VESSEL_REMOVE;
-                        using (MessageWriter mw = new MessageWriter())
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_CHALLANGE, 2048);
+                        newMessage.reliable = true;
+                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             //Send it with a delete time of 0 so it shows up for all players.
                             mw.Write<double>(0);
                             mw.Write<string>(vesselID);
                             mw.Write<bool>(false);
-                            newMessage.data = mw.GetMessageBytes();
+                            newMessage.data.size = (int)mw.GetMessageLength();
                         }
                         ClientHandler.SendToAll(null, newMessage, false);
                         numberOfRemovals++;

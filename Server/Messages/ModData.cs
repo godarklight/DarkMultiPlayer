@@ -1,14 +1,16 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class ModData
     {
-        public static void HandleModDataMessage(ClientObject client, byte[] messageData)
+        public static void HandleModDataMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(messageData))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 string modName = mr.Read<string>();
                 bool relay = mr.Read<bool>();

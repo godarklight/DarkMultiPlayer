@@ -1,15 +1,17 @@
-﻿ using System;
+﻿using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class GroupMessage
     {
-        public static void HandleMessage(ClientObject client, byte[] data)
+        public static void HandleMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
-            using (MessageReader mr = new MessageReader(data))
+            ClientObject client = connection.state;
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 int type = mr.Read<int>();
                 switch ((GroupMessageType)type)
@@ -46,7 +48,7 @@ namespace DarkMultiPlayerServer.Messages
                             }
                         }
                         break;
-                        case GroupMessageType.REMOVE_ADMIN:
+                    case GroupMessageType.REMOVE_ADMIN:
                         {
                             string playerName = mr.Read<string>();
                             string groupName = mr.Read<string>();
@@ -87,39 +89,39 @@ namespace DarkMultiPlayerServer.Messages
             DarkLog.Debug("Sending groups to everyone");
             Dictionary<string, List<string>> playerGroups = Groups.fetch.GetGroupsCopy();
             Dictionary<string, List<string>> groupAdmins = Groups.fetch.GetAdminsCopy();
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUP_RESET);
-                ServerMessage sm = new ServerMessage();
-                sm.type = ServerMessageType.GROUP;
-                sm.data = mw.GetMessageBytes();
-                ClientHandler.SendToAll(null, sm, true);
             }
+            ClientHandler.SendToAll(null, newMessage, true);
+
             foreach (KeyValuePair<string, List<string>> kvp in playerGroups)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
+                newMessage2.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.GROUP_INFO);
                     mw.Write<string>(kvp.Key);
                     mw.Write<string[]>(kvp.Value.ToArray());
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.GROUP;
-                    sm.data = mw.GetMessageBytes(); ;
-                    ClientHandler.SendToAll(null, sm, true);
+                    newMessage2.data.size = (int)mw.GetMessageLength();
                 }
+                ClientHandler.SendToAll(null, newMessage2, true);
             }
             foreach (KeyValuePair<string, List<string>> kvp in groupAdmins)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
+                newMessage3.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage3.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.ADMIN_INFO);
                     mw.Write<string>(kvp.Key);
                     mw.Write<string[]>(kvp.Value.ToArray());
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.GROUP;
-                    sm.data = mw.GetMessageBytes(); ;
-                    ClientHandler.SendToAll(null, sm, true);
+                    newMessage3.data.size = (int)mw.GetMessageLength();
                 }
+                ClientHandler.SendToAll(null, newMessage3, true);
             }
         }
 
@@ -128,48 +130,46 @@ namespace DarkMultiPlayerServer.Messages
             DarkLog.Debug("Sending groups to " + client.playerName);
             Dictionary<string, List<string>> playerGroups = Groups.fetch.GetGroupsCopy();
             Dictionary<string, List<string>> groupAdmins = Groups.fetch.GetAdminsCopy();
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUP_RESET);
-                ServerMessage sm = new ServerMessage();
-                sm.type = ServerMessageType.GROUP;
-                sm.data = mw.GetMessageBytes();
-                ClientHandler.SendToClient(client, sm, true);
             }
+            ClientHandler.SendToClient(client, newMessage, true);
             foreach (KeyValuePair<string, List<string>> kvp in playerGroups)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
+                newMessage2.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.GROUP_INFO);
                     mw.Write<string>(kvp.Key);
                     mw.Write<string[]>(kvp.Value.ToArray());
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.GROUP;
-                    sm.data = mw.GetMessageBytes(); ;
-                    ClientHandler.SendToClient(client, sm, true);
+                    newMessage2.data.size = (int)mw.GetMessageLength();
+                    ClientHandler.SendToClient(client, newMessage2, true);
                 }
             }
             foreach (KeyValuePair<string, List<string>> kvp in groupAdmins)
             {
-                using (MessageWriter mw = new MessageWriter())
+                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
+                newMessage3.reliable = true;
+                using (MessageWriter mw = new MessageWriter(newMessage3.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.ADMIN_INFO);
                     mw.Write<string>(kvp.Key);
                     mw.Write<string[]>(kvp.Value.ToArray());
-                    ServerMessage sm = new ServerMessage();
-                    sm.type = ServerMessageType.GROUP;
-                    sm.data = mw.GetMessageBytes(); ;
-                    ClientHandler.SendToClient(client, sm, true);
+                    newMessage3.data.size = (int)mw.GetMessageLength();
+                    ClientHandler.SendToClient(client, newMessage3, true);
                 }
             }
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage4 = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
+            newMessage4.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage4.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUPS_SYNCED);
-                ServerMessage sm = new ServerMessage();
-                sm.type = ServerMessageType.GROUP;
-                sm.data = mw.GetMessageBytes();
-                ClientHandler.SendToClient(client, sm, true);
             }
+            ClientHandler.SendToClient(client, newMessage4, true);
         }
     }
 }

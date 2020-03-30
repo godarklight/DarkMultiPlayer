@@ -88,8 +88,6 @@ namespace DarkMultiPlayerServer
         public string serverMotd = "Welcome, %name%!";
         [Description("Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled")]
         public double expireScreenshots = 0;
-        [Description("Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled")]
-        public bool compressionEnabled = true;
         [Description("Specify the amount of days a log file should be considered as expired and deleted. 0 = Disabled")]
         public double expireLogs = 0;
         [Description("Specify the minimum distance in which vessels can interact with eachother at the launch pad and runway")]

@@ -19,7 +19,6 @@ namespace DarkMultiPlayerServer
                 CommandHandler.RegisterCommand("nukeksc", NukeKSC.RunNukeKSC, "Clears ALL vessels from KSC and the Runway");
                 CommandHandler.RegisterCommand("listclients", ListClients, "Lists connected clients");
                 CommandHandler.RegisterCommand("countclients", CountClients, "Counts connected clients");
-                CommandHandler.RegisterCommand("connectionstats", ConnectionStats, "Displays network traffic usage");
                 CommandHandler.RegisterCommand("editgroup", Groups.fetch.EditGroupCommand, "Sets the group to edit");
                 CommandHandler.RegisterCommand("addplayer", Groups.fetch.AddPlayerToGroupCommand, "Adds player to group, first player becomes admin");
                 CommandHandler.RegisterCommand("removeplayer", Groups.fetch.RemovePlayerFromGroupCommand, "Removes player from group");
@@ -157,26 +156,6 @@ namespace DarkMultiPlayerServer
         private static void CountClients(string commandArgs)
         {
             DarkLog.Normal("Online players: " + Server.playerCount);
-        }
-
-        private static void ConnectionStats(string commandArgs)
-        {
-            //Do some shit here.
-            long bytesQueuedOutTotal = 0;
-            long bytesSentTotal = 0;
-            long bytesReceivedTotal = 0;
-            DarkLog.Normal("Connection stats:");
-            foreach (ClientObject client in ClientHandler.GetClients())
-            {
-                if (client.authenticated)
-                {
-                    bytesQueuedOutTotal += client.bytesQueuedOut;
-                    bytesSentTotal += client.bytesSent;
-                    bytesReceivedTotal += client.bytesReceived;
-                    DarkLog.Normal("Player '" + client.playerName + "', queued out: " + client.bytesQueuedOut + ", sent: " + client.bytesSent + ", received: " + client.bytesReceived);
-                }
-            }
-            DarkLog.Normal("Server, queued out: " + bytesQueuedOutTotal + ", sent: " + bytesSentTotal + ", received: " + bytesReceivedTotal);
         }
 
         private class Command

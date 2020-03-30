@@ -1,5 +1,6 @@
 ﻿using System;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -8,12 +9,12 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendConnectionEnd(ClientObject client, string reason)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.CONNECTION_END;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CONNECTION_END, 2048);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(reason);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
@@ -29,10 +30,11 @@ namespace DarkMultiPlayerServer.Messages
             }
         }
 
-        public static void HandleConnectionEnd(ClientObject client, byte[] messageData)
+        public static void HandleConnectionEnd(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             string reason = "Unknown";
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 reason = mr.Read<string>();
             }

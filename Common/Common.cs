@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayerCommon
 {
@@ -17,7 +18,7 @@ namespace DarkMultiPlayerCommon
         //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
-        public const int PROTOCOL_VERSION = 54;
+        public const int PROTOCOL_VERSION = 55;
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
@@ -936,19 +937,6 @@ namespace DarkMultiPlayerCommon
             this.guid = guid;
             this.owner = owner;
         }
-    }
-
-    public class ClientMessage
-    {
-        public bool handled;
-        public ClientMessageType type;
-        public byte[] data;
-    }
-
-    public class ServerMessage
-    {
-        public ServerMessageType type;
-        public byte[] data;
     }
 
     public class PlayerStatus

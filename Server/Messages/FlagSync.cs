@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
 {
     public class FlagSync
     {
-        public static void HandleFlagSync(ClientObject client, byte[] messageData)
+        public static void HandleFlagSync(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             string flagPath = Path.Combine(Server.universeDirectory, "Flags");
-            using (MessageReader mr = new MessageReader(messageData))
+            using (MessageReader mr = new MessageReader(messageData.data))
             {
                 FlagMessageType messageType = (FlagMessageType)mr.Read<int>();
                 string playerName = mr.Read<string>();
@@ -54,13 +56,13 @@ namespace DarkMultiPlayerServer.Messages
                                     {
                                         DarkLog.Debug("Deleting flag " + trimmedName);
                                         File.Delete(serverFlag);
-                                        ServerMessage newMessage = new ServerMessage();
-                                        newMessage.type = ServerMessageType.FLAG_SYNC;
-                                        using (MessageWriter mw = new MessageWriter())
+                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048);
+                                        newMessage.reliable = true;
+                                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                         {
                                             mw.Write<int>((int)FlagMessageType.DELETE_FILE);
                                             mw.Write<string>(trimmedName);
-                                            newMessage.data = mw.GetMessageBytes();
+                                            newMessage.data.size = (int)mw.GetMessageLength();
                                             ClientHandler.SendToAll(client, newMessage, false);
                                         }
                                         if (Directory.GetFiles(flagOwnerPath).Length == 0)
@@ -71,15 +73,15 @@ namespace DarkMultiPlayerServer.Messages
                                     else
                                     {
                                         DarkLog.Debug("Sending flag " + serverFlag + " from " + flagOwner + " to " + client.playerName);
-                                        ServerMessage newMessage = new ServerMessage();
-                                        newMessage.type = ServerMessageType.FLAG_SYNC;
-                                        using (MessageWriter mw = new MessageWriter())
+                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024);
+                                        newMessage.reliable = true;
+                                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                         {
                                             mw.Write<int>((int)FlagMessageType.FLAG_DATA);
                                             mw.Write<string>(flagOwner);
                                             mw.Write<string>(trimmedName);
                                             mw.Write<byte[]>(File.ReadAllBytes(serverFlag));
-                                            newMessage.data = mw.GetMessageBytes();
+                                            newMessage.data.size = (int)mw.GetMessageLength();
                                             ClientHandler.SendToClient(client, newMessage, false);
                                         }
                                     }
@@ -92,15 +94,15 @@ namespace DarkMultiPlayerServer.Messages
                                     serverFlagShaSums.Add(Common.CalculateSHA256Hash(serverFlag));
                                 }
                             }
-                            ServerMessage listMessage = new ServerMessage();
-                            listMessage.type = ServerMessageType.FLAG_SYNC;
-                            using (MessageWriter mw2 = new MessageWriter())
+                            NetworkMessage listMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 512 * 1024);
+                            listMessage.reliable = true;
+                            using (MessageWriter mw2 = new MessageWriter(listMessage.data.data))
                             {
                                 mw2.Write<int>((int)FlagMessageType.LIST);
                                 mw2.Write<string[]>(serverFlagFileNames.ToArray());
                                 mw2.Write<string[]>(serverFlagOwners.ToArray());
                                 mw2.Write<string[]>(serverFlagShaSums.ToArray());
-                                listMessage.data = mw2.GetMessageBytes();
+                                listMessage.data.size = (int)mw2.GetMessageLength();
                             }
                             ClientHandler.SendToClient(client, listMessage, false);
                         }
@@ -121,13 +123,13 @@ namespace DarkMultiPlayerServer.Messages
                                     Directory.Delete(playerFlagPath);
                                 }
                             }
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.FLAG_SYNC;
-                            using (MessageWriter mw = new MessageWriter())
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048);
+                            newMessage.reliable = true;
+                            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)FlagMessageType.DELETE_FILE);
                                 mw.Write<string>(flagName);
-                                newMessage.data = mw.GetMessageBytes();
+                                newMessage.data.size = (int)mw.GetMessageLength();
                             }
                             ClientHandler.SendToAll(client, newMessage, false);
                         }
@@ -151,14 +153,15 @@ namespace DarkMultiPlayerServer.Messages
                                     DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
                                     File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
 
-                                    ServerMessage newMessage = new ServerMessage();
-                                    newMessage.type = ServerMessageType.FLAG_SYNC;
-                                    using (MessageWriter mw = new MessageWriter())
+                                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024);
+                                    newMessage.reliable = true;
+                                    using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                     {
                                         mw.Write<int>((int)FlagMessageType.FLAG_DATA);
                                         mw.Write<string>(client.playerName);
                                         mw.Write<string>(flagName);
                                         mw.Write<byte[]>(flagData);
+                                        newMessage.data.size = (int)mw.GetMessageLength();
                                     }
 
                                     ClientHandler.SendToAll(client, newMessage, false);

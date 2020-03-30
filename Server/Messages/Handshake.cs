@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using System.Text.RegularExpressions;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -15,18 +16,19 @@ namespace DarkMultiPlayerServer.Messages
             client.challange = new byte[1024];
             Random rand = new Random();
             rand.NextBytes(client.challange);
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.HANDSHAKE_CHALLANGE;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_CHALLANGE, 4 + client.challange.Length);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<byte[]>(client.challange);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }
 
-        public static void HandleHandshakeResponse(ClientObject client, byte[] messageData)
+        public static void HandleHandshakeResponse(ByteArray messageData, Connection<ClientObject> connection)
         {
+            ClientObject client = connection.state;
             int protocolVersion;
             string playerName = "";
             string playerPublicKey;
@@ -38,28 +40,19 @@ namespace DarkMultiPlayerServer.Messages
             HandshakeReply handshakeReponse = HandshakeReply.HANDSHOOK_SUCCESSFULLY;
             try
             {
-                using (MessageReader mr = new MessageReader(messageData))
+                using (MessageReader mr = new MessageReader(messageData.data))
                 {
                     protocolVersion = mr.Read<int>();
                     playerName = mr.Read<string>();
                     playerPublicKey = mr.Read<string>();
                     playerChallangeSignature = mr.Read<byte[]>();
                     clientVersion = mr.Read<string>();
-                    try
-                    {
-                        client.compressionEnabled = mr.Read<bool>();
-                    }
-                    catch
-                    {
-                        //This is safe to ignore. We want to tell people about version mismatches still.
-                        client.compressionEnabled = false;
-                    }
                 }
             }
             catch (Exception e)
             {
-                DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + client.playerName + ": " + e);
-                SendHandshakeReply(client, HandshakeReply.MALFORMED_HANDSHAKE, "Malformed handshake");
+                DarkLog.Debug("Error in HANDSHAKE_REQUEST from " + connection.state.playerName + ": " + e);
+                SendHandshakeReply(connection.state, HandshakeReply.MALFORMED_HANDSHAKE, "Malformed handshake");
                 return;
             }
             if (regex.IsMatch(playerName))
@@ -83,11 +76,6 @@ namespace DarkMultiPlayerServer.Messages
             {
                 //Check client isn't already connected
                 ClientObject testClient = ClientHandler.GetClientByName(playerName);
-                if (testClient != null)
-                {
-                    Messages.Heartbeat.Send(testClient);
-                    Thread.Sleep(1000);
-                }
                 if (ClientHandler.ClientConnected(testClient))
                 {
                     handshakeReponse = HandshakeReply.ALREADY_CONNECTED;
@@ -221,8 +209,8 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendHandshakeReply(ClientObject client, HandshakeReply enumResponse, string reason)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.HANDSHAKE_REPLY;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_REPLY, 512 * 1024);
+            newMessage.reliable = true;
             int response = (int)enumResponse;
             using (MessageWriter mw = new MessageWriter())
             {
@@ -232,7 +220,6 @@ namespace DarkMultiPlayerServer.Messages
                 mw.Write<string>(Common.PROGRAM_VERSION);
                 if (response == 0)
                 {
-                    mw.Write<bool>(Settings.settingsStore.compressionEnabled);
                     mw.Write<int>((int)Settings.settingsStore.modControl);
                     if (Settings.settingsStore.modControl != ModControlMode.DISABLED)
                     {
@@ -244,7 +231,7 @@ namespace DarkMultiPlayerServer.Messages
                         mw.Write<string>(modFileData);
                     }
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
             if (response == 0 && Settings.settingsStore.modpackMode == ModpackMode.GAMEDATA)

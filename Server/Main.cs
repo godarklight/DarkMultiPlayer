@@ -5,7 +5,7 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using DarkMultiPlayerCommon;
-using UDPMeshLib;
+//using UDPMeshLib;
 
 namespace DarkMultiPlayerServer
 {
@@ -18,7 +18,7 @@ namespace DarkMultiPlayerServer
         public static string configDirectory = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Config");
         public static Stopwatch serverClock;
         public static HttpListener httpListener;
-        public static UdpMeshServer meshServer;
+        //public static UdpMeshServer meshServer;
         private static Thread meshServerThread;
         private static long ctrlCTime;
         public static int playerCount = 0;
@@ -179,12 +179,6 @@ namespace DarkMultiPlayerServer
                 GameplaySettings.Load();
             }
 
-            //Test compression
-            if (Settings.settingsStore.compressionEnabled)
-            {
-                Compression.compressionEnabled = true;
-            }
-
             //Set day for log change
             day = DateTime.Now.Day;
 
@@ -241,7 +235,7 @@ namespace DarkMultiPlayerServer
                 {
                     Thread.Sleep(500);
                 }
-                StartMeshServer();
+                //StartMeshServer();
                 StartHTTPServer();
                 DarkLog.Normal("Ready!");
                 DMPPluginHandler.FireOnServerStart();
@@ -410,7 +404,7 @@ namespace DarkMultiPlayerServer
             serverStarting = false;
             serverRunning = false;
             StopHTTPServer();
-            StopMeshServer();
+            //StopMeshServer();
         }
         //Restart
         public static void Restart(string reason)
@@ -429,7 +423,7 @@ namespace DarkMultiPlayerServer
             serverStarting = false;
             serverRunning = false;
             ForceStopHTTPServer();
-            StopMeshServer();
+            //StopMeshServer();
         }
 
         //Gracefully shut down
@@ -448,6 +442,7 @@ namespace DarkMultiPlayerServer
             }
         }
 
+        /*
         private static void StartMeshServer()
         {
             //Only enable mesh server when we can bind on all ports
@@ -470,6 +465,7 @@ namespace DarkMultiPlayerServer
             meshServer.Shutdown();
             meshServerThread = null;
         }
+        */
 
         private static void StartHTTPServer()
         {

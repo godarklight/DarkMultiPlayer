@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer
@@ -35,13 +36,13 @@ namespace DarkMultiPlayerServer
                             DarkLog.Debug("Added '" + playerName + "' to admin list.");
                             AdminSystem.fetch.AddAdmin(playerName);
                             //Notify all players an admin has been added
-                            ServerMessage newMessage = new ServerMessage();
-                            newMessage.type = ServerMessageType.ADMIN_SYSTEM;
-                            using (MessageWriter mw = new MessageWriter())
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048);
+                            newMessage.reliable = true;
+                            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)AdminMessageType.ADD);
                                 mw.Write<string>(playerName);
-                                newMessage.data = mw.GetMessageBytes();
+                                newMessage.data.size = (int)mw.GetMessageLength();
                             }
                             ClientHandler.SendToAll(null, newMessage, true);
                         }
@@ -62,13 +63,13 @@ namespace DarkMultiPlayerServer
                         DarkLog.Normal("Removed '" + playerName + "' from the admin list.");
                         AdminSystem.fetch.RemoveAdmin(playerName);
                         //Notify all players an admin has been removed
-                        ServerMessage newMessage = new ServerMessage();
-                        newMessage.type = ServerMessageType.ADMIN_SYSTEM;
-                        using (MessageWriter mw = new MessageWriter())
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048);
+                        newMessage.reliable = true;
+                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             mw.Write<int>((int)AdminMessageType.REMOVE);
                             mw.Write<string>(playerName);
-                            newMessage.data = mw.GetMessageBytes();
+                            newMessage.data.size = (int)mw.GetMessageLength();
                         }
                         ClientHandler.SendToAll(null, newMessage, true);
 

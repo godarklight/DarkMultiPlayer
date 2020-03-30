@@ -416,14 +416,6 @@ namespace DarkMultiPlayer
                 GUI.BeginGroup(new Rect(10, windowY, windowRect.width - 20, 200));
                 groupY = 0;
 
-                bool toggleCompression = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.compressionEnabled, "Compress Network Traffic");
-                if (toggleCompression != dmpSettings.compressionEnabled)
-                {
-                    dmpSettings.compressionEnabled = toggleCompression;
-                    dmpSettings.SaveSettings();
-                }
-                groupY += 22;
-
                 bool toggleRevert = GUI.Toggle(new Rect(0, groupY, windowRect.width - 20, 20), dmpSettings.revertEnabled, "Enable Revert");
                 if (toggleRevert != dmpSettings.revertEnabled)
                 {

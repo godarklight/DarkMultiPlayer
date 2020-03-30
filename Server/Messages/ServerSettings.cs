@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer.Messages
@@ -13,9 +14,9 @@ namespace DarkMultiPlayerServer.Messages
             int numberOfVessels = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")).Length;
             string clientPath = ScenarioData.GetScenarioPath(client);
             int numberOfScenarioModules = Directory.GetFiles(clientPath).Length;
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.SERVER_SETTINGS;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SERVER_SETTINGS, 512 * 1024);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)Settings.settingsStore.warpMode);
                 mw.Write<int>((int)Settings.settingsStore.gameMode);
@@ -68,7 +69,7 @@ namespace DarkMultiPlayerServer.Messages
                     mw.Write<float>(GameplaySettings.settingsStore.occlusionModifierAtm);
                     mw.Write<bool>(GameplaySettings.settingsStore.extraGroundstations);
                 }
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, true);
         }

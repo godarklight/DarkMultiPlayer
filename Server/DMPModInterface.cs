@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DarkMultiPlayerCommon;
+using DarkNetworkUDP;
 using MessageStream2;
 
 namespace DarkMultiPlayerServer
@@ -67,26 +68,26 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug(modName + " attemped to send a null message");
                 return;
             }
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.MOD_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(modName);
                 mw.Write<byte[]>(messageData);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToClient(client, newMessage, highPriority);
         }
 
         public static void SendDMPModMessageToAll(ClientObject excludeClient, string modName, byte[] messageData, bool highPriority)
         {
-            ServerMessage newMessage = new ServerMessage();
-            newMessage.type = ServerMessageType.MOD_DATA;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length);
+            newMessage.reliable = true;
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(modName);
                 mw.Write<byte[]>(messageData);
-                newMessage.data = mw.GetMessageBytes();
+                newMessage.data.size = (int)mw.GetMessageLength();
             }
             ClientHandler.SendToAll(excludeClient, newMessage, highPriority);
         }

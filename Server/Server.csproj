@@ -39,8 +39,8 @@
     <Reference Include="MessageWriter2">
       <HintPath>..\MessageWriter2.dll</HintPath>
     </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>..\UDPMeshLib.dll</HintPath>
+    <Reference Include="DarkNetworkUDP">
+      <HintPath>..\DarkNetworkUDP.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
@@ -61,7 +61,6 @@
     <Compile Include="BackwardsCompatibility.cs" />
     <Compile Include="DMPModInterface.cs" />
     <Compile Include="Messages\Handshake.cs" />
-    <Compile Include="Messages\Heartbeat.cs" />
     <Compile Include="BanSystem.cs" />
     <Compile Include="WhitelistSystem.cs" />
     <Compile Include="AdminSystem.cs" />
@@ -84,7 +83,6 @@
     <Compile Include="Messages\WarpControl.cs" />
     <Compile Include="Messages\LockSystem.cs" />
     <Compile Include="Messages\ModData.cs" />
-    <Compile Include="Messages\SplitMessage.cs" />
     <Compile Include="Messages\ConnectionEnd.cs" />
     <Compile Include="Messages\AdminSystemMessage.cs" />
     <Compile Include="Messages\ServerSettings.cs" />

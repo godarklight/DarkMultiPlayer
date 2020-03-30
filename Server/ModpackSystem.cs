@@ -78,7 +78,7 @@ namespace DarkMultiPlayerServer
                         continue;
                     }
                     //Keep a megabyte queued while sending
-                    while (kvp.Key.bytesQueuedOut < 1000000 && kvp.Value.position < kvp.Value.sha256sums.Length)
+                    while (kvp.Key.connection.GetQueuedOut() < 1000000 && kvp.Value.position < kvp.Value.sha256sums.Length)
                     {
                         sentData = true;
                         string sha256sum = kvp.Value.sha256sums[kvp.Value.position];
@@ -296,7 +296,7 @@ namespace DarkMultiPlayerServer
         public void HandleModDone()
         {
             modpackData.Clear();
-            objectData.Clear(); 
+            objectData.Clear();
             if (File.Exists(modpackServerCacheObjects))
             {
                 File.Delete(modpackServerCacheObjects);
