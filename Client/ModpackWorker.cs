@@ -134,7 +134,7 @@ namespace DarkMultiPlayer
                     }
                     if (networkWorker.state == ClientState.RUNNING)
                     {
-                        while (modFilesToUpload != null && networkWorker.GetStatistics("QueuedOutBytes") < 1000000)
+                        while (modFilesToUpload != null)
                         {
                             RealSendToServer();
                             if (modFilesToUpload != null)

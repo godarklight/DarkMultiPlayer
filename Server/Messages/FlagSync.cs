@@ -56,8 +56,7 @@ namespace DarkMultiPlayerServer.Messages
                                     {
                                         DarkLog.Debug("Deleting flag " + trimmedName);
                                         File.Delete(serverFlag);
-                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048);
-                                        newMessage.reliable = true;
+                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048, NetworkMessageType.ORDERED_RELIABLE);
                                         using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                         {
                                             mw.Write<int>((int)FlagMessageType.DELETE_FILE);
@@ -73,8 +72,7 @@ namespace DarkMultiPlayerServer.Messages
                                     else
                                     {
                                         DarkLog.Debug("Sending flag " + serverFlag + " from " + flagOwner + " to " + client.playerName);
-                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024);
-                                        newMessage.reliable = true;
+                                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                                         using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                         {
                                             mw.Write<int>((int)FlagMessageType.FLAG_DATA);
@@ -94,8 +92,7 @@ namespace DarkMultiPlayerServer.Messages
                                     serverFlagShaSums.Add(Common.CalculateSHA256Hash(serverFlag));
                                 }
                             }
-                            NetworkMessage listMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 512 * 1024);
-                            listMessage.reliable = true;
+                            NetworkMessage listMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw2 = new MessageWriter(listMessage.data.data))
                             {
                                 mw2.Write<int>((int)FlagMessageType.LIST);
@@ -123,8 +120,7 @@ namespace DarkMultiPlayerServer.Messages
                                     Directory.Delete(playerFlagPath);
                                 }
                             }
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 2048, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)FlagMessageType.DELETE_FILE);
@@ -153,8 +149,7 @@ namespace DarkMultiPlayerServer.Messages
                                     DarkLog.Debug("Saving flag " + flagName + " from " + client.playerName);
                                     File.WriteAllBytes(Path.Combine(playerFlagPath, flagName), flagData);
 
-                                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024);
-                                    newMessage.reliable = true;
+                                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.FLAG_SYNC, 5 * 1024 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                                     using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                     {
                                         mw.Write<int>((int)FlagMessageType.FLAG_DATA);

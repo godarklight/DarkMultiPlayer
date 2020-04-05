@@ -39,8 +39,7 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
                 //Relay the message.
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_REMOVE, messageData.Length);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_REMOVE, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                 Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                 ClientHandler.SendToAll(client, newMessage, false);
             }
@@ -63,8 +62,7 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
                 //Relay the message.
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REMOVE, messageData.Length);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REMOVE, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                 Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                 ClientHandler.SendToAll(client, newMessage, false);
             }

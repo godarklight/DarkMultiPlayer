@@ -9,8 +9,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendAllAdmins(ClientObject client)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write((int)AdminMessageType.LIST);

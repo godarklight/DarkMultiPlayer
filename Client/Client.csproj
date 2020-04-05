@@ -47,9 +47,6 @@
       <HintPath>..\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>..\UDPMeshLib.dll</HintPath>
-    </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>..\UnityEngine.CoreModule.dll</HintPath>
       <Private>False</Private>
@@ -141,6 +138,7 @@
     <Compile Include="ServersWindow.cs" />
     <Compile Include="ServerListConnection.cs" />
     <Compile Include="VesselRangeBumper.cs" />
+    <Compile Include="ClientObject.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
@@ -148,8 +146,4 @@
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
   </ItemGroup>
-  <PropertyGroup>
-    <PostBuildEvent Condition="'$(OS)' != 'Unix'">$(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer.dll
-$(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer-Common.dll</PostBuildEvent>
-  </PropertyGroup>
 </Project>

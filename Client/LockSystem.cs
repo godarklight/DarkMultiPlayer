@@ -120,7 +120,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleLockMessage(ByteArray messageData)
+        public void HandleLockMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
             lock (lockObject)
             {

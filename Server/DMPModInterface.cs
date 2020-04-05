@@ -68,8 +68,7 @@ namespace DarkMultiPlayerServer
                 DarkLog.Debug(modName + " attemped to send a null message");
                 return;
             }
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(modName);
@@ -81,8 +80,7 @@ namespace DarkMultiPlayerServer
 
         public static void SendDMPModMessageToAll(ClientObject excludeClient, string modName, byte[] messageData, bool highPriority)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOD_DATA, 2048 + messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(modName);

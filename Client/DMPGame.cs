@@ -39,7 +39,6 @@ namespace DarkMultiPlayer
         public readonly ChatWorker chatWorker;
         public readonly WarpWorker warpWorker;
         public readonly PlayerStatusWorker playerStatusWorker;
-        public readonly DynamicTickWorker dynamicTickWorker;
         public readonly DebugWindow debugWindow;
         public readonly CraftLibraryWorker craftLibraryWorker;
         public readonly PlayerColorWorker playerColorWorker;
@@ -73,10 +72,9 @@ namespace DarkMultiPlayer
             this.permissions = new Permissions(this, networkWorker, dmpSettings, groups);
             this.permissionsWindow = new PermissionsWindow(this, dmpSettings, groups, permissions, lockSystem);
             this.partKiller = new PartKiller(lockSystem);
-            this.dynamicTickWorker = new DynamicTickWorker(this, networkWorker);
             this.kerbalReassigner = new KerbalReassigner();
             this.playerColorWorker = new PlayerColorWorker(this, dmpSettings, lockSystem, networkWorker);
-            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, dynamicTickWorker, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler, vesselRangeBumper, playerColorWorker);
+            this.vesselWorker = new VesselWorker(this, dmpSettings, modWorker, lockSystem, networkWorker, configNodeSerializer, kerbalReassigner, partKiller, posistionStatistics, permissions, profiler, vesselRangeBumper, playerColorWorker);
             this.scenarioWorker = new ScenarioWorker(this, vesselWorker, configNodeSerializer, networkWorker);
             this.playerStatusWorker = new PlayerStatusWorker(this, dmpSettings, vesselWorker, lockSystem, networkWorker, permissions);
             this.timeSyncer = new TimeSyncer(this, networkWorker, vesselWorker);
@@ -85,13 +83,13 @@ namespace DarkMultiPlayer
             this.modpackWorker = new ModpackWorker(this, dmpSettings, modWorker, networkWorker, chatWorker, adminSystem);
             this.screenshotWorker = new ScreenshotWorker(this, dmpSettings, chatWorker, networkWorker, playerStatusWorker);
             this.vesselRecorder = new VesselRecorder(this, warpWorker, vesselWorker, networkWorker, dmpSettings);
-            this.debugWindow = new DebugWindow(this, dmpSettings, timeSyncer, networkWorker, vesselWorker, dynamicTickWorker, warpWorker, vesselRecorder, posistionStatistics, optionsWindow, profiler);
+            this.debugWindow = new DebugWindow(this, dmpSettings, timeSyncer, networkWorker, vesselWorker, warpWorker, vesselRecorder, posistionStatistics, optionsWindow, profiler);
             this.craftLibraryWorker = new CraftLibraryWorker(this, dmpSettings, networkWorker);
             this.asteroidWorker = new AsteroidWorker(this, lockSystem, networkWorker, vesselWorker);
             this.playerStatusWindow = new PlayerStatusWindow(this, dmpSettings, warpWorker, chatWorker, craftLibraryWorker, screenshotWorker, timeSyncer, playerStatusWorker, optionsWindow, playerColorWorker, groupsWindow, permissionsWindow);
             this.playerColorWorker.SetDependencies(playerStatusWindow);
             this.vesselWorker.SetDependencies(timeSyncer, warpWorker, asteroidWorker, chatWorker, playerStatusWorker);
-            this.networkWorker.SetDependencies(timeSyncer, warpWorker, chatWorker, playerColorWorker, flagSyncer, partKiller, kerbalReassigner, asteroidWorker, vesselWorker, playerStatusWorker, scenarioWorker, dynamicTickWorker, craftLibraryWorker, screenshotWorker, toolbarSupport, adminSystem, lockSystem, dmpModInterface, universeSyncCache, vesselRecorder, groups, permissions, modpackWorker);
+            this.networkWorker.SetDependencies(timeSyncer, warpWorker, chatWorker, playerColorWorker, flagSyncer, partKiller, kerbalReassigner, asteroidWorker, vesselWorker, playerStatusWorker, scenarioWorker, craftLibraryWorker, screenshotWorker, toolbarSupport, adminSystem, lockSystem, dmpModInterface, universeSyncCache, vesselRecorder, groups, permissions, modpackWorker);
             //this.vesselPackedUpdater.SetVesselRecoder(this.vesselRecorder);
             optionsWindow.SetDependencies(this, networkWorker, playerColorWorker);
             groupsWindow.SetDependencies(playerStatusWorker);
@@ -100,7 +98,6 @@ namespace DarkMultiPlayer
             this.stopEvent.Add(this.chatWorker.Stop);
             this.stopEvent.Add(this.craftLibraryWorker.Stop);
             this.stopEvent.Add(this.debugWindow.Stop);
-            this.stopEvent.Add(this.dynamicTickWorker.Stop);
             this.stopEvent.Add(this.flagSyncer.Stop);
             this.stopEvent.Add(this.kerbalReassigner.Stop);
             this.stopEvent.Add(this.playerColorWorker.Stop);

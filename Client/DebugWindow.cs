@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using UDPMeshLib;
 using DarkMultiPlayerCommon;
 using DarkNetworkUDP;
 
@@ -52,7 +51,6 @@ namespace DarkMultiPlayer
         private TimeSyncer timeSyncer;
         private NetworkWorker networkWorker;
         private VesselWorker vesselWorker;
-        private DynamicTickWorker dynamicTickWorker;
         private WarpWorker warpWorker;
         private VesselRecorder vesselRecorder;
         private PosistionStatistics posistionStatistics;
@@ -61,14 +59,13 @@ namespace DarkMultiPlayer
         private NamedAction updateAction;
         private NamedAction drawAction;
 
-        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, DynamicTickWorker dynamicTickWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow, Profiler profiler)
+        public DebugWindow(DMPGame dmpGame, Settings dmpSettings, TimeSyncer timeSyncer, NetworkWorker networkWorker, VesselWorker vesselWorker, WarpWorker warpWorker, VesselRecorder vesselRecorder, PosistionStatistics posistionStatistics, OptionsWindow optionsWindow, Profiler profiler)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
             this.timeSyncer = timeSyncer;
             this.networkWorker = networkWorker;
             this.vesselWorker = vesselWorker;
-            this.dynamicTickWorker = dynamicTickWorker;
             this.warpWorker = warpWorker;
             this.vesselRecorder = vesselRecorder;
             this.posistionStatistics = posistionStatistics;
@@ -208,6 +205,7 @@ namespace DarkMultiPlayer
                 }
                 GUILayout.EndHorizontal();
             }
+            /*
             displayMeshStats = GUILayout.Toggle(displayMeshStats, "Mesh statistics", buttonStyle);
             if (displayMeshStats)
             {
@@ -248,6 +246,7 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            */
             displayVesselCache = GUILayout.Toggle(displayVesselCache, "Display vessel cache", buttonStyle);
             if (displayVesselCache)
             {
@@ -337,6 +336,7 @@ namespace DarkMultiPlayer
                         ntpText += "Server lag: " + Math.Round((timeSyncer.serverLag / 10000f), 3) + " ms\n";
                     }
                     //Connection queue text
+                    /*
                     if (displayConnectionQueue)
                     {
                         connectionText = "Last send time: " + networkWorker.GetStatistics("LastSendTime") + "ms.\n";
@@ -350,12 +350,13 @@ namespace DarkMultiPlayer
                         connectionText += "Stored future updates: " + vesselWorker.GetStatistics("StoredFutureUpdates") + "\n";
                         connectionText += "Stored future proto updates: " + vesselWorker.GetStatistics("StoredFutureProtoUpdates") + ".\n";
                     }
+                    */
 
                     //Dynamic tick text
                     if (displayDynamicTickStats)
                     {
                         dynamicTickText = "Current tick rate: " + DynamicTickWorker.SEND_TICK_RATE + "hz.\n";
-                        dynamicTickText += "Current max secondry vessels: " + dynamicTickWorker.maxSecondryVesselsPerTick + ".\n";
+                        dynamicTickText += "Current max secondry vessels: " + DynamicTickWorker.MASTER_MAX_SECONDARY_VESSELS + ".\n";
                     }
 
                     //Requested rates text

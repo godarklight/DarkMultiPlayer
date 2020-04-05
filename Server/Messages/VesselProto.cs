@@ -49,8 +49,7 @@ namespace DarkMultiPlayerServer.Messages
                 }
 
                 //Relay message
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_PROTO, messageData.Length);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_PROTO, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                 Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                 ClientHandler.SendToAll(client, newMessage, false);
             }
@@ -58,8 +57,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendVessel(ClientObject client, string vesselGUID, byte[] vesselData)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_PROTO, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_PROTO, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<double>(0);

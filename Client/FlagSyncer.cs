@@ -53,7 +53,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleMessage(ByteArray messageData)
+        public void HandleMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
             {

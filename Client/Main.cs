@@ -94,7 +94,7 @@ namespace DarkMultiPlayer
         public void Start()
         {
             //Set buffered UDPMesh
-            UDPMeshLib.UdpMeshCommon.USE_BUFFERS = true;
+            //UDPMeshLib.UdpMeshCommon.USE_BUFFERS = true;
             //Set pool sizes for ByteRecycler
             ByteRecycler.AddPoolSize(SMALL_MESSAGE_SIZE);
             ByteRecycler.AddPoolSize(MEDIUM_MESSAGE_SIZE);

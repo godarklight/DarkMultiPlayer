@@ -20,8 +20,7 @@ namespace DarkMultiPlayer
         private VesselUpdate lastUpdate;
         private string recordPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording.bin");
         private string recordVectorPath = Path.Combine(KSPUtil.ApplicationRootPath, "DMPRecording-vector.bin");
-        private Action<ByteArray> HandleProtoUpdate, HandleVesselRemove;
-        private Action<ByteArray, bool> HandleVesselUpdate;
+        private Action<ByteArray, Connection<ClientObject>> HandleProtoUpdate, HandleVesselRemove, HandleVesselUpdate;
         private VesselWorker vesselWorker;
         private NetworkWorker networkWorker;
         private Settings dmpSettings;
@@ -41,7 +40,7 @@ namespace DarkMultiPlayer
             dmpGame.updateEvent.Add(updateAction);
         }
 
-        public void SetHandlers(Action<ByteArray> HandleProtoUpdate, Action<ByteArray, bool> HandleVesselUpdate, Action<ByteArray> HandleVesselRemove)
+        public void SetHandlers(Action<ByteArray, Connection<ClientObject>> HandleProtoUpdate, Action<ByteArray, Connection<ClientObject>> HandleVesselUpdate, Action<ByteArray, Connection<ClientObject>> HandleVesselRemove)
         {
             this.HandleProtoUpdate = HandleProtoUpdate;
             this.HandleVesselUpdate = HandleVesselUpdate;
@@ -157,13 +156,13 @@ namespace DarkMultiPlayer
                         switch (messageType)
                         {
                             case ClientMessageType.VESSEL_PROTO:
-                                HandleProtoUpdate(dataBytes);
+                                HandleProtoUpdate(dataBytes, null);
                                 break;
                             case ClientMessageType.VESSEL_UPDATE:
-                                HandleVesselUpdate(dataBytes, false);
+                                HandleVesselUpdate(dataBytes, null);
                                 break;
                             case ClientMessageType.VESSEL_REMOVE:
-                                HandleVesselRemove(dataBytes);
+                                HandleVesselRemove(dataBytes, null);
                                 break;
                             default:
                                 break;
@@ -187,7 +186,7 @@ namespace DarkMultiPlayer
                     int updateLength = BitConverter.ToInt32(headerBytesInt, 0);
                     ByteArray updateBytes = ByteRecycler.GetObject(updateLength);
                     fs.Read(updateBytes.data, 0, updateLength);
-                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes.data, false);
+                    VesselUpdate vu = networkWorker.VeselUpdateFromBytes(updateBytes.data);
                     playbackQueue.Enqueue(vu);
                     ByteRecycler.ReleaseObject(updateBytes);
                 }
@@ -222,7 +221,7 @@ namespace DarkMultiPlayer
                 VesselUpdate vu = Recycler<VesselUpdate>.GetObject();
                 vu.SetVesselWorker(vesselWorker);
                 vu.CopyFromVessel(FlightGlobals.fetch.activeVessel);
-                ClientMessage updateBytes = networkWorker.GetVesselUpdateMessage(vu);
+                NetworkMessage updateBytes = networkWorker.GetVesselUpdateMessage(vu);
                 byte[] lengthBytes = BitConverter.GetBytes(updateBytes.data.Length);
                 if (BitConverter.IsLittleEndian)
                 {

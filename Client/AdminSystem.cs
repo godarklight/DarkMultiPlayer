@@ -19,7 +19,7 @@ namespace DarkMultiPlayer
             this.dmpSettings = dmpSettings;
         }
 
-        public void HandleAdminMessage(ByteArray messageData)
+        public void HandleAdminMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
             {

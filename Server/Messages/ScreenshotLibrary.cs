@@ -70,8 +70,7 @@ namespace DarkMultiPlayerServer.Messages
 
                                 //Notify players that aren't watching that there's a new screenshot availabe. This only works if there's a file available on the server.
                                 //The server does not keep the screenshots in memory.
-                                NetworkMessage notifyMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 2048);
-                                notifyMessage.reliable = true;
+                                NetworkMessage notifyMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 2048, NetworkMessageType.ORDERED_RELIABLE);
                                 using (MessageWriter mw = new MessageWriter(notifyMessage.data.data))
                                 {
                                     mw.Write<int>((int)ScreenshotMessageType.NOTIFY);
@@ -119,8 +118,7 @@ namespace DarkMultiPlayerServer.Messages
                                             }
                                             playerDownloadedScreenshotIndex[entry.Key][fromPlayer] = playerUploadedScreenshotIndex[fromPlayer];
                                             DarkLog.Debug("Sending screenshot from " + fromPlayer + " to " + entry.Key);
-                                            NetworkMessage sendStartMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024);
-                                            sendStartMessage.reliable = true;
+                                            NetworkMessage sendStartMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                                             using (MessageWriter mw = new MessageWriter(sendStartMessage.data.data))
                                             {
                                                 mw.Write<int>((int)ScreenshotMessageType.SEND_START_NOTIFY);
@@ -128,8 +126,7 @@ namespace DarkMultiPlayerServer.Messages
                                                 sendStartMessage.data.size = (int)mw.GetMessageLength();
                                             }
                                             ClientHandler.SendToClient(toClient, sendStartMessage, true);
-                                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, messageData.Length);
-                                            newMessage.reliable = true;
+                                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                                             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                                             ClientHandler.SendToClient(toClient, newMessage, false);
                                         }
@@ -198,16 +195,14 @@ namespace DarkMultiPlayerServer.Messages
                                     }
                                     if (sendScreenshot)
                                     {
-                                        NetworkMessage sendStartMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024);
-                                        sendStartMessage.reliable = true;
+                                        NetworkMessage sendStartMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                                         using (MessageWriter mw = new MessageWriter(sendStartMessage.data.data))
                                         {
                                             mw.Write<int>((int)ScreenshotMessageType.SEND_START_NOTIFY);
                                             mw.Write<string>(fromPlayer);
                                             sendStartMessage.data.size = (int)mw.GetMessageLength();
                                         }
-                                        NetworkMessage screenshotMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024);
-                                        screenshotMessage.reliable = true;
+                                        NetworkMessage screenshotMessage = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                                         using (MessageWriter mw = new MessageWriter(screenshotMessage.data.data))
                                         {
                                             mw.Write<int>((int)ScreenshotMessageType.SCREENSHOT);
@@ -226,8 +221,7 @@ namespace DarkMultiPlayerServer.Messages
                                 }
                             }
                             //Relay the message
-                            NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, messageData.Length);
-                            newMessage2.reliable = true;
+                            NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.SCREENSHOT_LIBRARY, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                             Array.Copy(messageData.data, 0, newMessage2.data.data, 0, messageData.Length);
                             ClientHandler.SendToAll(client, newMessage2, false);
                         }

@@ -12,8 +12,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendChatMessageToClient(ClientObject client, string messageText)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.PRIVATE_MESSAGE);
@@ -27,8 +26,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendChatMessageToAll(string messageText)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
@@ -43,8 +41,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendChatMessageToChannel(string channel, string messageText)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CHANNEL_MESSAGE);
@@ -59,8 +56,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendConsoleMessageToClient(ClientObject client, string message)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.CONSOLE_MESSAGE);
@@ -84,8 +80,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandleChatMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
             ClientObject client = connection.state;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             using (MessageReader mr = new MessageReader(messageData.data))
             {
@@ -212,9 +207,8 @@ namespace DarkMultiPlayerServer.Messages
         public static void SendPlayerChatChannels(ClientObject client)
         {
             List<string> playerList = new List<string>();
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 2048);
-            newMessage.reliable = true;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CHAT_MESSAGE, 2048, NetworkMessageType.ORDERED_RELIABLE);
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)ChatMessageType.LIST);
                 foreach (KeyValuePair<string, List<string>> playerEntry in playerChatChannels)

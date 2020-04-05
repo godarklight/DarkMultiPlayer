@@ -178,7 +178,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandlePlayerColorMessage(ByteArray messageData)
+        public void HandlePlayerColorMessage(ByteArray messageData, Connection<ClientObject> connection)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
             {

@@ -399,7 +399,7 @@ namespace DarkMultiPlayer
             }
         }
 
-        public void HandleSetSubspace(ByteArray messageData)
+        public void HandleSetSubspace(ByteArray messageData, Connection<ClientObject> connection)
         {
             using (MessageReader mr = new MessageReader(messageData.data))
             {

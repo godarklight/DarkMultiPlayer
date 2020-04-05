@@ -50,8 +50,7 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     if (otherClient != client)
                     {
-                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048);
-                        newMessage.reliable = true;
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
                         using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             mw.Write<int>((int)WarpMessageType.REPORT_RATE);
@@ -210,8 +209,7 @@ namespace DarkMultiPlayerServer.Messages
                         voteNoCount++;
                     }
                 }
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 12);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 12, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.REPLY_VOTE);
@@ -277,8 +275,7 @@ namespace DarkMultiPlayerServer.Messages
                 newSubspace.subspaceSpeed = subspaceSpeed;
                 subspaces.Add(freeID, newSubspace);
                 //Create message
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
@@ -308,8 +305,7 @@ namespace DarkMultiPlayerServer.Messages
         private static void HandleChangeSubspace(ClientObject client, int subspace)
         {
             client.subspace = subspace;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
@@ -351,8 +347,7 @@ namespace DarkMultiPlayerServer.Messages
                 UpdateSubspace(reportedSubspace);
                 //Change the subspace speed and report it to the clients
                 subspaces[reportedSubspace].subspaceSpeed = newSubspaceRate;
-                NetworkMessage relockMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                relockMessage.reliable = true;
+                NetworkMessage relockMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(relockMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.RELOCK_SUBSPACE);
@@ -367,8 +362,7 @@ namespace DarkMultiPlayerServer.Messages
                 SaveLatestSubspace();
             }
             //Tell other players about the reported rate
-            NetworkMessage reportMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-            reportMessage.reliable = true;
+            NetworkMessage reportMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(reportMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.REPORT_RATE);
@@ -381,8 +375,7 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void HandleChangeWarp(ClientObject client, bool physWarp, int rateIndex, long serverClock, double planetTime)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
@@ -472,8 +465,7 @@ namespace DarkMultiPlayerServer.Messages
             //Send all the locks.
             foreach (KeyValuePair<int, Subspace> subspace in subspaces)
             {
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
@@ -490,8 +482,7 @@ namespace DarkMultiPlayerServer.Messages
             {
                 if (otherClient.authenticated && (otherClient.playerName != client.playerName))
                 {
-                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                    newMessage.reliable = true;
+                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
                     using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                     {
                         mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
@@ -508,8 +499,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             if (Settings.settingsStore.warpMode == WarpMode.MCW_FORCE || Settings.settingsStore.warpMode == WarpMode.MCW_VOTE)
             {
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.REQUEST_VOTE);
@@ -525,8 +515,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             if (Settings.settingsStore.warpMode == WarpMode.MCW_FORCE || Settings.settingsStore.warpMode == WarpMode.MCW_VOTE || Settings.settingsStore.warpMode == WarpMode.MCW_LOWEST)
             {
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)WarpMessageType.SET_CONTROLLER);
@@ -561,16 +550,14 @@ namespace DarkMultiPlayerServer.Messages
         {
             DarkLog.Debug("Sending " + client.playerName + " to subspace " + subspace);
             client.subspace = subspace;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SET_SUBSPACE, 4);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SET_SUBSPACE, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>(subspace);
             }
             ClientHandler.SendToClient(client, newMessage, true);
             //Tell everyone else they changed
-            NetworkMessage changeMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 512 * 1024);
-            changeMessage.reliable = true;
+            NetworkMessage changeMessage = NetworkMessage.Create((int)ServerMessageType.WARP_CONTROL, 2048, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(changeMessage.data.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);

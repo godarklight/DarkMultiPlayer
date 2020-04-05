@@ -19,8 +19,7 @@ namespace DarkMultiPlayerServer.Messages
             newMotd = newMotd.Replace("%name%", client.playerName);
             newMotd = newMotd.Replace(@"\n", Environment.NewLine);
 
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOTD_REPLY, 16 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.MOTD_REPLY, 16 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(newMotd);

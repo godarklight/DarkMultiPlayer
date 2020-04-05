@@ -15,8 +15,7 @@ namespace DarkMultiPlayerServer.Messages
             List<string> lockKeys = new List<string>(lockList.Keys);
             List<string> lockValues = new List<string>(lockList.Values);
 
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write((int)LockMessageType.LIST);
@@ -46,8 +45,7 @@ namespace DarkMultiPlayerServer.Messages
                                 Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for sending a lock message for another player");
                             }
                             bool lockResult = DarkMultiPlayerServer.LockSystem.fetch.AcquireLock(lockName, playerName, force);
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write((int)LockMessageType.ACQUIRE);
@@ -83,8 +81,7 @@ namespace DarkMultiPlayerServer.Messages
                             }
                             else
                             {
-                                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048);
-                                newMessage.reliable = true;
+                                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.LOCK_SYSTEM, 2048, NetworkMessageType.ORDERED_RELIABLE);
                                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                                 {
                                     mw.Write((int)LockMessageType.RELEASE);

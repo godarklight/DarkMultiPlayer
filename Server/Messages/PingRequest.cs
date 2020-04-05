@@ -10,7 +10,7 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandlePingRequest(ByteArray messageData, Connection<ClientObject> connection)
         {
             ClientObject client = connection.state;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PING_REPLY, messageData.Length);
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PING_REPLY, messageData.Length, NetworkMessageType.UNORDERED_UNRELIABLE);
             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             ClientHandler.SendToClient(client, newMessage, true);
         }

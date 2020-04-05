@@ -60,8 +60,7 @@ namespace DarkMultiPlayerServer.Messages
             Dictionary<Guid, VesselPermission> vesselPermissions = Permissions.fetch.GetPermissionsCopy();
             foreach (KeyValuePair<Guid, VesselPermission> kvp in vesselPermissions)
             {
-                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
-                sm.reliable = true;
+                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(sm.data.data))
                 {
                     mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);
@@ -89,8 +88,7 @@ namespace DarkMultiPlayerServer.Messages
             Dictionary<Guid, VesselPermission> vesselPermissions = Permissions.fetch.GetPermissionsCopy();
             foreach (KeyValuePair<Guid, VesselPermission> kvp in vesselPermissions)
             {
-                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
-                newMessage.reliable = true;
+                NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                 {
                     mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);
@@ -110,8 +108,7 @@ namespace DarkMultiPlayerServer.Messages
                     ClientHandler.SendToClient(client, newMessage, true);
                 }
             }
-            NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 4);
-            newMessage2.reliable = true;
+            NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
             {
                 mw.Write<int>((int)PermissionMessageType.PERMISSION_SYNCED);
@@ -128,8 +125,7 @@ namespace DarkMultiPlayerServer.Messages
                 return;
             }
             VesselPermission vesselPermission = vesselPermissions[vesselID];
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PERMISSION, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)PermissionMessageType.PERMISSION_INFO);

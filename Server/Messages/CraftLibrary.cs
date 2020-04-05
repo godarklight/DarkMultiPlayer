@@ -21,9 +21,8 @@ namespace DarkMultiPlayerServer.Messages
             {
                 players[i] = players[i].Substring(players[i].LastIndexOf(Path.DirectorySeparatorChar) + 1);
             }
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024);
-            newMessage.reliable = true;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)CraftMessageType.LIST);
                 mw.Write<string[]>(players);
@@ -114,8 +113,7 @@ namespace DarkMultiPlayerServer.Messages
                             string craftFile = Path.Combine(typePath, uploadName + ".craft");
                             File.WriteAllBytes(craftFile, uploadData);
                             DarkLog.Debug("Saving " + uploadName + ", type: " + uploadType.ToString() + " from " + fromPlayer);
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)CraftMessageType.ADD_FILE);
@@ -146,8 +144,7 @@ namespace DarkMultiPlayerServer.Messages
                                     }
                                 }
                             }
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)CraftMessageType.RESPOND_FILE);
@@ -195,8 +192,7 @@ namespace DarkMultiPlayerServer.Messages
                                 Directory.Delete(playerPath);
                             }
                             //Relay the delete message to other clients
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, messageData.Length);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CRAFT_LIBRARY, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                             ClientHandler.SendToAll(client, newMessage, false);
                         }

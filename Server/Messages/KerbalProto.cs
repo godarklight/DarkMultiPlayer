@@ -24,8 +24,7 @@ namespace DarkMultiPlayerServer.Messages
                     File.WriteAllBytes(Path.Combine(Server.universeDirectory, "Kerbals", kerbalName + ".txt"), kerbalData);
                 }
             }
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REPLY, messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REPLY, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             ClientHandler.SendToAll(client, newMessage, false);
         }

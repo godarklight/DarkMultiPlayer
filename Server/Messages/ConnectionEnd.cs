@@ -9,8 +9,7 @@ namespace DarkMultiPlayerServer.Messages
     {
         public static void SendConnectionEnd(ClientObject client, string reason)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CONNECTION_END, 2048);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.CONNECTION_END, 2048, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(reason);

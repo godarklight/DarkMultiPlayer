@@ -11,8 +11,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             ClientObject client = connection.state;
             //We only relay this message.
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_UPDATE, messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_UPDATE, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             ClientHandler.SendToAll(client, newMessage, false);
         }

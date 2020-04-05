@@ -12,8 +12,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             ClientObject client = connection.state;
             //The time sensitive SYNC_TIME is over by this point.
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_JOIN, 2048);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_JOIN, 2048, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string>(client.playerName);
@@ -48,8 +47,7 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendKerbal(ClientObject client, string kerbalName, byte[] kerbalData)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REPLY, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_REPLY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 //Send the vessel with a send time of 0 so it instantly loads on the client.
@@ -63,8 +61,7 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendKerbalsComplete(ClientObject client)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_COMPLETE, 0);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.KERBAL_COMPLETE, 0, NetworkMessageType.ORDERED_RELIABLE);
             ClientHandler.SendToClient(client, newMessage, false);
             //Send vessel list needed for sync to the client
             VesselRequest.SendVesselList(client);

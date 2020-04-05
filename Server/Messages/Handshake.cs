@@ -16,8 +16,7 @@ namespace DarkMultiPlayerServer.Messages
             client.challange = new byte[1024];
             Random rand = new Random();
             rand.NextBytes(client.challange);
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_CHALLANGE, 4 + client.challange.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_CHALLANGE, 4 + client.challange.Length, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<byte[]>(client.challange);
@@ -209,10 +208,9 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendHandshakeReply(ClientObject client, HandshakeReply enumResponse, string reason)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_REPLY, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.HANDSHAKE_REPLY, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             int response = (int)enumResponse;
-            using (MessageWriter mw = new MessageWriter())
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>(response);
                 mw.Write<string>(reason);

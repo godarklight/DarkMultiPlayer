@@ -15,9 +15,8 @@ namespace DarkMultiPlayerServer.Messages
                 {
                     if (otherClient != client)
                     {
-                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048);
-                        newMessage.reliable = true;
-                        using (MessageWriter mw = new MessageWriter())
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048, NetworkMessageType.ORDERED_RELIABLE);
+                        using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             mw.Write<string>(otherClient.playerName);
                             mw.Write<string>(otherClient.playerStatus.vesselText);
@@ -46,8 +45,7 @@ namespace DarkMultiPlayerServer.Messages
                 client.playerStatus.statusText = mr.Read<string>();
             }
             //Relay the message
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048 + messageData.Length);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_STATUS, 2048 + messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.data.Length);
             ClientHandler.SendToAll(client, newMessage, false);
         }

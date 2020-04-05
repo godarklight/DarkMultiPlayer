@@ -88,7 +88,6 @@ namespace DarkMultiPlayer
         private NetworkWorker networkWorker;
         private WarpWorker warpWorker;
         private TimeSyncer timeSyncer;
-        private DynamicTickWorker dynamicTickWorker;
         private ConfigNodeSerializer configNodeSerializer;
         private ChatWorker chatWorker;
         private KerbalReassigner kerbalReassigner;
@@ -103,7 +102,7 @@ namespace DarkMultiPlayer
         private VesselRangeBumper vesselRangeBumper;
         private PlayerColorWorker playerColorWorker;
 
-        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, DynamicTickWorker dynamicTickWorker, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler, VesselRangeBumper vesselRangeBumper, PlayerColorWorker playerColorWorker)
+        public VesselWorker(DMPGame dmpGame, Settings dmpSettings, ModWorker modWorker, LockSystem lockSystem, NetworkWorker networkWorker, ConfigNodeSerializer configNodeSerializer, KerbalReassigner kerbalReassigner, PartKiller partKiller, PosistionStatistics posistionStatistics, Permissions permissions, Profiler profiler, VesselRangeBumper vesselRangeBumper, PlayerColorWorker playerColorWorker)
         {
             this.dmpGame = dmpGame;
             this.dmpSettings = dmpSettings;
@@ -111,7 +110,6 @@ namespace DarkMultiPlayer
             this.lockSystem = lockSystem;
             this.networkWorker = networkWorker;
             this.configNodeSerializer = configNodeSerializer;
-            this.dynamicTickWorker = dynamicTickWorker;
             this.kerbalReassigner = kerbalReassigner;
             this.partKiller = partKiller;
             this.posistionStatistics = posistionStatistics;
@@ -1091,7 +1089,7 @@ namespace DarkMultiPlayer
             foreach (KeyValuePair<double, Vessel> secondryVessel in secondryVessels)
             {
                 currentSend++;
-                if (currentSend > dynamicTickWorker.maxSecondryVesselsPerTick)
+                if (currentSend > DynamicTickWorker.MASTER_MAX_SECONDARY_VESSELS)
                 {
                     break;
                 }
@@ -1251,10 +1249,12 @@ namespace DarkMultiPlayer
                     {
                         networkWorker.SendVesselUpdate(update);
                     }
+                    /*
                     if (sendMesh)
                     {
                         networkWorker.SendVesselUpdateMesh(update, clientsInSubspace);
                     }
+                    */
                 }
                 Recycler<VesselUpdate>.ReleaseObject(update);
             }

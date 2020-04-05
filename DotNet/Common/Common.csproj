@@ -3,5 +3,10 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="DarkNetworkUDP">
+      <HintPath>../../DarkNetworkUDP.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
 </Project>

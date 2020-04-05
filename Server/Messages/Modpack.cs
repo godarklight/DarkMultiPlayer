@@ -111,16 +111,14 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendModData(ClientObject client, byte[] data)
         {
-            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 2048 + data.Length);
-            sm.reliable = true;
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 2048 + data.Length, NetworkMessageType.ORDERED_RELIABLE);
             Array.Copy(data, 0, sm.data.data, 0, data.Length);
             ClientHandler.SendToClient(client, sm, false);
         }
 
         public static void SendModList(ClientObject client)
         {
-            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024);
-            sm.reliable = true;
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(sm.data.data))
             {
                 mw.Write<int>((int)ModpackDataMessageType.MOD_LIST);
@@ -136,8 +134,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendModDone(ClientObject client)
         {
-            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 4);
-            sm.reliable = true;
+            NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(sm.data.data))
             {
                 mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
@@ -150,8 +147,7 @@ namespace DarkMultiPlayerServer.Messages
             byte[] fileData = ModpackSystem.fetch.GetCKANData();
             if (fileData != null)
             {
-                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024);
-                sm.reliable = true;
+                NetworkMessage sm = NetworkMessage.Create((int)ServerMessageType.MODPACK_DATA, 5 * 1024 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(sm.data.data))
                 {
                     mw.Write<int>((int)ModpackDataMessageType.CKAN);

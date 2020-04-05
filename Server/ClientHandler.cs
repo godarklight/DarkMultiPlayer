@@ -216,8 +216,7 @@ namespace DarkMultiPlayerServer
                 client.connectionStatus = ConnectionStatus.DISCONNECTED;
                 if (client.authenticated)
                 {
-                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_DISCONNECT, 2048);
-                    newMessage.reliable = true;
+                    NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_DISCONNECT, 2048, NetworkMessageType.ORDERED_RELIABLE);
                     using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                     {
                         mw.Write<string>(client.playerName);
@@ -252,7 +251,7 @@ namespace DarkMultiPlayerServer
 
         public static void SendToClient(ClientObject client, NetworkMessage message, bool highPriority)
         {
-            client.connection.handler.SendMessage(message);
+            client.connection.handler.SendMessage(message, client.connection);
         }
 
         public static ClientObject[] GetClients()

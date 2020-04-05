@@ -2,11 +2,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
+    <ProjectReference Include="..\..\..\Projects\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj" />
     <Reference Include="MessageWriter2">
       <HintPath>../MessageWriter2.dll</HintPath>
-    </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>../UDPMeshLib.dll</HintPath>
     </Reference>
     <Reference Include="SettingsParser">
       <HintPath>../SettingsParser.dll</HintPath>

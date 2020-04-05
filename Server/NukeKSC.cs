@@ -51,8 +51,7 @@ namespace DarkMultiPlayerServer
                             File.Delete(vesselFile);
                         }
                         //Send a vessel remove message
-                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_REMOVE, 2048);
-                        newMessage.reliable = true;
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_REMOVE, 2048, NetworkMessageType.ORDERED_RELIABLE);
                         using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             //Send it with a delete time of 0 so it shows up for all players.

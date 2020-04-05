@@ -42,8 +42,7 @@ namespace DarkMultiPlayerServer.Messages
 
         public static void SendVesselList(ClientObject client)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_LIST, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_LIST, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             string[] vesselFiles = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels"));
             string[] vesselObjects = new string[vesselFiles.Length];
             for (int i = 0; i < vesselFiles.Length; i++)
@@ -62,8 +61,7 @@ namespace DarkMultiPlayerServer.Messages
 
         private static void SendVesselsComplete(ClientObject client)
         {
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_COMPLETE, 0);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.VESSEL_COMPLETE, 0, NetworkMessageType.ORDERED_RELIABLE);
             ClientHandler.SendToClient(client, newMessage, false);
         }
     }

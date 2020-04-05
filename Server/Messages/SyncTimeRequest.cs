@@ -10,9 +10,8 @@ namespace DarkMultiPlayerServer.Messages
         public static void HandleSyncTimeRequest(ByteArray messageData, Connection<ClientObject> connection)
         {
             ClientObject client = connection.state;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SYNC_TIME_REPLY, 16);
-            newMessage.reliable = true;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SYNC_TIME_REPLY, 16, NetworkMessageType.UNORDERED_UNRELIABLE);
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 using (MessageReader mr = new MessageReader(messageData.data))
                 {

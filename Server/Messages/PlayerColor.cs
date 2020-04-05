@@ -21,8 +21,7 @@ namespace DarkMultiPlayerServer.Messages
                     }
                 }
             }
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)PlayerColorMessageType.LIST);
@@ -56,8 +55,7 @@ namespace DarkMultiPlayerServer.Messages
                             }
                             client.playerColor = mr.Read<float[]>();
                             //Relay the message
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, messageData.Length);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.PLAYER_COLOR, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
                             Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
                             ClientHandler.SendToAll(client, newMessage, true);
                         }

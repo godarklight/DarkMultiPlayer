@@ -43,8 +43,7 @@ namespace DarkMultiPlayerServer.Messages
                 scenarioDataArray[currentScenarioModule] = File.ReadAllBytes(file);
                 currentScenarioModule++;
             }
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 5 * 1024 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 5 * 1024 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string[]>(scenarioNames);
@@ -68,9 +67,8 @@ namespace DarkMultiPlayerServer.Messages
             scenarioNames[0] = scenarioName;
             scenarioDataArray[0] = File.ReadAllBytes(scenarioFile);
 
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 512 * 1024);
-            newMessage.reliable = true;
-            using (MessageWriter mw = new MessageWriter())
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SCENARIO_DATA, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
+            using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<string[]>(scenarioNames);
                 foreach (byte[] thisScenarioData in scenarioDataArray)

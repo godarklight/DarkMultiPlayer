@@ -36,8 +36,7 @@ namespace DarkMultiPlayerServer
                             DarkLog.Debug("Added '" + playerName + "' to admin list.");
                             AdminSystem.fetch.AddAdmin(playerName);
                             //Notify all players an admin has been added
-                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048);
-                            newMessage.reliable = true;
+                            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048, NetworkMessageType.ORDERED_RELIABLE);
                             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                             {
                                 mw.Write<int>((int)AdminMessageType.ADD);
@@ -63,8 +62,7 @@ namespace DarkMultiPlayerServer
                         DarkLog.Normal("Removed '" + playerName + "' from the admin list.");
                         AdminSystem.fetch.RemoveAdmin(playerName);
                         //Notify all players an admin has been removed
-                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048);
-                        newMessage.reliable = true;
+                        NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.ADMIN_SYSTEM, 2048, NetworkMessageType.ORDERED_RELIABLE);
                         using (MessageWriter mw = new MessageWriter(newMessage.data.data))
                         {
                             mw.Write<int>((int)AdminMessageType.REMOVE);

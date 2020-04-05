@@ -89,8 +89,7 @@ namespace DarkMultiPlayerServer.Messages
             DarkLog.Debug("Sending groups to everyone");
             Dictionary<string, List<string>> playerGroups = Groups.fetch.GetGroupsCopy();
             Dictionary<string, List<string>> groupAdmins = Groups.fetch.GetAdminsCopy();
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUP_RESET);
@@ -99,8 +98,7 @@ namespace DarkMultiPlayerServer.Messages
 
             foreach (KeyValuePair<string, List<string>> kvp in playerGroups)
             {
-                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
-                newMessage2.reliable = true;
+                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.GROUP_INFO);
@@ -112,8 +110,7 @@ namespace DarkMultiPlayerServer.Messages
             }
             foreach (KeyValuePair<string, List<string>> kvp in groupAdmins)
             {
-                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
-                newMessage3.reliable = true;
+                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage3.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.ADMIN_INFO);
@@ -130,8 +127,7 @@ namespace DarkMultiPlayerServer.Messages
             DarkLog.Debug("Sending groups to " + client.playerName);
             Dictionary<string, List<string>> playerGroups = Groups.fetch.GetGroupsCopy();
             Dictionary<string, List<string>> groupAdmins = Groups.fetch.GetAdminsCopy();
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.GROUP, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUP_RESET);
@@ -139,8 +135,7 @@ namespace DarkMultiPlayerServer.Messages
             ClientHandler.SendToClient(client, newMessage, true);
             foreach (KeyValuePair<string, List<string>> kvp in playerGroups)
             {
-                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
-                newMessage2.reliable = true;
+                NetworkMessage newMessage2 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage2.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.GROUP_INFO);
@@ -152,8 +147,7 @@ namespace DarkMultiPlayerServer.Messages
             }
             foreach (KeyValuePair<string, List<string>> kvp in groupAdmins)
             {
-                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024);
-                newMessage3.reliable = true;
+                NetworkMessage newMessage3 = NetworkMessage.Create((int)ServerMessageType.GROUP, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
                 using (MessageWriter mw = new MessageWriter(newMessage3.data.data))
                 {
                     mw.Write<int>((int)GroupMessageType.ADMIN_INFO);
@@ -163,8 +157,7 @@ namespace DarkMultiPlayerServer.Messages
                     ClientHandler.SendToClient(client, newMessage3, true);
                 }
             }
-            NetworkMessage newMessage4 = NetworkMessage.Create((int)ServerMessageType.GROUP, 4);
-            newMessage4.reliable = true;
+            NetworkMessage newMessage4 = NetworkMessage.Create((int)ServerMessageType.GROUP, 4, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage4.data.data))
             {
                 mw.Write<int>((int)GroupMessageType.GROUPS_SYNCED);

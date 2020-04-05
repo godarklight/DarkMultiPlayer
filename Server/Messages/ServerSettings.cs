@@ -14,8 +14,7 @@ namespace DarkMultiPlayerServer.Messages
             int numberOfVessels = Directory.GetFiles(Path.Combine(Server.universeDirectory, "Vessels")).Length;
             string clientPath = ScenarioData.GetScenarioPath(client);
             int numberOfScenarioModules = Directory.GetFiles(clientPath).Length;
-            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SERVER_SETTINGS, 512 * 1024);
-            newMessage.reliable = true;
+            NetworkMessage newMessage = NetworkMessage.Create((int)ServerMessageType.SERVER_SETTINGS, 512 * 1024, NetworkMessageType.ORDERED_RELIABLE);
             using (MessageWriter mw = new MessageWriter(newMessage.data.data))
             {
                 mw.Write<int>((int)Settings.settingsStore.warpMode);
