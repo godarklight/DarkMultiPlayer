@@ -43,14 +43,17 @@ namespace DarkMultiPlayer
                 dmpSha[i] = Common.CalculateSHA256Hash(dmpFlags[i]);
                 dmpFlags[i] = Path.GetFileName(dmpFlags[i]);
             }
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(512 * 1024);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)FlagMessageType.LIST);
                 mw.Write<string>(dmpSettings.playerName);
                 mw.Write<string[]>(dmpFlags);
                 mw.Write<string[]>(dmpSha);
-                networkWorker.SendFlagMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendFlagMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void HandleMessage(ByteArray messageData, Connection<ClientObject> connection)
@@ -166,14 +169,17 @@ namespace DarkMultiPlayer
                     return;
                 }
                 DarkLog.Debug("Uploading " + Path.GetFileName(flagFile));
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(5 * 1024 * 1024);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)FlagMessageType.UPLOAD_FILE);
                     mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(Path.GetFileName(flagFile));
                     mw.Write<byte[]>(File.ReadAllBytes(flagFile));
-                    networkWorker.SendFlagMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendFlagMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
                 FlagInfo fi = new FlagInfo();
                 fi.owner = dmpSettings.playerName;
                 fi.shaSum = Common.CalculateSHA256Hash(flagFile);

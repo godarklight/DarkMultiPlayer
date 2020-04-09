@@ -4,10 +4,10 @@
 			"path": "Server"
 		},
 		{
-			"path": "../External/DarkNetworkUDP/DarkNetworkUDP"
+			"path": "Common"
 		},
 		{
-			"path": "Common"
+			"path": "../External/DarkNetworkUDP/DarkNetworkUDP"
 		},
 		{
 			"path": "../Client"

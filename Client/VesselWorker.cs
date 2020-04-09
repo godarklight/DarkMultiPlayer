@@ -985,6 +985,11 @@ namespace DarkMultiPlayer
 
         private void UpdateBannedPartsMessage()
         {
+            if (FlightGlobals.fetch.activeVessel == null)
+            {
+                return;
+            }
+
             if (modWorker.modControl != ModControlMode.DISABLED)
             {
                 if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id))
@@ -1023,6 +1028,7 @@ namespace DarkMultiPlayer
                 }
             }
         }
+
         SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
         private void SendVesselUpdates(bool sendProtoUpdates)
         {

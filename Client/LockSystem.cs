@@ -42,14 +42,17 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)LockMessageType.ACQUIRE);
                     mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
                     mw.Write<bool>(force);
-                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendLockSystemMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
             }
         }
 
@@ -57,13 +60,16 @@ namespace DarkMultiPlayer
         {
             lock (lockObject)
             {
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)LockMessageType.RELEASE);
                     mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(lockName);
-                    networkWorker.SendLockSystemMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendLockSystemMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
                 if (LockIsOurs(lockName))
                 {
                     serverLocks.Remove(lockName);

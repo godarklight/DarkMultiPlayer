@@ -333,7 +333,6 @@ namespace DarkMultiPlayer
                         ntpText += "Current universe time: " + Math.Round(Planetarium.GetUniversalTime(), 3) + " UT\n";
                         ntpText += "Network latency: " + Math.Round((timeSyncer.networkLatencyAverage / 10000f), 3) + " ms\n";
                         ntpText += "Server clock difference: " + Math.Round((timeSyncer.clockOffsetAverage / 10000f), 3) + " ms\n";
-                        ntpText += "Server lag: " + Math.Round((timeSyncer.serverLag / 10000f), 3) + " ms\n";
                     }
                     //Connection queue text
                     /*

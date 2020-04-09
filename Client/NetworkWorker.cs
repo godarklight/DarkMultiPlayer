@@ -801,8 +801,7 @@ namespace DarkMultiPlayer
             {
                 long clientSend = mr.Read<long>();
                 long serverReceive = mr.Read<long>();
-                long serverSend = mr.Read<long>();
-                timeSyncer.HandleSyncTime(clientSend, serverReceive, serverSend);
+                timeSyncer.HandleSyncTime(clientSend, serverReceive);
             }
         }
 
@@ -1793,45 +1792,45 @@ namespace DarkMultiPlayer
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from FlagSyncer
-        public void SendFlagMessage(byte[] messageData)
+        public void SendFlagMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.FLAG_SYNC, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, false);
         }
         //Called from warpWorker
-        public void SendWarpMessage(byte[] messageData)
+        public void SendWarpMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.WARP_CONTROL, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from groups
-        public void SendGroupMessage(byte[] messageData)
+        public void SendGroupMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.GROUP, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from permissions
-        public void SendPermissionsMessage(byte[] messageData)
+        public void SendPermissionsMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.PERMISSION, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from lockSystem
-        public void SendLockSystemMessage(byte[] messageData)
+        public void SendLockSystemMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.LOCK_SYSTEM, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, true);
         }
         //Called from warpWorker
-        public void SendModpackMessage(byte[] messageData)
+        public void SendModpackMessage(ByteArray messageData)
         {
             NetworkMessage newMessage = NetworkMessage.Create((int)ClientMessageType.MODPACK_DATA, messageData.Length, NetworkMessageType.ORDERED_RELIABLE);
-            Array.Copy(messageData, 0, newMessage.data.data, 0, messageData.Length);
+            Array.Copy(messageData.data, 0, newMessage.data.data, 0, messageData.Length);
             QueueOutgoingMessage(newMessage, false);
         }
 

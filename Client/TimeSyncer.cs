@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 using UnityEngine;
+using DarkNetworkUDP;
 
 namespace DarkMultiPlayer
 {
@@ -49,12 +50,6 @@ namespace DarkMultiPlayer
         }
 
         public long networkLatencyAverage
-        {
-            get;
-            private set;
-        }
-
-        public long serverLag
         {
             get;
             private set;
@@ -354,12 +349,15 @@ namespace DarkMultiPlayer
                 TimeWarp.SetRate(0, true);
                 lockedSubspace = subspaces[subspaceID];
                 DarkLog.Debug("Locked to subspace " + subspaceID + ", time: " + GetUniverseTime());
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                     mw.Write<int>(subspaceID);
-                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendWarpMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
             }
             currentSubspace = subspaceID;
         }
@@ -369,12 +367,15 @@ namespace DarkMultiPlayer
             currentSubspace = -1;
             lockedSubspace = null;
             Time.timeScale = 1f;
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)WarpMessageType.CHANGE_SUBSPACE);
                 mw.Write<int>(currentSubspace);
-                networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendWarpMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void RelockSubspace(int subspaceID, long serverClock, double planetTime, float subspaceSpeed)
@@ -494,16 +495,15 @@ namespace DarkMultiPlayer
             return canSync;
         }
 
-        public void HandleSyncTime(long clientSend, long serverReceive, long serverSend)
+        public void HandleSyncTime(long clientSend, long serverReceive)
         {
             long clientReceive = DateTime.UtcNow.Ticks;
-            long clientLatency = (clientReceive - clientSend) - (serverSend - serverReceive);
-            long clientOffset = ((serverReceive - clientSend) + (serverSend - clientReceive)) / 2;
+            long clientLatency = (clientReceive - clientSend);
+            long clientOffset = ((serverReceive - clientSend) + (serverReceive - clientReceive)) / 2;
             clockOffset[clockOffsetPos] = clientOffset;
             clockOffsetPos++;
             networkLatency[networkLatencyPos] = clientLatency;
             networkLatencyPos++;
-            serverLag = serverSend - serverReceive;
             if (clockOffsetPos >= clockOffset.Length)
             {
                 clockOffsetPos = 0;

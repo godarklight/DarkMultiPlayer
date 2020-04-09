@@ -91,13 +91,16 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)PermissionMessageType.SET_OWNER);
                 mw.Write<string>(guid.ToString());
                 mw.Write<string>(owner);
-                networkWorker.SendPermissionsMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendPermissionsMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void SetVesselGroup(Guid guid, string group)
@@ -106,13 +109,16 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)PermissionMessageType.SET_GROUP);
                 mw.Write<string>(guid.ToString());
                 mw.Write<string>(group);
-                networkWorker.SendPermissionsMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendPermissionsMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void SetVesselProtection(Guid guid, VesselProtectionType protection)
@@ -121,13 +127,16 @@ namespace DarkMultiPlayer
             {
                 return;
             }
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)PermissionMessageType.SET_PERMISSION_LEVEL);
                 mw.Write<string>(guid.ToString());
                 mw.Write<string>(protection.ToString());
-                networkWorker.SendPermissionsMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendPermissionsMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public bool PlayerIsVesselOwner(string playerName, Guid vesselID)

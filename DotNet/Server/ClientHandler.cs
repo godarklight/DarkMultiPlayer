@@ -242,10 +242,11 @@ namespace DarkMultiPlayerServer
                     }
                 }
                 message.usageCount = sendToAllClients.Count;
-                foreach (ClientObject sendClient in clients)
+                foreach (ClientObject sendClient in sendToAllClients)
                 {
-                    sendClient.connection.handler.SendMessage(message);
+                    SendToClient(sendClient, message, highPriority);
                 }
+                sendToAllClients.Clear();
             }
         }
 

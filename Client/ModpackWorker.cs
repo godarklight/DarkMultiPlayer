@@ -176,15 +176,18 @@ namespace DarkMultiPlayer
                     if (uploadAfterHashing)
                     {
                         uploadAfterHashing = false;
-                        using (MessageWriter mw = new MessageWriter())
+                        ByteArray byteArray = ByteRecycler.GetObject(512 * 1024);
+                        using (MessageWriter mw = new MessageWriter(byteArray.data))
                         {
                             List<string> uploadfiles = new List<string>(clientPathCache.Keys);
                             List<string> uploadsha = new List<string>(clientPathCache.Values);
                             mw.Write<int>((int)ModpackDataMessageType.MOD_LIST);
                             mw.Write<string[]>(uploadfiles.ToArray());
                             mw.Write<string[]>(uploadsha.ToArray());
-                            networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                            byteArray.size = (int)mw.GetMessageLength();
                         }
+                        networkWorker.SendModpackMessage(byteArray);
+                        ByteRecycler.ReleaseObject(byteArray);
                     }
                 }
                 else
@@ -244,28 +247,32 @@ namespace DarkMultiPlayer
                     screenMessage = null;
                     ScreenMessages.PostScreenMessage("Upload done!", 5f, ScreenMessageStyle.UPPER_CENTER);
                 }
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
                     mw.Write<bool>(true);
                     modWorker.GenerateModControlFile(false, false);
                     byte[] tempModControl = File.ReadAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "mod-control.txt"));
                     mw.Write<byte[]>(tempModControl);
-                    networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendModpackMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
                 return;
             }
             string shaToUpload = modFilesToUpload[modFilesToUploadPos];
             DarkLog.Debug("Uploading object: " + shaToUpload);
             modFilesToUploadPos++;
-            using (MessageWriter mw = new MessageWriter())
+            string fileToUploadPath = Path.Combine(cacheDataPath, shaToUpload + ".bin");
+            byte[] fileBytes = File.ReadAllBytes(fileToUploadPath);
+            ByteArray byteArray2 = new ByteArray(2048 + fileBytes.Length);
+            using (MessageWriter mw = new MessageWriter(byteArray2.data))
             {
-                string fileToUploadPath = Path.Combine(cacheDataPath, shaToUpload + ".bin");
                 mw.Write<int>((int)ModpackDataMessageType.RESPONSE_OBJECT);
                 mw.Write<string>(shaToUpload);
                 if (File.Exists(fileToUploadPath))
                 {
-                    byte[] fileBytes = File.ReadAllBytes(fileToUploadPath);
                     mw.Write<bool>(true);
                     mw.Write<byte[]>(fileBytes);
                 }
@@ -273,8 +280,10 @@ namespace DarkMultiPlayer
                 {
                     mw.Write<bool>(false);
                 }
-                networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                byteArray2.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendModpackMessage(byteArray2);
+            ByteRecycler.ReleaseObject(byteArray2);
         }
 
         private void UploadToServer(string chatCommand)
@@ -300,22 +309,27 @@ namespace DarkMultiPlayer
                 if (File.Exists(tempCkanPath))
                 {
                     ScreenMessages.PostScreenMessage("Uploaded KSP/DarkMultiPlayer-new.ckan", 5f, ScreenMessageStyle.UPPER_CENTER);
-                    using (MessageWriter mw = new MessageWriter())
+
+                    ByteArray byteArray = ByteRecycler.GetObject(5 * 1024 * 1024);
+                    using (MessageWriter mw = new MessageWriter(byteArray.data))
                     {
                         mw.Write<int>((int)ModpackDataMessageType.CKAN);
                         byte[] tempCkanBytes = File.ReadAllBytes(tempCkanPath);
                         mw.Write<byte[]>(tempCkanBytes);
-                        networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                        byteArray.size = (int)mw.GetMessageLength();
                     }
-                    using (MessageWriter mw = new MessageWriter())
+                    networkWorker.SendModpackMessage(byteArray);
+                    using (MessageWriter mw = new MessageWriter(byteArray.data))
                     {
                         mw.Write<int>((int)ModpackDataMessageType.MOD_DONE);
                         mw.Write<bool>(true);
                         modWorker.GenerateModControlFile(false, false);
                         byte[] tempModControl = File.ReadAllBytes(Path.Combine(KSPUtil.ApplicationRootPath, "mod-control.txt"));
                         mw.Write<byte[]>(tempModControl);
-                        networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                        byteArray.size = (int)mw.GetMessageLength();
                     }
+                    networkWorker.SendModpackMessage(byteArray);
+                    ByteRecycler.ReleaseObject(byteArray);
                 }
                 else
                 {
@@ -778,12 +792,15 @@ namespace DarkMultiPlayer
                     }
                 }
             }
+            ByteArray byteArray = ByteRecycler.GetObject(5 * 1024 * 1024);
             using (MessageWriter mw = new MessageWriter())
             {
                 mw.Write<int>((int)ModpackDataMessageType.REQUEST_OBJECT);
                 mw.Write<string[]>(requestList.ToArray());
-                networkWorker.SendModpackMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendModpackMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void Stop()

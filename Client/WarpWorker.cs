@@ -119,15 +119,18 @@ namespace DarkMultiPlayer
                     ourRate.rateIndex = TimeWarp.CurrentRateIndex;
                     ourRate.serverClock = timeSyncer.GetServerClock();
                     ourRate.planetTime = Planetarium.GetUniversalTime();
-                    using (MessageWriter mw = new MessageWriter())
+                    ByteArray byteArray = ByteRecycler.GetObject(2048);
+                    using (MessageWriter mw = new MessageWriter(byteArray.data))
                     {
                         mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
                         mw.Write<bool>(ourRate.isPhysWarp);
                         mw.Write<int>(ourRate.rateIndex);
                         mw.Write<long>(ourRate.serverClock);
                         mw.Write<double>(ourRate.planetTime);
-                        networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                        byteArray.size = (int)mw.GetMessageLength();
                     }
+                    networkWorker.SendWarpMessage(byteArray);
+                    ByteRecycler.ReleaseObject(byteArray);
                 }
             }
 
@@ -168,12 +171,15 @@ namespace DarkMultiPlayer
             if ((Client.realtimeSinceStartup - lastReportRate) > REPORT_SKEW_RATE_INTERVAL && timeSyncer.locked)
             {
                 lastReportRate = Client.realtimeSinceStartup;
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)WarpMessageType.REPORT_RATE);
                     mw.Write<float>(timeSyncer.requestedRate);
-                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendWarpMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
             }
 
             //Handle warp keys
@@ -389,14 +395,17 @@ namespace DarkMultiPlayer
 
         public void SendNewSubspace(long serverClock, double planetTime, float subspaceRate)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)WarpMessageType.NEW_SUBSPACE);
                 mw.Write<long>(serverClock);
                 mw.Write<double>(planetTime);
                 mw.Write<float>(subspaceRate);
-                networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendWarpMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void HandleSetSubspace(ByteArray messageData, Connection<ClientObject> connection)
@@ -443,11 +452,14 @@ namespace DarkMultiPlayer
             {
                 if (startWarpKey)
                 {
-                    using (MessageWriter mw = new MessageWriter())
+                    ByteArray byteArray = ByteRecycler.GetObject(2048);
+                    using (MessageWriter mw = new MessageWriter(byteArray.data))
                     {
                         mw.Write<int>((int)WarpMessageType.REQUEST_CONTROLLER);
-                        networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                        byteArray.size = (int)mw.GetMessageLength();
                     }
+                    networkWorker.SendWarpMessage(byteArray);
+                    ByteRecycler.ReleaseObject(byteArray);
                 }
             }
             else if (warpMaster == dmpSettings.playerName)
@@ -468,11 +480,14 @@ namespace DarkMultiPlayer
                     if (startWarpKey)
                     {
                         //Start a warp vote
-                        using (MessageWriter mw = new MessageWriter())
+                        ByteArray byteArray = ByteRecycler.GetObject(2048);
+                        using (MessageWriter mw = new MessageWriter(byteArray.data))
                         {
                             mw.Write<int>((int)WarpMessageType.REQUEST_CONTROLLER);
-                            networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                            byteArray.size = (int)mw.GetMessageLength();
                         }
+                        networkWorker.SendWarpMessage(byteArray);
+                        ByteRecycler.ReleaseObject(byteArray);
                     }
                 }
                 else
@@ -482,13 +497,16 @@ namespace DarkMultiPlayer
                         //Send a vote if we haven't voted yet
                         if (!voteSent)
                         {
-                            using (MessageWriter mw = new MessageWriter())
+                            ByteArray byteArray = ByteRecycler.GetObject(2048);
+                            using (MessageWriter mw = new MessageWriter(byteArray.data))
                             {
                                 mw.Write<int>((int)WarpMessageType.REPLY_VOTE);
                                 mw.Write<bool>(startWarpKey);
-                                networkWorker.SendWarpMessage(mw.GetMessageBytes());
-                                voteSent = true;
+                                byteArray.size = (int)mw.GetMessageLength();
                             }
+                            networkWorker.SendWarpMessage(byteArray);
+                            ByteRecycler.ReleaseObject(byteArray);
+                            voteSent = true;
                             DarkLog.Debug("Send warp reply with vote of " + startWarpKey);
                         }
                     }
@@ -558,15 +576,18 @@ namespace DarkMultiPlayer
                 newWarpRate.serverClock = timeSyncer.GetServerClock();
                 clientWarpList[dmpSettings.playerName] = newWarpRate;
                 DarkLog.Debug("Warp request change: " + requestIndex + ", physwarp: " + requestPhysWarp);
-                using (MessageWriter mw = new MessageWriter())
+                ByteArray byteArray = ByteRecycler.GetObject(2048);
+                using (MessageWriter mw = new MessageWriter(byteArray.data))
                 {
                     mw.Write<int>((int)WarpMessageType.CHANGE_WARP);
                     mw.Write<bool>(requestPhysWarp);
                     mw.Write<int>(requestIndex);
                     mw.Write<long>(timeSyncer.GetServerClock());
                     mw.Write<double>(Planetarium.GetUniversalTime());
-                    networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                    byteArray.size = (int)mw.GetMessageLength();
                 }
+                networkWorker.SendWarpMessage(byteArray);
+                ByteRecycler.ReleaseObject(byteArray);
             }
         }
 
@@ -590,11 +611,14 @@ namespace DarkMultiPlayer
             voteYesCount = 0;
             voteNoCount = 0;
             controllerExpireTime = double.NegativeInfinity;
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)WarpMessageType.RELEASE_CONTROLLER);
-                networkWorker.SendWarpMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendWarpMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
             if (TimeWarp.CurrentRateIndex > 0)
             {
                 DarkLog.Debug("Resetting warp rate back to 0");

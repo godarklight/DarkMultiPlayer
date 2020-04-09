@@ -94,56 +94,71 @@ namespace DarkMultiPlayer
         //First player added becomes admin
         public void AddPlayerToGroup(string playerName, string groupName)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)GroupMessageType.ADD_PLAYER);
                 mw.Write<string>(playerName);
                 mw.Write<string>(groupName);
-                networkWorker.SendGroupMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendGroupMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void RemovePlayerFromGroup(string playerName, string groupName)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)GroupMessageType.REMOVE_PLAYER);
                 mw.Write<string>(playerName);
                 mw.Write<string>(groupName);
-                networkWorker.SendGroupMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendGroupMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void AddPlayerAdmin(string playerName, string groupName)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)GroupMessageType.ADD_ADMIN);
                 mw.Write<string>(playerName);
                 mw.Write<string>(groupName);
-                networkWorker.SendGroupMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendGroupMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void RemovePlayerAdmin(string playerName, string groupName)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)GroupMessageType.REMOVE_ADMIN);
                 mw.Write<string>(playerName);
                 mw.Write<string>(groupName);
-                networkWorker.SendGroupMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendGroupMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public void DeleteGroup(string groupName)
         {
-            using (MessageWriter mw = new MessageWriter())
+            ByteArray byteArray = ByteRecycler.GetObject(2048);
+            using (MessageWriter mw = new MessageWriter(byteArray.data))
             {
                 mw.Write<int>((int)GroupMessageType.REMOVE_GROUP);
                 mw.Write<string>(groupName);
-                networkWorker.SendGroupMessage(mw.GetMessageBytes());
+                byteArray.size = (int)mw.GetMessageLength();
             }
+            networkWorker.SendGroupMessage(byteArray);
+            ByteRecycler.ReleaseObject(byteArray);
         }
 
         public bool PlayerInGroup(string playerName, string groupName)
