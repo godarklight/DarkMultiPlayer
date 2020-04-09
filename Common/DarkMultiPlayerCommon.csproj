@@ -30,13 +30,21 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
-    <Reference Include="DarkNetworkUDP">
-      <HintPath>..\DarkNetworkUDP.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Common.cs" />
-    <Compile Include="Compression.cs" />
+    <ProjectReference Include="..\External\DarkNetworkUDP\NET3.5\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj">
+      <Project>{45C6BC63-4211-4E28-83D2-DDCBE29956DC}</Project>
+      <Name>DarkNetworkUDP</Name>
+      <Private>False</Private>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\DotNet\Common\Common.cs">
+      <Link>Common.cs</Link>
+    </Compile>
+    <Compile Include="..\DotNet\Common\Compression.cs">
+      <Link>Compression.cs</Link>
+    </Compile>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

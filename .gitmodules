@@ -1,0 +1,15 @@
+[submodule "DotNet/Common/SettingsParser"]
+	path = DotNet/Common/SettingsParser
+	url = https://github.com/godarklight/SettingsParser.git
+[submodule "External/MessageStream2"]
+	path = External/MessageStream2
+	url = https://github.com/godarklight/MessageStream2.git
+[submodule "External/SettingsParser"]
+	path = External/SettingsParser
+	url = https://github.com/godarklight/SettingsParser.git
+[submodule "External/DarkNetworkUDP"]
+	path = External/DarkNetworkUDP
+	url = https://github.com/godarklight/DarkNetworkUDP.git
+[submodule "External/ConfigNodeParser"]
+	path = External/ConfigNodeParser
+	url = https://github.com/godarklight/ConfigNodeParser.git

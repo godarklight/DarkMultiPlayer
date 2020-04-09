@@ -4,7 +4,13 @@
 			"path": "Server"
 		},
 		{
-			"path": "/home/darklight/Projects/DarkNetworkUDP/DarkNetworkUDP"
+			"path": "../External/DarkNetworkUDP/DarkNetworkUDP"
+		},
+		{
+			"path": "Common"
+		},
+		{
+			"path": "../Client"
 		}
 	],
 	"settings": {}

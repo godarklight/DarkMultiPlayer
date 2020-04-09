@@ -1,17 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\..\External\ConfigNodeParser\DotNet\ConfigNodeParser.csproj" />
+    <ProjectReference Include="..\..\External\MessageStream2\DotNet\MessageWriter2.csproj" />
+    <ProjectReference Include="..\..\External\SettingsParser\DotNet\SettingsParser.csproj" />
+    <ProjectReference Include="..\..\External\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj" />
     <ProjectReference Include="..\Common\Common.csproj" />
-    <ProjectReference Include="..\..\..\Projects\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj" />
-    <Reference Include="MessageWriter2">
-      <HintPath>../MessageWriter2.dll</HintPath>
-    </Reference>
-    <Reference Include="SettingsParser">
-      <HintPath>../SettingsParser.dll</HintPath>
-    </Reference>
-    <Reference Include="ConfigNodeParser">
-      <HintPath>../ConfigNodeParser.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <PropertyGroup>

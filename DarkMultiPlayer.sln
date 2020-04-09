@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csproj", "{7AD735F5-A076-44D2-97EC-02ECAD827001}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Server", "Server\Server.csproj", "{F8BC0417-2D6C-4B57-BC87-787B10EF7950}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkMultiPlayerCommon", "Common\DarkMultiPlayerCommon.csproj", "{423C5A4B-EA79-450D-BD86-5B46141D58D1}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkNetworkUDP", "External\DarkNetworkUDP\NET3.5\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj", "{45C6BC63-4211-4E28-83D2-DDCBE29956DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageStream2", "External\MessageStream2\MessageStream2\MessageStream2.csproj", "{45899456-12A0-4C48-B92D-B3694B988F98}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,10 +23,14 @@ Global
 		{7AD735F5-A076-44D2-97EC-02ECAD827001}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7AD735F5-A076-44D2-97EC-02ECAD827001}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7AD735F5-A076-44D2-97EC-02ECAD827001}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8BC0417-2D6C-4B57-BC87-787B10EF7950}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F8BC0417-2D6C-4B57-BC87-787B10EF7950}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F8BC0417-2D6C-4B57-BC87-787B10EF7950}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F8BC0417-2D6C-4B57-BC87-787B10EF7950}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45C6BC63-4211-4E28-83D2-DDCBE29956DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45C6BC63-4211-4E28-83D2-DDCBE29956DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45C6BC63-4211-4E28-83D2-DDCBE29956DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45C6BC63-4211-4E28-83D2-DDCBE29956DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{45899456-12A0-4C48-B92D-B3694B988F98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{45899456-12A0-4C48-B92D-B3694B988F98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{45899456-12A0-4C48-B92D-B3694B988F98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{45899456-12A0-4C48-B92D-B3694B988F98}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
 		StartupItem = Server\Server.csproj

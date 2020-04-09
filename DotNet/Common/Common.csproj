@@ -4,9 +4,6 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="DarkNetworkUDP">
-      <HintPath>../../DarkNetworkUDP.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\External\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj" />
   </ItemGroup>
-
 </Project>
