@@ -95,13 +95,13 @@
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
-    <ProjectReference Include="..\External\DarkNetworkUDP\NET3.5\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj">
-      <Project>{45C6BC63-4211-4E28-83D2-DDCBE29956DC}</Project>
-      <Name>DarkNetworkUDP</Name>
-    </ProjectReference>
     <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj">
       <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
       <Name>MessageStream2</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\External\DarkNetworkUDP\NET4\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj">
+      <Project>{45C6BC63-4211-4E28-83D2-DDCBE29956DC}</Project>
+      <Name>DarkNetworkUDP</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

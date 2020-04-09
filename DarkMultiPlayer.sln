@@ -5,7 +5,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Client", "Client\Client.csp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkMultiPlayerCommon", "Common\DarkMultiPlayerCommon.csproj", "{423C5A4B-EA79-450D-BD86-5B46141D58D1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkNetworkUDP", "External\DarkNetworkUDP\NET3.5\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj", "{45C6BC63-4211-4E28-83D2-DDCBE29956DC}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DarkNetworkUDP", "External\DarkNetworkUDP\NET4\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP\DarkNetworkUDP.csproj", "{45C6BC63-4211-4E28-83D2-DDCBE29956DC}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageStream2", "External\MessageStream2\MessageStream2\MessageStream2.csproj", "{45899456-12A0-4C48-B92D-B3694B988F98}"
 EndProject
