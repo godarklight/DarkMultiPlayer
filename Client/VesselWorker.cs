@@ -986,44 +986,57 @@ namespace DarkMultiPlayer
 
         private void UpdateBannedPartsMessage()
         {
-            if (modWorker.modControl != ModControlMode.DISABLED)
+            if (modWorker.modControl == ModControlMode.DISABLED)
             {
-                if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id))
-                {
-                    //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
-                    CheckVesselParts(FlightGlobals.fetch.activeVessel);
-                }
+                return;
+            }
+
+            if (!HighLogic.LoadedSceneIsFlight)
+            {
+                return;
+            }
+
+            if (FlightGlobals.fetch == null || FlightGlobals.fetch.activeVessel == null)
+            {
+                return;
+            }
+
+            if (!vesselPartsOk.ContainsKey(FlightGlobals.fetch.activeVessel.id))
+            {
+                //Check the vessel parts if we haven't already, shows the warning message in the safety bubble.
+                CheckVesselParts(FlightGlobals.fetch.activeVessel);
+            }
 
 
-                if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id])
+            if (!vesselPartsOk[FlightGlobals.fetch.activeVessel.id])
+            {
+                if ((Client.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
                 {
-                    if ((Client.realtimeSinceStartup - lastBannedPartsMessageUpdate) > UPDATE_SCREEN_MESSAGE_INTERVAL)
-                    {
-                        lastBannedPartsMessageUpdate = Client.realtimeSinceStartup;
-                        if (bannedPartsMessage != null)
-                        {
-                            return;
-                        }
-                        if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_SYNC)
-                        {
-                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
-                        }
-                        if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_LAUNCH)
-                        {
-                            bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, you will be unable to launch on this server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
-                        }
-                    }
-                }
-                else
-                {
+                    lastBannedPartsMessageUpdate = Client.realtimeSinceStartup;
                     if (bannedPartsMessage != null)
                     {
-                        bannedPartsMessage.duration = 0;
-                        bannedPartsMessage = null;
+                        return;
+                    }
+                    if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_SYNC)
+                    {
+                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, it will not be saved to the server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
+                    }
+                    if (modWorker.modControl == ModControlMode.ENABLED_STOP_INVALID_PART_LAUNCH)
+                    {
+                        bannedPartsMessage = ScreenMessages.PostScreenMessage("Active vessel contains the following banned parts, you will be unable to launch on this server:\n" + bannedPartsString, float.MaxValue, ScreenMessageStyle.UPPER_CENTER);
                     }
                 }
             }
+            else
+            {
+                if (bannedPartsMessage != null)
+                {
+                    bannedPartsMessage.duration = 0;
+                    bannedPartsMessage = null;
+                }
+            }
         }
+
         SortedList<double, Vessel> secondryVessels = new SortedList<double, Vessel>();
         private void SendVesselUpdates(bool sendProtoUpdates)
         {
