@@ -92,7 +92,7 @@ namespace DarkMultiPlayer
             highlightStyle.active.textColor = Color.red;
             highlightStyle.hover.textColor = Color.red;
             scrollStyle = new GUIStyle(GUI.skin.scrollView);
-            subspaceStyle = new GUIStyle(); 
+            subspaceStyle = new GUIStyle();
             Texture2D blackTexture = new Texture2D(1, 1);
             Color black = new Color(0f, 0f, 0f, 0.5f);
             blackTexture.SetPixel(0, 0, black);
@@ -244,15 +244,15 @@ namespace DarkMultiPlayer
                                     if (diffTime > 0)
                                     {
                                         currentEntry.showSyncButton = true;
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToShortString(currentTime), SecondsToVeryShortString(diffTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToString(currentTime, 1), SecondsToString(diffTime, 0));
                                     }
                                     if (diffTime < 0)
                                     {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToShortString(currentTime), SecondsToVeryShortString(-diffTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToString(currentTime, 1), SecondsToString(-diffTime, 0));
                                     }
                                     if (diffTime == 0)
                                     {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
                                     }
                                 }
                             }
@@ -272,15 +272,15 @@ namespace DarkMultiPlayer
                                     diffTime = (int)(currentTime - ourTime);
                                     if (diffTime > 0)
                                     {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToShortString(currentTime), SecondsToVeryShortString(diffTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToString(currentTime, 1), SecondsToString(diffTime, 0));
                                     }
                                     if (diffTime < 0)
                                     {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToShortString(currentTime), SecondsToVeryShortString(-diffTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToString(currentTime, 1), SecondsToString(-diffTime, 0));
                                     }
                                     if (diffTime == 0)
                                     {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
+                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
                                     }
                                 }
                             }
@@ -288,7 +288,7 @@ namespace DarkMultiPlayer
                         else
                         {
                             currentTime = (int)ourTime;
-                            currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToShortString(currentTime));
+                            currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
                         }
                     }
                     else
@@ -394,27 +394,49 @@ namespace DarkMultiPlayer
             }
         }
 
-        private string SecondsToLongString(int time)
+        //2 = long, 1 = short, 0 = very short
+        private string SecondsToString(int time, int lengthType)
         {
             // Use Kerbin days (6h days, 426d years)
-            int day_unit = 24;
+            int year_unit = 31536000;
+            int day_unit = 86400;
             if (GameSettings.KERBIN_TIME)
-                day_unit = 6;
+            {
+                year_unit = 9201600;
+                day_unit = 21600;
+            }
 
-            //Every month is feburary ok?
-            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
-            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
-            int months = time / (60 * 60 * day_unit * 7 * 4);
-            time -= months * (60 * 60 * day_unit * 7 * 4);
-            int weeks = time / (60 * 60 * day_unit * 7);
-            time -= weeks * (60 * 60 * day_unit * 7);
-            int days = time / (60 * 60 * day_unit);
-            time -= days * (60 * 60 * day_unit);
-            int hours = time / (60 * 60);
-            time -= hours * (60 * 60);
+            int years = time / year_unit;
+            time -= years * year_unit;
+            int days = time / day_unit;
+            time -= days * day_unit;
+            int hours = time / 3600;
+            time -= hours * 3600;
             int minutes = time / 60;
             time -= minutes * 60;
             int seconds = time;
+
+            //KSP starts at year 1 day 1.
+            years++;
+            days++;
+
+            if (lengthType == 0)
+            {
+                return TimeToVeryShortString(years, days, hours, minutes, seconds);
+            }
+            if (lengthType == 1)
+            {
+                return TimeToShortString(years, days, hours, minutes, seconds);
+            }
+            if (lengthType == 2)
+            {
+                return TimeToLongString(years, days, hours, minutes, seconds);
+            }
+            return null;
+        }
+
+        private string TimeToLongString(int years, int days, int hours, int minutes, int seconds)
+        {
             stringBuilder.Clear();
             bool addComma = false;
             if (years > 0)
@@ -427,42 +449,6 @@ namespace DarkMultiPlayer
                 {
                     stringBuilder.Append(years);
                     stringBuilder.Append(" years");
-                }
-                addComma = true;
-            }
-            if (months > 0)
-            {
-                if (addComma)
-                {
-                    addComma = false;
-                    stringBuilder.Append(", ");
-                }
-                if (months == 1)
-                {
-                    stringBuilder.Append("1 month");
-                }
-                else
-                {
-                    stringBuilder.Append(months);
-                    stringBuilder.Append(" month");
-                }
-                addComma = true;
-            }
-            if (weeks > 0)
-            {
-                if (addComma)
-                {
-                    addComma = false;
-                    stringBuilder.Append(", ");
-                }
-                if (weeks == 1)
-                {
-                    stringBuilder.Append("1 week");
-                }
-                else
-                {
-                    stringBuilder.Append(weeks);
-                    stringBuilder.Append(" weeks");
                 }
                 addComma = true;
             }
@@ -542,26 +528,8 @@ namespace DarkMultiPlayer
             return stringBuilder.ToString();
         }
 
-        private string SecondsToShortString(int time)
+        private string TimeToShortString(int years, int days, int hours, int minutes, int seconds)
         {
-            // Use Kerbin days (6h days, 426d years)
-            int day_unit = 24;
-            if (GameSettings.KERBIN_TIME)
-                day_unit = 6;
-
-            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
-            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
-            int months = time / (60 * 60 * day_unit * 7 * 4);
-            time -= months * (60 * 60 * day_unit * 7 * 4);
-            int weeks = time / (60 * 60 * day_unit * 7);
-            time -= weeks * (60 * 60 * day_unit * 7);
-            int days = time / (60 * 60 * day_unit);
-            time -= days * (60 * 60 * day_unit);
-            int hours = time / (60 * 60);
-            time -= hours * (60 * 60);
-            int minutes = time / 60;
-            time -= minutes * 60;
-            int seconds = time;
             stringBuilder.Clear();
             if (years > 0)
             {
@@ -573,30 +541,6 @@ namespace DarkMultiPlayer
                 {
                     stringBuilder.Append(years);
                     stringBuilder.Append("y, ");
-                }
-            }
-            if (months > 0)
-            {
-                if (months == 1)
-                {
-                    stringBuilder.Append("1m, ");
-                }
-                else
-                {
-                    stringBuilder.Append(months);
-                    stringBuilder.Append("m, ");
-                }
-            }
-            if (weeks > 0)
-            {
-                if (weeks == 1)
-                {
-                    stringBuilder.Append("1w, ");
-                }
-                else
-                {
-                    stringBuilder.Append(weeks);
-                    stringBuilder.Append("w, ");
                 }
             }
             if (days > 0)
@@ -615,26 +559,8 @@ namespace DarkMultiPlayer
             return stringBuilder.ToString();
         }
 
-        private string SecondsToVeryShortString(int time)
+        private string TimeToVeryShortString(int years, int days, int hours, int minutes, int seconds)
         {
-            // Use Kerbin days (6h days, 426d years)
-            int day_unit = 24;
-            if (GameSettings.KERBIN_TIME)
-                day_unit = 6;
-
-            int years = time / (60 * 60 * day_unit * 7 * 4 * 12);
-            time -= years * (60 * 60 * day_unit * 7 * 4 * 12);
-            int months = time / (60 * 60 * day_unit * 7 * 4);
-            time -= months * (60 * 60 * day_unit * 7 * 4);
-            int weeks = time / (60 * 60 * day_unit * 7);
-            time -= weeks * (60 * 60 * day_unit * 7);
-            int days = time / (60 * 60 * day_unit);
-            time -= days * (60 * 60 * day_unit);
-            int hours = time / (60 * 60);
-            time -= hours * (60 * 60);
-            int minutes = time / 60;
-            time -= minutes * 60;
-            int seconds = time;
             if (years > 0)
             {
                 if (years == 1)
@@ -644,28 +570,6 @@ namespace DarkMultiPlayer
                 else
                 {
                     return String.Format("{0} years", years);
-                }
-            }
-            if (months > 0)
-            {
-                if (months == 1)
-                {
-                    return "1 month";
-                }
-                else
-                {
-                    return String.Format("{0} months", months);
-                }
-            }
-            if (weeks > 0)
-            {
-                if (weeks == 1)
-                {
-                    return "1 week";
-                }
-                else
-                {
-                    return String.Format("{0} weeks", weeks);
                 }
             }
             if (days > 0)
