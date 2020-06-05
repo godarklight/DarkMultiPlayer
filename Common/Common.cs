@@ -177,6 +177,26 @@ namespace DarkMultiPlayerCommon
             return String.Join("-", returnString);
         }
 
+        public static List<string> GetReportingEndpoints()
+        {
+            return new List<string>()
+            {
+                "godarklight.info.tm:9001",
+                "server.game.api.d-mp.org:9001",
+                "ksp-dmp.sundevil.pl:12401"
+            };
+        }
+
+        public static List<string> GetDatabaseEndpoints()
+        {
+            return new List<string>()
+            {
+                "godarklight.info.tm:9003",
+                "server.game.api.d-mp.org:9003",
+                "ksp-dmp.sundevil.pl:12403"
+            };
+        }
+
         public static List<string> GetStockParts()
         {
             List<string> stockPartList = new List<string>()

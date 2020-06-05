@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using MessageStream2;
+using DarkMultiPlayerCommon;
 
 namespace DarkMultiPlayer
 {
@@ -10,14 +11,14 @@ namespace DarkMultiPlayer
     {
         private Settings dmpSettings;
         private ServersWindow serversWindow;
-        private List<IPAddress> addresses = new List<IPAddress>();
+        private List<IPEndPoint> addresses = new List<IPEndPoint>();
         private int tryAddress = 0;
         private TcpClient tcpClient;
         private bool connecting;
         private bool connected;
         private bool dnsRequested;
         private bool dnsReceived;
-        private long lastConnectTime;
+        private float lastConnectTime;
         private double lastSendTime;
         private double lastReceiveTime;
         private Dictionary<int, ServerListEntry> servers = new Dictionary<int, ServerListEntry>();
@@ -135,8 +136,10 @@ namespace DarkMultiPlayer
             if (!dnsRequested)
             {
                 dnsRequested = true;
-                StartGetHostAddresses("godarklight.info.tm");
-                StartGetHostAddresses("server.game.api.d-mp.org");
+                foreach (string endpoint in Common.GetDatabaseEndpoints())
+                {
+                    StartGetHostAddresses(endpoint);
+                }
             }
             if (!dnsReceived)
             {
@@ -150,6 +153,7 @@ namespace DarkMultiPlayer
                 }
                 if (Client.realtimeSinceStartup - lastConnectTime > 0.5f)
                 {
+                    lastConnectTime = Client.realtimeSinceStartup;
                     connecting = true;
                     try
                     {
@@ -158,8 +162,8 @@ namespace DarkMultiPlayer
                             tryAddress = 0;
                         }
                         DarkLog.Debug("Serverlist attempting to connect to " + addresses[tryAddress]);
-                        TcpClient newClient = new TcpClient(addresses[tryAddress].AddressFamily);
-                        newClient.BeginConnect(addresses[tryAddress], 9003, HandleConnectCallback, newClient);
+                        TcpClient newClient = new TcpClient(addresses[tryAddress].Address.AddressFamily);
+                        newClient.BeginConnect(addresses[tryAddress].Address, addresses[tryAddress].Port, HandleConnectCallback, newClient);
                     }
                     catch (Exception e)
                     {
@@ -174,9 +178,12 @@ namespace DarkMultiPlayer
 
         private void StartGetHostAddresses(string hostname)
         {
+            string hostPart = hostname.Substring(0, hostname.IndexOf(":"));
+            string portPart = hostname.Substring(hostname.IndexOf(":") + 1);
+            int portInt = Int32.Parse(portPart);
             try
             {
-                Dns.BeginGetHostAddresses("godarklight.info.tm", EndGetHostAddresses, null);
+                Dns.BeginGetHostAddresses(hostPart, EndGetHostAddresses, portInt);
             }
             catch (Exception e)
             {
@@ -190,6 +197,7 @@ namespace DarkMultiPlayer
             {
                 try
                 {
+                    int port = (int)ar.AsyncState;
                     IPAddress[] newAddrs = Dns.EndGetHostAddresses(ar);
                     {
                         //Preference IPv6
@@ -198,7 +206,7 @@ namespace DarkMultiPlayer
                             if (newAddr.AddressFamily == AddressFamily.InterNetworkV6)
                             {
                                 dnsReceived = true;
-                                addresses.Add(newAddr);
+                                addresses.Add(new IPEndPoint(newAddr, port));
                             }
                         }
                         foreach (IPAddress newAddr in newAddrs)
@@ -206,7 +214,7 @@ namespace DarkMultiPlayer
                             if (newAddr.AddressFamily == AddressFamily.InterNetwork)
                             {
                                 dnsReceived = true;
-                                addresses.Add(newAddr);
+                                addresses.Add(new IPEndPoint(newAddr, port));
                             }
                         }
                     }
