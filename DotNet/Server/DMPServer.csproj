@@ -2,18 +2,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Common\Common.csproj" />
-    <Reference Include="MessageWriter2">
-      <HintPath>../MessageWriter2.dll</HintPath>
-    </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>../UDPMeshLib.dll</HintPath>
-    </Reference>
-    <Reference Include="SettingsParser">
-      <HintPath>../SettingsParser.dll</HintPath>
-    </Reference>
-    <Reference Include="ConfigNodeParser">
-      <HintPath>../ConfigNodeParser.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\..\External\MessageStream2\DotNet\MessageWriter2.csproj" />
+    <ProjectReference Include="..\..\External\UDPMeshLib\DotNet\UDPMeshLib.csproj" />
+    <ProjectReference Include="..\..\External\SettingsParser\DotNet\SettingsParser.csproj" />
+    <ProjectReference Include="..\..\External\ConfigNodeParser\DotNet\ConfigNodeParser.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

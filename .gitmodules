@@ -1,0 +1,15 @@
+[submodule "External/UDPMeshLib"]
+	path = External/UDPMeshLib
+	url = https://github.com/godarklight/UDPMeshLib.git
+[submodule "External/ConfigNodeParser"]
+	path = External/ConfigNodeParser
+	url = https://github.com/godarklight/ConfigNodeParser.git
+[submodule "External/MessageStream2"]
+	path = External/MessageStream2
+	url = https://github.com/godarklight/MessageStream2.git
+[submodule "External/SettingsParser"]
+	path = External/SettingsParser
+	url = https://github.com/godarklight/SettingsParser.git
+[submodule "External/DMPServerListReporter2"]
+	path = External/DMPServerListReporter2
+	url = https://github.com/godarklight/DMPServerListReporter2.git

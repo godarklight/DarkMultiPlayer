@@ -1,0 +1,1 @@
+Copy KSP/KSP_Data/Managed/* into this folder.

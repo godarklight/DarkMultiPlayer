@@ -30,20 +30,6 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="SettingsParser">
-      <HintPath>..\SettingsParser.dll</HintPath>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Runtime.Serialization" />
-    <Reference Include="System.Xml" />
-    <Reference Include="MessageWriter2">
-      <HintPath>..\MessageWriter2.dll</HintPath>
-    </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>..\UDPMeshLib.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Include="GameplaySettings.cs" />
     <Compile Include="LogExpire.cs" />
     <Compile Include="Main.cs" />
@@ -105,6 +91,23 @@
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
+    <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj">
+      <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
+      <Name>MessageStream2</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\External\SettingsParser\SettingsParser\SettingsParser.csproj">
+      <Project>{A54C3B53-C088-496A-91A3-6FEE31BD7402}</Project>
+      <Name>SettingsParser</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj">
+      <Project>{D55400C8-5309-4F98-BC7F-F789690F23B3}</Project>
+      <Name>UDPMeshLib</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup />
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
 </Project>

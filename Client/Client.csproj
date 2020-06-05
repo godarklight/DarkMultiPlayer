@@ -30,52 +30,52 @@
   </PropertyGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
-    <Reference Include="MessageWriter2">
-      <HintPath>..\MessageWriter2.dll</HintPath>
-    </Reference>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\Assembly-CSharp.dll</HintPath>
+      <HintPath>..\External\KSPManaged\Assembly-CSharp.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\Assembly-CSharp-firstpass.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System" />
-    <Reference Include="System.Xml" />
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UDPMeshLib">
-      <HintPath>..\UDPMeshLib.dll</HintPath>
-    </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\UnityEngine.IMGUIModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>..\UnityEngine.TextRenderingModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>..\UnityEngine.InputLegacyModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>..\UnityEngine.ImageConversionModule.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\UnityEngine.PhysicsModule.dll</HintPath>
+      <HintPath>..\External\KSPManaged\Assembly-CSharp-firstpass.dll</HintPath>
       <Private>False</Private>
     </Reference>
     <Reference Include="UnityEngine.AnimationModule">
-      <HintPath>..\UnityEngine.AnimationModule.dll</HintPath>
+      <HintPath>..\External\KSPManaged\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.CoreModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\External\KSPManaged\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\External\KSPManaged\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System">
+      <HintPath>..\External\KSPManaged\System.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="System.Xml">
+      <HintPath>..\External\KSPManaged\System.Xml.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>
@@ -144,6 +144,14 @@
     <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj">
+      <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
+      <Name>MessageStream2</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj">
+      <Project>{D55400C8-5309-4F98-BC7F-F789690F23B3}</Project>
+      <Name>UDPMeshLib</Name>
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
