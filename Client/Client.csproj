@@ -155,7 +155,6 @@
     </ProjectReference>
   </ItemGroup>
   <PropertyGroup>
-    <PostBuildEvent Condition="'$(OS)' != 'Unix'">$(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer.dll
 $(SolutionDir)/pdb2mdb/pdb2mdb.exe $(ProjectDir)/$(OutDir)/DarkMultiPlayer-Common.dll</PostBuildEvent>
   </PropertyGroup>
 </Project>
