@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using System.Globalization;
 using DarkMultiPlayerCommon;
 using MessageStream2;
 
@@ -609,7 +610,7 @@ namespace DarkMultiPlayerServer.Messages
                     Subspace savedSubspace = new Subspace();
                     int subspaceID = Int32.Parse(firstLine);
                     savedSubspace.serverClock = Int64.Parse(sr.ReadLine().Trim());
-                    savedSubspace.planetTime = Double.Parse(sr.ReadLine().Trim());
+                    savedSubspace.planetTime = Double.Parse(sr.ReadLine().Trim(), new CultureInfo("en-US"));
                     savedSubspace.subspaceSpeed = Single.Parse(sr.ReadLine().Trim());
                     subspaces.Add(subspaceID, savedSubspace);
                     lock (createLock)
@@ -674,7 +675,7 @@ namespace DarkMultiPlayerServer.Messages
                 sw.WriteLine("#Each variable is on a new line. They are subspaceID, server clock (from DateTime.UtcNow.Ticks), universe time, and subspace speed.");
                 sw.WriteLine(subspaceID);
                 sw.WriteLine(subspace.serverClock);
-                sw.WriteLine(subspace.planetTime);
+                sw.WriteLine(subspace.planetTime.ToString(new CultureInfo("en-US")));
                 sw.WriteLine(subspace.subspaceSpeed);
             }
         }
