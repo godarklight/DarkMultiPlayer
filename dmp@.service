@@ -8,7 +8,7 @@
 
 #==Install a DMPServer==
 #You can install DMPServer using DMPUpdater by running (from your home folder):
-#mkdir -p DMPServer/new && touch DMPServer/new/DMPServer.exe && wget https://godarklight.info.tm/dmp/downloads/dmpupdater/DMPUpdater.exe -O DMPServer/new/DMPUpdater.exe && mono DMPServer/new/DMPUpdater.exe -b
+#mkdir -p DMPServer/new && touch DMPServer/new/DMPServer.exe && wget https://godarklight.privatedns.org/dmp/downloads/dmpupdater/DMPUpdater.exe -O DMPServer/new/DMPUpdater.exe && mono DMPServer/new/DMPUpdater.exe -b
 #Then copying or renaming 'new' to the name you want
 #cp -av DMPServer/new DMPServer/example
 #Remember to change the port for multiple servers or it will fail to start.

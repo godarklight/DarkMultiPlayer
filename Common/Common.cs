@@ -181,7 +181,7 @@ namespace DarkMultiPlayerCommon
         {
             return new List<string>()
             {
-                "godarklight.info.tm:9001",
+                "godarklight.privatedns.org:9001",
                 "server.game.api.d-mp.org:9001",
                 "ksp-dmp.sundevil.pl:12401"
             };
@@ -191,7 +191,7 @@ namespace DarkMultiPlayerCommon
         {
             return new List<string>()
             {
-                "godarklight.info.tm:9003",
+                "godarklight.privatedns.org:9003",
                 "server.game.api.d-mp.org:9003",
                 "ksp-dmp.sundevil.pl:12403"
             };
