@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.9.0";
+        public const string MODCONTROL_VERSION = "1.10.0";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -590,7 +590,18 @@ namespace DarkMultiPlayerCommon
                 // 1.9 parts
                 "liquidEngineMainsail.v2",
                 "engineLargeSkipper.v2",
-                "ReleaseValve"
+                "ReleaseValve",
+                // 1.10 parts
+                "MpoProbe",
+                "MtmStage",
+                "PotatoComet",
+                "Magnetometer",
+                "flagPartFlat",
+                "flagPartSize0",
+                "flagPartSize1",
+                "flagPartSize2",
+                "flagPartSize3",
+                "smallClaw"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
