@@ -50,6 +50,7 @@
     </MonoDevelop>
   </ProjectExtensions>
   <PropertyGroup>
-    <PostBuildEvent>copy DarkMultiPlayer-Common.dll ..\GameData\DarkMultiPlayer\Plugins\DarkMultiPlayer-Common.dll</PostBuildEvent>
+    <PostBuildEvent>copy DarkMultiPlayer-Common.dll ..\GameData\DarkMultiPlayer\Plugins\DarkMultiPlayer-Common.dll
+copy DarkMultiPlayer-Common.dll ..\DMPServer\DarkMultiPlayer-Common.dll</PostBuildEvent>
   </PropertyGroup>
 </Project>

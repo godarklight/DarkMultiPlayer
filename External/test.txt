@@ -1,3 +1,0 @@
-git add .
-git commit -m "Better Build"
-git push -f origin master

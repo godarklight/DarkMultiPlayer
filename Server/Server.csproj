@@ -91,6 +91,10 @@
       <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
       <Name>DarkMultiPlayerCommon</Name>
     </ProjectReference>
+    <ProjectReference Include="..\External\ConfigNodeParser\ConfigNode\ConfigNode.csproj">
+      <Project>{91c740d7-ba89-4313-9329-884498dfbfe2}</Project>
+      <Name>ConfigNode</Name>
+    </ProjectReference>
     <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj">
       <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
       <Name>MessageStream2</Name>
@@ -110,4 +114,7 @@
     <Reference Include="System.Runtime.Serialization" />
     <Reference Include="System.Xml" />
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy DMPServer.exe ..\DMPServer\DMPServer.exe</PostBuildEvent>
+  </PropertyGroup>
 </Project>

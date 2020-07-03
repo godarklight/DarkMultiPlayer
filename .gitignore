@@ -1,6 +1,9 @@
 *.orig
 *.dll
 *.pdb
+
+Build/
+
 *.userprefs
 [Bb]in/
 [Oo]bj/
