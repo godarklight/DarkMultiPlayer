@@ -1,5 +1,6 @@
 *.orig
 *.dll
+*.pdb
 *.userprefs
 [Bb]in/
 [Oo]bj/
@@ -9,4 +10,4 @@
 saves/
 .vs/
 .vscode/
-External/KSPManaged/*.dll
+

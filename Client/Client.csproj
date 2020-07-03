@@ -15,7 +15,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
+    <OutputPath>..\Build\Client\</OutputPath>
     <DefineConstants>DEBUG;ENABLE_PROFILER;DEVELOPMENT</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -154,4 +154,7 @@
       <Name>UDPMeshLib</Name>
     </ProjectReference>
   </ItemGroup>
+  <PropertyGroup>
+    <PostBuildEvent>copy DarkMultiPlayer.dll ..\GameData\DarkMultiPlayer\Plugins\\DarkMultiPlayer.dll</PostBuildEvent>
+  </PropertyGroup>
 </Project>
