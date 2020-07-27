@@ -226,6 +226,7 @@ namespace DarkMultiPlayerServer
                 if (!vesselPermissions.ContainsKey(guid))
                 {
                     SetVesselOwner(guid, owner);
+                    SetVesselProtection(guid, Settings.settingsStore.newVesselProtection);
                 }
             }
         }
@@ -267,9 +268,42 @@ namespace DarkMultiPlayerServer
                 {
                     return;
                 }
+                else if (Settings.settingsStore.forcePublicSpaceObjects && GetSavedValue(guid, "name") == "SpaceObject")
+                {
+                    return;
+                }
                 vesselPermissions[guid].protection = protection;
                 SaveVesselPermissions(guid);
             }
+        }
+
+        //I could not find any functions that allowed me to extract saved vessel data, so I have made one here.
+        public string GetSavedValue(Guid guid, string VesselValue)
+        {
+            string findvalue = VesselValue + " =";
+            string FinalVesselValue = "nil";
+            bool foundvar = false;
+            string VesselFile = Path.Combine(Server.universeDirectory, "Vessels", guid.ToString() + ".txt");
+
+            if (File.Exists(VesselFile))
+            {
+                using (StreamReader sr = new StreamReader(VesselFile))
+                {
+                    string currentLine = sr.ReadLine();
+                    while (currentLine != null && !foundvar)
+                    {
+                        string trimmedLine = currentLine.Trim();
+                        if (trimmedLine.Trim().StartsWith(findvalue, StringComparison.Ordinal))
+                        {
+                            FinalVesselValue = trimmedLine.Substring(trimmedLine.IndexOf("=", StringComparison.Ordinal) + 2);
+                            foundvar = true;
+                        }
+                        currentLine = sr.ReadLine();
+                    }
+                }
+            }
+
+            return FinalVesselValue;
         }
 
         public void DeleteVessel(Guid guid)
