@@ -136,7 +136,7 @@ namespace DarkMultiPlayerServer
             {
                 string vesselFileName = Path.GetFileName(file);
                 string vesselFileNameWE = Path.GetFileNameWithoutExtension(file);
-                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName))) 
+                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName)))
                 {
                     DarkLog.Debug("Deleting permissions for unknown vessel: " + vesselFileNameWE);
                     File.Delete(file);
@@ -268,13 +268,64 @@ namespace DarkMultiPlayerServer
                 {
                     return;
                 }
-                else if (Settings.settingsStore.forcePublicSpaceObjects && GetSavedValue(guid, "name") == "SpaceObject")
-                {
-                    return;
-                }
+
                 vesselPermissions[guid].protection = protection;
                 SaveVesselPermissions(guid);
             }
+        }
+
+        public void DeleteVessel(Guid guid)
+        {
+            lock (vesselPermissions)
+            {
+                if (vesselPermissions.ContainsKey(guid))
+                {
+                    vesselPermissions.Remove(guid);
+                }
+                SaveVesselPermissions(guid);
+            }
+        }
+
+        public bool PlayerIsVesselOwner(string playerName, Guid vesselID)
+        {
+            lock (vesselPermissions)
+            {
+                return vesselPermissions.ContainsKey(vesselID) && vesselPermissions[vesselID].owner == playerName;
+            }
+        }
+
+        public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
+        {
+
+            lock (vesselPermissions)
+            {
+                if (Settings.settingsStore.forcePublicSpaceObjects && vesselPermissions[vesselID].protection != VesselProtectionType.PUBLIC && GetSavedValue(vesselID, "type") == "SpaceObject")
+                {
+                    SetVesselProtection(vesselID, VesselProtectionType.PUBLIC);
+                }
+
+                if (!vesselPermissions.ContainsKey(vesselID))
+                {
+                    return true;
+                }
+                VesselPermission vp = vesselPermissions[vesselID];
+                if (vp.owner == playerName)
+                {
+                    return true;
+                }
+                if (vp.protection == VesselProtectionType.PUBLIC)
+                {
+                    return true;
+                }
+                if (vp.protection == VesselProtectionType.GROUP && vp.group != null && vp.group != "")
+                {
+                    if (Groups.fetch.PlayerInGroup(playerName, vp.group))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
 
         //I could not find any functions that allowed me to extract saved vessel data, so I have made one here.
@@ -302,56 +353,7 @@ namespace DarkMultiPlayerServer
                     }
                 }
             }
-
             return FinalVesselValue;
-        }
-
-        public void DeleteVessel(Guid guid)
-        {
-            lock (vesselPermissions)
-            {
-                if (vesselPermissions.ContainsKey(guid))
-                {
-                    vesselPermissions.Remove(guid);
-                }
-                SaveVesselPermissions(guid);
-            }
-        }
-
-        public bool PlayerIsVesselOwner(string playerName, Guid vesselID)
-        {
-            lock (vesselPermissions)
-            {
-                return vesselPermissions.ContainsKey(vesselID) && vesselPermissions[vesselID].owner == playerName;
-            }
-        }
-
-            public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
-        {
-            lock (vesselPermissions)
-            {
-                if (!vesselPermissions.ContainsKey(vesselID))
-                {
-                    return true;
-                }
-                VesselPermission vp = vesselPermissions[vesselID];
-                if (vp.owner == playerName)
-                {
-                    return true;
-                }
-                if (vp.protection == VesselProtectionType.PUBLIC)
-                {
-                    return true;
-                }
-                if (vp.protection == VesselProtectionType.GROUP && vp.group != null && vp.group != "")
-                {
-                    if (Groups.fetch.PlayerInGroup(playerName, vp.group))
-                    {
-                        return true;
-                    }
-                }
-            } 
-            return false;
         }
     }
 }
