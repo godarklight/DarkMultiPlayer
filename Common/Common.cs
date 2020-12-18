@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.10.0";
+        public const string MODCONTROL_VERSION = "1.11.0";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -601,7 +601,27 @@ namespace DarkMultiPlayerCommon
                 "flagPartSize1",
                 "flagPartSize2",
                 "flagPartSize3",
-                "smallClaw"
+                "smallClaw",
+                // 1.11 parts
+               "cargoContainer",
+               "smallCargoContainer",
+               "evaCylinder",
+               "evaJetpack",
+               "evaChute",
+               "evaRepairKit",
+               "evaScienceKit",
+               "CargoStorageUnit",
+               "ConformalStorageUnit",
+               "Size2LFB.v2",
+               "HighGainAntenna5.v2",
+               "domeLight1",
+               "groundLight1",
+               "groundLight2",
+               "navLight1",
+               "spotLight3",
+               "stripLight1",
+               "RCSblock.01.small",
+               "RCSLinearSmall",
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION

@@ -49,7 +49,7 @@ namespace DarkMultiPlayer.Utilities
         public static bool IsCompatible()
         {
             const int compatibleMajor = 1;
-            const int compatibleMinor = 10;
+            const int compatibleMinor = 11;
             //const int compatibleRevision = 2;
             return (Versioning.version_major == compatibleMajor) && (Versioning.version_minor == compatibleMinor);
 
