@@ -59,10 +59,11 @@ namespace DarkMultiPlayer
         public string dmpDataDir;
         public string gameDataDir;
         public string kspRootPath;
-        //16kB, 512kB, 6MB.
+        //16kB, 512kB, 6MB, 64MB.
         public const int SMALL_MESSAGE_SIZE = 16 * 1024;
         public const int MEDIUM_MESSAGE_SIZE = 512 * 1024;
         public const int LARGE_MESSAGE_SIZE = 6 * 1024 * 1024;
+        public const int EXTRA_LARGE_MESSAGE_SIZE = 64 * 1024 * 1024;
 
         public Client fetch
         {
@@ -98,6 +99,7 @@ namespace DarkMultiPlayer
             ByteRecycler.AddPoolSize(SMALL_MESSAGE_SIZE);
             ByteRecycler.AddPoolSize(MEDIUM_MESSAGE_SIZE);
             ByteRecycler.AddPoolSize(LARGE_MESSAGE_SIZE);
+            ByteRecycler.AddPoolSize(EXTRA_LARGE_MESSAGE_SIZE);
             MessageWriter.RegisterType<ByteArray>(WriteByteArrayToStream);
             MessageReader.RegisterType<ByteArray>(ReadByteArrayFromStream);
 

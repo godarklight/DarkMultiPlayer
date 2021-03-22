@@ -19,7 +19,7 @@ namespace DarkMultiPlayer
         private WriteNodeDelegate WriteNodeThunk;
         private PreFormatConfigDelegate PreFormatConfigThunk;
         private RecurseFormatDelegate RecurseFormatThunk;
-        private byte[] configNodeBuffer = new byte[Common.MAX_MESSAGE_SIZE];
+        private byte[] configNodeBuffer = new byte[6 * 1024 * 1024];
 
         public ConfigNodeSerializer()
         {

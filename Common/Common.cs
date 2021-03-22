@@ -12,9 +12,9 @@ namespace DarkMultiPlayerCommon
         public const long HEART_BEAT_INTERVAL = 5000;
         public const long INITIAL_CONNECTION_TIMEOUT = 5000;
         public const long CONNECTION_TIMEOUT = 20000;
-        //Any message bigger than 5MB will be invalid
-        public const int MAX_MESSAGE_SIZE = 5242880;
-        //Split messages into 8kb chunks to higher priority messages have more injection points into the TCP stream.
+        //Any message bigger than 64MB will be invalid
+        public const int MAX_MESSAGE_SIZE = 67108864;
+        //Split messages into 8kb chunks so higher priority messages have more injection points into the TCP stream.
         public const int SPLIT_MESSAGE_LENGTH = 8192;
         //Bump this every time there is a network change (Basically, if MessageWriter or MessageReader is touched).
         public const int PROTOCOL_VERSION = 54;
