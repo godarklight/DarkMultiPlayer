@@ -48,10 +48,8 @@ namespace DarkMultiPlayerServer
         public WarpMode warpMode = WarpMode.SUBSPACE;
         [Description("Specify the game type.")]
         public GameMode gameMode = GameMode.SANDBOX;
-/*
         [Description("Use shared science")]
         public bool sharedScience = false;
-*/
         [Description("Specify the gameplay difficulty of the server.")]
         public GameDifficulty gameDifficulty = GameDifficulty.NORMAL;
         [Description("Enable white-listing.")]

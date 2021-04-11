@@ -10,16 +10,15 @@ namespace DarkMultiPlayerServer.Messages
         public static string GetScenarioPath(ClientObject client)
         {
             string clientPath = Path.Combine(Server.universeDirectory, "Scenarios", client.playerName);
-/*
+
             if (Settings.settingsStore.sharedScience)
             {
                 clientPath = Path.Combine(Server.universeDirectory, "Scenarios", "Shared");
             }
-*/
+
             if (!Directory.Exists(clientPath))
             {
                 Directory.CreateDirectory(clientPath);
-                /*
                 if (!Settings.settingsStore.sharedScience)
                 {
                     foreach (string file in Directory.GetFiles(Path.Combine(Server.universeDirectory, "Scenarios", "Initial")))
@@ -27,7 +26,6 @@ namespace DarkMultiPlayerServer.Messages
                         File.Copy(file, Path.Combine(clientPath, Path.GetFileName(file)));
                     }
                 }
-                */
             }
             return clientPath;
         }
@@ -120,12 +118,10 @@ namespace DarkMultiPlayerServer.Messages
                     {
                         File.WriteAllBytes(Path.Combine(clientPath, scenarioName[i] + ".txt"), scenarioData);
                     }
-                    /*
                     if (Settings.settingsStore.sharedScience)
                     {
                         SendScenarioModuleToClients(scenarioName[i], scenarioData);
                     }
-                    */
                 }
             }
         }
