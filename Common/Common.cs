@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.11.1";
+        public const string MODCONTROL_VERSION = "1.12";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -625,6 +625,17 @@ namespace DarkMultiPlayerCommon
                // 1.11.1 parts
                "spotLight1.v2",
                "spotLight2.v2",
+               // 1.12 parts
+               "kerbalEVASlimSuit",
+               "kerbalEVASlimSuitFemale",
+               "rocketNoseCone.v3",
+               "groundAnchor",
+               "solarPanelOX10C",
+               "solarPanelSP10C",
+               "solarPanelOX10L",
+               "solarPanelSP10L",
+               "fireworksLauncherBig",
+               "fireworksLauncherSmall"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
