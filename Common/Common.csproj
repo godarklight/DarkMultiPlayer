@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFrameworks>net472;net5.0</TargetFrameworks>
+    <AssemblyName>DarkMultiPlayer-Common</AssemblyName>
   </PropertyGroup>
 
 </Project>

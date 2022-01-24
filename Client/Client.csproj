@@ -4,11 +4,12 @@
   <ItemGroup>
     <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj"/>
     <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj"/>
-    <ProjectReference Include="..\Common\DarkMultiplayer-Common.csproj"/>
+    <ProjectReference Include="..\Common\Common.csproj"/>
   </ItemGroup>
 
   <PropertyGroup>
     <TargetFrameworks>net472</TargetFrameworks>
+    <AssemblyName>DarkMultiPlayer</AssemblyName>
   </PropertyGroup>
   
     <ItemGroup>

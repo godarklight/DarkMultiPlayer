@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="..\Common\DarkMultiplayer-Common.csproj" />
+    <ProjectReference Include="..\Common\Common.csproj" />
     <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj" />
     <ProjectReference Include="..\External\SettingsParser\SettingsParser\SettingsParser.csproj" />
     <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj" />
