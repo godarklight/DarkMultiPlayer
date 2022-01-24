@@ -424,7 +424,7 @@ namespace DarkMultiPlayer
         public double GetUniverseTime(Subspace subspace)
         {
             long realTimeSinceLock = GetServerClock() - subspace.serverClock;
-            double realTimeSinceLockSeconds = realTimeSinceLock / 10000000d;
+            double realTimeSinceLockSeconds = realTimeSinceLock / (double)TimeSpan.TicksPerSecond;
             double adjustedTimeSinceLockSeconds = realTimeSinceLockSeconds * subspace.subspaceSpeed;
             return subspace.planetTime + adjustedTimeSinceLockSeconds;
         }
@@ -543,8 +543,8 @@ namespace DarkMultiPlayer
             if ((clockOffsetFull || clockOffsetPos > SYNC_TIME_VALID) && !synced)
             {
                 synced = true;
-                float clockOffsetAverageMs = clockOffsetAverage / 10000f;
-                float networkLatencyMs = networkLatencyAverage / 10000f;
+                float clockOffsetAverageMs = clockOffsetAverage / (float)TimeSpan.TicksPerMillisecond;
+                float networkLatencyMs = networkLatencyAverage / (float)TimeSpan.TicksPerMillisecond;
                 DarkLog.Debug("Initial clock syncronized, offset " + clockOffsetAverageMs + "ms, latency " + networkLatencyMs + "ms");
             }
 

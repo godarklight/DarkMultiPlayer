@@ -211,7 +211,7 @@ namespace DarkMultiPlayer
 
             //Set clock
             long serverClockDiff = timeSyncer.GetServerClock() - masterWarpRate.serverClock;
-            double secondsDiff = serverClockDiff / 10000000d;
+            double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
             double newTime = masterWarpRate.planetTime + (warpRates[masterWarpRate.rateIndex] * secondsDiff);
             Planetarium.SetUniversalTime(newTime);
         }
@@ -612,7 +612,7 @@ namespace DarkMultiPlayer
                         {
                             voteMaster = mr.Read<string>();
                             long expireTime = mr.Read<long>();
-                            voteExpireTime = Client.realtimeSinceStartup + ((expireTime - timeSyncer.GetServerClock()) / 10000000d);
+                            voteExpireTime = Client.realtimeSinceStartup + ((expireTime - timeSyncer.GetServerClock()) / (double)TimeSpan.TicksPerSecond);
                         }
                         break;
                     case WarpMessageType.REPLY_VOTE:
@@ -721,7 +721,7 @@ namespace DarkMultiPlayer
                     if (warpMode != WarpMode.MCW_LOWEST)
                     {
                         long expireTimeDelta = expireTime - timeSyncer.GetServerClock();
-                        controllerExpireTime = Client.realtimeSinceStartup + (expireTimeDelta / 10000000d);
+                        controllerExpireTime = Client.realtimeSinceStartup + (expireTimeDelta / (double)TimeSpan.TicksPerSecond);
                     }
                 }
             }
@@ -1001,7 +1001,7 @@ namespace DarkMultiPlayer
                         warpRates = TimeWarp.fetch.physicsWarpRates;
                     }
                     long serverClockDiff = serverClock - lhs.warpingEntry.serverClock;
-                    double secondsDiff = serverClockDiff / 10000000d;
+                    double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                     subspace1Time = lhs.warpingEntry.planetTime + (warpRates[lhs.warpingEntry.rateIndex] * secondsDiff);
                 }
             }
@@ -1010,7 +1010,7 @@ namespace DarkMultiPlayer
                 if (lhs.subspaceEntry != null)
                 {
                     long serverClockDiff = serverClock - lhs.subspaceEntry.serverClock;
-                    double secondsDiff = serverClockDiff / 10000000d;
+                    double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                     subspace1Time = lhs.subspaceEntry.planetTime + (lhs.subspaceEntry.subspaceSpeed * secondsDiff);
                 }
             }
@@ -1025,7 +1025,7 @@ namespace DarkMultiPlayer
                         warpRates = TimeWarp.fetch.physicsWarpRates;
                     }
                     long serverClockDiff = serverClock - rhs.warpingEntry.serverClock;
-                    double secondsDiff = serverClockDiff / 10000000d;
+                    double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                     subspace2Time = rhs.warpingEntry.planetTime + (warpRates[rhs.warpingEntry.rateIndex] * secondsDiff);
                 }
             }
@@ -1034,7 +1034,7 @@ namespace DarkMultiPlayer
                 if (rhs.subspaceEntry != null)
                 {
                     long serverClockDiff = serverClock - rhs.subspaceEntry.serverClock;
-                    double secondsDiff = serverClockDiff / 10000000d;
+                    double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                     subspace2Time = rhs.subspaceEntry.planetTime + (rhs.subspaceEntry.subspaceSpeed * secondsDiff);
                 }
             }

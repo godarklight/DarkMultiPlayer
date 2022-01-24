@@ -86,7 +86,7 @@ namespace DarkMultiPlayer
             get
             {
                 long ticksDiff = DateTime.UtcNow.Ticks - lastClockTicks;
-                double secondsSinceUpdate = ticksDiff / 10000000d;
+                double secondsSinceUpdate = ticksDiff / (double)TimeSpan.TicksPerSecond;
                 return lastRealTimeSinceStartup + (float)secondsSinceUpdate;
             }
         }

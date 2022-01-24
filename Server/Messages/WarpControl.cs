@@ -133,7 +133,7 @@ namespace DarkMultiPlayerServer.Messages
                     if (warpMaster == null)
                     {
                         warpMaster = client.playerName;
-                        warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * 10000000);
+                        warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * TimeSpan.TicksPerSecond);
                         SendSetController(client.playerName, warpTimeout);
                     }
                 }
@@ -144,14 +144,14 @@ namespace DarkMultiPlayerServer.Messages
                         if (Server.playerCount == 1)
                         {
                             warpMaster = client.playerName;
-                            warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * 10000000);
+                            warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * TimeSpan.TicksPerSecond);
                             SendSetController(client.playerName, warpTimeout);
                         }
                         else
                         {
                             voteList = new Dictionary<string, bool>();
                             voteMaster = client.playerName;
-                            voteTimeout = DateTime.UtcNow.Ticks + (long)(MAX_VOTE_TIME * 10000000);
+                            voteTimeout = DateTime.UtcNow.Ticks + (long)(MAX_VOTE_TIME * TimeSpan.TicksPerSecond);
                             SendRequestVote(client.playerName, voteTimeout);
                         }
                     }
@@ -220,7 +220,7 @@ namespace DarkMultiPlayerServer.Messages
                 ClientHandler.SendToAll(null, newMessage, true);
                 if (voteYesCount >= voteNeededCount)
                 {
-                    warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * 10000000);
+                    warpTimeout = DateTime.UtcNow.Ticks + (long)(MAX_WARP_TIME * TimeSpan.TicksPerSecond);
                     warpMaster = voteMaster;
                     voteList = null;
                     voteMaster = null;
@@ -638,7 +638,7 @@ namespace DarkMultiPlayerServer.Messages
             long currentTime = DateTime.UtcNow.Ticks;
             foreach (KeyValuePair<int,Subspace> subspace in subspaces)
             {
-                double currentPlanetTime = subspace.Value.planetTime + (((currentTime - subspace.Value.serverClock) / 10000000) * subspace.Value.subspaceSpeed);
+                double currentPlanetTime = subspace.Value.planetTime + (((currentTime - subspace.Value.serverClock) / (double)TimeSpan.TicksPerSecond) * subspace.Value.subspaceSpeed);
                 if (currentPlanetTime > latestPlanetTime)
                 {
                     latestPlanetTime = currentPlanetTime;
@@ -658,7 +658,7 @@ namespace DarkMultiPlayerServer.Messages
         {
             //New time = Old time + (seconds since lock * subspace rate)
             long newServerClockTime = DateTime.UtcNow.Ticks;
-            float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[subspaceID].serverClock) / 10000000f;
+            float timeSinceLock = (DateTime.UtcNow.Ticks - subspaces[subspaceID].serverClock) / (float)TimeSpan.TicksPerSecond;
             double newPlanetariumTime = subspaces[subspaceID].planetTime + (timeSinceLock * subspaces[subspaceID].subspaceSpeed);
             subspaces[subspaceID].serverClock = newServerClockTime;
             subspaces[subspaceID].planetTime = newPlanetariumTime;
@@ -709,7 +709,7 @@ namespace DarkMultiPlayerServer.Messages
             if (!Settings.settingsStore.sendPlayerToLatestSubspace && subspaces.ContainsKey(client.subspace))
             {
                 Subspace clientSubspace = subspaces[client.subspace];
-                double timeDelta = ((DateTime.UtcNow.Ticks - clientSubspace.serverClock) / 10000000d) * clientSubspace.subspaceSpeed;
+                double timeDelta = ((DateTime.UtcNow.Ticks - clientSubspace.serverClock) / (double)TimeSpan.TicksPerSecond) * clientSubspace.subspaceSpeed;
                 double playerOfflineTime = subspaces[client.subspace].planetTime + timeDelta;
                 string storedTimeFile = Path.Combine(Server.universeDirectory, "OfflinePlayerTimes", playerName + ".txt");
                 File.WriteAllText(storedTimeFile, playerOfflineTime.ToString());

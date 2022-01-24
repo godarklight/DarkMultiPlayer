@@ -223,7 +223,6 @@ namespace DarkMultiPlayer
             for (int i = 0; i < subspaceDisplay.Item2; i++)
             {
                 SubspaceDisplayEntry currentEntry = subspaceDisplay.Item1[i];
-                int diffTime = 0;
                 if (updateSubspace || currentEntry.relativeTimeDisplay == null)
                 {
                     int currentTime = 0;
@@ -232,63 +231,52 @@ namespace DarkMultiPlayer
                     {
                         if (!currentEntry.isUs)
                         {
-                            if (!currentEntry.isWarping)
+                            //Subspace entry
+                            if (currentEntry.subspaceEntry != null)
                             {
-                                //Subspace entry
+                                long serverClockDiff = serverClock - currentEntry.subspaceEntry.serverClock;
+                                double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                                 if (currentEntry.subspaceEntry != null)
                                 {
-                                    long serverClockDiff = serverClock - currentEntry.subspaceEntry.serverClock;
-                                    double secondsDiff = serverClockDiff / 10000000d;
                                     currentTime = (int)(currentEntry.subspaceEntry.planetTime + (currentEntry.subspaceEntry.subspaceSpeed * secondsDiff));
-                                    diffTime = (int)(currentTime - ourTime);
-                                    if (diffTime > 0)
-                                    {
-                                        currentEntry.showSyncButton = true;
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToString(currentTime, 1), SecondsToString(diffTime, 0));
-                                    }
-                                    if (diffTime < 0)
-                                    {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToString(currentTime, 1), SecondsToString(-diffTime, 0));
-                                    }
-                                    if (diffTime == 0)
-                                    {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
-                                    }
                                 }
                             }
-                            else
+                            //Warp entry
+                            if (currentEntry.warpingEntry != null)
                             {
-                                //Warp entry
-                                if (currentEntry.warpingEntry != null)
+                                long serverClockDiff = serverClock - currentEntry.warpingEntry.serverClock;
+                                double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
+                                float[] warpRates = TimeWarp.fetch.warpRates;
+                                if (currentEntry.warpingEntry.isPhysWarp)
                                 {
-                                    float[] warpRates = TimeWarp.fetch.warpRates;
-                                    if (currentEntry.warpingEntry.isPhysWarp)
-                                    {
-                                        warpRates = TimeWarp.fetch.physicsWarpRates;
-                                    }
-                                    long serverClockDiff = serverClock - currentEntry.warpingEntry.serverClock;
-                                    double secondsDiff = serverClockDiff / 10000000d;
-                                    currentTime = (int)(currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff));
-                                    diffTime = (int)(currentTime - ourTime);
-                                    if (diffTime > 0)
-                                    {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the future", SecondsToString(currentTime, 1), SecondsToString(diffTime, 0));
-                                    }
-                                    if (diffTime < 0)
-                                    {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - {1} in the past", SecondsToString(currentTime, 1), SecondsToString(-diffTime, 0));
-                                    }
-                                    if (diffTime == 0)
-                                    {
-                                        currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
-                                    }
+                                    warpRates = TimeWarp.fetch.physicsWarpRates;
                                 }
+                                currentTime = (int)(currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff));
+                            }
+                            int diffTime = (int)(currentTime - ourTime);
+                            string prefix = $"T+ { SecondsToString(currentTime, 1, false) }";
+                            if (currentTime < 0)
+                            {
+                                prefix = $"T- { SecondsToString(-currentTime, 1, false) }";
+                            }
+                            if (diffTime < 0)
+                            {
+                                currentEntry.showSyncButton = true;
+                                currentEntry.relativeTimeDisplay = $"{prefix} - { SecondsToString(-diffTime, 0, true) } in the past";
+                            }
+                            if (diffTime > 0)
+                            {
+                                currentEntry.relativeTimeDisplay = $"{prefix} - { SecondsToString(diffTime, 0, true) } in the future";
+                            }
+                            if (diffTime == 0)
+                            {
+                                currentEntry.relativeTimeDisplay = $"{prefix} - NOW";
                             }
                         }
                         else
                         {
                             currentTime = (int)ourTime;
-                            currentEntry.relativeTimeDisplay = String.Format("T+ {0} - NOW", SecondsToString(currentTime, 1));
+                            currentEntry.relativeTimeDisplay = $"T+ { SecondsToString(currentTime, 1, false) } - NOW";
                         }
                     }
                     else
@@ -395,7 +383,7 @@ namespace DarkMultiPlayer
         }
 
         //2 = long, 1 = short, 0 = very short
-        private string SecondsToString(int time, int lengthType)
+        private string SecondsToString(int time, int lengthType, bool delta)
         {
             // Use Kerbin days (6h days, 426d years)
             int year_unit = 31536000;
@@ -417,8 +405,11 @@ namespace DarkMultiPlayer
             int seconds = time;
 
             //KSP starts at year 1 day 1.
-            years++;
-            days++;
+            if (GameSettings.KERBIN_TIME && !delta)
+            {
+                years++;
+                days++;
+            }
 
             if (lengthType == 0)
             {

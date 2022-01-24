@@ -1,157 +1,57 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <PropertyGroup>
-    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
-    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProductVersion>8.0.30703</ProductVersion>
-    <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{7AD735F5-A076-44D2-97EC-02ECAD827001}</ProjectGuid>
-    <OutputType>Library</OutputType>
-    <RootNamespace>DarkMultiPlayer</RootNamespace>
-    <AssemblyName>DarkMultiPlayer</AssemblyName>
-    <UseMSBuildEngine>false</UseMSBuildEngine>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>full</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;ENABLE_PROFILER;DEVELOPMENT</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
-  </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <Optimize>true</Optimize>
-    <OutputPath>bin\Release</OutputPath>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <ConsolePause>false</ConsolePause>
-  </PropertyGroup>
-  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+<?xml version="1.0"?>
+<Project Sdk="Microsoft.NET.Sdk">
+
   <ItemGroup>
+    <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj"/>
+    <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj"/>
+    <ProjectReference Include="..\Common\DarkMultiplayer-Common.csproj"/>
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFrameworks>net472</TargetFrameworks>
+  </PropertyGroup>
+  
+    <ItemGroup>
     <Reference Include="Assembly-CSharp">
-      <HintPath>..\External\KSPManaged\Assembly-CSharp.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>../External/KSPManaged/Assembly-CSharp.dll</HintPath>
+      <Private>false</Private>
     </Reference>
     <Reference Include="Assembly-CSharp-firstpass">
-      <HintPath>..\External\KSPManaged\Assembly-CSharp-firstpass.dll</HintPath>
-      <Private>False</Private>
+      <HintPath>../External/KSPManaged/Assembly-CSharp-firstpass.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.AnimationModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.AnimationModule.dll</HintPath>
-      <Private>False</Private>
+        <Reference Include="UnityEngine">
+      <HintPath>../External/KSPManaged/UnityEngine.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.CoreModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.CoreModule.dll</HintPath>
-      <Private>False</Private>
+        <Reference Include="UnityEngine.CoreModule">
+      <HintPath>../External/KSPManaged/UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.ImageConversionModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.ImageConversionModule.dll</HintPath>
-      <Private>False</Private>
+        <Reference Include="UnityEngine.IMGUIModule">
+      <HintPath>../External/KSPManaged/UnityEngine.IMGUIModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.IMGUIModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.IMGUIModule.dll</HintPath>
-      <Private>False</Private>
+            <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>../External/KSPManaged/UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.InputLegacyModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.InputLegacyModule.dll</HintPath>
-      <Private>False</Private>
+            <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>../External/KSPManaged/UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.PhysicsModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.PhysicsModule.dll</HintPath>
-      <Private>False</Private>
+                <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>../External/KSPManaged/UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.TextRenderingModule">
-      <HintPath>..\External\KSPManaged\UnityEngine.TextRenderingModule.dll</HintPath>
-      <Private>False</Private>
+                    <Reference Include="UnityEngine.ImageConversionModule">
+      <HintPath>../External/KSPManaged/UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\External\KSPManaged\UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
+                        <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>../External/KSPManaged/UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
     </Reference>
-    <Reference Include="System">
-      <HintPath>..\External\KSPManaged\System.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-    <Reference Include="System.Xml">
-      <HintPath>..\External\KSPManaged\System.Xml.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Compile Include="Main.cs" />
-    <Compile Include="Log.cs" />
-    <Compile Include="ConfigNodeSerializer.cs" />
-    <Compile Include="NamedAction.cs" />
-    <Compile Include="Utilities\CompatibilityChecker.cs" />
-    <Compile Include="VesselWorker.cs" />
-    <Compile Include="TimeSyncer.cs" />
-    <Compile Include="NetworkWorker.cs" />
-    <Compile Include="ConnectionWindow.cs" />
-    <Compile Include="Settings.cs" />
-    <Compile Include="WarpWorker.cs" />
-    <Compile Include="PlayerStatusWindow.cs" />
-    <Compile Include="PlayerStatusWorker.cs" />
-    <Compile Include="ScenarioWorker.cs" />
-    <Compile Include="DebugWindow.cs" />
-    <Compile Include="DynamicTickWorker.cs" />
-    <Compile Include="ModWorker.cs" />
-    <Compile Include="ModWindow.cs" />
-    <Compile Include="CraftLibraryWorker.cs" />
-    <Compile Include="ChatWorker.cs" />
-    <Compile Include="UniverseSyncCache.cs" />
-    <Compile Include="ScreenshotWorker.cs" />
-    <Compile Include="LockSystem.cs" />
-    <Compile Include="AsteroidWorker.cs" />
-    <Compile Include="PlayerColorWorker.cs" />
-    <Compile Include="OptionsWindow.cs" />
-    <Compile Include="UniverseConverter.cs" />
-    <Compile Include="UniverseConverterWindow.cs" />
-    <Compile Include="Utilities\InstallChecker.cs" />
-    <Compile Include="FlagSyncer.cs" />
-    <Compile Include="DisclaimerWindow.cs" />
-    <Compile Include="DMPModInterface.cs" />
-    <Compile Include="Profiler.cs" />
-    <Compile Include="AdminSystem.cs" />
-    <Compile Include="VesselUpdate.cs" />
-    <Compile Include="VesselUtil.cs" />
-    <Compile Include="VesselProtoUpdate.cs" />
-    <Compile Include="DMPGuiUtil.cs" />
-    <Compile Include="ToolbarWrapper.cs" />
-    <Compile Include="ToolbarSupport.cs" />
-    <Compile Include="3DDebug.cs" />
-    <Compile Include="PartKiller.cs" />
-    <Compile Include="KerbalReassigner.cs" />
-    <Compile Include="DMPGame.cs" />
-    <Compile Include="VesselRecorder.cs" />
-    <Compile Include="PosistionStatistics.cs" />
-    <Compile Include="VesselCtrlUpdate.cs" />
-    <Compile Include="GlobalSuppressions.cs" />
-    <Compile Include="SafetyBubble.cs" />
-    <Compile Include="Groups.cs" />
-    <Compile Include="Permissions.cs" />
-    <Compile Include="GroupsWindow.cs" />
-    <Compile Include="PermissionsWindow.cs" />
-    <Compile Include="ModpackWorker.cs" />
-    <Compile Include="RecycledMessageTypes.cs" />
-    <Compile Include="ServerListDisclaimerWindow.cs" />
-    <Compile Include="ServersWindow.cs" />
-    <Compile Include="ServerListConnection.cs" />
-    <Compile Include="VesselRangeBumper.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Common\DarkMultiPlayerCommon.csproj">
-      <Project>{423C5A4B-EA79-450D-BD86-5B46141D58D1}</Project>
-      <Name>DarkMultiPlayerCommon</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\External\MessageStream2\MessageStream2\MessageStream2.csproj">
-      <Project>{45899456-12A0-4C48-B92D-B3694B988F98}</Project>
-      <Name>MessageStream2</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\External\UDPMeshLib\UDPMeshLib\UDPMeshLib.csproj">
-      <Project>{D55400C8-5309-4F98-BC7F-F789690F23B3}</Project>
-      <Name>UDPMeshLib</Name>
-    </ProjectReference>
-  </ItemGroup>
+    </ItemGroup>
+
 </Project>

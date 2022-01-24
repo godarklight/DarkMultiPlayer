@@ -1870,7 +1870,7 @@ namespace DarkMultiPlayer
         {
             using (MessageReader mr = new MessageReader(messageData.data))
             {
-                int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / 10000f);
+                int pingTime = (int)((DateTime.UtcNow.Ticks - mr.Read<long>()) / (float)TimeSpan.TicksPerMillisecond);
                 chatWorker.QueueChannelMessage(chatWorker.consoleIdentifier, "", "Ping: " + pingTime + "ms.");
             }
 

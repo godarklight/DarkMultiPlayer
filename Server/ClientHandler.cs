@@ -13,7 +13,6 @@ namespace DarkMultiPlayerServer
 {
     public class ClientHandler
     {
-        //No point support IPv6 until KSP enables it on their windows builds.
         private static TcpListener TCPServer;
         private static ReadOnlyCollection<ClientObject> clients = new List<ClientObject>().AsReadOnly();
 
@@ -60,7 +59,7 @@ namespace DarkMultiPlayerServer
                 bool sendingHighPriotityMessages = true;
                 while (sendingHighPriotityMessages)
                 {
-                    if ((DateTime.UtcNow.Ticks - disconnectTime) > 50000000)
+                    if ((DateTime.UtcNow.Ticks - disconnectTime) > (5 * TimeSpan.TicksPerSecond))
                     {
                         DarkLog.Debug("Shutting down with " + Server.playerCount + " players, " + clients.Count + " connected clients");
                         break;
@@ -90,21 +89,7 @@ namespace DarkMultiPlayerServer
             {
                 IPAddress bindAddress = IPAddress.Parse(Settings.settingsStore.address);
                 TCPServer = new TcpListener(new IPEndPoint(bindAddress, Settings.settingsStore.port));
-                try
-                {
-                    if (System.Net.Sockets.Socket.OSSupportsIPv6)
-                    {
-                        //Windows defaults to v6 only, but this option does not exist in mono so it has to be in a try/catch block along with the casted int.
-                        if (Environment.OSVersion.Platform != PlatformID.MacOSX && Environment.OSVersion.Platform != PlatformID.Unix)
-                        {
-                            TCPServer.Server.SetSocketOption(SocketOptionLevel.IPv6, (SocketOptionName)27, 0);
-                        }
-                    }
-                }
-                catch
-                {
-                    //Don't care - On linux and mac this throws because it's already set, and on windows it just works.
-                }
+                TCPServer.Server.DualMode = true;
                 TCPServer.Start(4);
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }
@@ -742,7 +727,7 @@ namespace DarkMultiPlayerServer
                         //And we haven't optimized in the last 5 seconds
                         long currentTime = DateTime.UtcNow.Ticks;
                         long optimizedBytes = 0;
-                        if ((currentTime - client.lastQueueOptimizeTime) > 50000000)
+                        if ((currentTime - client.lastQueueOptimizeTime) > (5 * TimeSpan.TicksPerSecond))
                         {
                             client.lastQueueOptimizeTime = currentTime;
                             DarkLog.Debug("Optimizing " + client.playerName + " (" + client.bytesQueuedOut + " bytes queued)");
@@ -817,7 +802,7 @@ namespace DarkMultiPlayerServer
                             {
                                 client.sendMessageQueueLow.Enqueue(putBackMessage);
                             }
-                            float optimizeTime = (DateTime.UtcNow.Ticks - currentTime) / 10000f;
+                            float optimizeTime = (DateTime.UtcNow.Ticks - currentTime) / (float)TimeSpan.TicksPerMillisecond;
                             client.bytesQueuedOut -= optimizedBytes;
                             DarkLog.Debug("Optimized " + optimizedBytes + " bytes in " + Math.Round(optimizeTime, 3) + " ms.");
                         }

@@ -21,7 +21,7 @@ namespace DarkMultiPlayerCommon
         //Program version. This is written in the build scripts.
         public const string PROGRAM_VERSION = "Custom";
         //Mod control version - The last version to add parts
-        public const string MODCONTROL_VERSION = "1.12";
+        public const string MODCONTROL_VERSION = "1.12.3";
         //Compression threshold
         public const int COMPRESSION_THRESHOLD = 4096;
 
@@ -635,7 +635,10 @@ namespace DarkMultiPlayerCommon
                "solarPanelOX10L",
                "solarPanelSP10L",
                "fireworksLauncherBig",
-               "fireworksLauncherSmall"
+               "fireworksLauncherSmall",
+               // 1.12.3
+               "liquidEngine.v2",
+               "liquidEngine2.v2"
             };
             return stockPartList;
             //MAKE SURE TO CHANGE Common.MODCONTROL_VERSION
