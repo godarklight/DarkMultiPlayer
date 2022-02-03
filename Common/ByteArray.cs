@@ -5,11 +5,13 @@ namespace DarkMultiPlayerCommon
     {
         public int size;
         public readonly byte[] data;
+        public bool temporary;
 
         public ByteArray(int size)
         {
             data = new byte[size];
             size = 0;
+            temporary = false;
         }
 
         public int Length

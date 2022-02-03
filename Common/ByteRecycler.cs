@@ -28,7 +28,9 @@ namespace DarkMultiPlayerCommon
             }
             if (pool_size == 0)
             {
-                throw new InvalidOperationException("Pool size not big enough for current request. Add a bigger pool size.");
+                ByteArray temporary = new ByteArray(size);
+                temporary.temporary = true;
+                return temporary;
             }
             ByteArray freeObject = null;
             lock (lockObject)
@@ -50,6 +52,11 @@ namespace DarkMultiPlayerCommon
 
         public static void ReleaseObject(ByteArray releaseObject)
         {
+            if (releaseObject.temporary)
+            {
+                //Temporary objects were never assigned to a pool and must be thrown away.
+                return;
+            }
             lock (lockObject)
             {
                 if (inUseObjects.ContainsKey(releaseObject.data.Length))
