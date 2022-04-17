@@ -98,6 +98,11 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             CraftType uploadType = (CraftType)mr.Read<int>();
                             string uploadName = mr.Read<string>();
+                            if (!SafeFile.IsNameSafe(uploadName))
+                            {
+                                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid vessel name");
+                                return;
+                            }
                             byte[] uploadData = mr.Read<byte[]>();
                             string playerPath = Path.Combine(Path.Combine(Server.universeDirectory, "Crafts"), fromPlayer);
                             if (!Directory.Exists(playerPath))
@@ -131,6 +136,11 @@ namespace DarkMultiPlayerServer.Messages
                             CraftType requestedType = (CraftType)mr.Read<int>();
                             bool hasCraft = false;
                             string requestedName = mr.Read<string>();
+                            if (!SafeFile.IsNameSafe(requestedName))
+                            {
+                                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid vessel name");
+                                return;
+                            }
                             string playerPath = Path.Combine(Path.Combine(Server.universeDirectory, "Crafts"), craftOwner);
                             string typePath = Path.Combine(playerPath, requestedType.ToString());
                             string craftFile = Path.Combine(typePath, requestedName + ".craft");
@@ -167,6 +177,11 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             CraftType craftType = (CraftType)mr.Read<int>();
                             string craftName = mr.Read<string>();
+                            if (!SafeFile.IsNameSafe(craftName))
+                            {
+                                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid vessel name");
+                                return;
+                            }
                             string playerPath = Path.Combine(Path.Combine(Server.universeDirectory, "Crafts"), fromPlayer);
                             string typePath = Path.Combine(playerPath, craftType.ToString());
                             string craftFile = Path.Combine(typePath, craftName + ".craft");

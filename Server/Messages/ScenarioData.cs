@@ -10,12 +10,12 @@ namespace DarkMultiPlayerServer.Messages
         public static string GetScenarioPath(ClientObject client)
         {
             string clientPath = Path.Combine(Server.universeDirectory, "Scenarios", client.playerName);
-/*
-            if (Settings.settingsStore.sharedScience)
-            {
-                clientPath = Path.Combine(Server.universeDirectory, "Scenarios", "Shared");
-            }
-*/
+            /*
+                        if (Settings.settingsStore.sharedScience)
+                        {
+                            clientPath = Path.Combine(Server.universeDirectory, "Scenarios", "Shared");
+                        }
+            */
             if (!Directory.Exists(clientPath))
             {
                 Directory.CreateDirectory(clientPath);
@@ -111,10 +111,16 @@ namespace DarkMultiPlayerServer.Messages
             {
                 //Don't care about subspace / send time.
                 string[] scenarioName = mr.Read<string[]>();
+
                 DarkLog.Debug("Saving " + scenarioName.Length + " scenario modules from " + client.playerName);
 
                 for (int i = 0; i < scenarioName.Length; i++)
                 {
+                    if (!SafeFile.IsNameSafe(scenarioName[i]))
+                    {
+                        Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid scenario name");
+                        return;
+                    }
                     byte[] scenarioData = Compression.DecompressIfNeeded(mr.Read<byte[]>());
                     lock (Server.universeSizeLock)
                     {

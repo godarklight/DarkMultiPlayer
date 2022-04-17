@@ -499,7 +499,7 @@ namespace DarkMultiPlayer
             if (Directory.Exists(vabPath))
             {
                 uploadList.Add(CraftType.VAB, new List<string>());
-                string[] craftFiles = Directory.GetFiles(vabPath);
+                string[] craftFiles = Directory.GetFiles(vabPath, "*.craft");
                 foreach (string craftFile in craftFiles)
                 {
                     string craftName = Path.GetFileNameWithoutExtension(craftFile);
@@ -509,7 +509,7 @@ namespace DarkMultiPlayer
             if (Directory.Exists(sphPath))
             {
                 uploadList.Add(CraftType.SPH, new List<string>());
-                string[] craftFiles = Directory.GetFiles(sphPath);
+                string[] craftFiles = Directory.GetFiles(sphPath, "*.craft");
                 foreach (string craftFile in craftFiles)
                 {
                     string craftName = Path.GetFileNameWithoutExtension(craftFile);

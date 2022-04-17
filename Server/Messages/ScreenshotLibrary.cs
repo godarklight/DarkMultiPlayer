@@ -9,7 +9,7 @@ namespace DarkMultiPlayerServer.Messages
     public class ScreenshotLibrary
     {
         private static Dictionary<string, int> playerUploadedScreenshotIndex = new Dictionary<string, int>();
-        private static Dictionary<string, Dictionary<string,int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary<string, int>>();
+        private static Dictionary<string, Dictionary<string, int>> playerDownloadedScreenshotIndex = new Dictionary<string, Dictionary<string, int>>();
         private static Dictionary<string, string> playerWatchScreenshot = new Dictionary<string, string>();
 
         public static void HandleScreenshotLibrary(ClientObject client, byte[] messageData)
@@ -32,6 +32,17 @@ namespace DarkMultiPlayerServer.Messages
             {
                 ScreenshotMessageType messageType = (ScreenshotMessageType)mr.Read<int>();
                 string fromPlayer = mr.Read<string>();
+                if (fromPlayer != client.playerName)
+                {
+                    DarkLog.Debug(client.playerName + " tried to send an update for " + fromPlayer + ", kicking.");
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for sending a screenshot message for another player");
+                    return;
+                }
+                if (!SafeFile.IsNameSafe(fromPlayer))
+                {
+                    Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for an invalid screenshot fromPlayer name");
+                    return;
+                }
                 switch (messageType)
                 {
                     case ScreenshotMessageType.SCREENSHOT:
@@ -140,6 +151,11 @@ namespace DarkMultiPlayerServer.Messages
                         {
                             newMessage.data = messageData;
                             string watchPlayer = mr.Read<string>();
+                            if (!SafeFile.IsNameSafe(watchPlayer))
+                            {
+                                Messages.ConnectionEnd.SendConnectionEnd(client, "Kicked for watching an invalid player");
+                                return;
+                            }
                             if (watchPlayer == "")
                             {
                                 if (playerWatchScreenshot.ContainsKey(fromPlayer))

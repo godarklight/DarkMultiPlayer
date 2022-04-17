@@ -33,7 +33,6 @@ namespace DarkMultiPlayerServer.Messages
             byte[] playerChallangeSignature;
             string clientVersion = "";
             string reason = "";
-            Regex regex = new Regex(@"[\""<>|$]"); // Regex to detect quotation marks, and other illegal characters
             //0 - Success
             HandshakeReply handshakeReponse = HandshakeReply.HANDSHOOK_SUCCESSFULLY;
             try
@@ -62,14 +61,9 @@ namespace DarkMultiPlayerServer.Messages
                 SendHandshakeReply(client, HandshakeReply.MALFORMED_HANDSHAKE, "Malformed handshake");
                 return;
             }
-            if (regex.IsMatch(playerName))
+            if (!SafeFile.IsNameSafe(playerName))
             {
                 // Invalid username
-                handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
-                reason = "Invalid username";
-            }
-            if (playerName.Contains("/") || playerName.Contains(@"\") || playerName.Contains("\n") || playerName.Contains("\r"))
-            {
                 handshakeReponse = HandshakeReply.INVALID_PLAYERNAME;
                 reason = "Invalid username";
             }
