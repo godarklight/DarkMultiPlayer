@@ -89,7 +89,13 @@ namespace DarkMultiPlayerServer
             {
                 IPAddress bindAddress = IPAddress.Parse(Settings.settingsStore.address);
                 TCPServer = new TcpListener(new IPEndPoint(bindAddress, Settings.settingsStore.port));
-                TCPServer.Server.DualMode = true;
+                
+                // This if statement is required. Even setting it to `false` causes an exception if the system does not support IPv6
+                if (Settings.settingsStore.supportIpv6)
+                {
+                    TCPServer.Server.DualMode = true;   
+                }
+                
                 TCPServer.Start(4);
                 TCPServer.BeginAcceptTcpClient(new AsyncCallback(NewClientCallback), null);
             }
