@@ -255,11 +255,11 @@ namespace DarkMultiPlayer
                 return;
             }
             string shaToUpload = modFilesToUpload[modFilesToUploadPos];
-            DarkLog.Debug("Uploading object: " + shaToUpload);
             modFilesToUploadPos++;
             using (MessageWriter mw = new MessageWriter())
             {
                 string fileToUploadPath = Path.Combine(cacheDataPath, shaToUpload + ".bin");
+                DarkLog.Debug("Uploading object: " + shaToUpload + ", " + fileToUploadPath);
                 mw.Write<int>((int)ModpackDataMessageType.RESPONSE_OBJECT);
                 mw.Write<string>(shaToUpload);
                 if (File.Exists(fileToUploadPath))

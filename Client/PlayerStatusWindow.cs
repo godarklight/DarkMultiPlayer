@@ -261,11 +261,11 @@ namespace DarkMultiPlayer
                             }
                             if (diffTime < 0)
                             {
-                                currentEntry.showSyncButton = true;
                                 currentEntry.relativeTimeDisplay = $"{prefix} - { SecondsToString(-diffTime, 0, true) } in the past";
                             }
                             if (diffTime > 0)
                             {
+                                currentEntry.showSyncButton = true;
                                 currentEntry.relativeTimeDisplay = $"{prefix} - { SecondsToString(diffTime, 0, true) } in the future";
                             }
                             if (diffTime == 0)
