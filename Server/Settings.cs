@@ -96,5 +96,9 @@ namespace DarkMultiPlayerServer
         public double expireLogs = 0;
         [Description("Specify the minimum distance in which vessels can interact with eachother at the launch pad and runway")]
         public float safetyBubbleDistance = 100.0f;
+        [Description("Specify which protection mode to set new vessels to.")]
+        public VesselProtectionType newVesselProtection = VesselProtectionType.PUBLIC;
+        [Description("Specify whether to force Space Objects (asteroids and comets) to be public.")]
+        public bool forcePublicSpaceObjects = false;
     }
 }
