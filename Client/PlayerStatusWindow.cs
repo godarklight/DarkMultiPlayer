@@ -225,7 +225,7 @@ namespace DarkMultiPlayer
                 SubspaceDisplayEntry currentEntry = subspaceDisplay.Item1[i];
                 if (updateSubspace || currentEntry.relativeTimeDisplay == null)
                 {
-                    int currentTime = 0;
+                    long currentTime = 0;
                     currentEntry.showSyncButton = false;
                     if (!currentEntry.isUnknown)
                     {
@@ -238,7 +238,7 @@ namespace DarkMultiPlayer
                                 double secondsDiff = serverClockDiff / (double)TimeSpan.TicksPerSecond;
                                 if (currentEntry.subspaceEntry != null)
                                 {
-                                    currentTime = (int)(currentEntry.subspaceEntry.planetTime + (currentEntry.subspaceEntry.subspaceSpeed * secondsDiff));
+                                    currentTime = (long)(currentEntry.subspaceEntry.planetTime + (currentEntry.subspaceEntry.subspaceSpeed * secondsDiff));
                                 }
                             }
                             //Warp entry
@@ -251,9 +251,9 @@ namespace DarkMultiPlayer
                                 {
                                     warpRates = TimeWarp.fetch.physicsWarpRates;
                                 }
-                                currentTime = (int)(currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff));
+                                currentTime = (long)(currentEntry.warpingEntry.planetTime + (warpRates[currentEntry.warpingEntry.rateIndex] * secondsDiff));
                             }
-                            int diffTime = (int)(currentTime - ourTime);
+                            long diffTime = (long)(currentTime - ourTime);
                             string prefix = $"T+ { SecondsToString(currentTime, 1, false) }";
                             if (currentTime < 0)
                             {
@@ -275,7 +275,7 @@ namespace DarkMultiPlayer
                         }
                         else
                         {
-                            currentTime = (int)ourTime;
+                            currentTime = (long)ourTime;
                             currentEntry.relativeTimeDisplay = $"T+ { SecondsToString(currentTime, 1, false) } - NOW";
                         }
                     }
@@ -383,26 +383,26 @@ namespace DarkMultiPlayer
         }
 
         //2 = long, 1 = short, 0 = very short
-        private string SecondsToString(int time, int lengthType, bool delta)
+        private string SecondsToString(long time, int lengthType, bool delta)
         {
             // Use Kerbin days (6h days, 426d years)
-            int year_unit = 31536000;
-            int day_unit = 86400;
+            long year_unit = 31536000;
+            long day_unit = 86400;
             if (GameSettings.KERBIN_TIME)
             {
                 year_unit = 9201600;
                 day_unit = 21600;
             }
 
-            int years = time / year_unit;
+            long years = time / year_unit;
             time -= years * year_unit;
-            int days = time / day_unit;
+            long days = time / day_unit;
             time -= days * day_unit;
-            int hours = time / 3600;
+            long hours = time / 3600;
             time -= hours * 3600;
-            int minutes = time / 60;
+            long minutes = time / 60;
             time -= minutes * 60;
-            int seconds = time;
+            long seconds = time;
 
             //KSP starts at year 1 day 1.
             if (GameSettings.KERBIN_TIME && !delta)
@@ -426,7 +426,7 @@ namespace DarkMultiPlayer
             return null;
         }
 
-        private string TimeToLongString(int years, int days, int hours, int minutes, int seconds)
+        private string TimeToLongString(long years, long days, long hours, long minutes, long seconds)
         {
             stringBuilder.Clear();
             bool addComma = false;
@@ -519,7 +519,7 @@ namespace DarkMultiPlayer
             return stringBuilder.ToString();
         }
 
-        private string TimeToShortString(int years, int days, int hours, int minutes, int seconds)
+        private string TimeToShortString(long years, long days, long hours, long minutes, long seconds)
         {
             stringBuilder.Clear();
             if (years > 0)
@@ -550,7 +550,7 @@ namespace DarkMultiPlayer
             return stringBuilder.ToString();
         }
 
-        private string TimeToVeryShortString(int years, int days, int hours, int minutes, int seconds)
+        private string TimeToVeryShortString(long years, long days, long hours, long minutes, long seconds)
         {
             if (years > 0)
             {
