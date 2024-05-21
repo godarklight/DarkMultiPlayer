@@ -158,6 +158,11 @@ namespace DarkMultiPlayer
             //Sanity check to make sure we found the file
             if (flagFile != "" && File.Exists(flagFile))
             {
+                byte[] flagBytes = File.ReadAllBytes(flagFile);
+                if (flagBytes.Length == 0)
+                {
+                    return;
+                }
                 string shaSum = Common.CalculateSHA256Hash(flagFile);
                 if (serverFlags.ContainsKey(flagName) && serverFlags[flagName].shaSum == shaSum)
                 {
@@ -170,7 +175,7 @@ namespace DarkMultiPlayer
                     mw.Write<int>((int)FlagMessageType.UPLOAD_FILE);
                     mw.Write<string>(dmpSettings.playerName);
                     mw.Write<string>(Path.GetFileName(flagFile));
-                    mw.Write<byte[]>(File.ReadAllBytes(flagFile));
+                    mw.Write<byte[]>(flagBytes);
                     networkWorker.SendFlagMessage(mw.GetMessageBytes());
                 }
                 FlagInfo fi = new FlagInfo();
@@ -189,6 +194,11 @@ namespace DarkMultiPlayer
             if (flagTexture.LoadImage(flagRespondMessage.flagData))
             {
                 flagTexture.name = "DarkMultiPlayer/Flags/" + Path.GetFileNameWithoutExtension(flagRespondMessage.flagName);
+                if (flagRespondMessage.flagData.Length == 0)
+                {
+                    DarkLog.Debug("Skipping saving 0 byte flag");
+                    return;
+                }
                 File.WriteAllBytes(flagFile, flagRespondMessage.flagData);
                 GameDatabase.TextureInfo ti = new GameDatabase.TextureInfo(null, flagTexture, false, true, false);
                 ti.name = flagTexture.name;

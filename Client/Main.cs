@@ -165,6 +165,9 @@ namespace DarkMultiPlayer
             // UniverseSyncCache needs to run expiry here
             universeSyncCache.ExpireCache();
 
+            // Fix 0 byte flags preventing KSP from starting
+            FlagFixer.Fix(gameDataDir);
+
             GameEvents.onHideUI.Add(() =>
             {
                 showGUI = false;
