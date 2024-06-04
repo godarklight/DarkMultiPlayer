@@ -42,6 +42,8 @@ namespace DarkMultiPlayerServer
         public string address = "0.0.0.0";
         [Description("The port the server listens on.")]
         public int port = 6702;
+        [Description("Whether the server should listen on IPv4 AND IPv6.\nSet this to False if you see the following error: \"Error setting up server, Exception: System.NotSupportedException: This protocol version is not supported.\"")]
+        public bool supportIpv6 = true;
         [Description("Specify the modpack type.\nNONE: DMPClients cannot download modpacks from this server\nCKAN: DMPServer will send the clients Config/DarkMultiPlayer.ckan upon connecting, informing them of changes\nGAMEDATA: DMPServer will send the clients Config/GameData\nNote: They still need to run DMPModpackUpdater in order to actually install the modpack as GameData cannot be modified while KSP is running")]
         public ModpackMode modpackMode = ModpackMode.NONE;
         [Description("Specify the warp type.")]

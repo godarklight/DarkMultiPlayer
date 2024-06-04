@@ -9,4 +9,5 @@
 saves/
 .vs/
 .vscode/
+.idea/
 External/KSPManaged/*.dll
