@@ -136,7 +136,7 @@ namespace DarkMultiPlayerServer
             {
                 string vesselFileName = Path.GetFileName(file);
                 string vesselFileNameWE = Path.GetFileNameWithoutExtension(file);
-                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName))) 
+                if (!File.Exists(Path.Combine(vesselProtoPath, vesselFileName)))
                 {
                     DarkLog.Debug("Deleting permissions for unknown vessel: " + vesselFileNameWE);
                     File.Delete(file);
@@ -226,6 +226,7 @@ namespace DarkMultiPlayerServer
                 if (!vesselPermissions.ContainsKey(guid))
                 {
                     SetVesselOwner(guid, owner);
+                    SetVesselProtection(guid, Settings.settingsStore.newVesselProtection);
                 }
             }
         }
@@ -267,6 +268,7 @@ namespace DarkMultiPlayerServer
                 {
                     return;
                 }
+
                 vesselPermissions[guid].protection = protection;
                 SaveVesselPermissions(guid);
             }
@@ -292,10 +294,16 @@ namespace DarkMultiPlayerServer
             }
         }
 
-            public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
+        public bool PlayerHasVesselPermission(string playerName, Guid vesselID)
         {
+
             lock (vesselPermissions)
             {
+                if (Settings.settingsStore.forcePublicSpaceObjects && vesselPermissions[vesselID].protection != VesselProtectionType.PUBLIC && GetSavedValue(vesselID, "type") == "SpaceObject")
+                {
+                    SetVesselProtection(vesselID, VesselProtectionType.PUBLIC);
+                }
+
                 if (!vesselPermissions.ContainsKey(vesselID))
                 {
                     return true;
@@ -316,8 +324,36 @@ namespace DarkMultiPlayerServer
                         return true;
                     }
                 }
-            } 
+            }
             return false;
+        }
+
+        //I could not find any functions that allowed me to extract saved vessel data, so I have made one here.
+        public string GetSavedValue(Guid guid, string VesselValue)
+        {
+            string findvalue = VesselValue + " =";
+            string FinalVesselValue = "nil";
+            bool foundvar = false;
+            string VesselFile = Path.Combine(Server.universeDirectory, "Vessels", guid.ToString() + ".txt");
+
+            if (File.Exists(VesselFile))
+            {
+                using (StreamReader sr = new StreamReader(VesselFile))
+                {
+                    string currentLine = sr.ReadLine();
+                    while (currentLine != null && !foundvar)
+                    {
+                        string trimmedLine = currentLine.Trim();
+                        if (trimmedLine.Trim().StartsWith(findvalue, StringComparison.Ordinal))
+                        {
+                            FinalVesselValue = trimmedLine.Substring(trimmedLine.IndexOf("=", StringComparison.Ordinal) + 2);
+                            foundvar = true;
+                        }
+                        currentLine = sr.ReadLine();
+                    }
+                }
+            }
+            return FinalVesselValue;
         }
     }
 }
