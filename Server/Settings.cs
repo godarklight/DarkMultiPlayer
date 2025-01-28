@@ -90,6 +90,8 @@ namespace DarkMultiPlayerServer
         public string consoleIdentifier = "Server";
         [Description("Specify the server's MOTD (message of the day).")]
         public string serverMotd = "Welcome, %name%!";
+        [Description("List of bodies used for %randombody% in the server MOTD.")]
+        public List<string> randomBodies = ["Moho", "Eve", "Gilly", "Mün", "Minmus", "Duna", "Ike", "Jool", "Laythe", "Vall", "Tylo", "Bop", "Pol", "Eeloo"];
         [Description("Specify the amount of days a screenshot should be considered as expired and deleted. 0 = Disabled")]
         public double expireScreenshots = 0;
         [Description("Specify whether to enable compression. Decreases bandwidth usage but increases CPU usage. 0 = Disabled")]
